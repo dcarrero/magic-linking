@@ -3,13 +3,13 @@
 [![WordPress](https://img.shields.io/badge/WordPress-6.9%2B-blue.svg)](https://wordpress.org/)
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-purple.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Version](https://img.shields.io/badge/Version-0.9.0-orange.svg)](readme.txt)
+[![WordPress.org](https://img.shields.io/wordpress/plugin/v/magic-linking?label=wordpress.org)](https://wordpress.org/plugins/magic-linking/)
 
 Internal linking for WordPress that works for free, uses the AI your site already has connected through **Settings → Connectors**, and never sells credits.
 
 *Enlazado interno para WordPress que funciona gratis de verdad, con la IA que ya tiene tu WordPress y sin vender créditos.*
 
-> **Status: first public version (0.9).** It analyses your internal links and reports problems; it never modifies content and does not use AI yet. Suggestions, one-click insertion and undo come next (see the [Roadmap](#-roadmap)).
+> **Status: first public version (0.9), [available on wordpress.org](https://wordpress.org/plugins/magic-linking/).** It analyses your internal links and reports problems; it never modifies content and does not use AI yet. Suggestions, one-click insertion and undo come next (see the [Roadmap](#-roadmap)).
 
 ## 🚀 Features
 
@@ -30,6 +30,10 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 - It does not check links over the network: a link is "broken" when it points to an address of your own site that leads nowhere, according to WordPress. Links to other sites are counted, not checked.
 
 ## 🛠️ Installation
+
+### From wordpress.org
+
+Go to **Plugins → Add New**, search for **Magic Linking** and click **Install Now**, or download it from [wordpress.org/plugins/magic-linking](https://wordpress.org/plugins/magic-linking/).
 
 ### From a ZIP
 
