@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 772 250" width="772" height="250"><rect width="772" height="250" fill="#fff"/><rect x="440" width="332" height="250" fill="#f5f7fb"/>
+<path d="M520 190 L600 90 L690 165 M690 165 L735 105 M520 190 L690 165" stroke="#1d4ed8" stroke-width="3" stroke-linecap="round" fill="none"/>
+<g fill="#1d4ed8"><circle cx="520" cy="190" r="12"/><circle cx="690" cy="165" r="12"/><circle cx="735" cy="105" r="8"/><circle cx="600" cy="90" r="14"/></g>
+<circle cx="640" cy="60" r="12" fill="#fbbf24"/>
+<text x="48" y="112" font-family="Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif" font-weight="700" font-size="54" fill="#0f172a" letter-spacing="-1">Magic Linking</text>
+<text x="50" y="152" font-family="system-ui, -apple-system, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#475569">Find orphan pages and broken internal links.</text>
+<rect x="50" y="176" width="64" height="5" rx="2.5" fill="#1d4ed8"/>
+<text x="50" y="212" font-family="system-ui, -apple-system, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#475569">Free. No AI, no tracking. It never changes your content.</text></svg>

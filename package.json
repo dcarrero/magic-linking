@@ -1,0 +1,35 @@
+{
+  "name": "magic-linking",
+  "version": "0.9.2",
+  "private": true,
+  "description": "Internal links report for WordPress: orphan pages, under-linked and over-linked entries, broken internal links.",
+  "license": "GPL-2.0-or-later",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "wp-scripts build --webpack-src-dir=assets/src --output-path=assets/build",
+    "start": "wp-scripts start --webpack-src-dir=assets/src --output-path=assets/build",
+    "lint:js": "wp-scripts lint-js assets/src",
+    "typecheck": "tsc --noEmit",
+    "env": "wp-env",
+    "plugin-check": "npm run zip && wp-env run cli bash -c \"ln -sfn /var/www/html/wp-content/plugins/magiclinking-wordpress-plugin/dist/magic-linking /var/www/html/wp-content/plugins/magic-linking && (wp plugin is-installed plugin-check || wp plugin install plugin-check) && wp plugin activate plugin-check --quiet && wp plugin check magic-linking\"",
+    "zip": "bash bin/zip.sh",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^20.19.43",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@wordpress/a11y": "^4.56.0",
+    "@wordpress/api-fetch": "^7.56.0",
+    "@wordpress/components": "^41.0.0",
+    "@wordpress/element": "^8.8.0",
+    "@wordpress/env": "^10.0.0",
+    "@wordpress/i18n": "^6.29.0",
+    "@wordpress/scripts": "^30.0.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,761 @@
+# Copyright (C) 2026 Color Vivo
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Magic Linking 0.9.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-29T18:08:57+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: magic-linking\n"
+
+#. Plugin Name of the plugin
+#: magic-linking.php
+#: src/Admin/Screen.php:134
+msgid "Magic Linking"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: magic-linking.php
+msgid "https://magiclinking.com"
+msgstr ""
+
+#. Description of the plugin
+#: magic-linking.php
+msgid "Find orphan pages, under-linked and over-linked entries and broken internal links. It never changes your content."
+msgstr ""
+
+#. Author of the plugin
+#: magic-linking.php
+msgid "Color Vivo"
+msgstr ""
+
+#. Author URI of the plugin
+#: magic-linking.php
+msgid "https://colorvivo.com"
+msgstr ""
+
+#. translators: 1: minimum PHP version, 2: PHP version in use.
+#: magic-linking.php:45
+#, php-format
+msgid "PHP %1$s or later (this site runs PHP %2$s)"
+msgstr ""
+
+#. translators: 1: minimum WordPress version, 2: WordPress version in use.
+#: magic-linking.php:50
+#, php-format
+msgid "WordPress %1$s or later (this site runs WordPress %2$s)"
+msgstr ""
+
+#: magic-linking.php:54
+msgid "the PHP mbstring extension"
+msgstr ""
+
+#. translators: %s: list of missing requirements, separated by commas.
+#: magic-linking.php:65
+#, php-format
+msgid "Magic Linking needs %s. It has not been loaded."
+msgstr ""
+
+#: magic-linking.php:100
+msgid "Plugin not activated"
+msgstr ""
+
+#: magic-linking.php:71
+msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
+msgstr ""
+
+#: src/Admin/Screen.php:91
+msgid "Open report"
+msgstr ""
+
+#: src/Admin/Screen.php:139
+#: assets/build/index.js:20
+msgid "Report"
+msgstr ""
+
+#: src/Admin/Screen.php:145
+#: assets/build/index.js:20
+#: assets/build/index.js:21
+msgid "Broken links"
+msgstr ""
+
+#: src/Admin/Screen.php:149
+#: assets/build/index.js:20
+msgid "Settings"
+msgstr ""
+
+#: src/Admin/Screen.php:196
+msgid "Items per page"
+msgstr ""
+
+#: src/Admin/Screen.php:271
+msgid "You do not have permission to see this page."
+msgstr ""
+
+#: src/Admin/Screen.php:276
+#: assets/build/index.js:21
+msgid "Internal links"
+msgstr ""
+
+#: src/Admin/Screen.php:277
+#: assets/build/index.js:6
+#: assets/build/index.js:20
+msgid "Loading…"
+msgstr ""
+
+#: src/Admin/Screen.php:278
+msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
+msgstr ""
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:104
+#, php-format
+msgid "Process %1$d is paused. Resume it with: wp magic-linking job resume %2$d"
+msgstr ""
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:115
+#, php-format
+msgid "Process %d queued. It will run in the background with Action Scheduler."
+msgstr ""
+
+#: src/Cli/Command.php:122
+msgid "Analyzing entries"
+msgstr ""
+
+#. translators: 1: new or modified entries, 2: unchanged entries skipped.
+#: src/Cli/Command.php:138
+#, php-format
+msgid "%1$d new or modified, %2$d unchanged and skipped."
+msgstr ""
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:146
+#, php-format
+msgid "%d entry analyzed."
+msgid_plural "%d entries analyzed."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Cli/Command.php:156
+msgid "The process did not finish. Check its state with: wp magic-linking status"
+msgstr ""
+
+#: src/Cli/Command.php:288
+msgid "Invalid filter. Use: all, orphans, low, over or broken."
+msgstr ""
+
+#: src/Cli/Command.php:291
+msgid "Invalid column for --orderby."
+msgstr ""
+
+#: src/Cli/Command.php:414
+msgid "Unknown action. Use: list, pause, resume or cancel."
+msgstr ""
+
+#: src/Cli/Command.php:419
+msgid "There is no such process."
+msgstr ""
+
+#: src/Cli/Command.php:434
+#: src/Rest/JobsController.php:179
+msgid "That process cannot be changed in its current state."
+msgstr ""
+
+#. translators: 1: process ID, 2: new state.
+#: src/Cli/Command.php:440
+#, php-format
+msgid "Process %1$d is now %2$s."
+msgstr ""
+
+#: src/Cli/Command.php:455
+msgid "That entry does not exist."
+msgstr ""
+
+#: src/Cli/Command.php:462
+msgid "Entry analyzed."
+msgstr ""
+
+#: src/Cli/Command.php:465
+msgid "Nothing changed since the last analysis. Use --force to analyze it again."
+msgstr ""
+
+#: src/Cli/Command.php:468
+msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
+msgstr ""
+
+#: src/Cli/Command.php:471
+msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
+msgstr ""
+
+#: src/Cli/Command.php:484
+msgid "Could not open the output."
+msgstr ""
+
+#: src/Graph/BrokenReason.php:31
+msgid "No entry exists with this URL."
+msgstr ""
+
+#: src/Graph/BrokenReason.php:33
+msgid "The destination entry is in the trash."
+msgstr ""
+
+#: src/Graph/BrokenReason.php:35
+msgid "The destination entry is not published (draft, pending or scheduled)."
+msgstr ""
+
+#: src/Graph/BrokenReason.php:37
+msgid "The destination entry is private."
+msgstr ""
+
+#: src/Graph/BrokenRepository.php:105
+#: src/Graph/ReportRepository.php:294
+msgid "(no title)"
+msgstr ""
+
+#: src/Graph/LinkStatus.php:69
+#: assets/build/index.js:18
+msgid "Orphan"
+msgstr ""
+
+#: src/Graph/LinkStatus.php:71
+#: assets/build/index.js:18
+#: assets/build/index.js:19
+msgid "Under-linked"
+msgstr ""
+
+#: src/Graph/LinkStatus.php:73
+#: assets/build/index.js:18
+#: assets/build/index.js:19
+msgid "Over-linked"
+msgstr ""
+
+#: src/Graph/LinkStatus.php:75
+#: assets/build/index.js:18
+msgid "OK"
+msgstr ""
+
+#: src/Report/ExportHandler.php:70
+msgid "You are not allowed to export this data."
+msgstr ""
+
+#: src/Rest/JobsController.php:164
+msgid "That process does not exist."
+msgstr ""
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/index.js:2
+#, js-format
+msgid "Page %1$s of %2$s"
+msgstr ""
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:3
+#, js-format
+msgid "%s entry"
+msgid_plural "%s entries"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of links.
+#: assets/build/index.js:4
+#, js-format
+msgid "%s link"
+msgid_plural "%s links"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/index.js:4
+msgid "First page"
+msgstr ""
+
+#: assets/build/index.js:4
+msgid "Previous page"
+msgstr ""
+
+#: assets/build/index.js:4
+#: assets/build/index.js:5
+msgid "Current page"
+msgstr ""
+
+#. translators: %s: total number of pages.
+#: assets/build/index.js:5
+#, js-format
+msgid "of %s"
+msgstr ""
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/index.js:6
+#, js-format
+msgid "%1$s of %2$s"
+msgstr ""
+
+#: assets/build/index.js:6
+msgid "Next page"
+msgstr ""
+
+#: assets/build/index.js:6
+msgid "Last page"
+msgstr ""
+
+#: assets/build/index.js:6
+msgid "Sorted descending."
+msgstr ""
+
+#: assets/build/index.js:6
+msgid "Sorted ascending."
+msgstr ""
+
+#: assets/build/index.js:6
+msgid "Show more details"
+msgstr ""
+
+#: assets/build/index.js:6
+msgid "Search"
+msgstr ""
+
+#: assets/build/index.js:6
+msgid "Could not load the broken links."
+msgstr ""
+
+#: assets/build/index.js:6
+msgid "No broken links found."
+msgstr ""
+
+#. translators: %d: number of broken links.
+#: assets/build/index.js:7
+#, js-format
+msgid "%d broken link"
+msgid_plural "%d broken links"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/index.js:7
+msgid "Entry"
+msgstr ""
+
+#: assets/build/index.js:7
+msgid "Broken URL"
+msgstr ""
+
+#: assets/build/index.js:7
+msgid "Anchor text"
+msgstr ""
+
+#: assets/build/index.js:7
+msgid "(no text)"
+msgstr ""
+
+#: assets/build/index.js:7
+msgid "Reason"
+msgstr ""
+
+#: assets/build/index.js:7
+msgid "Internal links that lead nowhere: the destination is in the trash, is not published, is private or does not exist. Nothing is checked over the network. Fix each one by editing the entry."
+msgstr ""
+
+#. translators: %s: entry title.
+#: assets/build/index.js:8
+#, js-format
+msgid "Showing only the broken links in “%s”."
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Show all"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Search broken links"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Broken internal links"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Edit entry"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "There are no broken internal links. Well done."
+msgstr ""
+
+#: assets/build/index.js:8
+#: assets/build/index.js:20
+msgid "Export CSV"
+msgstr ""
+
+#. translators: %s: number of seconds.
+#: assets/build/index.js:9
+#, js-format
+msgid "%s s"
+msgstr ""
+
+#. translators: 1: minutes, 2: seconds.
+#: assets/build/index.js:10
+#, js-format
+msgid "%1$s min %2$s s"
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Maintenance"
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Last full analysis"
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Duration"
+msgstr ""
+
+#: assets/build/index.js:10
+#: assets/build/index.js:21
+msgid "Entries analyzed"
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "There is no completed analysis yet."
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background and does not change any content."
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Analyze everything again from scratch"
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "An analysis is already running; its progress is shown above."
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Analyze everything again from scratch?"
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working, and it does not modify any of your content."
+msgstr ""
+
+#: assets/build/index.js:10
+#: assets/build/index.js:15
+msgid "Cancel"
+msgstr ""
+
+#: assets/build/index.js:10
+#: assets/build/index.js:13
+msgid "Analysis started."
+msgstr ""
+
+#: assets/build/index.js:10
+#: assets/build/index.js:13
+msgid "That did not work. Try again."
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Start analysis"
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Less than a minute left."
+msgstr ""
+
+#. translators: %s: number of minutes.
+#: assets/build/index.js:11
+#, js-format
+msgid "About %s minute left."
+msgid_plural "About %s minutes left."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of hours.
+#: assets/build/index.js:12
+#, js-format
+msgid "About %s hour left."
+msgid_plural "About %s hours left."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: new or modified entries analyzed, 2: unchanged entries skipped.
+#: assets/build/index.js:13
+#, js-format
+msgid "Analysis finished: %1$s new or modified, %2$s unchanged and skipped."
+msgstr ""
+
+#: assets/build/index.js:13
+msgid "Analysis finished."
+msgstr ""
+
+#: assets/build/index.js:13
+msgid "Could not read the analysis status."
+msgstr ""
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:14
+#, js-format
+msgid "Analysis paused: %1$s of %2$s entries."
+msgstr ""
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:15
+#, js-format
+msgid "Analyzing your entries: %1$s of %2$s."
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "The analysis seems to have stopped. Resume it, or check that WP-Cron or Action Scheduler is running."
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "Analysis resumed."
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "Resume"
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "Analysis paused."
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "Pause"
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "Analysis cancelled."
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "Analyze your site"
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. It does not change any content."
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "Analyze my site"
+msgstr ""
+
+#: assets/build/index.js:15
+msgid "An administrator has to run the first analysis."
+msgstr ""
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:16
+#, js-format
+msgid "%s new or modified entry pending."
+msgid_plural "%s new or modified entries pending."
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/index.js:16
+#: assets/build/index.js:18
+msgid "Analyze changes"
+msgstr ""
+
+#. translators: %s: error message.
+#: assets/build/index.js:17
+#, js-format
+msgid "The last analysis failed: %s"
+msgstr ""
+
+#: assets/build/index.js:17
+msgid "unknown error"
+msgstr ""
+
+#. translators: %s: date and time of the last analysis.
+#: assets/build/index.js:18
+#, js-format
+msgid "Last analysis: %s"
+msgstr ""
+
+#: assets/build/index.js:18
+msgid "Could not load the report."
+msgstr ""
+
+#: assets/build/index.js:18
+msgid "No entries found."
+msgstr ""
+
+#. translators: %d: number of entries.
+#: assets/build/index.js:19
+#, js-format
+msgid "%d entry"
+msgid_plural "%d entries"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/index.js:19
+msgid "All"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "Orphans"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "With broken links"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "Title"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "Type · Language"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "Type"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "Inbound"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "Internal outbound"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "External"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "Broken"
+msgstr ""
+
+#. translators: %s: entry title.
+#: assets/build/index.js:20
+#, js-format
+msgid "broken links in %s"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Status"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Analyzed"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Search entries by title"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Internal links by entry"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Edit"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "View"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "View broken links"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "No entries match these filters."
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Content type"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "All types"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Language"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "All languages"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Could not load the settings."
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Settings saved. The content types changed, so your site is being analyzed again."
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Settings saved."
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "The settings could not be saved."
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Content types to analyze"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Under-linked below this many inbound links"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Words per internal link"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed)."
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Delete all Magic Linking data when the plugin is deleted"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Removes its tables and settings. Nothing is ever changed in your content, so the links already in your entries stay as they are."
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Save settings"
+msgstr ""
+
+#: assets/build/index.js:20
+msgid "Choose at least one content type."
+msgstr ""
+
+#. translators: %s: section name (Report, Broken links, Settings).
+#: assets/build/index.js:21
+#, js-format
+msgid "Magic Linking · %s"
+msgstr ""
+
+#: assets/build/index.js:21
+msgid "Orphan entries"
+msgstr ""
+
+#: assets/build/index.js:21
+msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
+msgstr ""
+
+#. translators: %s: WP-CLI command.
+#: assets/build/index.js:22
+#, js-format
+msgid "You can also run the analysis from the terminal: %s"
+msgstr ""

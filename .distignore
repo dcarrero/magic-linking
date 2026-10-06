@@ -1,0 +1,50 @@
+# Lo que NO entra en el ZIP de wordpress.org (bin/zip.sh).
+# assets/src, package.json, tsconfig.json y webpack.config.js SÍ entran: son el código
+# fuente legible del JavaScript compilado (norma 4 de wordpress.org).
+# De src/Engine solo viaja lo que usa el indexado léxico (F1-04); la recuperación, la puntuación,
+# las frases y la capa semántica llegan con F1-07 y las demás.
+/src/Engine/AnchorMatch.php
+/src/Engine/Candidate.php
+/src/Engine/Embedder.php
+/src/Engine/MemoryIndex.php
+/src/Engine/MemoryVectors.php
+/src/Engine/Phrase.php
+/src/Engine/PhraseFinder.php
+/src/Engine/Reason.php
+/src/Engine/Retriever.php
+/src/Engine/Score.php
+/src/Engine/Scorer.php
+/src/Engine/Semantic.php
+/src/Engine/Suggester.php
+/src/Engine/Suggestion.php
+/src/Engine/VectorStore.php
+/.git
+/.claude
+/.gstack
+/.vscode
+/.idea
+/.github
+/.wp-env.json
+/.wp-env.override.json
+/.distignore
+/.gitignore
+/.editorconfig
+/.DS_Store
+/node_modules
+/bin
+/dist
+/tests
+/composer.lock
+/package-lock.json
+/phpcs.xml.dist
+/phpstan.neon.dist
+/phpunit.xml.dist
+/HOOKS.md
+/CLAUDE.md
+/.phpunit.result.cache
+.gitkeep
+/README.md
+/playwright.config.ts
+/test-results
+/playwright-report
+/.wordpress-org

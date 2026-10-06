@@ -1,0 +1,78 @@
+name: Publicar en wordpress.org
+
+# Publica el plugin en https://plugins.svn.wordpress.org/magic-linking al empujar una etiqueta vX.Y.Z.
+# Secretos (una vez; gh pide el valor por teclado, no lo pongas en la línea de comandos):
+#   gh secret set SVN_USERNAME
+#   gh secret set SVN_PASSWORD
+# Publicar: subir Version: y Stable tag a X.Y.Z, fusionar en main y luego
+#   git tag vX.Y.Z && git push origin vX.Y.Z
+# A mano (Actions > Run workflow) con dry_run activado hace todo menos el «svn ci».
+# La lógica está en bin/deploy-wporg.sh; en local: VERSION=X.Y.Z DRY_RUN=1 bin/deploy-wporg.sh
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión a publicar (X.Y.Z, sin v). Vacío: la de magic-linking.php'
+        required: false
+        type: string
+      dry_run:
+        description: 'Simulacro: todo menos el svn ci'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-wporg
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar subversion y rsync
+        run: sudo apt-get update -q && sudo apt-get install -y -q subversion rsync
+      - name: Determinar la versión
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          ENTRADA: ${{ inputs.version }}
+        run: |
+          if [ "${REF_TYPE}" = "tag" ]; then
+            version="${REF_NAME#v}"
+          elif [ -n "${ENTRADA}" ]; then
+            version="${ENTRADA#v}"
+          else
+            version="$(sed -n 's/^[[:space:]*]*Version:[[:space:]]*\([^[:space:]]*\).*/\1/p' magic-linking.php | head -1)"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - run: npm ci
+      - run: npm run zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: magic-linking-${{ steps.version.outputs.version }}
+          path: dist/magic-linking.zip
+      - name: Publicar en el SVN de wordpress.org
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          # En etiqueta se publica de verdad; en ejecución manual, según dry_run (por defecto true).
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+        run: bin/deploy-wporg.sh

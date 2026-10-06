@@ -1,0 +1,16 @@
+parameters:
+	level: 6
+	# Rango de versiones soportado; el plugin se ejecuta en cualquiera de ellas.
+	phpVersion:
+		min: 80100
+		max: 80599
+	paths:
+		- magic-linking.php
+		- uninstall.php
+		- src
+	bootstrapFiles:
+		- tests/php/phpstan-bootstrap.php
+		- tests/php/stubs/wp-cli.php
+	scanFiles:
+		# Funciones as_* de Action Scheduler (dependencia de producción).
+		- vendor/woocommerce/action-scheduler/functions.php

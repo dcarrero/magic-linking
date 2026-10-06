@@ -1,0 +1,194 @@
+// Pantalla «Internal links». Usa los colores del administrador; los estados llevan siempre texto.
+
+.magiclinking-wrap {
+	max-width: 1400px;
+
+	.description {
+		margin: 8px 0;
+	}
+}
+
+.magiclinking-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 12px;
+	margin: 16px 0;
+
+	> div {
+		background: #fff;
+		border: 1px solid #c3c4c7;
+		border-radius: 2px;
+		padding: 12px 16px;
+	}
+
+	dt {
+		color: #50575e;
+		font-size: 13px;
+	}
+
+	dd {
+		font-size: 28px;
+		line-height: 1.3;
+		margin: 0;
+	}
+}
+
+.magiclinking-status {
+	margin: 12px 0;
+
+	.magiclinking-empty,
+	.magiclinking-progress,
+	.magiclinking-pending {
+		background: #fff;
+		border: 1px solid #c3c4c7;
+		border-left: 4px solid var(--wp-admin-theme-color, #2271b1);
+		padding: 8px 16px 16px;
+	}
+
+	.magiclinking-empty {
+		max-width: 720px;
+	}
+
+	progress {
+		display: block;
+		width: 100%;
+		max-width: 480px;
+		height: 12px;
+	}
+
+	.magiclinking-actions {
+		display: flex;
+		gap: 8px;
+		margin-top: 12px;
+	}
+}
+
+.magiclinking-panel {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 8px 16px 16px;
+	margin-top: 12px;
+}
+
+// Columnas de la tabla nativa (`fixed`): anchos solo en escritorio; en móvil manda la vista responsive de WordPress.
+@media screen and (min-width: 783px) {
+	.magiclinking-wrap .wp-list-table {
+		.num {
+			width: 9%;
+		}
+
+		.column-type,
+		.column-status,
+		.column-indexed_at {
+			width: 12%;
+		}
+	}
+}
+
+.magiclinking-wrap .wp-list-table {
+	.magiclinking-url {
+		overflow-wrap: anywhere;
+		white-space: normal;
+	}
+
+	// WCAG 2.2 (2.5.8): los botones con aspecto de enlace de las acciones de fila también miden 24 px.
+	.row-actions .button-link {
+		min-height: 24px;
+	}
+}
+
+.magiclinking-zero {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.magiclinking-warn {
+	color: #8a5a00;
+	font-weight: 600;
+}
+
+.magiclinking-badge {
+	border: 1px solid currentcolor;
+	border-radius: 2px;
+	display: inline-block;
+	font-size: 12px;
+	padding: 1px 6px;
+	white-space: nowrap;
+
+	&--orphan {
+		color: #b32d2e;
+	}
+
+	&--low,
+	&--over {
+		color: #8a5a00;
+	}
+
+	&--ok {
+		color: #1a6b2a;
+	}
+}
+
+.magiclinking-error {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.magiclinking-settings {
+	display: grid;
+	gap: 20px;
+	max-width: 640px;
+	padding-top: 12px;
+
+	fieldset {
+		border: 0;
+		margin: 0;
+		padding: 0;
+	}
+
+	legend {
+		font-weight: 600;
+		margin-bottom: 8px;
+	}
+
+	// WCAG 2.2 (2.5.8): las casillas (16 px) llevan separación suficiente entre sí.
+	.components-checkbox-control + .components-checkbox-control {
+		margin-top: 16px;
+	}
+}
+
+.magiclinking-maintenance {
+	border-top: 1px solid #dcdcde;
+	display: grid;
+	gap: 12px;
+	justify-items: start;
+	margin-top: 28px;
+	max-width: 640px;
+	padding-top: 20px;
+
+	h2 {
+		margin: 0;
+	}
+
+	.magiclinking-maintenance-facts {
+		display: grid;
+		gap: 8px;
+		margin: 0;
+
+		dt {
+			font-weight: 600;
+		}
+
+		dd {
+			margin: 0;
+		}
+	}
+
+	p {
+		margin: 0;
+	}
+}
+
+.magiclinking-eta {
+	margin-top: 0;
+}
