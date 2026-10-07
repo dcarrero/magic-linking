@@ -110,6 +110,61 @@ final class BlockEditor {
 	}
 
 	/**
+	 * Prepara un contenido para comprobar varias peticiones sin volver a leerlo cada vez: la vista de texto de cada
+	 * tramo de los bloques en los que se enlaza.
+	 *
+	 * @param string $content  Contenido.
+	 * @param int    $post_id  Entrada (para el filtro `magiclinking_insertable_blocks`).
+	 * @param bool   $headings Enlazar también en encabezados.
+	 *
+	 * @return list<TextView>|null Null si la estructura de bloques no se puede leer.
+	 */
+	public function prepare( string $content, int $post_id, bool $headings = false ): ?array {
+		$map = BlockMap::parse( $content );
+		if ( null === $map ) {
+			return null;
+		}
+
+		$allowed = $this->allowed( new InsertRequest( $post_id, '', '', '', '', null, array(), null, $headings ) );
+		$views   = array();
+		foreach ( $map->walk() as $node ) {
+			if ( $node->freeform || ! in_array( $node->name, $allowed, true ) ) {
+				continue;
+			}
+			foreach ( $node->segments as [ $from, $to ] ) {
+				$views[] = new TextView( substr( $content, $from, $to - $from ), false );
+			}
+		}
+
+		return $views;
+	}
+
+	/**
+	 * Si la petición se podría insertar: el contexto aparece una sola vez, enlazable, en los tramos preparados.
+	 * Lo mismo que comprueba {@see self::insert()} antes de escribir, sin construir el resultado.
+	 *
+	 * @param array         $views   Tramos de {@see self::prepare()}.
+	 * @param InsertRequest $request Petición.
+	 *
+	 * @phpstan-param list<TextView> $views
+	 */
+	public function fits( array $views, InsertRequest $request ): bool {
+		$found = 0;
+		foreach ( $views as $view ) {
+			foreach ( Linker::matches( $view, $request ) as [ $a, $b ] ) {
+				if ( null !== $view->unsafe() ) {
+					return false;
+				}
+				if ( null === Linker::blocked( $view, $a, $b, $request->headings ) ) {
+					++$found;
+				}
+			}
+		}
+
+		return 1 === $found;
+	}
+
+	/**
 	 * Bloques en los que se busca: el indicado por la ruta o, si no hay, todos.
 	 *
 	 * @param BlockMap      $map     Mapa.

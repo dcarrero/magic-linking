@@ -305,14 +305,19 @@ final class SuggestionsController implements Module {
 	 * @return list<Suggestion>
 	 */
 	private function insertable( string $content, int $post_id, array $found ): array {
-		$kept = array();
-		foreach ( $found as $suggestion ) {
+		$requests = array();
+		foreach ( $found as $key => $suggestion ) {
 			try {
-				$request = InsertRequest::from_sentence( $post_id, home_url( '/' ), $suggestion->sentence, $suggestion->offset, $suggestion->anchor );
+				$requests[ $key ] = InsertRequest::from_sentence( $post_id, home_url( '/' ), $suggestion->sentence, $suggestion->offset, $suggestion->anchor );
 			} catch ( InsertionException ) {
 				continue;
 			}
-			if ( $this->inserter->can_insert( $content, $request ) ) {
+		}
+
+		$fits = $this->inserter->can_insert_many( $content, $post_id, $requests );
+		$kept = array();
+		foreach ( $found as $key => $suggestion ) {
+			if ( $fits[ $key ] ?? false ) {
 				$kept[] = $suggestion;
 			}
 		}

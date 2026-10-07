@@ -74,6 +74,27 @@ final class ClassicEditor {
 	}
 
 	/**
+	 * Si la petición se podría insertar en este contenido: el contexto aparece una sola vez, enlazable. Lo mismo
+	 * que comprueba {@see self::insert()} antes de escribir, sin construir el resultado y con la vista ya hecha.
+	 *
+	 * @param TextView      $view    Vista del contenido (`new TextView( $content, true )`).
+	 * @param InsertRequest $request Petición.
+	 */
+	public function fits( TextView $view, InsertRequest $request ): bool {
+		$found = 0;
+		foreach ( Linker::matches( $view, $request ) as [ $a, $b ] ) {
+			if ( null !== $view->unsafe() ) {
+				return false;
+			}
+			if ( null === Linker::blocked( $view, $a, $b, $request->headings ) ) {
+				++$found;
+			}
+		}
+
+		return 1 === $found;
+	}
+
+	/**
 	 * Tramo del documento entre líneas en blanco que contiene los bytes [start, end).
 	 *
 	 * @param string $content Contenido.
