@@ -140,7 +140,10 @@ final class PhraseFinder {
 	 * empiezan por palabra de contenido («GW de capacidad») o acaban en unidad,
 	 * magnitud o mes (sí pueden acabar en cifra: «iPhone 15»), y las que
 	 * empiezan o terminan en una forma verbal («Anthropic podría»): así
-	 * gana otra aparición del mismo destino si la hay. Amplía el
+	 * gana otra aparición del mismo destino si la hay. Antes de esos descartes recorta
+	 * el ancla hasta que no empiece ni acabe en palabra vacía (del idioma de la entrada,
+	 * de otro idioma que domina la frase o el extremo de una palabra con guion):
+	 * «el consumo de» → «consumo»; si no queda nada, se descarta. Amplía el
 	 * ancla una palabra a la derecha si esa palabra no es vacía, está en el
 	 * título del destino y es uno de sus términos principales («bomba de calor»
 	 * → «bomba de calor aerotérmica»).
@@ -151,13 +154,15 @@ final class PhraseFinder {
 	 * @param array            $expand   Claves de las palabras del título del destino que son términos principales.
 	 * @param array            $blocked  Clave de ancla → destino con el que el origen ya la usa.
 	 * @param int              $target   ID del destino.
+	 * @param array|null       $terms    Términos principales del destino; con ellos, un ancla que el recorte deja en una sola palabra solo vale si es uno de ellos (como un tramo de una palabra del título). Null: sin esa comprobación.
 	 * @return list<AnchorMatch> En orden de aparición.
 	 *
 	 * @phpstan-param list<Phrase> $phrases
 	 * @phpstan-param array<string, true> $expand
 	 * @phpstan-param array<string, int> $blocked
+	 * @phpstan-param array<string, float>|null $terms
 	 */
-	public function find( AnalyzedDocument $source, array $phrases, Analyzer $analyzer, array $expand = array(), array $blocked = array(), int $target = 0 ): array {
+	public function find( AnalyzedDocument $source, array $phrases, Analyzer $analyzer, array $expand = array(), array $blocked = array(), int $target = 0, ?array $terms = null ): array {
 		$positions = $source->positions();
 		$total     = count( $source->sentences );
 		$last      = array() === $source->sentences ? -1 : $source->sentences[ $total - 1 ]->paragraph;
@@ -176,14 +181,32 @@ final class PhraseFinder {
 				}
 
 				[ $start, $end ] = $this->expand( $sentence, $i, $i + $size - 1, $expand );
-				$words           = $end - $start + 1;
-				$offset          = $sentence->tokens[ $start ]->offset;
-				$anchor          = substr( $sentence->text, $offset, $sentence->tokens[ $end ]->end() - $offset );
-				$key             = implode( ' ', array_slice( $sentence->keys, $start, $words ) );
+				$grown           = array( $start, $end );
+				[ $start, $end ] = $analyzer->trim_edges( $sentence->tokens, $start, $end, $analyzer->foreign_language( $sentence ) );
+				if ( $end < $start ) {
+					continue;
+				}
+				if ( $grown[1] - $grown[0] + 1 > $this->max_words ) {
+					continue;
+				}
+				// «más información» sigue siendo genérica aunque al recortarla quede «información».
+				$whole = substr( $sentence->text, $sentence->tokens[ $grown[0] ]->offset, $sentence->tokens[ $grown[1] ]->end() - $sentence->tokens[ $grown[0] ]->offset );
+				if ( isset( $generic[ $analyzer->tokenizer()->key( $whole ) ] ) ) {
+					continue;
+				}
+				$words   = $end - $start + 1;
+				$offset  = $sentence->tokens[ $start ]->offset;
+				$anchor  = substr( $sentence->text, $offset, $sentence->tokens[ $end ]->end() - $offset );
+				$key     = implode( ' ', array_slice( $sentence->keys, $start, $words ) );
+				$trimmed = array( $start, $end ) !== $grown;
+
+				// Recortada a una palabra: vale solo si es término principal del destino (como el título, l. «Un segmento de una palabra»).
+				if ( $trimmed && 1 === $words && null !== $terms && ! isset( $terms[ $key ] ) ) {
+					continue;
+				}
 
 				$span = array_slice( $sentence->tokens, $start, $words );
-				if ( $words > $this->max_words
-					|| preg_match_all( '/[\p{L}\p{N}]/u', $anchor ) < 2
+				if ( preg_match_all( '/[\p{L}\p{N}]/u', $anchor ) < 2
 					|| ! self::has_content( $span, $analyzer )
 					|| ! $analyzer->is_content( $span[0] )
 					|| $analyzer->is_numeric_word( $span[ $words - 1 ] )
@@ -194,7 +217,9 @@ final class PhraseFinder {
 					continue;
 				}
 
-				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, $phrase->kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last );
+				$kind = $trimmed ? ( $words > 1 ? Phrase::NGRAM : Phrase::UNIGRAM ) : $phrase->kind;
+				// Si dos frases dan el mismo tramo gana la última (comportamiento de siempre; D-52).
+				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, $kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last );
 			}//end foreach
 		}//end foreach
 

@@ -311,6 +311,109 @@ final class LexicalIndexTest extends GraphTestCase {
 		$this->assertNull( $this->repo->meta( 999999 ) );
 	}
 
+	/**
+	 * Deja el sitio como tras actualizar desde 0.9.2: grafo hecho, sin índice léxico.
+	 *
+	 * @return array<string, int>
+	 */
+	private function site_from_092(): array {
+		global $wpdb;
+		$ids = $this->corpus();
+		$this->run_job();
+
+		foreach ( array( 'terms', 'postings' ) as $table ) {
+			$name = Schema::table( $wpdb->prefix, $table );
+			$wpdb->query( "DELETE FROM {$name}" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+		$docs = Schema::table( $wpdb->prefix, 'docs' );
+		$wpdb->query( "UPDATE {$docs} SET doc_len = 0, lex_hash = '', lex_at = NULL" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		delete_option( LexicalIndexer::BUILDING_OPTION );
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+		$this->assertFalse( $this->lexical->is_built() );
+
+		return $ids;
+	}
+
+	public function test_an_update_from_092_schedules_a_system_build_that_makes_suggestions_ready(): void {
+		$ids = $this->site_from_092();
+
+		Installer::request_reconcile();
+		$this->assertTrue( as_has_scheduled_action( Jobs::HOOK_RECONCILE, null, Installer::ACTION_GROUP ) );
+		Installer::request_reconcile();
+		$this->assertCount(
+			1,
+			as_get_scheduled_actions(
+				array(
+					'hook'     => Jobs::HOOK_RECONCILE,
+					'status'   => \ActionScheduler_Store::STATUS_PENDING,
+					'per_page' => 10,
+				)
+			),
+			'No se duplica.'
+		);
+
+		do_action( Jobs::HOOK_RECONCILE );
+
+		$active = $this->jobs->repository()->active( Jobs::TYPE_INDEX );
+		$this->assertNotNull( $active );
+		$this->assertTrue( $active['params']['build'] );
+		$this->assertTrue( $active['params']['system'] );
+		$this->assertFalse( $active['params']['graph'] );
+		$this->assertTrue( as_has_scheduled_action( Jobs::HOOK_BATCH, null, Installer::ACTION_GROUP ), 'Va por Action Scheduler.' );
+
+		$this->jobs->run_to_completion( $active['id'] );
+
+		$this->assertTrue( $this->lexical->is_built() );
+		$this->assertSame( 3, $this->df( 'zorrillo' ) );
+		$this->assertSame( 'ok', Plugin::container()->get( \MagicLinking\Index\Suggestions::class )->state( get_post( $ids['a'] ) ) );
+	}
+
+	public function test_the_nightly_run_builds_a_missing_lexical_index_as_a_safety_net(): void {
+		$this->site_from_092();
+
+		$this->jobs->run_nightly();
+
+		$active = $this->jobs->repository()->active( Jobs::TYPE_INDEX );
+		$this->assertNotNull( $active );
+		$this->assertTrue( $active['params']['system'] );
+	}
+
+	public function test_suggestions_are_not_served_in_the_request_that_migrates_the_schema(): void {
+		$this->corpus();
+		$this->run_job();
+		$suggestions = Plugin::container()->get( \MagicLinking\Index\Suggestions::class );
+		$this->assertTrue( $suggestions->ready() );
+
+		update_option( Installer::DB_VERSION_OPTION, 2, false );
+		Installer::forget_check();
+
+		$this->assertFalse( $suggestions->ready(), 'La migración marca el índice como a medias antes de decidir.' );
+		$this->assertSame( 3, (int) get_option( Installer::DB_VERSION_OPTION ) );
+	}
+
+	public function test_a_new_site_without_documents_schedules_no_build(): void {
+		$this->corpus();
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+
+		do_action( Jobs::HOOK_RECONCILE );
+		$this->jobs->run_nightly();
+
+		$this->assertNull( $this->jobs->repository()->active( Jobs::TYPE_INDEX ) );
+		$this->assertFalse( as_has_scheduled_action( Jobs::HOOK_BATCH, null, Installer::ACTION_GROUP ) );
+	}
+
+	public function test_a_manual_build_in_progress_is_not_duplicated(): void {
+		$this->site_from_092();
+		$manual = $this->jobs->start_index( 1 );
+
+		do_action( Jobs::HOOK_RECONCILE );
+		$this->jobs->run_nightly();
+
+		$active = $this->jobs->repository()->active( Jobs::TYPE_INDEX );
+		$this->assertSame( $manual['id'], $active['id'] );
+		$this->assertEmpty( $active['params']['system'] );
+	}
+
 	public function test_stale_index_triggers_a_lexical_rebuild_at_night(): void {
 		$this->corpus();
 		$this->run_job();

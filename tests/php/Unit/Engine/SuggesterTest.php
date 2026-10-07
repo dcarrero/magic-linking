@@ -308,4 +308,48 @@ final class SuggesterTest extends TestCase {
 		$none = $this->corpus->suggester( array( 'semantic_retrieval' => true ), $loose, self::vectors( array( 2, 5, 6 ) ) )->outgoing( $document );
 		$this->assertSame( $lexical, self::targets( $none ), 'sin vector del origen, léxico' );
 	}
+
+	/**
+	 * @return array{0: list<string>, 1: list<string>} Anclas y términos de los motivos de las sugerencias del origen 21.
+	 */
+	private function f1_29( string $lang ): array {
+		$corpus   = new Corpus(
+			static function ( ArraySource $s ) use ( $lang ): void {
+				$s->add( 20, 'Guía clásica de calefacción', array( 'La calefacción clásica de gas sigue en muchas casas.', 'Esta guía explica la calefacción de radiadores y su consumo.', 'Una guía completa de calefacción para casas con radiadores.' ), $lang );
+				$s->add( 22, 'Ahorro doméstico', array( 'Casas con buen aislamiento ahorran. El consumo de calefacción de las casas baja con la guía.' ), $lang );
+				$s->add( 21, 'Origen', array( 'La instalación de una bomba de calor reduce el consumo de energía en las casas con buen aislamiento.' ), $lang );
+			}
+		);
+		$document = $corpus->source->get( 21 );
+		$this->assertNotNull( $document );
+		$anchors = array();
+		$terms   = array();
+		foreach ( $corpus->suggester()->outgoing( $document ) as $suggestion ) {
+			if ( in_array( $suggestion->target, array( 20, 22 ), true ) ) {
+				$anchors[] = $suggestion->anchor;
+				foreach ( $suggestion->reasons as $reason ) {
+					if ( Reason::SHARED_TERMS === $reason->code ) {
+						$terms = array_merge( $terms, $reason->args['terms'] );
+					}
+				}
+			}
+		}
+		return array( $anchors, $terms );
+	}
+
+	public function test_anchors_and_shared_terms_never_start_or_end_in_a_stopword_even_with_the_wrong_language(): void {
+		$stop = array( 'el', 'la', 'las', 'de', 'del', 'en', 'con', 'una', 'y' );
+		foreach ( array( 'es', 'en' ) as $lang ) {
+			[ $anchors, $terms ] = $this->f1_29( $lang );
+
+			if ( 'en' === $lang ) {
+				$this->assertNotEmpty( $anchors, 'la entrada mal etiquetada sí produce sugerencias' );
+			}
+			foreach ( array_merge( $anchors, $terms ) as $text ) {
+				$words = explode( ' ', mb_strtolower( $text ) );
+				$this->assertNotContains( $words[0], $stop, "{$lang}: «{$text}»" );
+				$this->assertNotContains( end( $words ), $stop, "{$lang}: «{$text}»" );
+			}
+		}
+	}
 }

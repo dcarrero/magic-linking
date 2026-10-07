@@ -51,9 +51,10 @@ final class Jobs implements Module {
 	public const PHASE_SCAN  = 'scan';
 	public const PHASE_WEIGH = 'weigh';
 
-	public const HOOK_BATCH   = 'magiclinking_run_batch';
-	public const HOOK_POSTS   = 'magiclinking_index_posts';
-	public const HOOK_NIGHTLY = 'magiclinking_nightly';
+	public const HOOK_BATCH     = 'magiclinking_run_batch';
+	public const HOOK_POSTS     = 'magiclinking_index_posts';
+	public const HOOK_NIGHTLY   = 'magiclinking_nightly';
+	public const HOOK_RECONCILE = 'magiclinking_reconcile';
 
 	/**
 	 * Entradas por corte al empezar (después se adapta, ver Pace).
@@ -141,6 +142,7 @@ final class Jobs implements Module {
 		add_action( self::HOOK_BATCH, array( $this, 'run_batch' ), 10, 1 );
 		add_action( self::HOOK_POSTS, array( $this, 'run_posts' ), 10, 2 );
 		add_action( self::HOOK_NIGHTLY, array( $this, 'run_nightly' ) );
+		add_action( self::HOOK_RECONCILE, array( $this, 'reconcile' ) );
 		add_action( 'wp_after_insert_post', array( $this, 'on_post_saved' ), 20, 4 );
 		add_action( 'deleted_post', array( $this, 'on_post_deleted' ), 10, 1 );
 	}
@@ -753,6 +755,30 @@ final class Jobs implements Module {
 	}
 
 	/**
+	 * Pone al día lo programado tras activar o actualizar el plugin: el recálculo nocturno y el índice léxico.
+	 *
+	 * Una actualización desde una versión sin índice léxico (0.9.2) deja el grafo hecho y el léxico sin construir;
+	 * se construye en segundo plano sin esperar a que el usuario vuelva a analizar. No hace nada en un sitio sin
+	 * entradas analizadas ni si ya hay un proceso de indexado en marcha (no se duplica).
+	 */
+	public function reconcile(): void {
+		$this->ensure_schedules();
+		$this->ensure_lexical_index();
+	}
+
+	/**
+	 * Programa una construcción de sistema del índice léxico si hay grafo, no está construido y nadie la hace ya.
+	 * Una petición del usuario la cancela y toma el relevo (D-44).
+	 */
+	private function ensure_lexical_index(): void {
+		if ( 0 === $this->indexer->repository()->count_docs() || $this->lexical->is_built() || null !== $this->jobs->active( self::TYPE_INDEX ) ) {
+			return;
+		}
+
+		$this->start_index( 0, true, false, false, true, true );
+	}
+
+	/**
 	 * Recálculo nocturno: limpia lo que ya no cuenta y vuelve a comprobar las entradas con enlaces rotos.
 	 */
 	public function run_nightly(): void {
@@ -766,6 +792,9 @@ final class Jobs implements Module {
 		foreach ( array_chunk( $repo->sources_with_broken_links(), 25 ) as $chunk ) {
 			as_enqueue_async_action( self::HOOK_POSTS, array( $chunk, true ), Installer::ACTION_GROUP );
 		}
+
+		// Red de seguridad: grafo hecho y léxico sin construir (p. ej. tras actualizar desde 0.9.2).
+		$this->ensure_lexical_index();
 
 		// Entradas cuyo índice léxico quedó por detrás del grafo (el léxico falló tras guardar el grafo).
 		if ( $this->lexical->is_built() ) {

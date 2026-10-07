@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Core;
 
 use MagicLinking\Index\LexicalIndexer;
+use MagicLinking\Jobs\Jobs;
 use wpdb;
 
 /**
@@ -137,6 +138,21 @@ final class Installer implements Module {
 		global $wpdb;
 
 		( new self( $wpdb, MAGICLINKING_DB_VERSION ) )->maybe_upgrade();
+
+		// La desactivación cancela lo programado: se vuelve a programar el recálculo nocturno.
+		self::request_reconcile();
+	}
+
+	/**
+	 * Pide en segundo plano (Action Scheduler) que se ponga al día lo programado: recálculo nocturno e índice
+	 * léxico (véase Jobs::reconcile()). No bloquea la petición ni duplica la acción pendiente.
+	 */
+	public static function request_reconcile(): void {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! did_action( 'init' ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( Jobs::HOOK_RECONCILE, array(), self::ACTION_GROUP, true );
 	}
 
 	/**
@@ -194,6 +210,11 @@ final class Installer implements Module {
 		}
 
 		update_option( self::DB_VERSION_OPTION, $this->target_version, false );
+
+		// Una actualización (no una instalación nueva) puede dejar el índice léxico sin construir.
+		if ( $from > 0 ) {
+			self::request_reconcile();
+		}
 
 		return true;
 	}
