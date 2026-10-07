@@ -414,7 +414,7 @@ final class Suggester {
 		}
 		$terms   = $this->index->terms( $target );
 		$phrases = $this->finder->target_phrases( $meta, $terms, $analyzer );
-		$matches = $this->finder->find( $source, $phrases, $analyzer, $this->expansions( $meta, $terms, $analyzer ), $blocked, $target );
+		$matches = $this->finder->find( $source, $phrases, $analyzer, $this->expansions( $meta, $terms, $analyzer ), $blocked, $target, $terms );
 		if ( array() === $matches ) {
 			return null;
 		}
@@ -438,7 +438,7 @@ final class Suggester {
 		[ $best, $score ] = $scored[0];
 
 		$reasons = array();
-		$shared  = $this->shared( $weights, $terms, $source->surfaces, $analyzer );
+		$shared  = $this->shared( $weights, $terms, $source->surfaces, $analyzer, $analyzer->foreign_document( $source ) );
 		if ( array() !== $shared ) {
 			$reasons[] = new Reason( Reason::SHARED_TERMS, array( 'terms' => $shared ) );
 		}
@@ -503,9 +503,10 @@ final class Suggester {
 	 * @param array<string, float>  $terms    Términos principales del destino.
 	 * @param array<string, string> $surfaces Formas para mostrar del origen.
 	 * @param Analyzer              $analyzer Analizador del idioma del origen.
+	 * @param string|null           $foreign  Idioma que domina el texto del origen si no es el de la entrada.
 	 * @return list<string>
 	 */
-	private function shared( array $weights, array $terms, array $surfaces, Analyzer $analyzer ): array {
+	private function shared( array $weights, array $terms, array $surfaces, Analyzer $analyzer, ?string $foreign = null ): array {
 		$products = array();
 		foreach ( $terms as $term => $weight ) {
 			if ( isset( $weights[ $term ] ) ) {
@@ -515,33 +516,27 @@ final class Suggester {
 		arsort( $products );
 
 		$shown = array();
-		$keys  = array();
-		$forms = array();
+		$seen  = array();
 		foreach ( array_keys( $products ) as $term ) {
 			$term = (string) $term;
-			foreach ( $keys as $key ) {
-				if ( str_contains( ' ' . $key . ' ', ' ' . $term . ' ' ) || str_contains( ' ' . $term . ' ', ' ' . $key . ' ' ) ) {
-					continue 2;
-				}
-			}
 			// Sin forma de superficie solo habría la raíz («aerotermi»): no se enseña.
-			$form = isset( $surfaces[ $term ] ) ? $analyzer->display_term( $surfaces[ $term ] ) : null;
+			$form = isset( $surfaces[ $term ] ) ? $analyzer->display_term( $surfaces[ $term ], $foreign ) : null;
 			if ( null === $form ) {
 				continue;
 			}
-			$lower = mb_strtolower( $form );
-			foreach ( $forms as $other ) {
-				if ( str_contains( ' ' . $other . ' ', ' ' . $lower . ' ' ) || str_contains( ' ' . $lower . ' ', ' ' . $other . ' ' ) ) {
+			// Un término contenido en otro ya citado (o que lo contiene) no se repite, por raíz y por forma.
+			$padded = array( ' ' . $term . ' ', ' ' . $form . ' ' );
+			foreach ( $seen as $other ) {
+				if ( str_contains( $other[0], $padded[0] ) || str_contains( $padded[0], $other[0] ) || str_contains( $other[1], $padded[1] ) || str_contains( $padded[1], $other[1] ) ) {
 					continue 2;
 				}
 			}
-			$keys[]  = $term;
-			$forms[] = $lower;
+			$seen[]  = $padded;
 			$shown[] = $form;
 			if ( count( $shown ) >= self::SHARED_TERMS ) {
 				break;
 			}
-		}//end foreach
+		}
 		return $shown;
 	}
 

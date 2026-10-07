@@ -129,7 +129,18 @@ final class AnalyzerTest extends TestCase {
 		$this->assertNull( $es->display_term( 'de la' ) );
 		$this->assertNull( $es->display_term( '2025' ) );
 		// Texto en castellano con el analizador de inglés: «de» y «el» se quitan igualmente.
-		$this->assertSame( 'calefacción', Analyzer::for_language( 'en' )->display_term( 'de calefacción' ) );
+		$this->assertSame( 'calefacción', Analyzer::for_language( 'en' )->display_term( 'de calefacción', 'es' ) );
 		$this->assertSame( 'price', Analyzer::for_language( 'en' )->display_term( 'the price of' ) );
+	}
+
+	public function test_display_term_only_uses_the_entry_language_and_the_dominant_one(): void {
+		$en = Analyzer::for_language( 'en' );
+		$es = Analyzer::for_language( 'es' );
+
+		$this->assertSame( 'sea level', $en->display_term( 'sea level' ) );
+		$this->assertSame( 'victorian era', $en->display_term( 'victorian era' ) );
+		$this->assertSame( 'sin tax', $en->display_term( 'sin tax' ) );
+		$this->assertSame( 'once vecinos', $es->display_term( 'once vecinos' ) );
+		$this->assertSame( 'level', $en->display_term( 'sea level', 'es' ), 'con el castellano dominante sí es vacía' );
 	}
 }

@@ -313,7 +313,10 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->build_index();
 
 		$stop  = array( 'el', 'la', 'las', 'los', 'de', 'del', 'en', 'con', 'una', 'un', 'y', 'para', 'por', 'que', 'se' );
-		$items = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $this->sources[1] ) )->get_data()['items'];
+		$items = array();
+		foreach ( $this->sources as $source ) {
+			$items = array_merge( $items, $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $source ) )->get_data()['items'] );
+		}
 		$this->assertNotEmpty( $items );
 
 		foreach ( $items as $item ) {
