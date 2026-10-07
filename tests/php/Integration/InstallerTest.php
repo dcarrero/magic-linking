@@ -14,6 +14,7 @@ use MagicLinking\Core\Plugin;
 use MagicLinking\Core\Schema;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\TableRepository;
+use MagicLinking\Jobs\Jobs;
 use WP_UnitTestCase;
 use wpdb;
 
@@ -210,6 +211,31 @@ final class InstallerTest extends WP_UnitTestCase {
 
 		$this->assertContains( 'pos', $this->columns( 'postings' ) );
 		$this->assertSame( 3, $this->installer()->installed_version() );
+	}
+
+	public function test_upgrading_requests_a_reconcile_but_a_fresh_install_does_not(): void {
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+
+		$this->installer()->maybe_upgrade();
+		$this->assertFalse( as_has_scheduled_action( Jobs::HOOK_RECONCILE, null, Installer::ACTION_GROUP ), 'Instalación nueva.' );
+
+		update_option( Installer::DB_VERSION_OPTION, 1, false );
+		$this->installer()->maybe_upgrade();
+		$this->assertTrue( as_has_scheduled_action( Jobs::HOOK_RECONCILE, null, Installer::ACTION_GROUP ), 'Actualización.' );
+	}
+
+	public function test_reactivating_reschedules_the_nightly_run(): void {
+		Installer::activate();
+		Plugin::container()->get( Jobs::class )->ensure_schedules();
+		$this->assertTrue( as_has_scheduled_action( Jobs::HOOK_NIGHTLY, null, Installer::ACTION_GROUP ) );
+
+		Installer::deactivate();
+		$this->assertFalse( as_has_scheduled_action( Jobs::HOOK_NIGHTLY, null, Installer::ACTION_GROUP ) );
+
+		Installer::activate();
+		do_action( Jobs::HOOK_RECONCILE );
+
+		$this->assertTrue( as_has_scheduled_action( Jobs::HOOK_NIGHTLY, null, Installer::ACTION_GROUP ) );
 	}
 
 	public function test_schema_3_leaves_an_empty_lexical_index_alone(): void {
