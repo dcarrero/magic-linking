@@ -60,6 +60,29 @@ final class Suggestions {
 	}
 
 	/**
+	 * Estado de una entrada de cara a las sugerencias: `ok`, o por qué no las hay.
+	 *
+	 * @param WP_Post $post    Entrada abierta.
+	 * @param bool    $inbound Entrantes: el destino tiene que estar publicado.
+	 * @param bool    $draft   Se analiza el contenido del editor (una entrada nueva también vale).
+	 *
+	 * @return string `ok`, `index_not_ready`, `not_analyzed` o `not_published`.
+	 */
+	public function state( WP_Post $post, bool $inbound = false, bool $draft = false ): string {
+		if ( ! $this->ready() ) {
+			return 'index_not_ready';
+		}
+		if ( ! $this->analyzes( $post, $draft ) ) {
+			return 'not_analyzed';
+		}
+		if ( $inbound && 'publish' !== $post->post_status ) {
+			return 'not_published';
+		}
+
+		return 'ok';
+	}
+
+	/**
 	 * Sugerencias salientes de una entrada, con su contenido guardado ahora: la entrada puede ser un borrador
 	 * (el destino siempre es una entrada publicada), pero tiene que ser de un tipo que se analiza.
 	 *

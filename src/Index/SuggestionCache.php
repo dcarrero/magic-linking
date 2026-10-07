@@ -9,7 +9,10 @@ declare(strict_types=1);
 
 namespace MagicLinking\Index;
 
+use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
+use MagicLinking\Core\Settings;
+use WP_Post;
 
 /**
  * Guarda el resultado del motor por entrada en un *transient* **solo si el sitio tiene una caché de objetos
@@ -36,11 +39,60 @@ final class SuggestionCache implements Module {
 
 	/**
 	 * Engancha lo que invalida la caché.
+	 *
+	 * Solo cuenta lo que puede cambiar un resultado: las entradas de un tipo que se analiza, sin revisiones,
+	 * autoguardados ni borradores automáticos, y de ellas el contenido de las publicadas y los cambios de
+	 * estado que entran o salen de `publish` (un borrador no es candidato de nadie y sus salientes no se
+	 * guardan). Los ajustes se vigilan al crearlos, cambiarlos y borrarlos. El resto (insertar, deshacer)
+	 * escribe con `wp_update_post()` y ya pasa por aquí; el controlador renueva la época al final del lote.
 	 */
 	public function register(): void {
-		foreach ( array( 'save_post', 'deleted_post', 'transition_post_status', 'update_option_magiclinking_settings', 'magiclinking_link_inserted', 'magiclinking_batch_undone' ) as $hook ) {
-			add_action( $hook, array( self::class, 'bump' ) );
+		add_action( 'save_post', array( $this, 'on_save' ), 10, 2 );
+		add_action( 'deleted_post', array( $this, 'on_save' ), 10, 2 );
+		add_action( 'transition_post_status', array( $this, 'on_transition' ), 10, 3 );
+		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $prefix ) {
+			add_action( $prefix . Installer::SETTINGS_OPTION, array( self::class, 'bump' ) );
 		}
+	}
+
+	/**
+	 * Guardar o borrar una entrada: renueva la época si es una publicada de un tipo que se analiza.
+	 *
+	 * @param int          $post_id ID.
+	 * @param WP_Post|null $post    Entrada.
+	 */
+	public function on_save( int $post_id, ?WP_Post $post = null ): void {
+		$post ??= get_post( $post_id );
+		if ( $post instanceof WP_Post && 'publish' === $post->post_status && self::relevant( $post ) ) {
+			self::bump();
+		}
+	}
+
+	/**
+	 * Cambio de estado: solo importa si entra o sale de `publish`.
+	 *
+	 * @param string  $new_status Estado nuevo.
+	 * @param string  $old_status Estado anterior.
+	 * @param WP_Post $post       Entrada.
+	 */
+	public function on_transition( string $new_status, string $old_status, WP_Post $post ): void {
+		if ( $new_status !== $old_status && ( 'publish' === $new_status || 'publish' === $old_status ) && self::relevant( $post ) ) {
+			self::bump();
+		}
+	}
+
+	/**
+	 * Si una entrada puede afectar a las sugerencias de otras: de un tipo que se analiza y que no es una
+	 * revisión ni un autoguardado.
+	 *
+	 * @param WP_Post $post Entrada.
+	 */
+	private static function relevant( WP_Post $post ): bool {
+		if ( 'revision' === $post->post_type || wp_is_post_autosave( $post ) || 'auto-draft' === $post->post_status ) {
+			return false;
+		}
+
+		return in_array( $post->post_type, ( new Settings() )->post_types(), true );
 	}
 
 	/**
