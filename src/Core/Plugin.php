@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Core;
 
 use LogicException;
+use MagicLinking\Admin\EditorPanel;
 use MagicLinking\Admin\Screen;
 use MagicLinking\Cli\CliModule;
 use MagicLinking\Cli\Command;
@@ -74,6 +75,7 @@ final class Plugin {
 		ExportHandler::class,
 		CliModule::class,
 		Screen::class,
+		EditorPanel::class,
 	);
 
 	/**
@@ -287,6 +289,7 @@ final class Plugin {
 				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) )
 			),
 			Screen::class                => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ) ),
+			EditorPanel::class           => static fn( Container $c ): EditorPanel => new EditorPanel( $c->get( Settings::class ) ),
 			TextDomain::class            => static fn(): TextDomain => new TextDomain(),
 			Installer::class             => static function (): Installer {
 				global $wpdb;
