@@ -54,7 +54,8 @@ cd "${SVN}"
 
 # 5. Altas y bajas. Se procesa línea a línea para soportar espacios y acentos en las rutas.
 svn add --force --quiet trunk assets
-svn status | grep '^!' | while IFS= read -r linea; do
+# grep sale con 1 si no hay bajas; con pipefail eso pararía el script sin mensaje.
+{ svn status | grep '^!' || true; } | while IFS= read -r linea; do
 	ruta="${linea:8}"
 	svn rm --quiet --force -- "${ruta}@"
 done
