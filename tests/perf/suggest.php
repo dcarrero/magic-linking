@@ -6,7 +6,7 @@
  * Hace falta el sitio sintético ya indexado: `wp eval-file tests/perf/seed.php 10000` y `wp magic-linking index`.
  * Imprime p50, p95 y máximo de cada dirección, consultas por petición y memoria (pico total y añadida). Con `strict`
  * (CI) sale con error si el p95 de salientes pasa de 500 ms, el de entrantes de 800 ms o la memoria
- * que añade el cálculo de 32 MB (ver el comentario del final).
+ * que añade el cálculo de 32 MB, o la capa REST añade más de 20 ms al p95 (ver el comentario del final).
  *
  * @package MagicLinking
  */
@@ -85,6 +85,71 @@ foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 	$results[ $direction ] = $report( $direction, $times, $queries, $counts );
 }
 
+// La capa REST (F1-08): la misma petición de la pantalla, con permisos, presentación de la tarjeta y JSON.
+// 1) Petición completa sin caché de objetos (lo habitual): motor y capa; debe seguir dentro de 500 y 800 ms.
+// 2) Lo que añade la capa: con una caché de objetos en memoria (el resultado del motor ya guardado en el
+//    transient de objeto) y las entradas, metadatos y términos fuera de la caché de WordPress, de modo que
+//    pague también la carga de las entradas que enseña. Tope: 20 ms al p95.
+$admin = (int) ( get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID' ) )[0] ?? 1 );
+wp_set_current_user( $admin );
+$rest = static function ( string $route, int $id ) {
+	$request = new WP_REST_Request( 'GET', '/magic-linking/v1/suggestions/' . $route );
+	$request->set_param( 'post_id', $id );
+	$t0       = microtime( true );
+	$response = rest_do_request( $request );
+	$json     = wp_json_encode( rest_get_server()->response_to_data( $response, false ) );
+	$ms       = ( microtime( true ) - $t0 ) * 1000;
+	if ( 200 !== $response->get_status() ) {
+		fwrite( STDERR, "REST {$route} {$id}: estado " . $response->get_status() . "\n" );
+		exit( 1 );
+	}
+	$data = $response->get_data();
+
+	return array( $ms, is_array( $data['items'] ?? null ) ? count( $data['items'] ) : 0, strlen( (string) $json ) );
+};
+
+$rest_total = array();
+foreach ( array( 'outbound', 'inbound' ) as $route ) {
+	$times = array();
+	$items = array();
+	$peak  = 0.0;
+	foreach ( $sample as $id ) {
+		wp_cache_flush();
+		$repository->release();
+		memory_reset_peak_usage();
+		list( $ms, $count ) = $rest( $route, $id );
+		$times[]            = $ms;
+		$items[]            = $count;
+		$peak               = max( $peak, memory_get_peak_usage() / 1048576 );
+	}
+	$rest_total[ $route ] = $report( 'REST ' . $route, $times, array( 0 ), $items );
+	printf( "REST %s: petición completa sin caché de objetos, pico total=%.1f MB\n", $route, $peak );
+}
+
+$rest_over = 0.0;
+wp_using_ext_object_cache( true );
+foreach ( array( 'outbound', 'inbound' ) as $route ) {
+	$times = array();
+	$items = array();
+	$bytes = 0;
+	foreach ( $sample as $id ) {
+		wp_cache_flush();
+		$repository->release();
+		$rest( $route, $id );
+		foreach ( array( 'posts', 'post_meta', 'terms', 'term_relationships', 'users', 'user_meta' ) as $group ) {
+			wp_cache_flush_group( $group );
+		}
+		list( $ms, $count, $size ) = $rest( $route, $id );
+		$times[]                   = $ms;
+		$items[]                   = $count;
+		$bytes                     = max( $bytes, $size );
+	}
+	$over      = $report( 'capa ' . $route, $times, array( 0 ), $items );
+	$rest_over = max( $rest_over, $over );
+	printf( "capa %s: JSON máximo=%d B\n", $route, $bytes );
+}
+wp_using_ext_object_cache( false );
+
 // `09 §4` habla del pico total de la petición: se mide el pico absoluto de cada cálculo (con la caché de
 // objetos vacía al empezar), que aquí incluye la base de WP-CLI. Se imprime también lo que añade el cálculo.
 // En una petición web la base es la de WordPress (unos 25–35 MB con WP_DEBUG); aquí la de WP-CLI, que es mayor,
@@ -93,7 +158,7 @@ foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 $peak = $extra;
 printf( "memoria: pico total en WP-CLI=%.1f MB (base incluida), añadida por el cálculo=%.1f MB (límite 32 MB; el total de la petición web no debe pasar de 64 MB)\n", $total, $extra );
 
-if ( $strict && ( $results['outgoing'] > 500 || $results['incoming'] > 800 || $peak > 32 ) ) {
+if ( $strict && ( $results['outgoing'] > 500 || $results['incoming'] > 800 || $peak > 32 || $rest_over > 20 || $rest_total['outbound'] > 500 || $rest_total['inbound'] > 800 ) ) {
 	fwrite( STDERR, "Presupuesto de rendimiento superado.\n" );
 	exit( 1 );
 }
