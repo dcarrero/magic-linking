@@ -183,7 +183,6 @@ final class EditorPanel implements Module {
 			$handle,
 			'window.magiclinkingEditor = ' . wp_json_encode(
 				array(
-					'namespace'  => 'magic-linking/v1',
 					'mode'       => $mode,
 					'postId'     => $post->ID,
 					'perPage'    => self::PER_PAGE,

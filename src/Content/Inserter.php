@@ -42,6 +42,26 @@ final class Inserter {
 	}
 
 	/**
+	 * Si el enlace se podría insertar en este contenido, sin escribir nada: lo mismo que haría {@see self::insert()}
+	 * (mismos bloques admitidos, misma exigencia de que el contexto aparezca una sola vez) pero solo calculándolo.
+	 *
+	 * Sirve para no proponer desde el editor frases que el cliente no podrá enlazar (p. ej. el texto de un bloque de
+	 * un complemento, que el motor lee pero no se toca).
+	 *
+	 * @param string        $content Contenido (el guardado o el que hay en el editor).
+	 * @param InsertRequest $request Qué enlazar.
+	 */
+	public function can_insert( string $content, InsertRequest $request ): bool {
+		try {
+			BlockEditor::handles( $content ) ? ( new BlockEditor() )->insert( $content, $request ) : ( new ClassicEditor() )->insert( $content, $request );
+		} catch ( InsertionException ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Inserta un enlace.
 	 *
 	 * @param InsertRequest $request  Qué enlazar y dónde.
