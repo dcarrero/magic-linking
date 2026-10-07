@@ -253,7 +253,7 @@ test.describe( 'Internal links', () => {
 			name: 'Analyze everything again from scratch?',
 		} );
 		await expect( dialog ).toContainText(
-			'does not modify any of your content'
+			'it never changes it'
 		);
 
 		// Cancelar no lanza nada.

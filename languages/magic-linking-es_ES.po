@@ -887,8 +887,8 @@ msgid "There is no completed analysis yet."
 msgstr "Todavía no hay ningún análisis completo."
 
 #: assets/build/index.js:10
-msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background and does not change any content."
-msgstr "Vuelve a analizar todas las entradas desde cero, incluso las que no han cambiado. Para analizar solo lo nuevo o modificado, usa «Analizar cambios» en el Informe. Se ejecuta en segundo plano y no modifica ningún contenido."
+msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background. Analyzing only reads your content; it never changes it."
+msgstr "Vuelve a analizar todas las entradas desde cero, incluso las que no han cambiado. Para analizar solo lo nuevo o modificado, usa «Analizar cambios» en el Informe. Se ejecuta en segundo plano. Analizar solo lee tu contenido; nunca lo cambia."
 
 #: assets/build/index.js:10
 msgid "Analyze everything again from scratch"
@@ -903,8 +903,8 @@ msgid "Analyze everything again from scratch?"
 msgstr "¿Volver a analizar todo desde cero?"
 
 #: assets/build/index.js:10
-msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working, and it does not modify any of your content."
-msgstr "Magic Linking leerá de nuevo todas las entradas. Se hace en segundo plano, así que puedes seguir trabajando, y no modifica nada de tu contenido."
+msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it."
+msgstr "Magic Linking leerá de nuevo todas las entradas. Se hace en segundo plano, así que puedes seguir trabajando. Analizar solo lee tu contenido; nunca lo cambia."
 
 #: assets/build/index.js:10 assets/build/index.js:30
 msgid "Analysis started."
@@ -1247,8 +1247,8 @@ msgid "Analyze your site"
 msgstr "Analiza tu sitio"
 
 #: assets/build/index.js:32
-msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. It does not change any content."
-msgstr "Magic Linking lee los enlaces internos que ya están escritos en tus entradas y te muestra cuáles no reciben ningún enlace, cuáles reciben pocos, cuáles enlazan demasiado y cuáles están rotos. No modifica ningún contenido."
+msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "Magic Linking lee los enlaces internos que ya están escritos en tus entradas y te muestra cuáles no reciben ningún enlace, cuáles reciben pocos, cuáles enlazan demasiado y cuáles están rotos. Analizar solo lee tu contenido; nunca lo cambia. Los enlaces solo se añaden cuando pulsas Enlazar."
 
 #: assets/build/index.js:32
 msgid "Analyze my site"
@@ -1448,8 +1448,8 @@ msgid "Delete all Magic Linking data when the plugin is deleted"
 msgstr "Borrar todos los datos de Magic Linking al eliminar el plugin"
 
 #: assets/build/index.js:37
-msgid "Removes its tables and settings. Nothing is ever changed in your content, so the links already in your entries stay as they are."
-msgstr "Elimina sus tablas y ajustes. Nunca se cambia nada de tu contenido, así que los enlaces que ya hay en tus entradas se quedan como están."
+msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
+msgstr "Elimina sus tablas, el historial y los ajustes. Los enlaces que ya hay en tus entradas se quedan como están; tu contenido no se toca."
 
 #: assets/build/index.js:37
 msgid "Save settings"

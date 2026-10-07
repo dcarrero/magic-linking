@@ -203,7 +203,7 @@ export function SettingsTab( { onReindex, status }: Props ) {
 						'magic-linking'
 					) }
 					help={ __(
-						'Removes its tables and settings. Nothing is ever changed in your content, so the links already in your entries stay as they are.',
+						'Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched.',
 						'magic-linking'
 					) }
 					checked={ values.delete_data_on_uninstall }

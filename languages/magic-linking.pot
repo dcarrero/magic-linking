@@ -984,7 +984,7 @@ msgid "There is no completed analysis yet."
 msgstr ""
 
 #: assets/build/index.js:10
-msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background and does not change any content."
+msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background. Analyzing only reads your content; it never changes it."
 msgstr ""
 
 #: assets/build/index.js:10
@@ -1000,7 +1000,7 @@ msgid "Analyze everything again from scratch?"
 msgstr ""
 
 #: assets/build/index.js:10
-msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working, and it does not modify any of your content."
+msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it."
 msgstr ""
 
 #: assets/build/index.js:10
@@ -1378,7 +1378,7 @@ msgid "Analyze your site"
 msgstr ""
 
 #: assets/build/index.js:32
-msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. It does not change any content."
+msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. Analyzing only reads your content; it never changes it. Links are only added when you press Link."
 msgstr ""
 
 #: assets/build/index.js:32
@@ -1585,7 +1585,7 @@ msgid "Delete all Magic Linking data when the plugin is deleted"
 msgstr ""
 
 #: assets/build/index.js:37
-msgid "Removes its tables and settings. Nothing is ever changed in your content, so the links already in your entries stay as they are."
+msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
 msgstr ""
 
 #: assets/build/index.js:37
