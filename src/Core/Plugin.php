@@ -13,12 +13,16 @@ use LogicException;
 use MagicLinking\Admin\Screen;
 use MagicLinking\Cli\CliModule;
 use MagicLinking\Cli\Command;
+use MagicLinking\Content\Inserter;
+use MagicLinking\Content\PostWriter;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\GraphRepository;
 use MagicLinking\Graph\LinkResolver;
 use MagicLinking\Graph\ReportRepository;
 use MagicLinking\Engine\DomExtractor;
+use MagicLinking\History\ChangeRepository;
+use MagicLinking\History\Undo;
 use MagicLinking\I18n\Language;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\PostSource;
@@ -185,6 +189,25 @@ final class Plugin {
 				$c->get( LexicalIndexer::class ),
 				$c->get( TableDocuments::class ),
 				$c->get( Settings::class )
+			),
+			PostWriter::class         => static function (): PostWriter {
+				global $wpdb;
+				return new PostWriter( $wpdb );
+			},
+			ChangeRepository::class   => static function (): ChangeRepository {
+				global $wpdb;
+				return new ChangeRepository( $wpdb );
+			},
+			Inserter::class           => static fn( Container $c ): Inserter => new Inserter(
+				$c->get( PostWriter::class ),
+				$c->get( ChangeRepository::class ),
+				$c->get( Jobs::class ),
+				$c->get( Settings::class )
+			),
+			Undo::class               => static fn( Container $c ): Undo => new Undo(
+				$c->get( PostWriter::class ),
+				$c->get( ChangeRepository::class ),
+				$c->get( Jobs::class )
 			),
 			JobRepository::class      => static function (): JobRepository {
 				global $wpdb;

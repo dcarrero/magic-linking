@@ -759,3 +759,147 @@ msgstr ""
 #, js-format
 msgid "You can also run the analysis from the terminal: %s"
 msgstr ""
+
+#: src/Content/BlockEditor.php:46
+msgid "The block structure of this post could not be read, so it was left untouched."
+msgstr ""
+
+#: src/Content/BlockEditor.php:70
+msgid "The block contains markup (script, styles…) that cannot be scanned safely."
+msgstr ""
+
+#: src/Content/BlockEditor.php:90
+#: src/Content/BlockEditor.php:129
+#: src/Content/ClassicEditor.php:59
+#: src/Content/PostWriter.php:181
+msgid "The text has changed."
+msgstr ""
+
+#: src/Content/BlockEditor.php:96
+msgid "The text of this block comes from another source (data binding) and cannot be edited here."
+msgstr ""
+
+#: src/Content/BlockEditor.php:172
+msgid "This text belongs to a reusable block: edit the original pattern."
+msgstr ""
+
+#: src/Content/BlockEditor.php:175
+msgid "This text is in a block where links are not inserted automatically."
+msgstr ""
+
+#: src/Content/ClassicEditor.php:45
+msgid "The post contains markup (script, styles…) that cannot be scanned safely."
+msgstr ""
+
+#: src/Content/InsertRequest.php:75
+msgid "The anchor is not part of the sentence."
+msgstr ""
+
+#: src/Content/Inserter.php:55
+msgid "This content type is not one that Magic Linking analyzes."
+msgstr ""
+
+#: src/Content/Inserter.php:95
+msgid "The change could not be confirmed as only the link; nothing was written."
+msgstr ""
+
+#: src/Content/Inserter.php:103
+#: src/History/Undo.php:185
+msgid "The change history could not be saved; nothing was written."
+msgstr ""
+
+#: src/Content/Linker.php:46
+msgid "The anchor cannot be empty or start or end with a space."
+msgstr ""
+
+#: src/Content/Linker.php:75
+msgid "That text is already linked."
+msgstr ""
+
+#: src/Content/Linker.php:78
+msgid "This text is a heading and links in headings are not allowed."
+msgstr ""
+
+#: src/Content/Linker.php:81
+msgid "The anchor includes a shortcode, code or a line break and cannot be linked safely."
+msgstr ""
+
+#: src/Content/Linker.php:102
+msgid "The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it."
+msgstr ""
+
+#: src/Content/Linker.php:124
+msgid "The link address is not valid."
+msgstr ""
+
+#: src/Content/PostWriter.php:93
+msgid "The post does not exist or is in the trash."
+msgstr ""
+
+#: src/Content/PostWriter.php:98
+msgid "You do not have permission to edit this post."
+msgstr ""
+
+#: src/Content/PostWriter.php:136
+msgid "Another change is being applied to this post; try again in a moment."
+msgstr ""
+
+#: src/Content/PostWriter.php:212
+msgid "WordPress could not save the post; nothing was changed."
+msgstr ""
+
+#: src/Content/PostWriter.php:290
+msgid "This post is open in your editor (maybe in another tab); add the link from there or close it and try again."
+msgstr ""
+
+#: src/Content/PostWriter.php:294
+msgid "someone else"
+msgstr ""
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:300
+#, php-format
+msgid "This post has just been opened by %s; try again later."
+msgstr ""
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:302
+#, php-format
+msgid "This post is being edited by %s; try again later."
+msgstr ""
+
+#: src/Content/PostWriter.php:315
+msgid "WordPress altered the content when saving it (security filters); the original was restored and the link was not inserted."
+msgstr ""
+
+#: src/Content/PostWriter.php:316
+msgid "WordPress would alter the content when saving it (security filters); nothing was written and the link was not inserted."
+msgstr ""
+
+#: src/History/Undo.php:92
+msgid "That change does not exist."
+msgstr ""
+
+#: src/History/Undo.php:97
+msgid "This change was already undone."
+msgstr ""
+
+#: src/History/Undo.php:116
+msgid "Link undone."
+msgstr ""
+
+#: src/History/Undo.php:117
+msgid "The post was edited afterwards: only the link was removed."
+msgstr ""
+
+#: src/History/Undo.php:118
+msgid "The link is no longer in the post."
+msgstr ""
+
+#: src/History/Undo.php:170
+msgid "The change could not be confirmed as only removing the link; nothing was written."
+msgstr ""
+
+#: src/History/Undo.php:321
+msgid "This post was edited afterwards; remove the link by hand."
+msgstr ""

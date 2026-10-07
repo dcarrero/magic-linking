@@ -146,6 +146,45 @@ final class Jobs implements Module {
 	}
 
 	/**
+	 * Ejecuta un trabajo sin que el guardado de entradas indexe por su cuenta ni encole nada. Lo usan los
+	 * cambios que hace el propio plugin (insertar y deshacer enlaces), que reindexan una sola vez al terminar
+	 * con {@see self::reindex_now()}.
+	 *
+	 * @template T
+	 *
+	 * @param callable(): T $work Trabajo.
+	 *
+	 * @return T
+	 */
+	public function without_save_indexing( callable $work ): mixed {
+		$removed = remove_action( 'wp_after_insert_post', array( $this, 'on_post_saved' ), 20 );
+
+		try {
+			return $work();
+		} finally {
+			if ( $removed ) {
+				add_action( 'wp_after_insert_post', array( $this, 'on_post_saved' ), 20, 4 );
+			}
+		}
+	}
+
+	/**
+	 * Indexa ahora una entrada ya guardada (el grafo y, si está construido, el índice léxico), sea cual
+	 * sea el tamaño del sitio. Hace lo que el guardado normal hace en línea, para una sola entrada.
+	 *
+	 * @param int $post_id ID.
+	 */
+	public function reindex_now( int $post_id ): void {
+		$post = get_post( $post_id );
+		if ( ! $post instanceof WP_Post || ! $this->is_ready() || wp_is_post_revision( $post_id ) || ! $this->is_tracked_type( $post->post_type, null ) ) {
+			return;
+		}
+
+		$this->indexer->flush();
+		$this->index_posts( array( $post_id ), false );
+	}
+
+	/**
 	 * Repositorio de procesos.
 	 */
 	public function repository(): JobRepository {

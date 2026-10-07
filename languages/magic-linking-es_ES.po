@@ -720,3 +720,143 @@ msgstr "Solo se cuentan los enlaces escritos dentro del contenido de cada entrad
 #: assets/build/index.js:22
 msgid "You can also run the analysis from the terminal: %s"
 msgstr "También puedes ejecutar el análisis desde el terminal: %s"
+
+#: src/Content/BlockEditor.php:46
+msgid "The block structure of this post could not be read, so it was left untouched."
+msgstr "No se ha podido interpretar la estructura de bloques de esta entrada; no se ha tocado."
+
+#: src/Content/BlockEditor.php:70
+msgid "The block contains markup (script, styles…) that cannot be scanned safely."
+msgstr "El bloque tiene marcas (script, estilos…) que no se pueden recorrer con seguridad."
+
+#: src/Content/BlockEditor.php:90 src/Content/BlockEditor.php:129 src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:181
+msgid "The text has changed."
+msgstr "El texto ha cambiado."
+
+#: src/Content/BlockEditor.php:96
+msgid "The text of this block comes from another source (data binding) and cannot be edited here."
+msgstr "El texto de este bloque viene de otro origen (enlace de datos) y no se puede editar aquí."
+
+#: src/Content/BlockEditor.php:172
+msgid "This text belongs to a reusable block: edit the original pattern."
+msgstr "Este texto es de un bloque reutilizable: edita el patrón original."
+
+#: src/Content/BlockEditor.php:175
+msgid "This text is in a block where links are not inserted automatically."
+msgstr "Este texto está en un bloque en el que no se insertan enlaces automáticamente."
+
+#: src/Content/ClassicEditor.php:45
+msgid "The post contains markup (script, styles…) that cannot be scanned safely."
+msgstr "La entrada tiene marcas (script, estilos…) que no se pueden recorrer con seguridad."
+
+#: src/Content/InsertRequest.php:75
+msgid "The anchor is not part of the sentence."
+msgstr "El ancla no es un tramo de la frase."
+
+#: src/Content/Inserter.php:55
+msgid "This content type is not one that Magic Linking analyzes."
+msgstr "Este tipo de contenido no está entre los que analiza Magic Linking."
+
+#: src/Content/Inserter.php:95
+msgid "The change could not be confirmed as only the link; nothing was written."
+msgstr "No se ha podido comprobar que el cambio sea solo el enlace; no se ha escrito nada."
+
+#: src/Content/Inserter.php:103 src/History/Undo.php:185
+msgid "The change history could not be saved; nothing was written."
+msgstr "No se ha podido guardar el historial del cambio; no se ha escrito nada."
+
+#: src/Content/Linker.php:46
+msgid "The anchor cannot be empty or start or end with a space."
+msgstr "El ancla no puede estar vacía ni empezar o acabar con un espacio."
+
+#: src/Content/Linker.php:75
+msgid "That text is already linked."
+msgstr "Ese texto ya está enlazado."
+
+#: src/Content/Linker.php:78
+msgid "This text is a heading and links in headings are not allowed."
+msgstr "Este texto es un encabezado y los enlaces en encabezados no están permitidos."
+
+#: src/Content/Linker.php:81
+msgid "The anchor includes a shortcode, code or a line break and cannot be linked safely."
+msgstr "El ancla incluye un shortcode, código o un salto de línea y no se puede enlazar con seguridad."
+
+#: src/Content/Linker.php:102
+msgid "The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it."
+msgstr "El ancla cruza el formato del texto (negrita, cursiva…) y no se puede enlazar sin romperlo."
+
+#: src/Content/Linker.php:124
+msgid "The link address is not valid."
+msgstr "La dirección del enlace no es válida."
+
+#: src/Content/PostWriter.php:93
+msgid "The post does not exist or is in the trash."
+msgstr "La entrada no existe o está en la papelera."
+
+#: src/Content/PostWriter.php:98
+msgid "You do not have permission to edit this post."
+msgstr "No tienes permiso para editar esta entrada."
+
+#: src/Content/PostWriter.php:136
+msgid "Another change is being applied to this post; try again in a moment."
+msgstr "Se está aplicando otro cambio a esta entrada; inténtalo de nuevo en un momento."
+
+#: src/Content/PostWriter.php:212
+msgid "WordPress could not save the post; nothing was changed."
+msgstr "WordPress no ha podido guardar la entrada; no se ha cambiado nada."
+
+#: src/Content/PostWriter.php:290
+msgid "This post is open in your editor (maybe in another tab); add the link from there or close it and try again."
+msgstr "Esta entrada está abierta en tu editor (quizá en otra pestaña); añade el enlace desde allí o ciérrala y vuelve a intentarlo."
+
+#: src/Content/PostWriter.php:294
+msgid "someone else"
+msgstr "otra persona"
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:300
+#, php-format
+msgid "This post has just been opened by %s; try again later."
+msgstr "%s acaba de abrir esta entrada; inténtalo más tarde."
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:302
+#, php-format
+msgid "This post is being edited by %s; try again later."
+msgstr "Esta entrada la está editando %s; inténtalo más tarde."
+
+#: src/Content/PostWriter.php:315
+msgid "WordPress altered the content when saving it (security filters); the original was restored and the link was not inserted."
+msgstr "WordPress ha modificado el contenido al guardarlo (filtros de seguridad); se ha restaurado el original y no se ha insertado el enlace."
+
+#: src/Content/PostWriter.php:316
+msgid "WordPress would alter the content when saving it (security filters); nothing was written and the link was not inserted."
+msgstr "WordPress alteraría el contenido al guardarlo (filtros de seguridad); no se ha escrito nada y no se ha insertado el enlace."
+
+#: src/History/Undo.php:92
+msgid "That change does not exist."
+msgstr "No existe ese cambio."
+
+#: src/History/Undo.php:97
+msgid "This change was already undone."
+msgstr "Este cambio ya estaba deshecho."
+
+#: src/History/Undo.php:116
+msgid "Link undone."
+msgstr "Enlace deshecho."
+
+#: src/History/Undo.php:117
+msgid "The post was edited afterwards: only the link was removed."
+msgstr "La entrada se había editado después: se ha quitado solo el enlace."
+
+#: src/History/Undo.php:118
+msgid "The link is no longer in the post."
+msgstr "El enlace ya no está en la entrada."
+
+#: src/History/Undo.php:170
+msgid "The change could not be confirmed as only removing the link; nothing was written."
+msgstr "No se ha podido comprobar que el cambio sea solo quitar el enlace; no se ha escrito nada."
+
+#: src/History/Undo.php:321
+msgid "This post was edited afterwards; remove the link by hand."
+msgstr "Esta entrada se editó después; quita el enlace a mano."

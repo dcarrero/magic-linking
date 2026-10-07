@@ -42,6 +42,12 @@
 		<exclude-pattern>tests/*</exclude-pattern>
 	</rule>
 
+	<!-- InsertionException lleva el mensaje traducido para el usuario; quien lo muestra (la API, la pantalla) lo escapa al imprimirlo. -->
+	<rule ref="WordPress.Security.EscapeOutput.ExceptionNotEscaped">
+		<exclude-pattern>src/Content/*</exclude-pattern>
+		<exclude-pattern>src/History/*</exclude-pattern>
+	</rule>
+
 	<!-- En las pruebas se consulta la base de datos a propósito para comprobar lo que queda escrito. -->
 	<rule ref="WordPress.DB.DirectDatabaseQuery">
 		<exclude-pattern>tests/*</exclude-pattern>
