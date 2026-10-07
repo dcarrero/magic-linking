@@ -25,7 +25,7 @@ use Throwable;
  *   documento, se quita solo ese enlace; si no, no se toca nada y se avisa con un enlace al editor.
  *
  * En los dos casos pasa por el mismo {@see Verifier} que la inserción y deja su propio registro
- * (`remove`). La conservación, la purga, la pantalla de historial y rehacer son de F1-10.
+ * (`remove`). La conservación, la purga, la pantalla de historial y rehacer (`Redo`) son de F1-10.
  */
 final class Undo {
 
@@ -54,10 +54,15 @@ final class Undo {
 	public function revert_batch( string $batch_id, ?int $user_id = null ): array {
 		$results = array();
 
-		foreach ( array_reverse( $this->changes->batch( $batch_id ) ) as $change ) {
-			if ( ChangeRepository::INSERT !== $change['action'] ) {
-				continue;
+		// Un enlace puesto, quitado y vuelto a poner (rehacer, F1-10) cuenta una vez: vale su fila más reciente.
+		$latest = array();
+		foreach ( $this->changes->batch( $batch_id ) as $change ) {
+			if ( ChangeRepository::INSERT === $change['action'] ) {
+				$latest[ md5( implode( '|', array( $change['post_id'], (string) $change['block_path'], $change['before_html'], $change['after_html'] ) ) ) ] = $change;
 			}
+		}
+
+		foreach ( array_reverse( array_values( $latest ) ) as $change ) {
 			$results[] = $this->revert( $change['id'], $user_id );
 		}
 

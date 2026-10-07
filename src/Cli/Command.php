@@ -12,6 +12,12 @@ namespace MagicLinking\Cli;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\IndexOutcome;
 use MagicLinking\Graph\ReportRepository;
+use MagicLinking\History\ChangeRepository;
+use MagicLinking\History\Reader;
+use MagicLinking\History\Redo;
+use MagicLinking\History\Retention;
+use MagicLinking\History\Undo;
+use MagicLinking\History\UndoResult;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\CsvExporter;
@@ -46,16 +52,61 @@ final class Command {
 	private BrokenRepository $broken;
 
 	/**
+	 * Lectura del historial.
+	 *
+	 * @var Reader
+	 */
+	private Reader $history;
+
+	/**
+	 * Deshacer.
+	 *
+	 * @var Undo
+	 */
+	private Undo $undo;
+
+	/**
+	 * Purga del historial.
+	 *
+	 * @var Retention
+	 */
+	private Retention $retention;
+
+	/**
+	 * Historial.
+	 *
+	 * @var ChangeRepository
+	 */
+	private ChangeRepository $changes;
+
+	/**
+	 * Rehacer.
+	 *
+	 * @var Redo
+	 */
+	private Redo $redo;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param Jobs             $jobs   Procesos.
-	 * @param ReportRepository $report Consulta del informe.
-	 * @param BrokenRepository $broken Consulta de rotos.
+	 * @param Jobs             $jobs      Procesos.
+	 * @param ReportRepository $report    Consulta del informe.
+	 * @param BrokenRepository $broken    Consulta de rotos.
+	 * @param Reader           $history   Lectura del historial.
+	 * @param Undo             $undo      Deshacer.
+	 * @param Retention        $retention Purga del historial.
+	 * @param ChangeRepository $changes   Historial.
+	 * @param Redo             $redo      Rehacer.
 	 */
-	public function __construct( Jobs $jobs, ReportRepository $report, BrokenRepository $broken ) {
-		$this->jobs   = $jobs;
-		$this->report = $report;
-		$this->broken = $broken;
+	public function __construct( Jobs $jobs, ReportRepository $report, BrokenRepository $broken, Reader $history, Undo $undo, Retention $retention, ChangeRepository $changes, Redo $redo ) {
+		$this->jobs      = $jobs;
+		$this->report    = $report;
+		$this->broken    = $broken;
+		$this->history   = $history;
+		$this->undo      = $undo;
+		$this->retention = $retention;
+		$this->changes   = $changes;
+		$this->redo      = $redo;
 	}
 
 	/**
@@ -441,6 +492,177 @@ final class Command {
 				__( 'Process %1$d is now %2$s.', 'magic-linking' ),
 				$id,
 				(string) $this->jobs->repository()->get( $id )['status']
+			)
+		);
+	}
+
+	/**
+	 * Historial de cambios: lista los grupos, deshace o rehace uno y purga los caducados.
+	 *
+	 * Sin `--user` actúa como el sistema (sin comprobar capacidades); con `--user=<admin>`, con los permisos
+	 * de ese usuario. Deshacer y rehacer pasan por las mismas comprobaciones que en la pantalla y se hacen
+	 * en la propia orden, sin límite de tamaño.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <action>
+	 * : Qué hacer.
+	 * ---
+	 * options:
+	 *   - list
+	 *   - undo
+	 *   - redo
+	 *   - purge
+	 * ---
+	 *
+	 * [<batch_id>]
+	 * : Grupo (lote) sobre el que actuar con undo o redo; lo muestra `list`.
+	 *
+	 * [--dry-run]
+	 * : Con purge, solo cuenta las filas caducadas.
+	 *
+	 * [--per-page=<n>]
+	 * : Con list, cuántos grupos mostrar (20 por defecto).
+	 *
+	 * [--format=<format>]
+	 * : Formato de list.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp magic-linking history list
+	 *     wp magic-linking history undo 01J9Z3K8Q2M4N5P6R7S8T9V0WX
+	 *     wp magic-linking history purge --dry-run
+	 *
+	 * @param array<int, string>   $args       Argumentos.
+	 * @param array<string, mixed> $assoc_args Opciones.
+	 */
+	public function history( array $args, array $assoc_args ): void {
+		$action = $args[0] ?? 'list';
+		$user   = get_current_user_id();
+
+		switch ( $action ) {
+			case 'list':
+				$page  = $this->history->groups( $user, null, max( 1, absint( $assoc_args['per-page'] ?? 20 ) ) );
+				$items = array();
+				foreach ( $page['items'] as $group ) {
+					$items[] = array(
+						'batch_id'   => $group['batch_id'],
+						'created_at' => $group['created_at'],
+						'user'       => $group['user_name'],
+						'links'      => $group['links'],
+						'active'     => $group['active'],
+						'entries'    => $group['posts'],
+					);
+				}
+				\WP_CLI\Utils\format_items( (string) ( $assoc_args['format'] ?? 'table' ), $items, array( 'batch_id', 'created_at', 'user', 'links', 'active', 'entries' ) );
+				return;
+
+			case 'purge':
+				$this->purge_history( ! empty( $assoc_args['dry-run'] ) );
+				return;
+
+			case 'undo':
+			case 'redo':
+				$this->history_batch( 'redo' === $action, $args[1] ?? '', $user );
+				return;
+		}//end switch
+
+		WP_CLI::error( __( 'Unknown action. Use: list, undo, redo or purge.', 'magic-linking' ) );
+	}
+
+	/**
+	 * Deshace o rehace un grupo entero en la propia orden.
+	 *
+	 * @param bool   $redo     Rehacer en vez de deshacer.
+	 * @param string $batch_id Grupo.
+	 * @param int    $user     Usuario (0 = sistema).
+	 */
+	private function history_batch( bool $redo, string $batch_id, int $user ): void {
+		if ( null === $this->history->group( $batch_id, $user ) ) {
+			WP_CLI::error( __( 'There is no such group in the history (or you cannot edit all of its entries).', 'magic-linking' ) );
+		}
+
+		$denied = $this->history->not_editable( $batch_id, $user );
+		if ( array() !== $denied ) {
+			WP_CLI::error( __( 'You do not have permission to edit one of the entries involved.', 'magic-linking' ) );
+		}
+
+		$results = $redo ? $this->redo->redo_batch( $batch_id, $user ) : $this->undo->revert_batch( $batch_id, $user );
+		$rows    = array();
+		$failed  = 0;
+		foreach ( $results as $result ) {
+			if ( in_array( $result->status, array( UndoResult::MANUAL, UndoResult::FAILED ), true ) ) {
+				++$failed;
+			}
+			$rows[] = array(
+				'change_id' => $result->change_id,
+				'post_id'   => $result->post_id,
+				'status'    => $result->status,
+				'message'   => $result->message,
+			);
+		}
+
+		\WP_CLI\Utils\format_items( 'table', $rows, array( 'change_id', 'post_id', 'status', 'message' ) );
+
+		if ( $failed > 0 ) {
+			WP_CLI::warning(
+				sprintf(
+					/* translators: %d: number of changes. */
+					_n( '%d change could not be applied by itself.', '%d changes could not be applied by themselves.', $failed, 'magic-linking' ),
+					$failed
+				)
+			);
+			return;
+		}
+
+		WP_CLI::success( $redo ? __( 'Group redone.', 'magic-linking' ) : __( 'Group undone.', 'magic-linking' ) );
+	}
+
+	/**
+	 * Purga el historial caducado (o solo lo cuenta).
+	 *
+	 * @param bool $dry_run Solo contar.
+	 */
+	private function purge_history( bool $dry_run ): void {
+		$cutoff = $this->retention->cutoff();
+		if ( null === $cutoff ) {
+			WP_CLI::success( __( 'The history never expires with the current setting; nothing to delete.', 'magic-linking' ) );
+			return;
+		}
+
+		$expired = $this->changes->count_expired( $cutoff );
+		if ( $dry_run || 0 === $expired ) {
+			WP_CLI::success(
+				sprintf(
+					/* translators: %d: number of history rows. */
+					_n( '%d history row has expired.', '%d history rows have expired.', $expired, 'magic-linking' ),
+					$expired
+				)
+			);
+			return;
+		}
+
+		$job = $this->retention->start( 0, false );
+		if ( null === $job ) {
+			WP_CLI::success( __( 'Nothing has expired.', 'magic-linking' ) );
+			return;
+		}
+
+		$this->retention->run_to_completion( $job['id'] );
+
+		$deleted = (int) ( $this->jobs->repository()->get( $job['id'] )['done'] ?? 0 );
+		WP_CLI::success(
+			sprintf(
+				/* translators: %d: number of history rows. */
+				_n( '%d history row deleted.', '%d history rows deleted.', $deleted, 'magic-linking' ),
+				$deleted
 			)
 		);
 	}

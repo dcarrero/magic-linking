@@ -14,7 +14,7 @@ use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
 
 /**
- * Menú propio «Magic Linking» con tres páginas (Informe, Enlaces rotos, Ajustes) que pintan la misma aplicación.
+ * Menú propio «Magic Linking» con cuatro páginas (Informe, Enlaces rotos, Historial, Ajustes) que pintan la misma aplicación.
  *
  * Los scripts y estilos se cargan solo en esas pantallas. El plugin no muestra avisos en
  * ninguna otra pantalla del administrador.
@@ -24,6 +24,7 @@ final class Screen implements Module {
 	public const SLUG = 'magic-linking';
 
 	public const SLUG_BROKEN   = 'magic-linking-broken';
+	public const SLUG_HISTORY  = 'magic-linking-history';
 	public const SLUG_SETTINGS = 'magic-linking-settings';
 
 	/**
@@ -98,12 +99,13 @@ final class Screen implements Module {
 	/**
 	 * Dirección de la página de una pestaña.
 	 *
-	 * @param string $tab report, broken o settings.
+	 * @param string $tab report, broken, history o settings.
 	 */
 	public static function page_url( string $tab ): string {
 		$slugs = array(
 			'report'   => self::SLUG,
 			'broken'   => self::SLUG_BROKEN,
+			'history'  => self::SLUG_HISTORY,
 			'settings' => self::SLUG_SETTINGS,
 		);
 
@@ -128,7 +130,7 @@ final class Screen implements Module {
 	}
 
 	/**
-	 * Añade el menú «Magic Linking» y sus tres páginas.
+	 * Añade el menú «Magic Linking» y sus cuatro páginas.
 	 */
 	public function add_menu(): void {
 		$title = __( 'Magic Linking', 'magic-linking' );
@@ -143,6 +145,10 @@ final class Screen implements Module {
 			array(
 				'broken',
 				add_submenu_page( self::SLUG, __( 'Broken links', 'magic-linking' ), __( 'Broken links', 'magic-linking' ), 'edit_posts', self::SLUG_BROKEN, array( $this, 'render' ) ),
+			),
+			array(
+				'history',
+				add_submenu_page( self::SLUG, __( 'History', 'magic-linking' ), __( 'History', 'magic-linking' ), 'edit_posts', self::SLUG_HISTORY, array( $this, 'render' ) ),
 			),
 			array(
 				'settings',
@@ -189,7 +195,7 @@ final class Screen implements Module {
 	 */
 	public function on_load(): void {
 		$screen = get_current_screen();
-		if ( $screen && 'settings' !== ( $this->screens[ $screen->id ] ?? '' ) ) {
+		if ( $screen && ! in_array( $this->screens[ $screen->id ] ?? '', array( 'settings', 'history' ), true ) ) {
 			add_screen_option(
 				'per_page',
 				array(
@@ -244,6 +250,7 @@ final class Screen implements Module {
 					'tabUrls'     => array(
 						'report'   => self::page_url( 'report' ),
 						'broken'   => self::page_url( 'broken' ),
+						'history'  => self::page_url( 'history' ),
 						'settings' => self::page_url( 'settings' ),
 					),
 				)

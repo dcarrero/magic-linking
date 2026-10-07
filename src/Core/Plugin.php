@@ -21,7 +21,11 @@ use MagicLinking\Graph\GraphRepository;
 use MagicLinking\Graph\LinkResolver;
 use MagicLinking\Graph\ReportRepository;
 use MagicLinking\Engine\DomExtractor;
+use MagicLinking\History\BatchJob;
 use MagicLinking\History\ChangeRepository;
+use MagicLinking\History\Reader;
+use MagicLinking\History\Redo;
+use MagicLinking\History\Retention;
 use MagicLinking\History\Undo;
 use MagicLinking\I18n\Language;
 use MagicLinking\Index\LexicalIndexer;
@@ -33,6 +37,7 @@ use MagicLinking\I18n\TextDomain;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
+use MagicLinking\Rest\HistoryController;
 use MagicLinking\Rest\JobsController;
 use MagicLinking\Rest\ReportController;
 use MagicLinking\Rest\SettingsController;
@@ -55,7 +60,10 @@ final class Plugin {
 		TextDomain::class,
 		Installer::class,
 		Jobs::class,
+		Retention::class,
+		BatchJob::class,
 		ReportController::class,
+		HistoryController::class,
 		JobsController::class,
 		SettingsController::class,
 		ExportHandler::class,
@@ -209,6 +217,32 @@ final class Plugin {
 				$c->get( ChangeRepository::class ),
 				$c->get( Jobs::class )
 			),
+			Redo::class               => static fn( Container $c ): Redo => new Redo(
+				$c->get( PostWriter::class ),
+				$c->get( ChangeRepository::class ),
+				$c->get( Jobs::class )
+			),
+			Reader::class             => static fn( Container $c ): Reader => new Reader( $c->get( ChangeRepository::class ) ),
+			Retention::class          => static fn( Container $c ): Retention => new Retention(
+				$c->get( ChangeRepository::class ),
+				$c->get( JobRepository::class ),
+				$c->get( Settings::class )
+			),
+			BatchJob::class           => static fn( Container $c ): BatchJob => new BatchJob(
+				$c->get( Reader::class ),
+				$c->get( Undo::class ),
+				$c->get( Redo::class ),
+				$c->get( JobRepository::class )
+			),
+			HistoryController::class  => static fn( Container $c ): HistoryController => new HistoryController(
+				$c->get( Reader::class ),
+				$c->get( Undo::class ),
+				$c->get( Redo::class ),
+				$c->get( BatchJob::class ),
+				$c->get( ChangeRepository::class ),
+				$c->get( JobRepository::class ),
+				$c->get( Settings::class )
+			),
 			JobRepository::class      => static function (): JobRepository {
 				global $wpdb;
 				return new JobRepository( $wpdb );
@@ -235,7 +269,7 @@ final class Plugin {
 			SettingsController::class => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ) ),
 			ExportHandler::class      => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ) ),
 			CliModule::class          => static fn( Container $c ): CliModule => new CliModule(
-				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ) )
+				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ) )
 			),
 			Screen::class             => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ) ),
 			TextDomain::class         => static fn(): TextDomain => new TextDomain(),

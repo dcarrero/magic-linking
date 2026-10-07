@@ -26,7 +26,16 @@ final class CliTest extends GraphTestCase {
 
 		WP_CLI::reset();
 		$c             = Plugin::container();
-		$this->command = new Command( $c->get( Jobs::class ), $c->get( \MagicLinking\Graph\ReportRepository::class ), $c->get( \MagicLinking\Graph\BrokenRepository::class ) );
+		$this->command = new Command(
+			$c->get( Jobs::class ),
+			$c->get( \MagicLinking\Graph\ReportRepository::class ),
+			$c->get( \MagicLinking\Graph\BrokenRepository::class ),
+			$c->get( \MagicLinking\History\Reader::class ),
+			$c->get( \MagicLinking\History\Undo::class ),
+			$c->get( \MagicLinking\History\Retention::class ),
+			$c->get( \MagicLinking\History\ChangeRepository::class ),
+			$c->get( \MagicLinking\History\Redo::class )
+		);
 		$this->post( 'beta', 'Sin enlaces.' );
 		$this->post( 'alfa', '<a href="' . home_url( '/beta/' ) . '">beta</a> <a href="' . home_url( '/roto/' ) . '">roto</a>' );
 		$this->clear_index();

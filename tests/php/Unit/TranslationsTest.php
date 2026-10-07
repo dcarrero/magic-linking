@@ -110,6 +110,6 @@ final class TranslationsTest extends TestCase {
 	}
 
 	private function is_plural( string $text ): bool {
-		return in_array( $text, array( '%d entry analyzed.', '%d broken link', '%s entry', '%s link', '%d entry', 'About %s minute left.', 'About %s hour left.', '%s new or modified entry pending.' ), true );
+		return in_array( $text, array( '%d entry analyzed.', '%d broken link', '%s entry', '%s link', '%d entry', 'About %s minute left.', 'About %s hour left.', '%s new or modified entry pending.', '%s link added', '%s link undone.', '%s link added again.', '%s link will be taken out.', '%s undone link will be added again, as it was.', '%s batch in the history.', '%s older batch shown.', '%d change could not be applied by itself.', '%d history row has expired.', '%d history row deleted.' ), true );
 	}
 }

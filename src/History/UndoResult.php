@@ -29,6 +29,9 @@ final class UndoResult {
 	/** El cambio ya estaba deshecho. */
 	public const ALREADY = 'already_undone';
 
+	/** Se ha vuelto a poner el enlace (rehacer) y el contenido es el que había antes de deshacer. */
+	public const REDONE = 'redone';
+
 	/** No se ha tocado nada por otro motivo (bloqueo, permisos, verificación…). */
 	public const FAILED = 'failed';
 

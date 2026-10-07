@@ -86,6 +86,10 @@ final class SettingsController implements Module {
 							'minimum' => 20,
 							'maximum' => 1000,
 						),
+						Settings::RETENTION_SETTING    => array(
+							'type' => 'integer',
+							'enum' => Settings::RETENTION_CHOICES,
+						),
 						Installer::DELETE_DATA_SETTING => array( 'type' => 'boolean' ),
 					),
 				),
