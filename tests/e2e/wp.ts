@@ -63,6 +63,8 @@ export async function login( page: Page, user = 'admin' ): Promise< void > {
 
 export const SCREEN = '/wp-admin/admin.php?page=magic-linking';
 export const SCREEN_BROKEN = '/wp-admin/admin.php?page=magic-linking-broken';
+export const SCREEN_HISTORY =
+	'/wp-admin/admin.php?page=magic-linking-history';
 export const SCREEN_SETTINGS =
 	'/wp-admin/admin.php?page=magic-linking-settings';
 

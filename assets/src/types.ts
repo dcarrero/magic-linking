@@ -123,6 +123,8 @@ export interface SettingsValues {
 	post_types: string[];
 	low_inbound_threshold: number;
 	words_per_link: number;
+	/** Días que se conserva el historial: 30, 90, 365 o 0 (sin caducidad). */
+	history_retention_days: number;
 	delete_data_on_uninstall: boolean;
 }
 
@@ -139,8 +141,104 @@ export interface Boot {
 	/** Elementos por página (Opciones de pantalla). */
 	perPage?: number;
 	settingsUrl: string;
-	initialTab?: 'report' | 'broken' | 'settings';
-	tabUrls?: Record< 'report' | 'broken' | 'settings', string >;
+	initialTab?: 'report' | 'broken' | 'history' | 'settings';
+	tabUrls?: Record< 'report' | 'broken' | 'history' | 'settings', string >;
+}
+
+/** Un grupo (lote) del historial: una acción del usuario. */
+export interface HistoryGroup {
+	batch_id: string;
+	created_at: string;
+	user_id: number;
+	user_name: string;
+	/** Enlaces del grupo (rehacer no cuenta dos veces el mismo). */
+	links: number;
+	/** Enlaces puestos ahora. */
+	active: number;
+	/** Enlaces deshechos. */
+	undone: number;
+	/** Entradas distintas. */
+	posts: number;
+	/** Títulos de las primeras entradas. */
+	titles: string[];
+	/** Proceso en segundo plano de este grupo, si lo hay. */
+	job?: HistoryJob | null;
+}
+
+export interface HistoryResponse {
+	items: HistoryGroup[];
+	/** Cursor de la página siguiente (el último lote mostrado), o null. */
+	next: string | null;
+	retention_days: number;
+}
+
+export interface HistoryChange {
+	id: number;
+	post_id: number;
+	/** Null si la entrada ya no existe. */
+	post_title: string | null;
+	edit_url: string | null;
+	anchor: string;
+	url: string;
+	state: 'active' | 'undone';
+	created_at: string;
+	undone_at: string | null;
+}
+
+export interface HistoryChangesResponse extends Paged {
+	items: HistoryChange[];
+}
+
+export type ChangeStatus =
+	| 'restored'
+	| 'link_removed'
+	| 'already_gone'
+	| 'manual'
+	| 'failed'
+	| 'already_undone'
+	| 'redone';
+
+export interface ChangeResult {
+	change_id: number;
+	post_id: number;
+	post_title: string | null;
+	status: ChangeStatus;
+	message: string;
+	edit_url: string | null;
+}
+
+export interface HistoryIssue {
+	change_id: number;
+	post_id: number;
+	post_title: string | null;
+	status: ChangeStatus;
+	message: string;
+	edit_url: string | null;
+}
+
+export interface HistoryJob {
+	id: number;
+	status: JobStatus;
+	mode: 'undo' | 'redo';
+	batch_id: string;
+	total: number;
+	done: number;
+	percent: number;
+	counts: Partial< Record< ChangeStatus, number > >;
+	issues: HistoryIssue[];
+	error: string;
+	/** El proceso lleva más de 10 minutos sin avanzar. */
+	stalled: boolean;
+	/** Quien mira puede reanudarlo o cancelarlo (lo lanzó o administra el plugin). */
+	can_control: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface RunResponse {
+	results: ChangeResult[];
+	group: HistoryGroup | null;
+	job: HistoryJob | null;
 }
 
 declare global {

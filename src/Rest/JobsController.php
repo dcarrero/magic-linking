@@ -160,8 +160,14 @@ final class JobsController implements Module {
 		$id     = (int) $request['id'];
 		$action = (string) $request['action'];
 
-		if ( null === $this->jobs->repository()->get( $id ) ) {
+		$job = $this->jobs->repository()->get( $id );
+		if ( null === $job ) {
 			return new WP_Error( 'magiclinking_job_not_found', __( 'That process does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
+		}
+
+		// Pausar, reanudar y cancelar son del análisis; los demás procesos (deshacer, purga) tienen sus propias rutas.
+		if ( Jobs::TYPE_INDEX !== $job['type'] ) {
+			return new WP_Error( 'magiclinking_job_state', __( 'That process cannot be changed in its current state.', 'magic-linking' ), array( 'status' => 409 ) );
 		}
 
 		switch ( $action ) {

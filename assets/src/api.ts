@@ -4,6 +4,11 @@
 import apiFetch from '@wordpress/api-fetch';
 import type {
 	BrokenResponse,
+	HistoryChangesResponse,
+	HistoryGroup,
+	HistoryJob,
+	HistoryResponse,
+	RunResponse,
 	Job,
 	ReportFilter,
 	ReportResponse,
@@ -73,6 +78,49 @@ export const api = {
 			path: path( `/jobs/${ id }/${ action }` ),
 			method: 'POST',
 		} ),
+	history: ( before: string, perPage: number, signal?: AbortSignal ) =>
+		apiFetch< HistoryResponse >( {
+			path: path( '/history', { before, per_page: perPage } ),
+			signal,
+		} ),
+	historyGroup: ( batchId: string ) =>
+		apiFetch< { group: HistoryGroup } >( {
+			path: path( `/history/${ batchId }` ),
+		} ),
+	historyChanges: ( batchId: string, page: number, perPage: number ) =>
+		apiFetch< HistoryChangesResponse >( {
+			path: path( `/history/${ batchId }/changes`, {
+				page,
+				per_page: perPage,
+			} ),
+		} ),
+	historyJob: ( id: number ) =>
+		apiFetch< { job: HistoryJob } >( {
+			path: path( `/history/jobs/${ id }` ),
+		} ),
+	controlHistoryJob: ( id: number, action: 'resume' | 'cancel' ) =>
+		apiFetch< { job: HistoryJob; group: HistoryGroup | null } >( {
+			path: path( `/history/jobs/${ id }/${ action }` ),
+			method: 'POST',
+		} ),
+	/**
+	 * Deshace o rehace un cambio (`changeId`) o un grupo entero (`batchId`).
+	 *
+	 * @param mode   undo o redo.
+	 * @param target El cambio o el grupo.
+	 */
+	runHistory: (
+		mode: 'undo' | 'redo',
+		target: { changeId: number } | { batchId: string }
+	) =>
+		apiFetch< RunResponse >( {
+			path: path( `/${ mode }` ),
+			method: 'POST',
+			data:
+				'changeId' in target
+					? { change_id: target.changeId }
+					: { batch_id: target.batchId },
+		} ),
 	settings: () =>
 		apiFetch< SettingsResponse >( { path: path( '/settings' ) } ),
 	saveSettings: ( values: SettingsValues ) =>
@@ -82,6 +130,19 @@ export const api = {
 			data: values,
 		} ),
 };
+
+/**
+ * Código HTTP de un error de apiFetch, o 0 si no lo trae.
+ *
+ * @param error Lo que lanzó apiFetch.
+ */
+export function errorStatus( error: unknown ): number {
+	if ( typeof error === 'object' && error !== null && 'data' in error ) {
+		const data = ( error as { data?: { status?: unknown } } ).data;
+		return typeof data?.status === 'number' ? data.status : 0;
+	}
+	return 0;
+}
 
 /**
  * Mensaje de un error de apiFetch, sin códigos sueltos.

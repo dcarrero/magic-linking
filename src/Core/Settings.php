@@ -23,13 +23,24 @@ final class Settings {
 		'post_types'                   => array( 'post', 'page' ),
 		'low_inbound_threshold'        => 2,
 		'words_per_link'               => 100,
+		self::RETENTION_SETTING        => 90,
 		Installer::DELETE_DATA_SETTING => false,
 	);
 
 	/**
+	 * Días que se conserva el historial de cambios (docs/03 §4.6): 30, 90, 365 o 0 (sin caducidad).
+	 */
+	public const RETENTION_SETTING = 'history_retention_days';
+
+	/**
+	 * Valores admitidos de la conservación del historial, en días; 0 es «sin caducidad».
+	 */
+	public const RETENTION_CHOICES = array( 30, 90, 365, 0 );
+
+	/**
 	 * Todos los ajustes, con los valores por defecto donde falten.
 	 *
-	 * @return array{post_types: list<string>, low_inbound_threshold: int, words_per_link: int, delete_data_on_uninstall: bool}
+	 * @return array{post_types: list<string>, low_inbound_threshold: int, words_per_link: int, history_retention_days: int, delete_data_on_uninstall: bool}
 	 */
 	public function all(): array {
 		$stored = get_option( Installer::SETTINGS_OPTION, array() );
@@ -61,11 +72,18 @@ final class Settings {
 	}
 
 	/**
+	 * Días que se conserva el historial de cambios; 0 = sin caducidad.
+	 */
+	public function history_retention_days(): int {
+		return $this->all()['history_retention_days'];
+	}
+
+	/**
 	 * Guarda los ajustes que lleguen, saneados; los demás se conservan.
 	 *
 	 * @param array<string, mixed> $input Ajustes nuevos (parciales).
 	 *
-	 * @return array{post_types: list<string>, low_inbound_threshold: int, words_per_link: int, delete_data_on_uninstall: bool}
+	 * @return array{post_types: list<string>, low_inbound_threshold: int, words_per_link: int, history_retention_days: int, delete_data_on_uninstall: bool}
 	 */
 	public function update( array $input ): array {
 		$settings = $this->sanitize( $input, $this->all() );
@@ -81,7 +99,7 @@ final class Settings {
 	 * @param array<mixed, mixed>  $input Ajustes recibidos.
 	 * @param array<string, mixed> $base  Valores de partida.
 	 *
-	 * @return array{post_types: list<string>, low_inbound_threshold: int, words_per_link: int, delete_data_on_uninstall: bool}
+	 * @return array{post_types: list<string>, low_inbound_threshold: int, words_per_link: int, history_retention_days: int, delete_data_on_uninstall: bool}
 	 */
 	private function sanitize( array $input, array $base ): array {
 		$post_types = $base['post_types'] ?? self::DEFAULTS['post_types'];
@@ -92,12 +110,15 @@ final class Settings {
 
 		$threshold = (int) ( $input['low_inbound_threshold'] ?? $base['low_inbound_threshold'] ?? self::DEFAULTS['low_inbound_threshold'] );
 		$words     = (int) ( $input['words_per_link'] ?? $base['words_per_link'] ?? self::DEFAULTS['words_per_link'] );
+		$keep      = $input[ self::RETENTION_SETTING ] ?? $base[ self::RETENTION_SETTING ] ?? self::DEFAULTS[ self::RETENTION_SETTING ];
+		$keep      = is_numeric( $keep ) && in_array( (int) $keep, self::RETENTION_CHOICES, true ) ? (int) $keep : (int) ( $base[ self::RETENTION_SETTING ] ?? self::DEFAULTS[ self::RETENTION_SETTING ] );
 		$delete    = $input[ Installer::DELETE_DATA_SETTING ] ?? $base[ Installer::DELETE_DATA_SETTING ] ?? false;
 
 		return array(
 			'post_types'                   => array_values( array_map( 'strval', (array) $post_types ) ),
 			'low_inbound_threshold'        => max( 1, min( 20, $threshold ) ),
 			'words_per_link'               => max( 20, min( 1000, $words ) ),
+			self::RETENTION_SETTING        => $keep,
 			Installer::DELETE_DATA_SETTING => filter_var( $delete, FILTER_VALIDATE_BOOLEAN ),
 		);
 	}
