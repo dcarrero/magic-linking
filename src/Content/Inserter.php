@@ -122,7 +122,7 @@ final class Inserter {
 		$post_id = $requests[0]->post_id;
 		foreach ( $requests as $request ) {
 			if ( $request->post_id !== $post_id || $request->user_id !== $requests[0]->user_id ) {
-				throw new InsertionException( InsertionException::BAD_REQUEST, __( 'All the links of one write must be for the same post and the same user.', 'magic-linking' ) );
+				throw new InsertionException( InsertionException::BAD_REQUEST, __( 'All the links of one write must be for the same post and the same user.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 			}
 		}
 
@@ -217,7 +217,7 @@ final class Inserter {
 				foreach ( $ids as $done ) {
 					$this->changes->delete( $done );
 				}
-				throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) );
+				throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 			}
 			$ids[ $index ] = $id;
 		}

@@ -166,7 +166,7 @@ final class Undo {
 		$check = Verifier::check( $content, $next, $range, -1 );
 		if ( ! $check->ok ) {
 			PostWriter::log( sprintf( 'Verificación fallida al deshacer el cambio %d: %s.', (int) $change['id'], $check->reason ) );
-			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only removing the link; nothing was written.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only removing the link; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$user = $user_id ?? get_current_user_id();
@@ -181,7 +181,7 @@ final class Undo {
 			$user
 		);
 		if ( 0 === $id ) {
-			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		try {

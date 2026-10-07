@@ -43,7 +43,7 @@ final class BlockEditor {
 	public function insert( string $content, InsertRequest $request ): Edit {
 		$map = BlockMap::parse( $content );
 		if ( null === $map ) {
-			throw new InsertionException( InsertionException::UNSUPPORTED, __( 'The block structure of this post could not be read, so it was left untouched.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::UNSUPPORTED, __( 'The block structure of this post could not be read, so it was left untouched.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$allowed = $this->allowed( $request );
@@ -67,7 +67,7 @@ final class BlockEditor {
 
 				foreach ( Linker::matches( $view, $request ) as [ $a, $b ] ) {
 					if ( null !== $view->unsafe() ) {
-						throw new InsertionException( InsertionException::UNSUPPORTED, __( 'The block contains markup (script, styles…) that cannot be scanned safely.', 'magic-linking' ) );
+						throw new InsertionException( InsertionException::UNSUPPORTED, __( 'The block contains markup (script, styles…) that cannot be scanned safely.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 					}
 					$problem = Linker::blocked( $view, $a, $b, $request->headings );
 					if ( null !== $problem ) {
@@ -87,13 +87,13 @@ final class BlockEditor {
 			if ( array() === $found && null !== $blocked ) {
 				throw $blocked;
 			}
-			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		[ $node, $from, $html, $view, $a, $b ] = $found[0];
 
 		if ( isset( $node->attrs['metadata']['bindings'] ) && is_array( $node->attrs['metadata']['bindings'] ) && array() !== $node->attrs['metadata']['bindings'] ) {
-			throw new InsertionException( InsertionException::BOUND_BLOCK, __( 'The text of this block comes from another source (data binding) and cannot be edited here.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::BOUND_BLOCK, __( 'The text of this block comes from another source (data binding) and cannot be edited here.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		[ $new_html ] = Linker::wrap( $html, $view, $a, $b, $request );
@@ -181,7 +181,7 @@ final class BlockEditor {
 
 		$node = $map->find( $request->block_path );
 		if ( null === $node ) {
-			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		return array( $node );
