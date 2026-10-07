@@ -164,7 +164,7 @@ test.describe( 'Editor panel', () => {
 		const card = panel.locator( '.magiclinking-card' ).first();
 		await expect( card ).toBeVisible();
 		await expect( card ).toContainText( 'Aislamiento de casas' );
-		await expect( card.locator( 'mark' ) ).toHaveText( 'una bomba de' );
+		await expect( card.locator( 'mark' ) ).toHaveText( 'bomba de calor' );
 		await expect(
 			panel.getByRole( 'tab', { name: /^Outbound \(\d+\)/ } )
 		).toBeVisible();
@@ -190,7 +190,7 @@ test.describe( 'Editor panel', () => {
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
 		await expect( card.getByText( 'Link added.' ) ).toBeFocused();
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveText(
-			'una bomba de'
+			'bomba de calor'
 		);
 		expect( content( ids.origen ) ).toBe( before );
 
@@ -199,7 +199,7 @@ test.describe( 'Editor panel', () => {
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveText(
-			'una bomba de'
+			'bomba de calor'
 		);
 
 		// Guardar con el editor: solo cambia ese enlace.
