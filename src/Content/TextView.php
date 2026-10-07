@@ -36,6 +36,17 @@ final class TextView {
 	private const VOID_BREAKS = array( 'br', 'hr', 'img', 'input', 'embed' );
 
 	/**
+	 * Elementos que el extractor del motor sustituye por un separador (`·`, `DomExtractor::SEPARATOR`) en
+	 * lugar de cortar el párrafo; la vista los pone igual para que la frase del motor case con el HTML.
+	 */
+	private const SEPARATORS = array( 'code', 'kbd', 'samp', 'img' );
+
+	/**
+	 * Separador del extractor.
+	 */
+	public const SEPARATOR = '·';
+
+	/**
 	 * Elementos cuyo contenido no es texto del artículo: se trata como un corte, entero.
 	 */
 	private const OPAQUE = array( 'code', 'kbd', 'samp', 'pre', 'script', 'style', 'textarea', 'svg', 'math', 'template', 'select', 'noscript' );
@@ -323,7 +334,7 @@ final class TextView {
 
 			if ( in_array( $name, self::VOID, true ) ) {
 				if ( ! $closer && in_array( $name, self::VOID_BREAKS, true ) ) {
-					$this->emit( self::BREAK, $at, $cursor, 2, $stack );
+					$this->cut( $name, $at, $cursor, $stack );
 				}
 				continue;
 			}
@@ -337,7 +348,7 @@ final class TextView {
 				$stack[] = $name;
 				if ( in_array( $name, self::OPAQUE, true ) ) {
 					if ( 0 === $opaque ) {
-						$this->emit( self::BREAK, $at, $cursor, 2, $stack );
+						$this->cut( $name, $at, $cursor, $stack );
 					}
 					++$opaque;
 				}
@@ -358,6 +369,30 @@ final class TextView {
 		}
 
 		$this->text = implode( '', $this->chars );
+	}
+
+	/**
+	 * Marca un elemento que corta el texto: el separador del extractor (con un espacio delante, sin espacio
+	 * detrás: el siguiente texto trae el suyo) o un corte que no casa con nada.
+	 *
+	 * @param string $name  Elemento.
+	 * @param int    $start Primer byte de la etiqueta.
+	 * @param int    $end   Byte siguiente al último.
+	 * @param array  $stack Elementos abiertos.
+	 *
+	 * @phpstan-param list<string> $stack
+	 */
+	private function cut( string $name, int $start, int $end, array $stack ): void {
+		if ( ! in_array( $name, self::SEPARATORS, true ) ) {
+			$this->emit( self::BREAK, $start, $end, 2, $stack );
+			return;
+		}
+
+		$last = count( $this->chars ) - 1;
+		if ( $last >= 0 && ' ' !== $this->chars[ $last ] ) {
+			$this->emit( ' ', $start, $end, 0, $stack );
+		}
+		$this->emit( self::SEPARATOR, $start, $end, 2, $stack );
 	}
 
 	/**
@@ -508,7 +543,7 @@ final class TextView {
 	private function emit( string $char, int $start, int $end, int $kind, array $stack ): void {
 		// Un corte seguido de otro es un solo corte; un espacio de shortcode junto a otro espacio, uno.
 		$last = count( $this->chars ) - 1;
-		if ( $last >= 0 && 2 === $kind && 2 === $this->kind[ $last ] ) {
+		if ( $last >= 0 && self::BREAK === $char && self::BREAK === $this->chars[ $last ] && 2 === $this->kind[ $last ] ) {
 			$this->to[ $last ] = $end;
 			return;
 		}

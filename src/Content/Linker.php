@@ -37,12 +37,17 @@ final class Linker {
 	 * @param InsertRequest $request Petición.
 	 *
 	 * @return list<array{0: int, 1: int}> Tramos [primer carácter, siguiente al último] del ancla.
+	 *
+	 * @throws InsertionException Si el ancla está vacía o empieza o acaba en espacio.
 	 */
 	public static function matches( TextView $view, InsertRequest $request ): array {
 		[ $before, $anchor, $after ] = $request->needle();
-		$lead                        = mb_strlen( $before, 'UTF-8' );
-		$length                      = mb_strlen( $anchor, 'UTF-8' );
-		$found                       = array();
+		if ( '' === $anchor || trim( $anchor ) !== $anchor ) {
+			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The anchor cannot be empty or start or end with a space.', 'magic-linking' ) );
+		}
+		$lead   = mb_strlen( $before, 'UTF-8' );
+		$length = mb_strlen( $anchor, 'UTF-8' );
+		$found  = array();
 
 		foreach ( $view->find_all( $before . $anchor . $after ) as $at ) {
 			$found[] = array( $at + $lead, $at + $lead + $length );
