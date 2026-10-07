@@ -72,7 +72,7 @@ final class InsertRequest {
 	 */
 	public static function from_sentence( int $post_id, string $url, string $sentence, int $offset, string $anchor, array $attributes = array(), ?string $block_path = null, ?int $user_id = null, bool $headings = false ): self {
 		if ( '' === $anchor || $offset < 0 || substr( $sentence, $offset, strlen( $anchor ) ) !== $anchor ) {
-			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The anchor is not part of the sentence.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The anchor is not part of the sentence.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		return new self(

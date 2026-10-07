@@ -129,7 +129,7 @@ export function Maintenance( { status, onStarted }: Props ) {
 			) }
 			<p className="description">
 				{ __(
-					'Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background and does not change any content.',
+					'Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background. Analyzing only reads your content; it never changes it.',
 					'magic-linking'
 				) }
 			</p>
@@ -168,7 +168,7 @@ export function Maintenance( { status, onStarted }: Props ) {
 				>
 					<p>
 						{ __(
-							'Magic Linking will read every entry again. It runs in the background, so you can keep working, and it does not modify any of your content.',
+							'Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it.',
 							'magic-linking'
 						) }
 					</p>

@@ -276,7 +276,7 @@ export function IndexStatus( {
 				<h2>{ __( 'Analyze your site', 'magic-linking' ) }</h2>
 				<p>
 					{ __(
-						'Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. It does not change any content.',
+						'Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. Analyzing only reads your content; it never changes it. Links are only added when you press Link.',
 						'magic-linking'
 					) }
 				</p>

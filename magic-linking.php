@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       Magic Linking
+ * Plugin Name:       Magic Linking – Internal Links
  * Plugin URI:        https://magiclinking.com
- * Description:       Find orphan pages, under-linked and over-linked entries and broken internal links. It never changes your content.
- * Version:           0.9.2
+ * Description:       Internal link suggestions in the editor. Link in one click, check that nothing else changes, undo from History. Plus orphan and broken link reports.
+ * Version:           0.10.0
  * Requires at least: 6.9
  * Requires PHP:      8.1
  * Author:            Color Vivo
@@ -26,7 +26,7 @@ if ( defined( 'MAGICLINKING_VERSION' ) ) {
 }
 
 // Rutas y versiones en un solo sitio; el resto del código no repite valores literales.
-define( 'MAGICLINKING_VERSION', '0.9.2' );
+define( 'MAGICLINKING_VERSION', '0.10.0' );
 define( 'MAGICLINKING_FILE', __FILE__ );
 define( 'MAGICLINKING_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAGICLINKING_URL', plugin_dir_url( __FILE__ ) );

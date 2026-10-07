@@ -90,17 +90,17 @@ final class PostWriter {
 	public function assert_editable( int $post_id, ?int $user_id ): WP_Post {
 		$post = get_post( $post_id );
 		if ( ! $post instanceof WP_Post || in_array( $post->post_status, self::NEVER_STATUS, true ) ) {
-			throw new InsertionException( InsertionException::NO_POST, __( 'The post does not exist or is in the trash.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::NO_POST, __( 'The post does not exist or is in the trash.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$user = $user_id ?? get_current_user_id();
 		if ( ( null === $user_id && $user <= 0 ) || ( $user > 0 && ! user_can( $user, 'edit_post', $post_id ) ) ) {
-			throw new InsertionException( InsertionException::NOT_ALLOWED, __( 'You do not have permission to edit this post.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::NOT_ALLOWED, __( 'You do not have permission to edit this post.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$owner = $this->locked_by( $post_id );
 		if ( $owner > 0 ) {
-			throw $this->locked( $owner, $user );
+			throw $this->locked( $owner, $user ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		return $post;
@@ -133,7 +133,7 @@ final class PostWriter {
 		$got  = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK( %s, %d )', $name, $wait ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Candado de MySQL.
 
 		if ( null !== $got && 1 !== (int) $got ) {
-			throw new InsertionException( InsertionException::BUSY, __( 'Another change is being applied to this post; try again in a moment.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::BUSY, __( 'Another change is being applied to this post; try again in a moment.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 		if ( null === $got ) {
 			self::log( sprintf( 'GET_LOCK no está disponible; se continúa sin candado en la entrada %d.', $post_id ) );
@@ -178,12 +178,12 @@ final class PostWriter {
 	public function write( int $post_id, string $old, string $next, ?int $user_id ): void {
 		$row = $this->row( $post_id );
 		if ( null === $row || (string) $row['post_content'] !== $old ) {
-			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$owner = $this->locked_by( $post_id );
 		if ( $owner > 0 ) {
-			throw $this->locked( $owner, $user_id ?? get_current_user_id(), true );
+			throw $this->locked( $owner, $user_id ?? get_current_user_id(), true ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		// Lo que los filtros de guardado harían con este contenido, antes de escribir nada.
@@ -209,7 +209,7 @@ final class PostWriter {
 			true
 		);
 		if ( $result instanceof WP_Error ) {
-			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		// Red de seguridad: nada salvo el contenido y la fecha de modificación puede haber cambiado.

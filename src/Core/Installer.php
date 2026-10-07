@@ -288,6 +288,8 @@ final class Installer implements Module {
 			delete_option( $option );
 		}
 
+		self::delete_scheduled_actions();
+
 		// Metadatos de entradas (p. ej. sugerencias descartadas).
 		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Limpieza única al desinstalar.
 			$wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s", $like )
@@ -295,6 +297,36 @@ final class Installer implements Module {
 		wp_cache_flush_group( 'post_meta' );
 
 		return true;
+	}
+
+	/**
+	 * Borra del todo las acciones de Action Scheduler del plugin (pendientes, hechas y fallidas) y su registro.
+	 *
+	 * Al desinstalar, el plugin ya no está cargado y Action Scheduler puede no estarlo (lo empaqueta el plugin),
+	 * así que se borra por SQL en sus tablas, por el grupo; si no existen, no hace nada.
+	 */
+	private function delete_scheduled_actions(): void {
+		$wpdb    = $this->wpdb;
+		$actions = $wpdb->prefix . 'actionscheduler_actions';
+		$groups  = $wpdb->prefix . 'actionscheduler_groups';
+		$logs    = $wpdb->prefix . 'actionscheduler_logs';
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Limpieza única al desinstalar, en tablas de Action Scheduler.
+		if ( $actions !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $actions ) ) ) ) {
+			return;
+		}
+
+		$group_id = $wpdb->get_var( $wpdb->prepare( 'SELECT group_id FROM %i WHERE slug = %s', $groups, self::ACTION_GROUP ) );
+		if ( null === $group_id ) {
+			return;
+		}
+
+		if ( $logs === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $logs ) ) ) ) {
+			$wpdb->query( $wpdb->prepare( 'DELETE l FROM %i l INNER JOIN %i a ON a.action_id = l.action_id WHERE a.group_id = %d', $logs, $actions, (int) $group_id ) );
+		}
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE group_id = %d', $actions, (int) $group_id ) );
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE group_id = %d', $groups, (int) $group_id ) );
+		// phpcs:enable
 	}
 
 	/**

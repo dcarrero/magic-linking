@@ -147,13 +147,13 @@ final class Redo {
 		$check = Verifier::check( $content, $next, array( $start, $end ), 1 );
 		if ( ! $check->ok ) {
 			PostWriter::log( sprintf( 'Verificación fallida al rehacer el cambio %d: %s.', (int) $change['id'], $check->reason ) );
-			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only the link; nothing was written.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only the link; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$user = $user_id ?? get_current_user_id();
 		$id   = $this->changes->record( (string) $change['batch_id'], $post_id, ChangeRepository::INSERT, '' === $path ? null : $path, $before, $after, PostWriter::hash( $next ), $user );
 		if ( 0 === $id ) {
-			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		try {

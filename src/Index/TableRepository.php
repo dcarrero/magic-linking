@@ -876,7 +876,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		$query = $this->weights_table( $by_id, $args );
 		$args  = array_merge( $args, array( $this->postings, $this->docs, $this->posts, $lang, $limit + count( $skip ) ) );
 
-		$rows = $wpdb->get_results(
+		$rows = $wpdb->get_results( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $query solo lleva marcadores %d y %s generados por weights_table(); los valores van en $args.
 			$wpdb->prepare(
 				"SELECT s.post_id, s.score FROM (SELECT p.post_id AS post_id, SUM(p.weight * q.w) AS score FROM ({$query}) q JOIN %i p ON p.term_id = q.term_id GROUP BY p.post_id) s JOIN %i d ON d.post_id = s.post_id JOIN %i w ON w.ID = s.post_id WHERE d.lang = %s AND d.status = 1 AND w.post_status = 'publish' ORDER BY s.score DESC, s.post_id ASC LIMIT %d",
 				$args
@@ -947,7 +947,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		foreach ( array_chunk( $by_id, $this->query_terms, true ) as $chunk ) {
 			$query = $this->weights_table( $chunk, $args );
 			$args  = array_merge( $args, array( $this->postings ) );
-			$rows  = $wpdb->get_results(
+			$rows  = $wpdb->get_results( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $query solo lleva marcadores %d y %s generados por weights_table(); los valores van en $args.
 				$wpdb->prepare( "SELECT p.post_id, SUM(p.weight * q.w) FROM ({$query}) q JOIN %i p ON p.term_id = q.term_id GROUP BY p.post_id", $args ),
 				ARRAY_N
 			);

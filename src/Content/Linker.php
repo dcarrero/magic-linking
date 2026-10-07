@@ -43,7 +43,7 @@ final class Linker {
 	public static function matches( TextView $view, InsertRequest $request ): array {
 		[ $before, $anchor, $after ] = $request->needle();
 		if ( '' === $anchor || trim( $anchor ) !== $anchor ) {
-			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The anchor cannot be empty or start or end with a space.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The anchor cannot be empty or start or end with a space.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 		$lead   = mb_strlen( $before, 'UTF-8' );
 		$length = mb_strlen( $anchor, 'UTF-8' );
@@ -99,7 +99,7 @@ final class Linker {
 		$range           = $view->balanced( $start, $end, self::INLINE );
 
 		if ( null === $range ) {
-			throw new InsertionException( InsertionException::CROSSES_TAGS, __( 'The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::CROSSES_TAGS, __( 'The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		[ $start, $end ] = $range;
@@ -121,7 +121,7 @@ final class Linker {
 	public static function open_tag( InsertRequest $request ): string {
 		$url = esc_url( $request->url );
 		if ( '' === $url ) {
-			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The link address is not valid.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The link address is not valid.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$tag = '<a href="' . $url . '"';

@@ -42,7 +42,7 @@ final class ClassicEditor {
 		$blocked = null;
 		foreach ( $hits as [ $a, $b ] ) {
 			if ( null !== $view->unsafe() ) {
-				throw new InsertionException( InsertionException::UNSUPPORTED, __( 'The post contains markup (script, styles…) that cannot be scanned safely.', 'magic-linking' ) );
+				throw new InsertionException( InsertionException::UNSUPPORTED, __( 'The post contains markup (script, styles…) that cannot be scanned safely.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 			}
 			$problem = Linker::blocked( $view, $a, $b, $request->headings );
 			if ( null !== $problem ) {
@@ -56,7 +56,7 @@ final class ClassicEditor {
 			if ( array() === $found && null !== $blocked ) {
 				throw $blocked;
 			}
-			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) );
+			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		[ $new_content, $start, $end ] = Linker::wrap( $content, $view, $found[0][0], $found[0][1], $request );
