@@ -212,6 +212,38 @@ final class Suggester {
 	 * @phpstan-param list<float>|null $vector
 	 */
 	public function outgoing( Document $source, ?array $vector = null ): array {
+		try {
+			return $this->compute_outgoing( $source, $vector );
+		} finally {
+			if ( $this->index instanceof Preloads ) {
+				$this->index->release();
+			}
+		}
+	}
+
+	/**
+	 * Avisa al almacén de las entradas que va a consultar (antes de filtrarlas y puntuarlas, para que ninguna consulta sea por entrada).
+	 *
+	 * @param int[] $ids IDs.
+	 *
+	 * @phpstan-param list<int> $ids
+	 */
+	private function preload( array $ids ): void {
+		if ( $this->index instanceof Preloads ) {
+			$this->index->preload( $ids );
+		}
+	}
+
+	/**
+	 * Cálculo de {@see self::outgoing()}.
+	 *
+	 * @param Document     $source Entrada abierta.
+	 * @param float[]|null $vector Vector de la entrada abierta.
+	 * @return list<Suggestion>
+	 *
+	 * @phpstan-param list<float>|null $vector
+	 */
+	private function compute_outgoing( Document $source, ?array $vector ): array {
 		$links = null;
 		if ( ! $this->existing ) {
 			$links  = $this->count_removed ? count( $source->links ) : null;
@@ -219,7 +251,8 @@ final class Suggester {
 		}
 		$analyzer = Analyzer::for_language( $source->lang );
 		$analyzed = $analyzer->analyze( $source, true );
-		$weights  = $this->indexer->weigh( $analyzed, $this->index->stats( $source->lang ) );
+		$stats    = $this->index instanceof TermStats ? $this->index->stats_for( $source->lang, $analyzed->terms(), true )[0] : $this->index->stats( $source->lang );
+		$weights  = $this->indexer->weigh( $analyzed, $stats );
 
 		$exclude = array_values( array_unique( array_merge( array( $source->id ), $source->linked(), $this->never ) ) );
 		$vectors = $this->vectors;
@@ -228,7 +261,8 @@ final class Suggester {
 
 		$required = in_array( self::REQUIRE, $this->filters, true );
 		if ( null !== $vectors && null !== $query && $this->semantic_retrieval ) {
-			$cosines    = $vectors->nearest( $query, $source->lang, Retriever::CANDIDATES, $exclude );
+			$cosines = $vectors->nearest( $query, $source->lang, Retriever::CANDIDATES, $exclude );
+			$this->preload( array_keys( $cosines ) );
 			$cosines    = $required ? $this->restrict( $source, $cosines ) : $cosines;
 			$candidates = array();
 			foreach ( array_keys( $cosines ) as $target ) {
@@ -236,6 +270,7 @@ final class Suggester {
 			}
 		} else {
 			$candidates = $this->retriever->outgoing( $weights, $source->lang, $exclude, $required ? Retriever::CANDIDATES * self::OVERFETCH : null );
+			$this->preload( array_keys( $candidates ) );
 			if ( $required ) {
 				$candidates = array_slice( $this->restrict( $source, $candidates ), 0, Retriever::CANDIDATES, true );
 			}
@@ -293,6 +328,22 @@ final class Suggester {
 	 * @return list<Suggestion>
 	 */
 	public function incoming( int $target ): array {
+		try {
+			return $this->compute_incoming( $target );
+		} finally {
+			if ( $this->index instanceof Preloads ) {
+				$this->index->release();
+			}
+		}
+	}
+
+	/**
+	 * Cálculo de {@see self::incoming()}.
+	 *
+	 * @param int $target ID del destino.
+	 * @return list<Suggestion>
+	 */
+	private function compute_incoming( int $target ): array {
 		$meta = $this->index->meta( $target );
 		if ( null === $meta || in_array( $target, $this->never, true ) ) {
 			return array();
@@ -301,6 +352,12 @@ final class Suggester {
 		$phrases  = $this->finder->target_phrases( $meta, $this->index->terms( $target ), $analyzer );
 		$exclude  = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array() );
 		$origins  = $this->retriever->incoming( $meta, $phrases, $exclude );
+		if ( $this->index instanceof Preloads ) {
+			$this->index->preload( array_merge( array( $target ), $origins ) );
+		}
+		if ( $this->documents instanceof PrefetchesDocuments ) {
+			$this->documents->prefetch( $origins );
+		}
 
 		$similarity = array();
 		foreach ( $origins as $origin ) {
@@ -317,6 +374,10 @@ final class Suggester {
 			if ( ! $this->passes_required( $document, $meta ) ) {
 				continue;
 			}
+			// El texto del origen manda sobre el índice: si ya enlaza al destino, no se vuelve a sugerir aunque el grafo no lo sepa todavía.
+			if ( $this->existing && in_array( $target, $document->linked(), true ) ) {
+				continue;
+			}
 			$links = null;
 			if ( ! $this->existing ) {
 				$links    = $this->count_removed ? count( $document->links ) : null;
@@ -327,7 +388,7 @@ final class Suggester {
 			if ( null !== $best && $best[0]->score->passes ) {
 				$result[] = $best[0];
 			}
-		}
+		}//end foreach
 
 		usort( $result, static fn( Suggestion $a, Suggestion $b ): int => array( $b->score->value, $a->source ) <=> array( $a->score->value, $b->source ) );
 		return $result;

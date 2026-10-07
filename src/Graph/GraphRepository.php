@@ -211,6 +211,34 @@ final class GraphRepository {
 	}
 
 	/**
+	 * Enlaces internos de varias entradas, en el orden en que se guardaron, con una sola consulta por trozo.
+	 *
+	 * @param array<int, int> $source_ids IDs de origen.
+	 *
+	 * @return array<int, list<array{0: int|null, 1: string}>> Por origen: [destino (null si está roto o no es una entrada), ancla].
+	 */
+	public function links_from( array $source_ids ): array {
+		$wpdb = $this->wpdb;
+		$out  = array();
+
+		foreach ( array_chunk( array_values( array_unique( array_map( 'intval', $source_ids ) ) ), 500 ) as $chunk ) {
+			$in   = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia.
+				$wpdb->prepare( "SELECT source_id, target_id, anchor, is_broken FROM %i WHERE source_id IN ({$in}) AND is_internal = 1 ORDER BY source_id ASC, id ASC", array_merge( array( $this->links ), $chunk ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+				ARRAY_N
+			);
+
+			foreach ( (array) $rows as $row ) {
+				$target = null === $row[1] || (int) $row[3] > 0 ? null : (int) $row[1];
+
+				$out[ (int) $row[0] ][] = array( $target, (string) $row[2] );
+			}
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Sustituye los enlaces internos de una entrada.
 	 *
 	 * @param int                                                                              $source_id Entrada de origen.
