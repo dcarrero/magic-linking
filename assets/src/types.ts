@@ -283,12 +283,15 @@ export interface SuggestionAlternative {
 	anchor_end: number;
 	paragraph: number;
 	score: number;
-	insert: InsertLink;
+	/** Solo si el usuario puede editar el origen (`can_insert` de la sugerencia). */
+	insert?: InsertLink;
 }
 
 export interface Suggestion extends SuggestionAlternative {
 	source: SuggestionPost;
 	target: SuggestionPost;
+	/** El usuario puede editar el origen: si no, la tarjeta se enseña sin *Enlazar*, sin `insert` ni `edit_url`. */
+	can_insert: boolean;
 	reasons: SuggestionReason[];
 	alternatives: SuggestionAlternative[];
 }

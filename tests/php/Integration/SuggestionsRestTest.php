@@ -570,7 +570,7 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->assertSame( 5, $beyond['total'] );
 	}
 
-	public function test_inbound_only_lists_the_sources_the_user_can_edit(): void {
+	public function test_inbound_lists_every_source_and_marks_which_ones_the_user_can_insert(): void {
 		$this->corpus( 3 );
 
 		// El destino es del autor, que solo puede editar el primer origen.
@@ -582,13 +582,57 @@ final class SuggestionsRestTest extends GraphTestCase {
 		);
 
 		$author = $this->request( 'GET', '/suggestions/inbound', array( 'post_id' => $this->target ), $this->author )->get_data();
-		$ids    = array_column( array_column( $author['items'], 'source' ), 'id' );
-		$this->assertSame( array( $this->sources[0] ), $ids, 'Solo el origen propio.' );
-		$this->assertSame( 1, $author['total'] );
-		$this->assertSame( 1, $author['total_pages'] );
+		$this->assertSame( 3, $author['total'], 'Se listan todos los orígenes.' );
+		$this->assertCount( 3, $author['items'] );
+
+		foreach ( $author['items'] as $item ) {
+			if ( $this->sources[0] === $item['source']['id'] ) {
+				$this->assertTrue( $item['can_insert'] );
+				$this->assertSame( $this->sources[0], $item['insert']['post_id'] );
+				$this->assertNotNull( $item['source']['edit_url'] );
+				continue;
+			}
+			$this->assertFalse( $item['can_insert'] );
+			$this->assertArrayNotHasKey( 'insert', $item );
+			$this->assertNull( $item['source']['edit_url'] );
+			$this->assertSame( $this->target, $item['target']['id'] );
+			$this->assertNotSame( '', $item['sentence'] );
+		}
+
+		// Y el servidor sigue rechazando insertar en lo ajeno.
+		$other = $this->first_outbound( $this->sources[1] )['insert'];
+		$this->assertSame( 403, $this->request( 'POST', '/links', $other, $this->author )->get_status() );
 
 		$admin = $this->request( 'GET', '/suggestions/inbound', array( 'post_id' => $this->target ) )->get_data();
 		$this->assertSame( 3, $admin['total'] );
+		$this->assertSame( array( true ), array_values( array_unique( array_column( $admin['items'], 'can_insert' ) ) ) );
+	}
+
+	public function test_inbound_does_not_query_each_source_to_check_permissions(): void {
+		$this->corpus( 7 );
+		wp_update_post(
+			array(
+				'ID'          => $this->target,
+				'post_author' => $this->author,
+			)
+		);
+		wp_cache_flush();
+
+		global $wpdb;
+		$single = 0;
+		$count  = static function ( string $sql ) use ( &$single, $wpdb ): string {
+			if ( preg_match( '/FROM\s+`?' . preg_quote( $wpdb->posts, '/' ) . '`?\s+WHERE\s+ID\s*=\s*\d+/i', $sql ) ) {
+				++$single;
+			}
+
+			return $sql;
+		};
+		add_filter( 'query', $count );
+		$data = $this->request( 'GET', '/suggestions/inbound', array( 'post_id' => $this->target ), $this->author )->get_data();
+		remove_filter( 'query', $count );
+
+		$this->assertSame( 7, $data['total'] );
+		$this->assertLessThanOrEqual( 2, $single, 'Las entradas de la página se cargan de una vez, no una a una.' );
 	}
 
 	// ------------------------------------------------------------------ Insertar.
@@ -727,6 +771,106 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->assertStringNotContainsString( '<a href=', $this->stored( $this->sources[1] ) );
 	}
 
+	public function test_several_links_in_one_entry_are_one_write_and_undo_one_by_one(): void {
+		$this->corpus( 3 );
+		$post    = $this->sources[1];
+		$content = $this->stored( $post );
+		$first   = $this->first_outbound( $post )['insert'];
+		$second  = array_merge(
+			$first,
+			array(
+				'target_id' => $this->sources[2],
+				'sentence'  => 'Lo importante de ventanas, persianas es no tener prisa.',
+				'anchor'    => 'no tener prisa',
+				'offset'    => (int) strpos( 'Lo importante de ventanas, persianas es no tener prisa.', 'no tener prisa' ),
+			)
+		);
+		wp_update_post(
+			array(
+				'ID'           => $post,
+				'post_content' => $content . $this->p( 'Lo importante de ventanas, persianas es no tener prisa.' ),
+			)
+		);
+		$content = $this->stored( $post );
+		$writes  = 0;
+		add_action(
+			'post_updated',
+			static function () use ( &$writes ): void {
+				++$writes;
+			}
+		);
+		$revisions = count( wp_get_post_revisions( $post ) );
+
+		$data = $this->request( 'POST', '/links', array( 'links' => array( $first, $second ) ) )->get_data();
+
+		$this->assertSame( 2, $data['inserted'] );
+		$this->assertSame( 1, $writes, 'Una sola escritura para los dos enlaces.' );
+		$this->assertLessThanOrEqual( $revisions + 1, count( wp_get_post_revisions( $post ) ), 'Una sola revisión.' );
+		$this->assertCount( 2, $this->link_rows( $post ), 'El grafo tiene los dos enlaces.' );
+		$changes = $this->request( 'GET', '/history/' . $data['batch_id'] . '/changes' )->get_data();
+		$this->assertSame( 2, $changes['total'], 'Cada enlace tiene su fila.' );
+
+		// Deshacer solo el primero deja el segundo.
+		$undo = $this->request( 'POST', '/undo', array( 'change_id' => $data['results'][0]['change_id'] ) );
+		$this->assertSame( 200, $undo->get_status() );
+		$this->assertSame( 1, substr_count( $this->stored( $post ), '<a href=' ) );
+		$this->assertStringContainsString( (string) get_permalink( $this->sources[2] ), $this->stored( $post ) );
+
+		// Y el lote entero lo deja como estaba.
+		$this->request( 'POST', '/redo', array( 'change_id' => $data['results'][0]['change_id'] ) );
+		$this->request( 'POST', '/undo', array( 'batch_id' => $data['batch_id'] ) );
+		$this->assertSame( $content, $this->stored( $post ) );
+	}
+
+	public function test_an_invalid_link_in_a_grouped_entry_does_not_stop_the_others(): void {
+		$this->corpus( 3 );
+		$good = $this->first_outbound( $this->sources[1] )['insert'];
+		$bad  = array_merge( $good, array( 'anchor' => 'nada de esto' ) );
+
+		$data = $this->request( 'POST', '/links', array( 'links' => array( $bad, $good ) ) )->get_data();
+
+		$this->assertSame( 'failed', $data['results'][0]['status'] );
+		$this->assertSame( 'inserted', $data['results'][1]['status'] );
+		$this->assertSame( 1, $data['inserted'] );
+	}
+
+	// ------------------------------------------------------------------ Título.
+
+	public function test_an_empty_title_from_the_editor_is_respected(): void {
+		$this->corpus();
+		$seen = array();
+		add_filter(
+			'magiclinking_post_html',
+			static function ( $html, $post ) use ( &$seen ) {
+				$seen[] = $post->post_title;
+				return $html;
+			},
+			10,
+			2
+		);
+
+		$this->request(
+			'POST',
+			'/suggestions/outbound',
+			array(
+				'post_id' => $this->sources[1],
+				'content' => $this->p( 'Texto cualquiera.' ),
+				'title'   => '',
+			)
+		);
+		$this->request(
+			'POST',
+			'/suggestions/outbound',
+			array(
+				'post_id' => $this->sources[1],
+				'content' => $this->p( 'Texto cualquiera.' ),
+			)
+		);
+
+		$this->assertSame( '', $seen[0], 'Un título vacío del editor no es el título guardado.' );
+		$this->assertSame( get_the_title( $this->sources[1] ), $seen[1], 'Sin título se usa el guardado.' );
+	}
+
 	// ------------------------------------------------------------------ Caché.
 
 	public function test_nothing_is_cached_in_the_database_without_a_persistent_object_cache(): void {
@@ -765,5 +909,97 @@ final class SuggestionsRestTest extends GraphTestCase {
 		);
 		$fresh = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $this->sources[1] ) )->get_data();
 		$this->assertNotContains( $this->target, array_column( array_column( $fresh['items'], 'target' ), 'id' ) );
+	}
+
+	private function epoch(): string {
+		return (string) wp_cache_get_last_changed( SuggestionCache::GROUP );
+	}
+
+	public function test_the_first_save_of_the_settings_also_renews_the_cache_epoch(): void {
+		$this->corpus();
+		delete_option( 'magiclinking_settings' );
+		$before = $this->epoch();
+		usleep( 2000 );
+
+		add_option( 'magiclinking_settings', array( 'post_types' => array( 'post' ) ) );
+		$created = $this->epoch();
+		$this->assertNotSame( $before, $created, 'add_option renueva la época.' );
+
+		usleep( 2000 );
+		update_option( 'magiclinking_settings', array( 'post_types' => array( 'post', 'page' ) ) );
+		$this->assertNotSame( $created, $this->epoch() );
+
+		$updated = $this->epoch();
+		usleep( 2000 );
+		delete_option( 'magiclinking_settings' );
+		$this->assertNotSame( $updated, $this->epoch(), 'Borrarlos también.' );
+	}
+
+	public function test_only_relevant_saves_renew_the_epoch(): void {
+		$this->corpus();
+		$published  = $this->sources[1];
+		$irrelevant = array(
+			'borrador'          => fn() => self::factory()->post->create( array( 'post_status' => 'draft' ) ),
+			'borrador auto'     => fn() => self::factory()->post->create( array( 'post_status' => 'auto-draft' ) ),
+			'menú'              => fn() => self::factory()->post->create(
+				array(
+					'post_type'   => 'nav_menu_item',
+					'post_status' => 'publish',
+				)
+			),
+			'tipo sin análisis' => fn() => self::factory()->post->create(
+				array(
+					'post_type'   => 'attachment',
+					'post_status' => 'inherit',
+				)
+			),
+			'revisión'          => fn() => wp_save_post_revision( $published ),
+		);
+
+		foreach ( $irrelevant as $what => $action ) {
+			$before = $this->epoch();
+			usleep( 2000 );
+			$action();
+			$this->assertSame( $before, $this->epoch(), "No renueva: {$what}." );
+		}
+
+		// Un borrador que se guarda de nuevo, tampoco.
+		$draft  = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$before = $this->epoch();
+		usleep( 2000 );
+		wp_update_post(
+			array(
+				'ID'           => $draft,
+				'post_content' => 'otro texto',
+			)
+		);
+		$this->assertSame( $before, $this->epoch(), 'Guardar un borrador no renueva.' );
+
+		// Publicarlo, editar una publicada, despublicarla y borrarla, sí.
+		foreach ( array(
+			'publicar'    => fn() => wp_update_post(
+				array(
+					'ID'          => $draft,
+					'post_status' => 'publish',
+				)
+			),
+			'editar'      => fn() => wp_update_post(
+				array(
+					'ID'           => $draft,
+					'post_content' => 'texto nuevo',
+				)
+			),
+			'despublicar' => fn() => wp_update_post(
+				array(
+					'ID'          => $draft,
+					'post_status' => 'draft',
+				)
+			),
+		) as $what => $action ) {
+			$before = $this->epoch();
+			usleep( 2000 );
+			$action();
+			$this->assertNotSame( $before, $this->epoch(), "Renueva: {$what}." );
+		}
 	}
 }

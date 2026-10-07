@@ -153,7 +153,11 @@ export const api = {
 		apiFetch< OutboundResponse >( {
 			path: path( '/suggestions/outbound' ),
 			method: 'POST',
-			data: { post_id: postId, content, ...( title ? { title } : {} ) },
+			data: {
+				post_id: postId,
+				content,
+				...( title !== undefined ? { title } : {} ),
+			},
 			signal,
 		} ),
 	/**
