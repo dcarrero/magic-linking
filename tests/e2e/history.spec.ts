@@ -298,6 +298,55 @@ test.describe( 'History', () => {
 		}
 	} );
 
+	test( 'a stuck background process can be cancelled from the card', async ( {
+		page,
+	} ) => {
+		wp(
+			'eval',
+			`
+			wp_mkdir_p( WPMU_PLUGIN_DIR );
+			file_put_contents( WPMU_PLUGIN_DIR . '/magiclinking-e2e.php', '<?php if ( ! defined( "DISABLE_WP_CRON" ) ) { define( "DISABLE_WP_CRON", true ); } add_filter( "magiclinking_undo_sync_limit", static fn() => 1 ); add_filter( "action_scheduler_allow_async_request_runner", "__return_false" );' );
+			`
+		);
+		try {
+			await login( page );
+			await page.goto( SCREEN_HISTORY );
+			const batch = page.locator( '.magiclinking-batch' ).nth( 1 );
+			await batch.getByRole( 'button', { name: 'Undo batch' } ).click();
+			await page
+				.getByRole( 'dialog', { name: 'Undo this batch?' } )
+				.getByRole( 'button', { name: 'Undo batch' } )
+				.click();
+			await expect( batch.getByRole( 'progressbar' ) ).toBeVisible();
+
+			// Lleva una hora sin avanzar y la acción sigue esperando a un cron que no corre: se ofrece cancelar.
+			wp(
+				'eval',
+				'global $wpdb; $wpdb->query( "UPDATE {$wpdb->prefix}magiclinking_jobs SET updated_at = DATE_SUB( NOW(), INTERVAL 1 HOUR ) WHERE type = \'undo\'" );'
+			);
+			await page.reload();
+			const card = page.locator( '.magiclinking-batch' ).nth( 1 );
+			await expect( card.getByRole( 'progressbar' ) ).toBeVisible();
+			await expect(
+				card.getByText( 'This is taking longer than expected.' )
+			).toBeVisible();
+			await expectNoViolations( page );
+			await card.getByRole( 'button', { name: 'Cancel process' } ).click();
+
+			await expect( card.getByRole( 'progressbar' ) ).toBeHidden();
+			await expect(
+				card.getByRole( 'button', { name: 'Undo batch' } )
+			).toBeEnabled();
+			expect( content( 'e2e-origen-a' ) ).toContain( '<a href=' );
+			await expectNoViolations( page );
+		} finally {
+			wp(
+				'eval',
+				'@unlink( WPMU_PLUGIN_DIR . "/magiclinking-e2e.php" );'
+			);
+		}
+	} );
+
 	test( 'an editor can use the screen', async ( { page } ) => {
 		await login( page, 'e2e_editor' );
 		await page.goto( SCREEN_HISTORY );
