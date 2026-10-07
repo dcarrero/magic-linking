@@ -63,17 +63,29 @@ final class Suggestions {
 	 * Sugerencias salientes de una entrada, con su contenido guardado ahora: la entrada puede ser un borrador
 	 * (el destino siempre es una entrada publicada), pero tiene que ser de un tipo que se analiza.
 	 *
-	 * @param int   $post_id ID de la entrada abierta.
-	 * @param array $options Opciones del motor (`never`, `now`…; ver {@see Suggester::__construct()}).
+	 * @param int         $post_id ID de la entrada abierta.
+	 * @param array       $options Opciones del motor (`never`, `now`…; ver {@see Suggester::__construct()}).
+	 * @param string|null $content Contenido (HTML o bloques) tal como está ahora en el editor, sin guardar; null = el guardado.
+	 * @param string|null $title   Título tal como está en el editor; solo con `$content`.
 	 *
 	 * @return list<Suggestion> Vacío si el índice no está listo o la entrada no se analiza.
 	 *
 	 * @phpstan-param array<string, mixed> $options
 	 */
-	public function outgoing( int $post_id, array $options = array() ): array {
+	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null ): array {
 		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post || ! $this->analyzes( $post ) || ! $this->ready() ) {
+		// Con el contenido del editor, una entrada nueva (borrador automático) también se analiza: aún no hay nada guardado.
+		if ( ! $post instanceof WP_Post || ! $this->analyzes( $post, null !== $content ) || ! $this->ready() ) {
 			return array();
+		}
+
+		if ( null !== $content ) {
+			// Una copia: el objeto de la caché de WordPress no se toca.
+			$post               = clone $post;
+			$post->post_content = $content;
+			if ( null !== $title ) {
+				$post->post_title = $title;
+			}
 		}
 
 		try {
@@ -110,10 +122,13 @@ final class Suggestions {
 	/**
 	 * Si una entrada es de un tipo que se analiza y no está en un estado que se descarta.
 	 *
-	 * @param WP_Post $post Entrada.
+	 * @param WP_Post $post  Entrada.
+	 * @param bool    $draft Se analiza lo que hay en el editor: un borrador automático también vale.
 	 */
-	private function analyzes( WP_Post $post ): bool {
-		return in_array( $post->post_type, $this->settings->post_types(), true ) && ! in_array( $post->post_status, self::NEVER_STATUS, true );
+	private function analyzes( WP_Post $post, bool $draft = false ): bool {
+		$never = $draft ? array_diff( self::NEVER_STATUS, array( 'auto-draft' ) ) : self::NEVER_STATUS;
+
+		return in_array( $post->post_type, $this->settings->post_types(), true ) && ! in_array( $post->post_status, $never, true );
 	}
 
 	/**
