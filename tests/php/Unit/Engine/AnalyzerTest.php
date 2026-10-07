@@ -118,4 +118,18 @@ final class AnalyzerTest extends TestCase {
 		$this->assertSame( 'bomba de calor', $analyzed->surfaces['bomb de calor'] );
 		$this->assertSame( 10, $analyzed->words );
 	}
+
+	public function test_display_term_drops_edge_stopwords_and_unusable_terms(): void {
+		$es = Analyzer::for_language( 'es' );
+
+		$this->assertSame( 'calefacción', $es->display_term( 'de calefacción' ) );
+		$this->assertSame( 'bomba de calor', $es->display_term( 'bomba de calor' ) );
+		$this->assertSame( 'consumo', $es->display_term( 'el consumo de' ) );
+		$this->assertNull( $es->display_term( 'el' ) );
+		$this->assertNull( $es->display_term( 'de la' ) );
+		$this->assertNull( $es->display_term( '2025' ) );
+		// Texto en castellano con el analizador de inglés: «de» y «el» se quitan igualmente.
+		$this->assertSame( 'calefacción', Analyzer::for_language( 'en' )->display_term( 'de calefacción' ) );
+		$this->assertSame( 'price', Analyzer::for_language( 'en' )->display_term( 'the price of' ) );
+	}
 }

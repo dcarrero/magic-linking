@@ -140,7 +140,10 @@ final class PhraseFinder {
 	 * empiezan por palabra de contenido («GW de capacidad») o acaban en unidad,
 	 * magnitud o mes (sí pueden acabar en cifra: «iPhone 15»), y las que
 	 * empiezan o terminan en una forma verbal («Anthropic podría»): así
-	 * gana otra aparición del mismo destino si la hay. Amplía el
+	 * gana otra aparición del mismo destino si la hay. Antes de esos descartes recorta
+	 * el ancla hasta que no empiece ni acabe en palabra vacía (del idioma de la entrada,
+	 * de otro idioma que domina la frase o el extremo de una palabra con guion):
+	 * «el consumo de» → «consumo»; si no queda nada, se descarta. Amplía el
 	 * ancla una palabra a la derecha si esa palabra no es vacía, está en el
 	 * título del destino y es uno de sus términos principales («bomba de calor»
 	 * → «bomba de calor aerotérmica»).
@@ -176,10 +179,23 @@ final class PhraseFinder {
 				}
 
 				[ $start, $end ] = $this->expand( $sentence, $i, $i + $size - 1, $expand );
-				$words           = $end - $start + 1;
-				$offset          = $sentence->tokens[ $start ]->offset;
-				$anchor          = substr( $sentence->text, $offset, $sentence->tokens[ $end ]->end() - $offset );
-				$key             = implode( ' ', array_slice( $sentence->keys, $start, $words ) );
+				$grown           = array( $start, $end );
+				[ $start, $end ] = $this->trim( $sentence, $start, $end, $analyzer, $analyzer->foreign_language( $sentence ) );
+				if ( $end < $start ) {
+					continue;
+				}
+				if ( $grown[1] - $grown[0] + 1 > $this->max_words ) {
+					continue;
+				}
+				// «más información» sigue siendo genérica aunque al recortarla quede «información».
+				$whole = substr( $sentence->text, $sentence->tokens[ $grown[0] ]->offset, $sentence->tokens[ $grown[1] ]->end() - $sentence->tokens[ $grown[0] ]->offset );
+				if ( isset( $generic[ $analyzer->tokenizer()->key( $whole ) ] ) ) {
+					continue;
+				}
+				$words  = $end - $start + 1;
+				$offset = $sentence->tokens[ $start ]->offset;
+				$anchor = substr( $sentence->text, $offset, $sentence->tokens[ $end ]->end() - $offset );
+				$key    = implode( ' ', array_slice( $sentence->keys, $start, $words ) );
 
 				$span = array_slice( $sentence->tokens, $start, $words );
 				if ( $words > $this->max_words
@@ -194,7 +210,7 @@ final class PhraseFinder {
 					continue;
 				}
 
-				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, $phrase->kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last );
+				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, array( $start, $end ) === $grown ? $phrase->kind : ( $words > 1 ? Phrase::NGRAM : Phrase::UNIGRAM ), $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last );
 			}//end foreach
 		}//end foreach
 
@@ -271,6 +287,28 @@ final class PhraseFinder {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Recorta el tramo [$start, $end] hasta que no empiece ni acabe en palabra
+	 * vacía (D-52): del idioma de la entrada, de otro idioma que domina la frase
+	 * o el extremo vacío de una palabra con guion. Si no queda nada, `$end < $start`.
+	 *
+	 * @param Sentence    $sentence Frase.
+	 * @param int         $start    Primer token.
+	 * @param int         $end      Último token.
+	 * @param Analyzer    $analyzer Analizador del idioma.
+	 * @param string|null $foreign  Idioma que domina la frase si no es el de la entrada.
+	 * @return array{0: int, 1: int}
+	 */
+	private function trim( Sentence $sentence, int $start, int $end, Analyzer $analyzer, ?string $foreign ): array {
+		while ( $start <= $end && $analyzer->is_empty_edge( $sentence->tokens[ $start ], true, $foreign ) ) {
+			++$start;
+		}
+		while ( $end >= $start && $analyzer->is_empty_edge( $sentence->tokens[ $end ], false, $foreign ) ) {
+			--$end;
+		}
+		return array( $start, $end );
 	}
 
 	/**

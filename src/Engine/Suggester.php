@@ -438,7 +438,7 @@ final class Suggester {
 		[ $best, $score ] = $scored[0];
 
 		$reasons = array();
-		$shared  = $this->shared( $weights, $terms, $source->surfaces );
+		$shared  = $this->shared( $weights, $terms, $source->surfaces, $analyzer );
 		if ( array() !== $shared ) {
 			$reasons[] = new Reason( Reason::SHARED_TERMS, array( 'terms' => $shared ) );
 		}
@@ -495,14 +495,17 @@ final class Suggester {
 
 	/**
 	 * Términos que más aportan a la similitud entre origen y destino, en su forma
-	 * para mostrar; los que están contenidos en otro ya citado no se repiten.
+	 * para mostrar (la superficie más frecuente en el origen, nunca la raíz y sin
+	 * palabras vacías en los extremos, {@see Analyzer::display_term()}); los que
+	 * están contenidos en otro ya citado no se repiten.
 	 *
 	 * @param array<string, float>  $weights  Pesos del origen.
 	 * @param array<string, float>  $terms    Términos principales del destino.
 	 * @param array<string, string> $surfaces Formas para mostrar del origen.
+	 * @param Analyzer              $analyzer Analizador del idioma del origen.
 	 * @return list<string>
 	 */
-	private function shared( array $weights, array $terms, array $surfaces ): array {
+	private function shared( array $weights, array $terms, array $surfaces, Analyzer $analyzer ): array {
 		$products = array();
 		foreach ( $terms as $term => $weight ) {
 			if ( isset( $weights[ $term ] ) ) {
@@ -513,6 +516,7 @@ final class Suggester {
 
 		$shown = array();
 		$keys  = array();
+		$forms = array();
 		foreach ( array_keys( $products ) as $term ) {
 			$term = (string) $term;
 			foreach ( $keys as $key ) {
@@ -520,12 +524,24 @@ final class Suggester {
 					continue 2;
 				}
 			}
+			// Sin forma de superficie solo habría la raíz («aerotermi»): no se enseña.
+			$form = isset( $surfaces[ $term ] ) ? $analyzer->display_term( $surfaces[ $term ] ) : null;
+			if ( null === $form ) {
+				continue;
+			}
+			$lower = mb_strtolower( $form );
+			foreach ( $forms as $other ) {
+				if ( str_contains( ' ' . $other . ' ', ' ' . $lower . ' ' ) || str_contains( ' ' . $lower . ' ', ' ' . $other . ' ' ) ) {
+					continue 2;
+				}
+			}
 			$keys[]  = $term;
-			$shown[] = $surfaces[ $term ] ?? $term;
+			$forms[] = $lower;
+			$shown[] = $form;
 			if ( count( $shown ) >= self::SHARED_TERMS ) {
 				break;
 			}
-		}
+		}//end foreach
 		return $shown;
 	}
 

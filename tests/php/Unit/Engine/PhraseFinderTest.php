@@ -197,4 +197,75 @@ final class PhraseFinderTest extends TestCase {
 		$this->assertFalse( $matches[0]->last );
 		$this->assertTrue( $matches[1]->last );
 	}
+
+	/**
+	 * @param list<string> $paragraphs
+	 */
+	private function source_in( string $language, array $paragraphs ): AnalyzedDocument {
+		$source = new ArraySource();
+		return Analyzer::for_language( $language )->analyze( $source->add( 1, 'Origen', $paragraphs, $language ), true );
+	}
+
+	/**
+	 * @param list<string> $keys
+	 * @return list<string>
+	 */
+	private function anchors( AnalyzedDocument $source, string $language, array $keys ): array {
+		$matches = $this->finder->find( $source, array( new Phrase( $keys, Phrase::NGRAM ) ), Analyzer::for_language( $language ) );
+		return array_map( static fn( $m ): string => $m->anchor, $matches );
+	}
+
+	public function test_anchor_is_trimmed_to_its_core_when_it_starts_or_ends_in_a_stopword(): void {
+		// La frase de F1-29 con la lista de castellano: las claves del destino ya vienen con palabras vacías en los extremos.
+		$source = $this->source( array( 'La instalación de una bomba de calor reduce el consumo de energía en las casas con buen aislamiento.' ) );
+		$es     = Analyzer::for_language( 'es' );
+
+		$this->assertSame( array( 'consumo' ), $this->anchors( $source, 'es', explode( ' ', $es->phrase_key( 'el consumo de' ) ) ) );
+		$this->assertSame( array( 'energía' ), $this->anchors( $source, 'es', explode( ' ', $es->phrase_key( 'de energía en' ) ) ) );
+		$this->assertSame( array(), $this->anchors( $source, 'es', explode( ' ', $es->phrase_key( 'de una' ) ) ), 'solo palabras vacías: se descarta' );
+	}
+
+	public function test_english_anchor_is_trimmed_to_its_core(): void {
+		$source = $this->source_in( 'en', array( 'We compare the price of heat pumps and the cost of energy over ten years.' ) );
+		$en     = Analyzer::for_language( 'en' );
+
+		$this->assertSame( array( 'price' ), $this->anchors( $source, 'en', explode( ' ', $en->phrase_key( 'the price of' ) ) ) );
+		$this->assertSame( array( 'energy' ), $this->anchors( $source, 'en', explode( ' ', $en->phrase_key( 'of energy' ) ) ) );
+		$this->assertSame( array( 'price' ), $this->anchors( $source, 'en', explode( ' ', $en->phrase_key( 'price of' ) ) ) );
+		$this->assertSame( array(), $this->anchors( $source, 'en', explode( ' ', $en->phrase_key( 'of the' ) ) ) );
+	}
+
+	public function test_a_trimmed_anchor_is_no_longer_the_whole_phrase(): void {
+		$source  = $this->source( array( 'Reduce el consumo de calefacción en casa.' ) );
+		$es      = Analyzer::for_language( 'es' );
+		$whole   = $this->finder->find( $source, array( new Phrase( explode( ' ', $es->phrase_key( 'consumo de calefacción' ) ), Phrase::TITLE ) ), $es );
+		$trimmed = $this->finder->find( $source, array( new Phrase( explode( ' ', $es->phrase_key( 'el consumo de' ) ), Phrase::TITLE ) ), $es );
+
+		$this->assertSame( Phrase::TITLE, $whole[0]->kind );
+		$this->assertSame( Phrase::UNIGRAM, $trimmed[0]->kind, 'si se recorta, ya no vale como título' );
+	}
+
+	public function test_spanish_text_in_an_english_entry_does_not_leave_spanish_stopwords_at_the_edges(): void {
+		// Sitio o entrada declarados en inglés con texto en castellano: «el» y «de» no son vacías para el analizador.
+		$source = $this->source_in( 'en', array( 'La instalación de una bomba de calor reduce el consumo de energía en las casas con buen aislamiento.' ) );
+		$en     = Analyzer::for_language( 'en' );
+
+		$this->assertSame( array( 'consumo' ), $this->anchors( $source, 'en', explode( ' ', $en->phrase_key( 'el consumo de' ) ) ) );
+		$this->assertSame( array( 'casas' ), $this->anchors( $source, 'en', explode( ' ', $en->phrase_key( 'casas con' ) ) ) );
+	}
+
+	public function test_english_sentence_keeps_words_that_are_spanish_stopwords(): void {
+		// «sea» es vacía en castellano, pero la frase es inglesa: no se recorta.
+		$source = $this->source_in( 'en', array( 'The rise of the sea level is a risk for the coast.' ) );
+		$en     = Analyzer::for_language( 'en' );
+
+		$this->assertSame( array( 'sea level' ), $this->anchors( $source, 'en', explode( ' ', $en->phrase_key( 'sea level' ) ) ) );
+	}
+
+	public function test_hyphenated_word_ending_in_a_stopword_is_not_an_edge(): void {
+		$source = $this->source( array( 'Vive la salud en Castilla-La Mancha desde hace años.' ) );
+		$es     = Analyzer::for_language( 'es' );
+
+		$this->assertSame( array( 'salud' ), $this->anchors( $source, 'es', explode( ' ', $es->phrase_key( 'salud en Castilla-La' ) ) ) );
+	}
 }

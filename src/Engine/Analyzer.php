@@ -360,6 +360,13 @@ final class Analyzer {
 	private const CACHE_SIZE = 200000;
 
 	/**
+	 * Idioma dominante de cada frase si no es el de la entrada ('' si lo es).
+	 *
+	 * @var \WeakMap<Sentence, string>|null
+	 */
+	private ?\WeakMap $foreign = null;
+
+	/**
 	 * Analizadores por idioma.
 	 *
 	 * @var array<string, self>
@@ -473,6 +480,111 @@ final class Analyzer {
 			return true;
 		}
 		return null !== $next && $next->is_stopword && 1 === preg_match( self::PARTICIPLE_ES, $token->normal );
+	}
+
+	/**
+	 * Idioma de la frase si no es el de la entrada: otro idioma con lista de
+	 * palabras vacías cuyas palabras vacías aparecen al menos dos veces y más del
+	 * doble que las del idioma de la entrada. Cubre contenido en castellano en un
+	 * sitio o una entrada declarados en inglés (o al revés), donde las palabras
+	 * vacías del texto no se reconocen y quedarían en los extremos de un ancla.
+	 * No cambia el idioma de la entrada (regla 9); solo se usa para recortar.
+	 *
+	 * @param Sentence $sentence Frase (el resultado se recuerda mientras exista el objeto).
+	 * @return string|null Código del otro idioma, o null si la frase es del idioma de la entrada.
+	 */
+	public function foreign_language( Sentence $sentence ): ?string {
+		$this->foreign ??= new \WeakMap();
+		if ( isset( $this->foreign[ $sentence ] ) ) {
+			return '' === $this->foreign[ $sentence ] ? null : $this->foreign[ $sentence ];
+		}
+		$own     = 0;
+		$foreign = array();
+		foreach ( $sentence->tokens as $token ) {
+			if ( $token->is_stopword ) {
+				++$own;
+			}
+			foreach ( Stopwords::languages() as $code ) {
+				if ( $code !== $this->language && Stopwords::is( $token->normal, $code ) ) {
+					$foreign[ $code ] = ( $foreign[ $code ] ?? 0 ) + 1;
+				}
+			}
+		}
+		arsort( $foreign );
+		$code  = (string) array_key_first( $foreign );
+		$found = '' !== $code && $foreign[ $code ] >= 2 && $foreign[ $code ] > 2 * $own ? $code : null;
+
+		$this->foreign[ $sentence ] = $found ?? '';
+		return $found;
+	}
+
+	/**
+	 * Si un token no puede quedar en el extremo de un ancla ni de un término que
+	 * se enseña: es palabra vacía del idioma de la entrada, de otro idioma que
+	 * domina la frase ($foreign) o el extremo vacío de una palabra con guion
+	 * («Castilla-La», «Smith-de»).
+	 *
+	 * @param Token       $token   Token.
+	 * @param bool        $leading Si está al principio del ancla (false: al final).
+	 * @param string|null $foreign Idioma que domina la frase, de {@see foreign_language()}.
+	 */
+	public function is_empty_edge( Token $token, bool $leading, ?string $foreign = null ): bool {
+		if ( $token->is_stopword || ( null !== $foreign && Stopwords::is( $token->normal, $foreign ) ) ) {
+			return true;
+		}
+		if ( ! str_contains( $token->normal, '-' ) ) {
+			return false;
+		}
+		$parts = explode( '-', $token->normal );
+		$edge  = $leading ? $parts[0] : $parts[ count( $parts ) - 1 ];
+		return '' === $edge || Stopwords::is( $edge, $this->language ) || ( null !== $foreign && Stopwords::is( $edge, $foreign ) );
+	}
+
+	/**
+	 * Término listo para enseñar en un motivo: la forma de superficie sin
+	 * palabras vacías (de cualquier idioma con lista) en los extremos. Es solo
+	 * presentación; no es una decisión de idioma.
+	 *
+	 * @param string $surface Forma de superficie en minúsculas («de calefacción»).
+	 * @return string|null Null si no queda ninguna palabra de contenido o es una forma verbal suelta.
+	 */
+	public function display_term( string $surface ): ?string {
+		$tokens = $this->tokenizer->tokenize( $surface );
+		$from   = 0;
+		$to     = count( $tokens ) - 1;
+		while ( $from <= $to && $this->is_listed_stopword( $tokens[ $from ] ) ) {
+			++$from;
+		}
+		while ( $to >= $from && $this->is_listed_stopword( $tokens[ $to ] ) ) {
+			--$to;
+		}
+		$span = array_slice( $tokens, $from, $to - $from + 1 );
+		if ( array() === $span || ( 1 === count( $span ) && $this->is_verb_like( $span[0] ) ) ) {
+			return null;
+		}
+		foreach ( $span as $token ) {
+			if ( $this->is_content( $token ) ) {
+				return implode( ' ', array_map( static fn( Token $t ): string => $t->surface, $span ) );
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Si un token es palabra vacía de algún idioma con lista.
+	 *
+	 * @param Token $token Token.
+	 */
+	private function is_listed_stopword( Token $token ): bool {
+		if ( $token->is_stopword ) {
+			return true;
+		}
+		foreach ( Stopwords::languages() as $code ) {
+			if ( Stopwords::is( $token->normal, $code ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
