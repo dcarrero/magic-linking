@@ -8,6 +8,14 @@
 	}
 }
 
+.magiclinking-wrap .components-button.is-secondary:not(:disabled, [aria-disabled='true']) {
+	// En WordPress 6.9 el color del administrador (#007cba) da 4,01:1 sobre el fondo gris del escritorio (#f0f0f1);
+	// se oscurece un 20 % para cumplir AA (1.4.3) en 6.9 y en 7.x, siguiendo la gama elegida por el usuario.
+	// El borde sigue al texto (`currentcolor`).
+	box-shadow: inset 0 0 0 1px currentcolor;
+	color: color-mix(in srgb, var(--wp-admin-theme-color, #2271b1) 80%, #000);
+}
+
 .magiclinking-stats {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
