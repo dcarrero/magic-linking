@@ -65,6 +65,8 @@ final class Inserter {
 	 * dejó, de modo que se deshace por separado igual que si se hubieran insertado de uno en uno.
 	 *
 	 * Un enlace que no se puede insertar no impide los demás; si falla la escritura, ninguno se ha insertado.
+	 * Si el contenido llegó a escribirse y lo que falla es un tercero (un oyente de guardado o de
+	 * `magiclinking_link_inserted`), los enlaces cuentan como insertados y el error se registra.
 	 *
 	 * @param InsertRequest[] $requests Peticiones, todas de la misma entrada.
 	 * @param string|null     $batch_id Lote; si es null se crea uno.
@@ -73,14 +75,20 @@ final class Inserter {
 	 *
 	 * @return array<int, InsertResult|InsertionException> Un resultado por petición, en el mismo orden.
 	 *
-	 * @throws Throwable Lo que lance WordPress o un complemento al guardar (no se ha insertado ninguno).
+	 * @throws InsertionException Si las peticiones no son todas de la misma entrada y el mismo usuario.
 	 */
 	public function insert_many( array $requests, ?string $batch_id = null ): array {
 		if ( array() === $requests ) {
 			return array();
 		}
 
-		$post_id  = $requests[0]->post_id;
+		$post_id = $requests[0]->post_id;
+		foreach ( $requests as $request ) {
+			if ( $request->post_id !== $post_id || $request->user_id !== $requests[0]->user_id ) {
+				throw new InsertionException( InsertionException::BAD_REQUEST, __( 'All the links of one write must be for the same post and the same user.', 'magic-linking' ) );
+			}
+		}
+
 		$batch_id = $batch_id ?? BatchId::generate();
 
 		try {
@@ -104,14 +112,19 @@ final class Inserter {
 		}
 
 		foreach ( $done as $result ) {
-			/**
-			 * Se ha insertado un enlace.
-			 *
-			 * @param int    $change_id Fila de magiclinking_changes.
-			 * @param int    $post_id   Entrada modificada.
-			 * @param string $batch_id  Lote.
-			 */
-			do_action( 'magiclinking_link_inserted', $result->change_id, $result->post_id, $result->batch_id );
+			// El enlace ya está escrito y anotado: un oyente que falla no puede ocultarlo ni impedir los demás avisos.
+			try {
+				/**
+				 * Se ha insertado un enlace.
+				 *
+				 * @param int    $change_id Fila de magiclinking_changes.
+				 * @param int    $post_id   Entrada modificada.
+				 * @param string $batch_id  Lote.
+				 */
+				do_action( 'magiclinking_link_inserted', $result->change_id, $result->post_id, $result->batch_id );
+			} catch ( Throwable $e ) {
+				PostWriter::log( sprintf( 'Un oyente de magiclinking_link_inserted falló en la entrada %d: %s', $post_id, $e->getMessage() ) );
+			}
 		}
 
 		return $results;
@@ -180,8 +193,12 @@ final class Inserter {
 				foreach ( $ids as $done ) {
 					$this->changes->delete( $done );
 				}
+				throw $e;
 			}
-			throw $e;
+
+			// El contenido sí se escribió y lo que falló es un tercero (un oyente de guardado): los enlaces están
+			// puestos y anotados, así que la operación está hecha y se cuenta como tal.
+			PostWriter::log( sprintf( 'Un complemento falló al guardar la entrada %d, pero los enlaces quedaron escritos: %s', $post_id, $e->getMessage() ) );
 		}
 
 		foreach ( $edits as $index => $edit ) {
