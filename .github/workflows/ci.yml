@@ -33,6 +33,7 @@ jobs:
       - run: npm ci
       - run: npm run lint:js
       - run: npm run typecheck
+      - run: npm run test:js
 
   unit:
     runs-on: ubuntu-latest
