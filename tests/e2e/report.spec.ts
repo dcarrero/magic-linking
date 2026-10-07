@@ -5,6 +5,7 @@ import {
 	login,
 	SCREEN,
 	SCREEN_BROKEN,
+	SCREEN_HISTORY,
 	SCREEN_SETTINGS,
 	seed,
 	wp,
@@ -325,6 +326,7 @@ test.describe( 'Internal links', () => {
 		await expect( items ).toHaveText( [
 			'Report',
 			'Broken links',
+			'History',
 			'Settings',
 		] );
 	} );
@@ -343,6 +345,7 @@ test.describe( 'Internal links', () => {
 	const screens = {
 		report: SCREEN,
 		broken: SCREEN_BROKEN,
+		history: SCREEN_HISTORY,
 		settings: SCREEN_SETTINGS,
 	};
 	for ( const [ tab, url ] of Object.entries( screens ) ) {
