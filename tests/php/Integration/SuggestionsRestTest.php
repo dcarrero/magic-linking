@@ -805,7 +805,7 @@ final class SuggestionsRestTest extends GraphTestCase {
 
 		$this->assertSame( 2, $data['inserted'] );
 		$this->assertSame( 1, $writes, 'Una sola escritura para los dos enlaces.' );
-		$this->assertLessThanOrEqual( $revisions + 1, count( wp_get_post_revisions( $post ) ), 'Una sola revisión.' );
+		$this->assertSame( $revisions + 1, count( wp_get_post_revisions( $post ) ), 'Una sola revisión.' );
 		$this->assertCount( 2, $this->link_rows( $post ), 'El grafo tiene los dos enlaces.' );
 		$changes = $this->request( 'GET', '/history/' . $data['batch_id'] . '/changes' )->get_data();
 		$this->assertSame( 2, $changes['total'], 'Cada enlace tiene su fila.' );
@@ -813,13 +813,40 @@ final class SuggestionsRestTest extends GraphTestCase {
 		// Deshacer solo el primero deja el segundo.
 		$undo = $this->request( 'POST', '/undo', array( 'change_id' => $data['results'][0]['change_id'] ) );
 		$this->assertSame( 200, $undo->get_status() );
+		$this->assertSame( 'link_removed', $undo->get_data()['results'][0]['status'], 'Con el otro enlace puesto solo se quita el suyo.' );
 		$this->assertSame( 1, substr_count( $this->stored( $post ), '<a href=' ) );
 		$this->assertStringContainsString( (string) get_permalink( $this->sources[2] ), $this->stored( $post ) );
 
 		// Y el lote entero lo deja como estaba.
-		$this->request( 'POST', '/redo', array( 'change_id' => $data['results'][0]['change_id'] ) );
-		$this->request( 'POST', '/undo', array( 'batch_id' => $data['batch_id'] ) );
+		$redo = $this->request( 'POST', '/redo', array( 'change_id' => $data['results'][0]['change_id'] ) );
+		$this->assertSame( 200, $redo->get_status() );
+		$this->assertSame( 'redone', $redo->get_data()['results'][0]['status'] );
+		$this->assertSame( 2, substr_count( $this->stored( $post ), '<a href=' ) );
+		$batch_undo = $this->request( 'POST', '/undo', array( 'batch_id' => $data['batch_id'] ) );
+		$this->assertSame( 200, $batch_undo->get_status() );
+		foreach ( $batch_undo->get_data()['results'] as $result ) {
+			$this->assertContains( $result['status'], array( 'restored', 'link_removed' ) );
+		}
 		$this->assertSame( $content, $this->stored( $post ) );
+	}
+
+	public function test_two_entries_where_one_fails_share_the_batch_and_report_a_partial_result(): void {
+		$this->corpus( 3 );
+		$good = $this->first_outbound( $this->sources[1] )['insert'];
+		$ok2  = $this->first_outbound( $this->sources[2] )['insert'];
+		update_post_meta( $this->sources[2], '_edit_lock', time() . ':' . $this->editor );
+
+		$data = $this->request( 'POST', '/links', array( 'links' => array( $good, $ok2 ) ) )->get_data();
+
+		$this->assertSame( 1, $data['inserted'] );
+		$this->assertSame( 1, $data['failed'] );
+		$this->assertNotNull( $data['batch_id'] );
+		$this->assertSame( 'inserted', $data['results'][0]['status'] );
+		$this->assertSame( 'failed', $data['results'][1]['status'] );
+		$this->assertSame( 'locked', $data['results'][1]['reason'] );
+		$changes = $this->request( 'GET', '/history/' . $data['batch_id'] . '/changes' )->get_data();
+		$this->assertSame( array( $data['results'][0]['change_id'] ), array_column( $changes['items'], 'id' ) );
+		$this->assertStringNotContainsString( '<a href=', $this->stored( $this->sources[2] ) );
 	}
 
 	public function test_an_invalid_link_in_a_grouped_entry_does_not_stop_the_others(): void {
