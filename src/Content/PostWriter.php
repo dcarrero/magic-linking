@@ -53,14 +53,14 @@ final class PostWriter {
 	}
 
 	/**
-	 * Quién tiene la entrada abierta en el editor (bloqueo `_edit_lock` vigente), si no es `$user_id`.
+	 * Quién tiene la entrada abierta en el editor (bloqueo `_edit_lock` vigente), sea quien sea: también
+	 * el propio usuario, que puede tenerla abierta en otra pestaña con cambios sin guardar (docs/06 §1.5).
 	 *
 	 * @param int $post_id ID.
-	 * @param int $user_id Quien quiere editar (0 = el sistema: cualquier bloqueo cuenta).
 	 *
 	 * @return int ID del usuario que la tiene abierta; 0 si nadie.
 	 */
-	public function locked_by( int $post_id, int $user_id ): int {
+	public function locked_by( int $post_id ): int {
 		wp_cache_delete( $post_id, 'post_meta' );
 		$lock = get_post_meta( $post_id, '_edit_lock', true );
 		if ( ! is_string( $lock ) || '' === $lock ) {
@@ -74,18 +74,18 @@ final class PostWriter {
 		/** Este filtro es el de WordPress (`wp_check_post_lock()`): ventana en segundos de un bloqueo vigente. */
 		$window = (int) apply_filters( 'wp_check_post_lock_window', 150 ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Filtro del núcleo.
 
-		return $owner > 0 && $owner !== $user_id && $time > time() - $window ? $owner : 0;
+		return $owner > 0 && $time > time() - $window ? $owner : 0;
 	}
 
 	/**
 	 * Comprueba que se puede modificar la entrada.
 	 *
 	 * @param int      $post_id ID.
-	 * @param int|null $user_id Quien lo pide (null = el usuario actual; 0 = el sistema).
+	 * @param int|null $user_id Quien lo pide: null = el usuario actual, que tiene que haber iniciado sesión y poder editarla; 0 = el sistema (solo si se pide expresamente).
 	 *
 	 * @return WP_Post La entrada.
 	 *
-	 * @throws InsertionException Si no existe, no se puede tocar, el usuario no puede editarla o la tiene abierta otro.
+	 * @throws InsertionException Si no existe, no se puede tocar, el usuario no puede editarla o la tiene abierta alguien.
 	 */
 	public function assert_editable( int $post_id, ?int $user_id ): WP_Post {
 		$post = get_post( $post_id );
@@ -94,22 +94,58 @@ final class PostWriter {
 		}
 
 		$user = $user_id ?? get_current_user_id();
-		if ( $user > 0 && ! user_can( $user, 'edit_post', $post_id ) ) {
+		if ( ( null === $user_id && $user <= 0 ) || ( $user > 0 && ! user_can( $user, 'edit_post', $post_id ) ) ) {
 			throw new InsertionException( InsertionException::NOT_ALLOWED, __( 'You do not have permission to edit this post.', 'magic-linking' ) );
 		}
 
-		$owner = $this->locked_by( $post_id, $user );
+		$owner = $this->locked_by( $post_id );
 		if ( $owner > 0 ) {
-			$data = get_userdata( $owner );
-			$name = false === $data ? __( 'someone else', 'magic-linking' ) : $data->display_name;
-			throw new InsertionException(
-				InsertionException::LOCKED,
-				/* translators: %s: name of the person who has the post open. */
-				sprintf( __( 'This post is being edited by %s; try again later.', 'magic-linking' ), $name )
-			);
+			throw $this->locked( $owner, $user );
 		}
 
 		return $post;
+	}
+
+	/**
+	 * Ejecuta un trabajo con la entrada reservada: dos inserciones o deshaceres a la vez sobre la misma
+	 * entrada no se pisan (`GET_LOCK` de MySQL, por sitio y entrada, liberado siempre al terminar).
+	 *
+	 * @template T
+	 *
+	 * @param int           $post_id ID.
+	 * @param callable(): T $work    Leer, verificar y escribir.
+	 *
+	 * @return T
+	 *
+	 * @throws InsertionException Si otra operación tiene la entrada y no la suelta a tiempo.
+	 */
+	public function exclusive( int $post_id, callable $work ): mixed {
+		$wpdb = $this->wpdb;
+		$name = sprintf( 'magiclinking_post_%d_%d', get_current_blog_id(), $post_id );
+
+		/**
+		 * Segundos que se espera a que otra operación suelte una entrada antes de negarse.
+		 *
+		 * @param int $seconds Segundos (5 por defecto).
+		 * @param int $post_id Entrada.
+		 */
+		$wait = max( 0, (int) apply_filters( 'magiclinking_post_lock_timeout', 5, $post_id ) );
+		$got  = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK( %s, %d )', $name, $wait ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Candado de MySQL.
+
+		if ( null !== $got && 1 !== (int) $got ) {
+			throw new InsertionException( InsertionException::BUSY, __( 'Another change is being applied to this post; try again in a moment.', 'magic-linking' ) );
+		}
+		if ( null === $got ) {
+			self::log( sprintf( 'GET_LOCK no está disponible; se continúa sin candado en la entrada %d.', $post_id ) );
+		}
+
+		try {
+			return $work();
+		} finally {
+			if ( null !== $got ) {
+				$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Candado de MySQL.
+			}
+		}
 	}
 
 	/**
@@ -127,24 +163,41 @@ final class PostWriter {
 	/**
 	 * Escribe el contenido nuevo si el actual sigue siendo el que se leyó.
 	 *
+	 * Antes de escribir pasa el contenido por la misma sanitización que hará `wp_update_post()` (los filtros
+	 * `*_save_pre`, `kses` según el usuario actual) y se niega si cambiaría algo más que el enlace. Después
+	 * relee la fila entera como red de seguridad: solo `post_content`, `post_modified` y `post_modified_gmt`
+	 * pueden ser distintos; si no, devuelve la fila original (y borra la revisión que se creó).
+	 *
 	 * @param int      $post_id ID.
 	 * @param string   $old     Contenido que se leyó y sobre el que se calculó el cambio.
 	 * @param string   $next    Contenido nuevo.
 	 * @param int|null $user_id Quien lo hace (null = el usuario actual).
 	 *
-	 * @throws InsertionException Si cambió entre la lectura y la escritura, si alguien abrió la entrada o si la escritura falla o altera el contenido.
+	 * @throws InsertionException Si cambió entre la lectura y la escritura, si alguien abrió la entrada, si la escritura falla o si WordPress altera algo más que el enlace.
 	 */
 	public function write( int $post_id, string $old, string $next, ?int $user_id ): void {
-		$user = $user_id ?? get_current_user_id();
-
-		// Última comprobación antes de escribir: lo que está guardado es lo que se leyó y nadie la abrió entre tanto.
-		if ( $this->read( $post_id ) !== $old ) {
+		$row = $this->row( $post_id );
+		if ( null === $row || (string) $row['post_content'] !== $old ) {
 			throw new InsertionException( InsertionException::TEXT_CHANGED, __( 'The text has changed.', 'magic-linking' ) );
 		}
-		$owner = $this->locked_by( $post_id, $user );
+
+		$owner = $this->locked_by( $post_id );
 		if ( $owner > 0 ) {
-			throw new InsertionException( InsertionException::LOCKED, __( 'This post has just been opened in the editor; try again later.', 'magic-linking' ) );
+			throw $this->locked( $owner, $user_id ?? get_current_user_id(), true );
 		}
+
+		// Lo que los filtros de guardado harían con este contenido, antes de escribir nada.
+		$candidate                 = $row;
+		$candidate['post_content'] = $next;
+		$sanitized                 = wp_unslash( sanitize_post( wp_slash( $candidate ), 'db' ) );
+		foreach ( $candidate as $field => $value ) {
+			if ( (string) ( $sanitized[ $field ] ?? '' ) !== (string) $value ) {
+				self::log( sprintf( 'Los filtros de guardado alterarían el campo %s de la entrada %d; no se escribe.', $field, $post_id ) );
+				throw $this->altered( false );
+			}
+		}
+
+		$revisions = array_map( 'intval', array_values( wp_get_post_revisions( $post_id, array( 'fields' => 'ids' ) ) ) );
 
 		$result = wp_update_post(
 			wp_slash(
@@ -155,28 +208,116 @@ final class PostWriter {
 			),
 			true
 		);
-
 		if ( $result instanceof WP_Error ) {
 			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) );
 		}
 
-		// Un filtro (kses para quien no tiene unfiltered_html, otro complemento) puede haber tocado más que el enlace.
-		if ( $this->read( $post_id ) !== $next ) {
-			$this->restore( $post_id, $old );
-			self::log( sprintf( 'La escritura de la entrada %d alteró el contenido; restaurado.', $post_id ) );
-			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'WordPress altered the content when saving it (security filters); the original was restored and the link was not inserted.', 'magic-linking' ) );
+		// Red de seguridad: nada salvo el contenido y la fecha de modificación puede haber cambiado.
+		$after = $this->row( $post_id );
+		if ( null === $after || $this->differs( $row, $after, $next ) ) {
+			$this->restore( $post_id, $row, $revisions );
+			self::log( sprintf( 'La escritura de la entrada %d alteró más que el enlace; restaurada.', $post_id ) );
+			throw $this->altered( true );
 		}
 	}
 
 	/**
-	 * Devuelve el contenido anterior a la base de datos sin pasar por ningún filtro.
+	 * Fila completa de la entrada, sin cachés ni filtros.
 	 *
-	 * @param int    $post_id ID.
-	 * @param string $old     Contenido anterior.
+	 * @param int $post_id ID.
+	 *
+	 * @return array<string, string|null>|null
 	 */
-	private function restore( int $post_id, string $old ): void {
-		$this->wpdb->update( $this->wpdb->posts, array( 'post_content' => $old ), array( 'ID' => $post_id ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Devolver los bytes exactos.
+	private function row( int $post_id ): ?array {
+		$wpdb = $this->wpdb;
+		$row  = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->posts} WHERE ID = %d", $post_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Lectura exacta, sin cachés ni filtros.
+
+		return is_array( $row ) ? $row : null;
+	}
+
+	/**
+	 * Si la fila de después difiere de la de antes en algo más que el contenido nuevo y la fecha de modificación.
+	 *
+	 * @param array<string, string|null> $before Antes.
+	 * @param array<string, string|null> $after  Después.
+	 * @param string                     $next   Contenido esperado.
+	 */
+	private function differs( array $before, array $after, string $next ): bool {
+		if ( (string) $after['post_content'] !== $next ) {
+			return true;
+		}
+
+		foreach ( $before as $field => $value ) {
+			if ( in_array( $field, array( 'post_content', 'post_modified', 'post_modified_gmt' ), true ) ) {
+				continue;
+			}
+			if ( (string) ( $after[ $field ] ?? '' ) !== (string) $value ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Devuelve la fila original sin pasar por ningún filtro y borra las revisiones que se crearon al escribir.
+	 *
+	 * @param int   $post_id   ID.
+	 * @param array $row       Fila original.
+	 * @param array $revisions Revisiones que había antes de escribir.
+	 *
+	 * @phpstan-param array<string, string|null> $row
+	 * @phpstan-param list<int> $revisions
+	 */
+	private function restore( int $post_id, array $row, array $revisions ): void {
+		foreach ( array_values( wp_get_post_revisions( $post_id, array( 'fields' => 'ids' ) ) ) as $revision ) {
+			if ( ! in_array( (int) $revision, $revisions, true ) ) {
+				wp_delete_post_revision( (int) $revision );
+			}
+		}
+
+		unset( $row['ID'] );
+		$this->wpdb->update( $this->wpdb->posts, $row, array( 'ID' => $post_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Devolver la fila exacta.
 		clean_post_cache( $post_id );
+	}
+
+	/**
+	 * Excepción de entrada abierta.
+	 *
+	 * @param int  $owner Quien la tiene abierta.
+	 * @param int  $user  Quien quiere editar.
+	 * @param bool $late  Se detecta justo antes de escribir.
+	 */
+	private function locked( int $owner, int $user, bool $late = false ): InsertionException {
+		if ( $owner === $user ) {
+			return new InsertionException( InsertionException::LOCKED, __( 'This post is open in your editor (maybe in another tab); add the link from there or close it and try again.', 'magic-linking' ) );
+		}
+
+		$data = get_userdata( $owner );
+		$name = false === $data ? __( 'someone else', 'magic-linking' ) : $data->display_name;
+
+		return new InsertionException(
+			InsertionException::LOCKED,
+			$late
+				/* translators: %s: name of the person who has the post open. */
+				? sprintf( __( 'This post has just been opened by %s; try again later.', 'magic-linking' ), $name )
+				/* translators: %s: name of the person who has the post open. */
+				: sprintf( __( 'This post is being edited by %s; try again later.', 'magic-linking' ), $name )
+		);
+	}
+
+	/**
+	 * Excepción de contenido alterado por los filtros de guardado.
+	 *
+	 * @param bool $restored Si se había llegado a escribir y se ha devuelto el original.
+	 */
+	private function altered( bool $restored ): InsertionException {
+		return new InsertionException(
+			InsertionException::ALTERED,
+			$restored
+				? __( 'WordPress altered the content when saving it (security filters); the original was restored and the link was not inserted.', 'magic-linking' )
+				: __( 'WordPress would alter the content when saving it (security filters); nothing was written and the link was not inserted.', 'magic-linking' )
+		);
 	}
 
 	/**

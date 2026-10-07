@@ -31,6 +31,8 @@ final class InsertionException extends RuntimeException {
 	public const BAD_REQUEST       = 'bad_request';
 	public const VERIFY_FAILED     = 'verify_failed';
 	public const WRITE_FAILED      = 'write_failed';
+	public const BUSY              = 'busy';
+	public const ALTERED           = 'altered_on_save';
 	public const EDITED_AFTER      = 'edited_after';
 
 	/**
