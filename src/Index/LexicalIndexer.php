@@ -197,6 +197,9 @@ final class LexicalIndexer {
 		if ( $this->repository->put_many( $indexed ) ) {
 			$this->repository->mark_lexical( $hashes );
 		}
+		if ( array() !== $indexed ) {
+			SuggestionCache::bump();
+		}
 
 		return count( $indexed );
 	}
@@ -214,6 +217,7 @@ final class LexicalIndexer {
 			return;
 		}
 		delete_option( self::BUILDING_OPTION );
+		SuggestionCache::bump();
 
 		$id = $this->jobs->create( self::TYPE_RECOUNT, $docs, array(), 0 );
 		$this->jobs->set_progress( $id, $docs, $docs, array( 'docs' => $docs ) );

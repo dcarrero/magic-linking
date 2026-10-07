@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-07T10:56:35+00:00\n"
+"POT-Creation-Date: 2026-10-07T13:10:51+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -204,6 +204,7 @@ msgstr ""
 
 #: src/Cli/Command.php:622
 #: src/Rest/HistoryController.php:499
+#: src/Rest/SuggestionsController.php:383
 msgid "You do not have permission to edit one of the entries involved."
 msgstr ""
 
@@ -248,6 +249,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: src/Cli/Command.php:706
+#: src/Rest/SuggestionsController.php:552
 msgid "That entry does not exist."
 msgstr ""
 
@@ -302,16 +304,20 @@ msgstr ""
 msgid "The post contains markup (script, styles…) that cannot be scanned safely."
 msgstr ""
 
-#: src/Content/Inserter.php:55
+#: src/Content/Inserter.php:88
+msgid "All the links of one write must be for the same post and the same user."
+msgstr ""
+
+#: src/Content/Inserter.php:97
 msgid "This content type is not one that Magic Linking analyzes."
 msgstr ""
 
-#: src/Content/Inserter.php:96
+#: src/Content/Inserter.php:159
 #: src/History/Redo.php:150
 msgid "The change could not be confirmed as only the link; nothing was written."
 msgstr ""
 
-#: src/Content/Inserter.php:104
+#: src/Content/Inserter.php:183
 #: src/History/Redo.php:156
 #: src/History/Undo.php:184
 msgid "The change history could not be saved; nothing was written."
@@ -502,6 +508,49 @@ msgstr ""
 
 #: src/Rest/JobsController.php:165
 msgid "That process does not exist."
+msgstr ""
+
+#. translators: %s: comma-separated list of shared terms.
+#: src/Rest/SuggestionPresenter.php:146
+#, php-format
+msgid "They share: %s"
+msgstr ""
+
+#: src/Rest/SuggestionPresenter.php:149
+msgid "The anchor matches the title of the destination"
+msgstr ""
+
+#: src/Rest/SuggestionPresenter.php:152
+msgid "The anchor matches the focus keyword of the destination"
+msgstr ""
+
+#: src/Rest/SuggestionPresenter.php:155
+msgid "The destination is an orphan (0 inbound links)"
+msgstr ""
+
+#: src/Rest/SuggestionPresenter.php:158
+msgid "Very similar in meaning"
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:243
+msgid "The content is too long to analyze."
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:375
+msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:430
+msgid "The link could not be saved; nothing was changed."
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:502
+#: src/Rest/SuggestionsController.php:510
+msgid "The destination is not a published entry that can be linked."
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:505
+msgid "The destination is in a different language, so no link is added."
 msgstr ""
 
 #. translators: 1: current page, 2: total pages.

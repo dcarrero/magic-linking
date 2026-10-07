@@ -598,7 +598,7 @@ final class InsertionTest extends GraphTestCase {
 		$this->assertSame( array(), $this->changes() );
 	}
 
-	public function test_una_excepcion_que_no_es_nuestra_despues_de_escribir_conserva_la_fila(): void {
+	public function test_una_excepcion_que_no_es_nuestra_despues_de_escribir_cuenta_como_insertado(): void {
 		$content = $this->p( 'Compra aire acondicionado ya.' );
 		$post    = $this->post( $content );
 		$boom    = static function (): void {
@@ -606,14 +606,13 @@ final class InsertionTest extends GraphTestCase {
 		};
 		add_action( 'wp_after_insert_post', $boom, 5 );
 
+		// Lo que falla es un tercero y el enlace ya está escrito: cuenta como insertado (el error va al registro).
 		try {
-			$this->inserter()->insert( $this->request( $post ) );
-			$this->fail( 'Debía propagarse.' );
-		} catch ( \RuntimeException $e ) {
-			$this->assertSame( 'tras guardar', $e->getMessage() );
+			$result = $this->inserter()->insert( $this->request( $post ) );
 		} finally {
 			remove_action( 'wp_after_insert_post', $boom, 5 );
 		}
+		$this->assertSame( (int) $this->changes()[0]['id'], $result->change_id );
 
 		$this->assertNotSame( $content, $this->stored( $post ), 'La escritura llegó a hacerse.' );
 		$this->assertCount( 1, $this->changes(), 'Y entonces el historial tiene que conservarse para poder deshacerlo.' );

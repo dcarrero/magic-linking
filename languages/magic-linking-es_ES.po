@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.9.2\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-07T10:56:35+00:00\n"
+"POT-Creation-Date: 2026-10-07T13:10:51+00:00\n"
 "PO-Revision-Date: 2026-10-07 12:30+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -104,7 +104,8 @@ msgstr "No tienes permiso para ver esta página."
 msgid "Internal links"
 msgstr "Enlaces internos"
 
-#: src/Admin/Screen.php:284 assets/build/index.js:6 assets/build/index.js:17 assets/build/index.js:25 assets/build/index.js:37
+#: src/Admin/Screen.php:284 assets/build/index.js:6 assets/build/index.js:17
+#: assets/build/index.js:25 assets/build/index.js:37
 msgid "Loading…"
 msgstr "Cargando…"
 
@@ -162,7 +163,8 @@ msgstr "Acción desconocida. Usa: list, pause, resume o cancel."
 msgid "There is no such process."
 msgstr "No existe ese proceso."
 
-#: src/Cli/Command.php:496 src/Rest/HistoryController.php:285 src/Rest/JobsController.php:170 src/Rest/JobsController.php:185
+#: src/Cli/Command.php:496 src/Rest/HistoryController.php:285
+#: src/Rest/JobsController.php:170 src/Rest/JobsController.php:185
 msgid "That process cannot be changed in its current state."
 msgstr "Ese proceso no se puede cambiar en su estado actual."
 
@@ -191,6 +193,7 @@ msgid "This batch is being processed in the background. Wait for it to finish or
 msgstr "Este lote lo está tratando un proceso en segundo plano. Espera a que termine o cancélalo."
 
 #: src/Cli/Command.php:622 src/Rest/HistoryController.php:499
+#: src/Rest/SuggestionsController.php:383
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "No tienes permiso para editar una de las entradas afectadas."
 
@@ -234,7 +237,7 @@ msgid_plural "%d history rows deleted."
 msgstr[0] "Se ha borrado %d fila del historial."
 msgstr[1] "Se han borrado %d filas del historial."
 
-#: src/Cli/Command.php:706
+#: src/Cli/Command.php:706 src/Rest/SuggestionsController.php:552
 msgid "That entry does not exist."
 msgstr "Esa entrada no existe."
 
@@ -266,7 +269,8 @@ msgstr "No se ha podido interpretar la estructura de bloques de esta entrada; no
 msgid "The block contains markup (script, styles…) that cannot be scanned safely."
 msgstr "El bloque tiene marcas (script, estilos…) que no se pueden recorrer con seguridad."
 
-#: src/Content/BlockEditor.php:90 src/Content/BlockEditor.php:129 src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:181
+#: src/Content/BlockEditor.php:90 src/Content/BlockEditor.php:129
+#: src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:181
 msgid "The text has changed."
 msgstr "El texto ha cambiado."
 
@@ -286,15 +290,20 @@ msgstr "Este texto está en un bloque en el que no se insertan enlaces automáti
 msgid "The post contains markup (script, styles…) that cannot be scanned safely."
 msgstr "La entrada tiene marcas (script, estilos…) que no se pueden recorrer con seguridad."
 
-#: src/Content/Inserter.php:55
+#: src/Content/Inserter.php:88
+msgid "All the links of one write must be for the same post and the same user."
+msgstr "Todos los enlaces de una escritura deben ser de la misma entrada y del mismo usuario."
+
+#: src/Content/Inserter.php:97
 msgid "This content type is not one that Magic Linking analyzes."
 msgstr "Este tipo de contenido no está entre los que analiza Magic Linking."
 
-#: src/Content/Inserter.php:96 src/History/Redo.php:150
+#: src/Content/Inserter.php:159 src/History/Redo.php:150
 msgid "The change could not be confirmed as only the link; nothing was written."
 msgstr "No se ha podido comprobar que el cambio sea solo el enlace; no se ha escrito nada."
 
-#: src/Content/Inserter.php:104 src/History/Redo.php:156 src/History/Undo.php:184
+#: src/Content/Inserter.php:183 src/History/Redo.php:156
+#: src/History/Undo.php:184
 msgid "The change history could not be saved; nothing was written."
 msgstr "No se ha podido guardar el historial del cambio; no se ha escrito nada."
 
@@ -386,7 +395,8 @@ msgstr "La entrada de destino no está publicada (borrador, pendiente o programa
 msgid "The destination entry is private."
 msgstr "La entrada de destino es privada."
 
-#: src/Graph/BrokenRepository.php:105 src/Graph/ReportRepository.php:294 assets/build/index.js:14
+#: src/Graph/BrokenRepository.php:105 src/Graph/ReportRepository.php:294
+#: assets/build/index.js:14
 msgid "(no title)"
 msgstr "(sin título)"
 
@@ -394,11 +404,13 @@ msgstr "(sin título)"
 msgid "Orphan"
 msgstr "Huérfana"
 
-#: src/Graph/LinkStatus.php:71 assets/build/index.js:35 assets/build/index.js:36
+#: src/Graph/LinkStatus.php:71 assets/build/index.js:35
+#: assets/build/index.js:36
 msgid "Under-linked"
 msgstr "Poco enlazada"
 
-#: src/Graph/LinkStatus.php:73 assets/build/index.js:35 assets/build/index.js:36
+#: src/Graph/LinkStatus.php:73 assets/build/index.js:35
+#: assets/build/index.js:36
 msgid "Over-linked"
 msgstr "Sobrecargada"
 
@@ -414,7 +426,8 @@ msgstr "Automático"
 msgid "Deleted user"
 msgstr "Usuario eliminado"
 
-#: src/History/Redo.php:57 src/History/Undo.php:90 src/Rest/HistoryController.php:492
+#: src/History/Redo.php:57 src/History/Undo.php:90
+#: src/Rest/HistoryController.php:492
 msgid "That change does not exist."
 msgstr "No existe ese cambio."
 
@@ -473,6 +486,49 @@ msgstr "Ya hay otro deshacer grande en marcha. Espera a que termine."
 #: src/Rest/JobsController.php:165
 msgid "That process does not exist."
 msgstr "Ese proceso no existe."
+
+#. translators: %s: comma-separated list of shared terms.
+#: src/Rest/SuggestionPresenter.php:146
+#, php-format
+msgid "They share: %s"
+msgstr "Comparten: %s"
+
+#: src/Rest/SuggestionPresenter.php:149
+msgid "The anchor matches the title of the destination"
+msgstr "El ancla coincide con el título del destino"
+
+#: src/Rest/SuggestionPresenter.php:152
+msgid "The anchor matches the focus keyword of the destination"
+msgstr "El ancla coincide con la palabra clave principal del destino"
+
+#: src/Rest/SuggestionPresenter.php:155
+msgid "The destination is an orphan (0 inbound links)"
+msgstr "El destino es huérfano (0 enlaces entrantes)"
+
+#: src/Rest/SuggestionPresenter.php:158
+msgid "Very similar in meaning"
+msgstr "Muy parecidas por significado"
+
+#: src/Rest/SuggestionsController.php:243
+msgid "The content is too long to analyze."
+msgstr "El contenido es demasiado largo para analizarlo."
+
+#: src/Rest/SuggestionsController.php:375
+msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
+msgstr "Cada enlace necesita la entrada, el destino, la frase, el desplazamiento y el ancla."
+
+#: src/Rest/SuggestionsController.php:430
+msgid "The link could not be saved; nothing was changed."
+msgstr "No se ha podido guardar el enlace; no se ha cambiado nada."
+
+#: src/Rest/SuggestionsController.php:502
+#: src/Rest/SuggestionsController.php:510
+msgid "The destination is not a published entry that can be linked."
+msgstr "El destino no es una entrada publicada a la que se pueda enlazar."
+
+#: src/Rest/SuggestionsController.php:505
+msgid "The destination is in a different language, so no link is added."
+msgstr "El destino está en otro idioma, así que no se añade el enlace."
 
 #. translators: 1: current page, 2: total pages.
 #: assets/build/index.js:2
@@ -665,7 +721,8 @@ msgstr "Magic Linking leerá de nuevo todas las entradas. Se hace en segundo pla
 msgid "Analysis started."
 msgstr "Análisis iniciado."
 
-#: assets/build/index.js:10 assets/build/index.js:14 assets/build/index.js:20 assets/build/index.js:30
+#: assets/build/index.js:10 assets/build/index.js:14 assets/build/index.js:20
+#: assets/build/index.js:30
 msgid "That did not work. Try again."
 msgstr "No ha funcionado. Inténtalo de nuevo."
 
