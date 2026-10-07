@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Index;
 
+use MagicLinking\Core\Installer;
 use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Indexer;
 use MagicLinking\Engine\PhraseFinder;
@@ -56,6 +57,9 @@ final class Suggestions {
 	 * Si hay un índice léxico completo sobre el que sugerir.
 	 */
 	public function ready(): bool {
+		// Migra antes de decidir: una migración marca el índice como a medias y no debe servirse en esa misma petición.
+		Installer::ensure_current();
+
 		return $this->lexical->is_built();
 	}
 
