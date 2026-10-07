@@ -226,7 +226,7 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 == Upgrade Notice ==
 
 = 0.10.0 =
-Adds link suggestions in the editor. After updating, the index of suggestions is built automatically in the background, so they may take a few minutes to appear on a big site. The plugin can now add links, always when you press Link and with Undo in History. Your content is not touched during the update.
+Adds link suggestions in the editor. After updating, the suggestions index is built in the background; it may take a few minutes on a big site. The plugin can now add links, always when you press Link and with Undo in History. The update does not touch your content.
 
 = 0.9.2 =
 Table schema rewritten without callable interpolation, package without development folders and clearer requirement checks on activation. No changes to your data.
