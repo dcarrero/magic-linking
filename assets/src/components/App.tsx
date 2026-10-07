@@ -2,11 +2,12 @@ import { useCallback, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import type { StatusResponse, Summary } from '../types';
 import { BrokenTab } from './BrokenTab';
+import { HistoryTab } from './HistoryTab';
 import { IndexStatus } from './IndexStatus';
 import { ReportTab } from './ReportTab';
 import { SettingsTab } from './SettingsTab';
 
-type Tab = 'report' | 'broken' | 'settings';
+type Tab = 'report' | 'broken' | 'history' | 'settings';
 
 type TabUrls = Record< Tab, string >;
 
@@ -20,6 +21,7 @@ interface Props {
 const DEFAULT_URLS: TabUrls = {
 	report: 'admin.php?page=magic-linking',
 	broken: 'admin.php?page=magic-linking-broken',
+	history: 'admin.php?page=magic-linking-history',
 	settings: 'admin.php?page=magic-linking-settings',
 };
 
@@ -91,6 +93,7 @@ export function App( {
 	const labels: Record< Tab, string > = {
 		report: __( 'Report', 'magic-linking' ),
 		broken: __( 'Broken links', 'magic-linking' ),
+		history: __( 'History', 'magic-linking' ),
 		settings: __( 'Settings', 'magic-linking' ),
 	};
 
@@ -144,7 +147,7 @@ export function App( {
 				</dl>
 			) }
 
-			{ ( hasIndex || tab === 'settings' ) && (
+			{ ( hasIndex || tab === 'settings' || tab === 'history' ) && (
 				<>
 					<div className="magiclinking-panel">
 						{ tab === 'report' && (
@@ -180,6 +183,13 @@ export function App( {
 								}
 							/>
 						) }
+						{ tab === 'history' && (
+							<HistoryTab
+								settingsUrl={
+									canManage ? tabUrls.settings : undefined
+								}
+							/>
+						) }
 						{ tab === 'settings' && canManage && (
 							<SettingsTab
 								status={ status }
@@ -192,7 +202,7 @@ export function App( {
 				</>
 			) }
 
-			{ ! hasIndex && indexed !== null && (
+			{ ! hasIndex && indexed !== null && tab !== 'history' && (
 				<p className="description">
 					{ sprintf(
 						/* translators: %s: WP-CLI command. */

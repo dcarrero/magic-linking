@@ -2,6 +2,7 @@ import {
 	Button,
 	CheckboxControl,
 	Notice,
+	SelectControl,
 	TextControl,
 } from '@wordpress/components';
 import { useEffect, useState } from '@wordpress/element';
@@ -151,6 +152,47 @@ export function SettingsTab( { onReindex, status }: Props ) {
 					value={ String( values.words_per_link ) }
 					onChange={ ( value ) =>
 						set( 'words_per_link', Number( value ) || 100 )
+					}
+				/>
+
+				<SelectControl
+					__nextHasNoMarginBottom
+					__next40pxDefaultSize
+					label={ __(
+						'Keep the history of changes for',
+						'magic-linking'
+					) }
+					help={ __(
+						'Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept.',
+						'magic-linking'
+					) }
+					value={
+						String( values.history_retention_days ) as
+							| '0'
+							| '30'
+							| '90'
+							| '365'
+					}
+					options={ [
+						{
+							value: '30',
+							label: __( '30 days', 'magic-linking' ),
+						},
+						{
+							value: '90',
+							label: __( '90 days', 'magic-linking' ),
+						},
+						{
+							value: '365',
+							label: __( '365 days', 'magic-linking' ),
+						},
+						{
+							value: '0',
+							label: __( 'No expiry date', 'magic-linking' ),
+						},
+					] }
+					onChange={ ( value ) =>
+						set( 'history_retention_days', Number( value ) )
 					}
 				/>
 

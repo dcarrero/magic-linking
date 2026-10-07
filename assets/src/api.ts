@@ -4,6 +4,11 @@
 import apiFetch from '@wordpress/api-fetch';
 import type {
 	BrokenResponse,
+	HistoryChangesResponse,
+	HistoryGroup,
+	HistoryJob,
+	HistoryResponse,
+	RunResponse,
 	Job,
 	ReportFilter,
 	ReportResponse,
@@ -72,6 +77,44 @@ export const api = {
 		apiFetch< { job: Job } >( {
 			path: path( `/jobs/${ id }/${ action }` ),
 			method: 'POST',
+		} ),
+	history: ( before: string, perPage: number, signal?: AbortSignal ) =>
+		apiFetch< HistoryResponse >( {
+			path: path( '/history', { before, per_page: perPage } ),
+			signal,
+		} ),
+	historyGroup: ( batchId: string ) =>
+		apiFetch< { group: HistoryGroup } >( {
+			path: path( `/history/${ batchId }` ),
+		} ),
+	historyChanges: ( batchId: string, page: number, perPage: number ) =>
+		apiFetch< HistoryChangesResponse >( {
+			path: path( `/history/${ batchId }/changes`, {
+				page,
+				per_page: perPage,
+			} ),
+		} ),
+	historyJob: ( id: number ) =>
+		apiFetch< { job: HistoryJob } >( {
+			path: path( `/history/jobs/${ id }` ),
+		} ),
+	/**
+	 * Deshace o rehace un cambio (`changeId`) o un grupo entero (`batchId`).
+	 *
+	 * @param mode   undo o redo.
+	 * @param target El cambio o el grupo.
+	 */
+	runHistory: (
+		mode: 'undo' | 'redo',
+		target: { changeId: number } | { batchId: string }
+	) =>
+		apiFetch< RunResponse >( {
+			path: path( `/${ mode }` ),
+			method: 'POST',
+			data:
+				'changeId' in target
+					? { change_id: target.changeId }
+					: { batch_id: target.batchId },
 		} ),
 	settings: () =>
 		apiFetch< SettingsResponse >( { path: path( '/settings' ) } ),

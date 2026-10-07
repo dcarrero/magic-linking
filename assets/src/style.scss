@@ -200,3 +200,75 @@
 .magiclinking-eta {
 	margin-top: 0;
 }
+
+// Historial: una tarjeta por grupo (lote). El estado lleva siempre texto, no solo color.
+.magiclinking-history {
+	display: grid;
+	gap: 12px;
+	list-style: none;
+	margin: 16px 0 0;
+	padding: 0;
+}
+
+.magiclinking-batch {
+	border: 1px solid #c3c4c7;
+	margin: 0;
+	padding: 4px 16px 16px;
+
+	.magiclinking-batch__title {
+		font-size: 16px;
+		margin: 12px 0 4px;
+
+		&:focus-visible {
+			outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+			outline-offset: 2px;
+		}
+	}
+
+	.magiclinking-batch__meta,
+	.magiclinking-batch__entries {
+		color: #50575e;
+		margin: 4px 0;
+	}
+
+	.magiclinking-batch__progress {
+		margin-top: 8px;
+
+		progress {
+			display: block;
+			height: 12px;
+			max-width: 480px;
+			width: 100%;
+		}
+	}
+
+	table {
+		margin-top: 12px;
+	}
+
+	.magiclinking-url {
+		overflow-wrap: anywhere;
+	}
+}
+
+.magiclinking-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.magiclinking-outcome {
+	ul {
+		list-style: disc;
+		margin: 4px 0 0 20px;
+	}
+
+	p {
+		margin: 8px 0 0;
+	}
+}
+
+.magiclinking-badge--undone {
+	color: #50575e;
+}
