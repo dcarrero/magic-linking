@@ -42,6 +42,43 @@ final class Inserter {
 	}
 
 	/**
+	 * Si cada enlace se podría insertar en este contenido, sin escribir nada: lo mismo que comprueba
+	 * {@see self::insert()} (mismos bloques admitidos, misma exigencia de que el contexto aparezca una sola vez),
+	 * con el contenido leído una sola vez para todas las peticiones.
+	 *
+	 * Sirve para no proponer desde el editor frases que el cliente no podrá enlazar (p. ej. el texto de un bloque
+	 * de un complemento, que el motor lee pero no se toca).
+	 *
+	 * @param string          $content  Contenido (el guardado o el que hay en el editor).
+	 * @param int             $post_id  Entrada.
+	 * @param InsertRequest[] $requests Peticiones.
+	 *
+	 * @phpstan-param list<InsertRequest> $requests
+	 *
+	 * @return array<int, bool> Una respuesta por petición, con las mismas claves.
+	 */
+	public function can_insert_many( string $content, int $post_id, array $requests ): array {
+		$answers = array();
+		if ( BlockEditor::handles( $content ) ) {
+			$editor = new BlockEditor();
+			$views  = $editor->prepare( $content, $post_id );
+			foreach ( $requests as $key => $request ) {
+				$answers[ $key ] = null !== $views && $editor->fits( $views, $request );
+			}
+
+			return $answers;
+		}
+
+		$editor = new ClassicEditor();
+		$view   = new TextView( $content, true );
+		foreach ( $requests as $key => $request ) {
+			$answers[ $key ] = $editor->fits( $view, $request );
+		}
+
+		return $answers;
+	}
+
+	/**
 	 * Inserta un enlace.
 	 *
 	 * @param InsertRequest $request  Qué enlazar y dónde.

@@ -277,6 +277,10 @@ final class SuggestionsController implements Module {
 			$found = $this->suggestions->outgoing( $post_id );
 		}
 
+		// Solo se proponen frases donde el editor puede poner el enlace (docs/06 §2): el motor lee más
+		// contenedores que los bloques de texto admitidos y una sugerencia imposible volvería siempre.
+		$found = $this->insertable( null !== $content ? $content : $post->post_content, $post_id, $found );
+
 		$this->presenter->prime( $found );
 
 		return new WP_REST_Response(
@@ -289,6 +293,36 @@ final class SuggestionsController implements Module {
 				'post_id' => $post_id,
 			)
 		);
+	}
+
+	/**
+	 * Deja las sugerencias cuya frase se podría enlazar en el contenido dado.
+	 *
+	 * @param string       $content Contenido de la entrada origen (el guardado o el del editor).
+	 * @param int          $post_id Entrada origen.
+	 * @param Suggestion[] $found   Sugerencias del motor.
+	 *
+	 * @return list<Suggestion>
+	 */
+	private function insertable( string $content, int $post_id, array $found ): array {
+		$requests = array();
+		foreach ( $found as $key => $suggestion ) {
+			try {
+				$requests[ $key ] = InsertRequest::from_sentence( $post_id, home_url( '/' ), $suggestion->sentence, $suggestion->offset, $suggestion->anchor );
+			} catch ( InsertionException ) {
+				continue;
+			}
+		}
+
+		$fits = $this->inserter->can_insert_many( $content, $post_id, $requests );
+		$kept = array();
+		foreach ( $found as $key => $suggestion ) {
+			if ( $fits[ $key ] ?? false ) {
+				$kept[] = $suggestion;
+			}
+		}
+
+		return $kept;
 	}
 
 	/**

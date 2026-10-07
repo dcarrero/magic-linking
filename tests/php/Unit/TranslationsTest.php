@@ -104,12 +104,13 @@ final class TranslationsTest extends TestCase {
 		foreach ( array( 'magic-linking-es_ES.mo', 'magic-linking-es_ES.po' ) as $file ) {
 			$this->assertFileExists( self::ROOT . 'languages/' . $file );
 		}
-		$json = glob( self::ROOT . 'languages/magic-linking-es_ES-*.json' );
-		$this->assertNotEmpty( $json, 'Falta el JSON de traducción de assets/build/index.js.' );
-		$this->assertSame( md5( 'assets/build/index.js' ), substr( basename( (string) $json[0], '.json' ), strlen( 'magic-linking-es_ES-' ) ) );
+		// Un JSON por script que traduce (WordPress lo busca por el hash de la ruta): administración, Gutenberg y editor clásico.
+		foreach ( array( 'index', 'editor', 'classic' ) as $script ) {
+			$this->assertFileExists( self::ROOT . 'languages/magic-linking-es_ES-' . md5( "assets/build/{$script}.js" ) . '.json', "Falta el JSON de traducción de assets/build/{$script}.js." );
+		}
 	}
 
 	private function is_plural( string $text ): bool {
-		return in_array( $text, array( '%d entry analyzed.', '%d broken link', '%s entry', '%s link', '%d entry', 'About %s minute left.', 'About %s hour left.', '%s new or modified entry pending.', '%s link added', '%s link undone.', '%s link added again.', '%s link will be taken out.', '%s undone link will be added again, as it was.', '%s batch in the history.', '%s older batch shown.', '%d change could not be applied by itself.', '%d history row has expired.', '%d history row deleted.' ), true );
+		return in_array( $text, array( '%d entry analyzed.', '%d outbound suggestion', '%d broken link', '%s entry', '%s link', '%d entry', 'About %s minute left.', 'About %s hour left.', '%s new or modified entry pending.', '%s link added', '%s link undone.', '%s link added again.', '%s link will be taken out.', '%s undone link will be added again, as it was.', '%s batch in the history.', '%s older batch shown.', '%d change could not be applied by itself.', '%d history row has expired.', '%d history row deleted.' ), true );
 	}
 }

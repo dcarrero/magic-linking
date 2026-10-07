@@ -470,6 +470,44 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->assertNotContains( $this->target, array_column( array_column( $after['items'], 'target' ), 'id' ) );
 	}
 
+	public function test_the_editor_only_gets_sentences_it_can_link(): void {
+		$this->corpus();
+		$unrelated = self::factory()->post->create(
+			array(
+				'post_title'   => 'Notas del fin de semana',
+				'post_content' => $this->p( 'Salimos a pasear por el campo.' ),
+			)
+		);
+		$sentence  = 'Antes de reformar conviene comparar la aerotermia con otras opciones de calefacción y mirar el consumo real de la vivienda.';
+		$targets   = fn( string $content ): array => array_column(
+			array_column(
+				$this->request(
+					'POST',
+					'/suggestions/outbound',
+					array(
+						'post_id' => $unrelated,
+						'content' => $content,
+					)
+				)->get_data()['items'],
+				'target'
+			),
+			'id'
+		);
+
+		// El motor lee el texto de un bloque de un complemento, pero ahí no se enlaza: no se propone.
+		$custom = '<!-- wp:acme/note -->' . "\n" . '<div class="wp-block-acme-note">' . $sentence . '</div>' . "\n" . '<!-- /wp:acme/note -->';
+		$this->assertNotContains( $this->target, $targets( $custom ) );
+
+		// El mismo texto en un párrafo sí; y un complemento puede admitir su bloque con el filtro.
+		$this->assertContains( $this->target, $targets( $this->p( $sentence ) ) );
+		add_filter( 'magiclinking_insertable_blocks', static fn( array $names ): array => array_merge( $names, array( 'acme/note' ) ) );
+		$this->assertContains( $this->target, $targets( $custom ) );
+		remove_all_filters( 'magiclinking_insertable_blocks' );
+
+		// Una frase que aparece dos veces no se puede enlazar con seguridad: tampoco se propone.
+		$this->assertNotContains( $this->target, $targets( $this->p( $sentence ) . $this->p( $sentence ) ) );
+	}
+
 	public function test_a_new_entry_can_be_analyzed_from_the_editor_content(): void {
 		$this->corpus();
 		$auto = self::factory()->post->create(
@@ -922,7 +960,7 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->assertNotEmpty( $first['items'] );
 
 		// Un cambio que no pasa por WordPress (sin hooks): la caché sigue dando lo guardado.
-		$wpdb->update( $wpdb->posts, array( 'post_content' => $this->p( 'Nada que ver.' ) ), array( 'ID' => $this->sources[1] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->update( $wpdb->posts, array( 'post_content' => $this->stored( $this->sources[1] ) . $this->p( 'Nada que ver.' ) ), array( 'ID' => $this->sources[1] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		clean_post_cache( $this->sources[1] );
 		$cached = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $this->sources[1] ) )->get_data();
 		$this->assertSame( $first['items'], $cached['items'] );
