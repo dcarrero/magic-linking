@@ -203,7 +203,8 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 * New: add a link with one click. In the editor it is inserted in the editor itself, only on that phrase.
 * New: inbound suggestions: link to the entry you are editing from other entries that mention it. The link is written in the other entry after checking that nothing else in it changes, and WordPress keeps a revision.
 * New: History with undo and redo for every link added from the server, with a configurable retention (30 days, 90 days, a year or forever). Large groups are undone in the background.
-* New: the index used for suggestions is stored in the database and built in the background. After updating it is rebuilt automatically; suggestions appear when it is ready.
+* New: the index used for suggestions is stored in the database and built in the background. After updating from an earlier version it is built automatically, without you having to analyze again; no suggestions are shown until it is ready.
+* Improved: cleaner anchor text. Suggested phrases no longer start or end with small words such as "the", "of", "el" or "de", and the reasons shown with each suggestion are cleaner too.
 * New: WP-CLI `wp magic-linking history` (list, undo, redo and purge).
 * New: new filters and actions for developers (see the FAQ).
 * Improved: contrast of the secondary buttons in WordPress 6.9.
@@ -225,7 +226,7 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 == Upgrade Notice ==
 
 = 0.10.0 =
-Adds link suggestions in the editor. After updating, the index of suggestions is rebuilt in the background, so they may take a few minutes to appear on a big site. The plugin can now add links, always when you press Link and with Undo in History. Your content is not touched during the update.
+Adds link suggestions in the editor. After updating, the index of suggestions is built automatically in the background, so they may take a few minutes to appear on a big site. The plugin can now add links, always when you press Link and with Undo in History. Your content is not touched during the update.
 
 = 0.9.2 =
 Table schema rewritten without callable interpolation, package without development folders and clearer requirement checks on activation. No changes to your data.

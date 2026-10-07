@@ -179,7 +179,8 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 - Link suggestions in the block editor and the classic editor, with one-click linking.
 - Inbound suggestions, written on the server after verifying that nothing else in the entry changes.
 - History with undo and redo, with configurable retention; `wp magic-linking history`.
-- Persistent suggestions index built in the background (rebuilt automatically after updating).
+- Persistent suggestions index built in the background (built automatically after updating from an earlier version).
+- Cleaner anchor text: suggested phrases no longer start or end with words like "the", "of", "el" or "de".
 - New hooks for developers. Contrast fix for secondary buttons in WordPress 6.9.
 
 ### 0.9.0
