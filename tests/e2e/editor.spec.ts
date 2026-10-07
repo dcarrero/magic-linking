@@ -102,6 +102,23 @@ async function save( page: Page ): Promise< void > {
 const canvas = ( page: Page ) =>
 	page.frameLocator( 'iframe[name="editor-canvas"]' );
 
+/** Escribe texto al final del primer párrafo del lienzo, como lo haría el usuario. */
+async function typeAtEnd( page: Page, text: string ): Promise< void > {
+	await canvas( page )
+		.locator( 'p[data-block]' )
+		.first()
+		.evaluate( ( element ) => {
+			element.focus();
+			const range = element.ownerDocument.createRange();
+			range.selectNodeContents( element );
+			range.collapse( false );
+			const selection = element.ownerDocument.getSelection();
+			selection?.removeAllRanges();
+			selection?.addRange( range );
+		} );
+	await page.keyboard.type( text );
+}
+
 test.describe( 'Editor panel', () => {
 	let ids: Ids;
 
@@ -192,6 +209,78 @@ test.describe( 'Editor panel', () => {
 		expect( withoutLink( after ) ).toBe( before );
 	} );
 
+	test( 'outbound: the card Undo removes only its link and keeps what was typed after it', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await expect( card ).toBeVisible();
+
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 1 );
+		await typeAtEnd( page, ' ESCRITO' );
+		await card.getByRole( 'button', { name: 'Undo' } ).click();
+
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
+		await expect( canvas( page ).locator( 'p[data-block]' ).first() ).toContainText(
+			'ESCRITO'
+		);
+	} );
+
+	test( 'outbound: the card Undo removes the link and keeps a title changed after it', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await expect( card ).toBeVisible();
+
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 1 );
+		await page.evaluate( () =>
+			// @ts-expect-error wp lo pone WordPress.
+			window.wp.data.dispatch( 'core/editor' ).editPost( { title: 'Título nuevo' } )
+		);
+		await card.getByRole( 'button', { name: 'Undo' } ).click();
+
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
+		expect(
+			await page.evaluate( () =>
+				// @ts-expect-error wp lo pone WordPress.
+				window.wp.data.select( 'core/editor' ).getEditedPostAttribute( 'title' )
+			)
+		).toBe( 'Título nuevo' );
+	} );
+
+	test( 'outbound: the editor Undo after linking keeps what was typed before the link', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await expect( card ).toBeVisible();
+
+		await typeAtEnd( page, ' ANTES' );
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 1 );
+		await page.evaluate( () =>
+			// @ts-expect-error wp lo pone WordPress.
+			window.wp.data.dispatch( 'core/editor' ).undo()
+		);
+
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
+		await expect( canvas( page ).locator( 'p[data-block]' ).first() ).toContainText(
+			'ANTES'
+		);
+	} );
+
 	test( 'outbound: warns when the text changed and refresh analyzes the editor content', async ( {
 		page,
 	} ) => {
@@ -255,6 +344,58 @@ test.describe( 'Editor panel', () => {
 		await card.getByRole( 'button', { name: 'Undo' } ).click();
 		await expect( card.getByRole( 'button', { name: /^Link to/ } ) ).toBeVisible();
 		expect( content( ids.origen ) ).toBe( before );
+	} );
+
+	test( 'inbound: a page that no longer exists goes back to the last one instead of showing an empty list', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		// La primera petición dice que hay dos páginas; la segunda, pedida de verdad, llega vacía (la situación
+		// tras enlazar la última tarjeta de la última página) y el panel debe volver a la primera.
+		let first = true;
+		await page.route( /suggestions(\/|%2F)inbound/i, async ( route ) => {
+			const response = await route.fetch();
+			const body = await response.json();
+			if ( new URL( route.request().url() ).searchParams.get( 'page' ) === '1' && first ) {
+				first = false;
+				body.total_pages = 2;
+			}
+			await route.fulfill( { status: response.status(), json: body } );
+		} );
+		await login( page );
+		await openBlockEditor( page, ids.aislamiento );
+		const panel = await openSidebar( page );
+		await panel.getByRole( 'tab', { name: /^Inbound/ } ).click();
+		await expect( panel.getByText( 'Page 1 of 2' ) ).toBeVisible();
+		const second = page.waitForResponse(
+			( response ) =>
+				/suggestions(\/|%2F)inbound/i.test( response.url() ) &&
+				new URL( response.url() ).searchParams.get( 'page' ) === '2'
+		);
+		await panel.getByRole( 'button', { name: 'Next' } ).click();
+		await second;
+
+		await expect( panel.locator( '.magiclinking-card' ).first() ).toBeVisible();
+		await expect( panel ).not.toContainText( 'No other entry has a sentence' );
+		await expect( panel.getByRole( 'tab', { name: /^Inbound \(\d+\)/ } ) ).toBeVisible();
+	} );
+
+	test( 'inbound: dismissing every card shows the message and the count follows', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.aislamiento );
+		const panel = await openSidebar( page );
+		await panel.getByRole( 'tab', { name: /^Inbound/ } ).click();
+		const cards = panel.locator( '.magiclinking-card' );
+		await expect( cards.first() ).toBeVisible();
+		const total = await cards.count();
+		for ( let i = 0; i < total; i++ ) {
+			await cards.first().getByRole( 'button', { name: /^Dismiss/ } ).click();
+		}
+		await expect( panel ).toContainText( 'You have dismissed all the suggestions' );
+		await expect( panel.getByRole( 'tab', { name: 'Inbound (0)' } ) ).toBeVisible();
 	} );
 
 	test( 'inbound: an entry the user cannot edit is shown without the Link button', async ( {
@@ -337,6 +478,17 @@ test.describe( 'Editor panel', () => {
 		await expect( frame.locator( 'body a' ) ).toHaveText( anchor );
 		expect( content( clasico ) ).toBe( before );
 
+		// Deshacer de la tarjeta quita solo ese enlace y respeta lo escrito después.
+		await page.evaluate( () =>
+			// @ts-expect-error tinymce lo pone WordPress.
+			window.tinymce.get( 'content' ).execCommand( 'mceInsertContent', false, ' ESCRITO' )
+		);
+		await card.getByRole( 'button', { name: 'Undo' } ).click();
+		await expect( frame.locator( 'body a' ) ).toHaveCount( 0 );
+		await expect( frame.locator( 'body' ) ).toContainText( 'ESCRITO' );
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( frame.locator( 'body a' ) ).toHaveText( anchor );
+
 		const axe = await new AxeBuilder( { page } )
 			.include( '#magiclinking-editor-panel' )
 			.withTags( AXE_TAGS )
@@ -349,6 +501,8 @@ test.describe( 'Editor panel', () => {
 		expect( after ).toContain( '<a href=' );
 		// WordPress guarda un solo párrafo sin <p>: se compara sin etiquetas de párrafo.
 		const plain = ( html: string ) => html.replace( /<\/?p>/g, '' );
-		expect( plain( withoutLink( after ) ) ).toBe( plain( before ) );
+		expect(
+			plain( withoutLink( after ) ).replace( /(\s|&nbsp;)ESCRITO/, '' )
+		).toBe( plain( before ) );
 	} );
 } );
