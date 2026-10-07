@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Core;
 
+use MagicLinking\Index\LexicalIndexer;
 use wpdb;
 
 /**
@@ -76,6 +77,37 @@ final class Installer implements Module {
 		$this->target_version = $target_version;
 		$this->migrations     = $migrations ?? self::migrations();
 		ksort( $this->migrations );
+	}
+
+	/**
+	 * Si ya se ha comprobado el esquema en esta petición.
+	 *
+	 * @var bool
+	 */
+	private static bool $verified = false;
+
+	/**
+	 * Se asegura de que el esquema es el del código antes de usar las tablas del índice.
+	 *
+	 * La actualización automática de un plugin no pasa por la activación ni por `admin_init`: el cron o
+	 * Action Scheduler pueden ejecutar el código nuevo contra el esquema anterior. Quien escribe o lee el
+	 * índice llama aquí (una vez por petición; el front-end nunca lo hace).
+	 */
+	public static function ensure_current(): void {
+		if ( self::$verified || ! defined( 'MAGICLINKING_DB_VERSION' ) ) {
+			return;
+		}
+		self::$verified = true;
+
+		global $wpdb;
+		( new self( $wpdb, (int) MAGICLINKING_DB_VERSION ) )->maybe_upgrade();
+	}
+
+	/**
+	 * Olvida la comprobación de esquema (para las pruebas).
+	 */
+	public static function forget_check(): void {
+		self::$verified = false;
 	}
 
 	/**
@@ -275,7 +307,9 @@ final class Installer implements Module {
 	 *
 	 * La versión 1 es el esquema inicial: no necesita migración. La 2 añade a `docs` las columnas
 	 * `lex_hash` y `lex_at` (huella y fecha del índice léxico); dbDelta() las crea y las filas
-	 * existentes (huella vacía) se reindexan solas. Una migración
+	 * existentes (huella vacía) se reindexan solas. La 3 añade a `postings` la columna `pos` (puesto de cada
+	 * término en su entrada); las filas que ya hubiera no la tienen, así que el índice léxico se marca como
+	 * construcción a medias y la siguiente pasada lo rehace entero (D-44). Una migración
 	 * corre después de dbDelta(), así que ya ve las columnas nuevas; para
 	 * renombrar una columna, dbDelta() añade la nueva y la migración copia los
 	 * datos y borra la antigua.
@@ -283,6 +317,22 @@ final class Installer implements Module {
 	 * @return array<int, callable(wpdb): void>
 	 */
 	private static function migrations(): array {
-		return array();
+		return array(
+			3 => static function ( wpdb $wpdb ): void {
+				$postings = Schema::table( $wpdb->prefix, 'postings' );
+				$docs     = Schema::table( $wpdb->prefix, 'docs' );
+
+				if ( null === $wpdb->get_var( $wpdb->prepare( 'SELECT term_id FROM %i LIMIT 1', $postings ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia; no hay nada que cachear.
+					return;
+				}
+
+				$wpdb->query( $wpdb->prepare( "UPDATE %i SET lex_hash = '', lex_at = NULL", $docs ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+
+				// Si ya hay una construcción en curso se conserva su ID: solo ese proceso puede darla por terminada.
+				if ( false === get_option( LexicalIndexer::BUILDING_OPTION, false ) ) {
+					update_option( LexicalIndexer::BUILDING_OPTION, 0, false );
+				}
+			},
+		);
 	}
 }

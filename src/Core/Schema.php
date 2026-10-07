@@ -97,12 +97,15 @@ final class Schema {
   UNIQUE KEY lang_stem_n (lang,stem,n)
 ) {$charset_collate};",
 
-			// Términos principales por entrada, top-K.
+			// Términos principales por entrada, top-K. `pos` es el puesto del término en su entrada (0 = el de más
+			// peso): los empates de peso no se pueden ordenar por otro campo sin cambiar qué frases objetivo
+			// salen de un destino.
 			'postings' => "CREATE TABLE {$postings} (
   term_id int(10) unsigned NOT NULL,
   post_id bigint(20) unsigned NOT NULL,
   weight float NOT NULL DEFAULT 0,
   field tinyint(3) unsigned NOT NULL DEFAULT 0,
+  pos smallint(5) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY  (term_id,post_id),
   KEY post_id (post_id)
 ) {$charset_collate};",

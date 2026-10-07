@@ -157,6 +157,32 @@ final class LexicalIndexTest extends GraphTestCase {
 		}
 	}
 
+	public function test_a_failed_postings_write_does_not_mark_the_entry_as_up_to_date(): void {
+		global $wpdb;
+		$ids = $this->corpus();
+		$this->run_job();
+		$before = $this->doc_row( $ids['a'] )['lex_hash'];
+		$this->assertNotSame( '', $before );
+
+		// Las postings no se pueden escribir (la sentencia falla) y el contenido cambia sin pasar por los hooks.
+		// Sin DDL: un ALTER TABLE confirmaría la transacción de la prueba.
+		$postings = Schema::table( $wpdb->prefix, 'postings' );
+		$break    = static fn( $query ) => str_starts_with( (string) $query, "INSERT INTO `{$postings}`" ) ? 'INSERT INTO magiclinking_no_such_table VALUES (1)' : $query;
+		$wpdb->update( $wpdb->posts, array( 'post_content' => 'El zorrillo se esconde junto al río helado y al bosque profundo.' ), array( 'ID' => $ids['a'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		clean_post_cache( $ids['a'] );
+
+		$wpdb->suppress_errors( true );
+		add_filter( 'query', $break );
+		try {
+			$this->lexical->index_changed( array( $ids['a'] ) );
+		} finally {
+			remove_filter( 'query', $break );
+			$wpdb->suppress_errors( false );
+		}
+
+		$this->assertSame( $before, $this->doc_row( $ids['a'] )['lex_hash'], 'la entrada debe seguir pareciendo desfasada para reintentarse' );
+	}
+
 	public function test_unchanged_posts_are_skipped_by_content_hash(): void {
 		$ids = $this->corpus();
 		$this->run_job();

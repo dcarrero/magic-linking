@@ -22,6 +22,8 @@ use MagicLinking\Engine\DomExtractor;
 use MagicLinking\I18n\Language;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\PostSource;
+use MagicLinking\Index\Suggestions;
+use MagicLinking\Index\TableDocuments;
 use MagicLinking\Index\TableRepository;
 use MagicLinking\I18n\TextDomain;
 use MagicLinking\Jobs\JobRepository;
@@ -173,6 +175,16 @@ final class Plugin {
 				$c->get( TableRepository::class ),
 				$c->get( PostSource::class ),
 				$c->get( JobRepository::class )
+			),
+			TableDocuments::class     => static function ( Container $c ): TableDocuments {
+				global $wpdb;
+				return new TableDocuments( $c->get( PostSource::class ), new LinkResolver( $wpdb ), $c->get( GraphRepository::class ) );
+			},
+			Suggestions::class        => static fn( Container $c ): Suggestions => new Suggestions(
+				$c->get( TableRepository::class ),
+				$c->get( LexicalIndexer::class ),
+				$c->get( TableDocuments::class ),
+				$c->get( Settings::class )
 			),
 			JobRepository::class      => static function (): JobRepository {
 				global $wpdb;

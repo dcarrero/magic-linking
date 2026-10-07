@@ -31,7 +31,7 @@ define( 'MAGICLINKING_FILE', __FILE__ );
 define( 'MAGICLINKING_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAGICLINKING_URL', plugin_dir_url( __FILE__ ) );
 define( 'MAGICLINKING_PREFIX', 'magiclinking_' );
-define( 'MAGICLINKING_DB_VERSION', 2 );
+define( 'MAGICLINKING_DB_VERSION', 3 );
 define( 'MAGICLINKING_MIN_WP', '6.9' );
 define( 'MAGICLINKING_MIN_PHP', '8.1' );
 

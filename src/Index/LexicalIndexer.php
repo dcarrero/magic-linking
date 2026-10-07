@@ -193,8 +193,10 @@ final class LexicalIndexer {
 			return 0;
 		}
 
-		$this->repository->put_many( $indexed );
-		$this->repository->mark_lexical( $hashes );
+		// Si las postings no se escribieron bien, la huella se queda como estaba y la entrada se reintenta.
+		if ( $this->repository->put_many( $indexed ) ) {
+			$this->repository->mark_lexical( $hashes );
+		}
 
 		return count( $indexed );
 	}
@@ -293,8 +295,9 @@ final class LexicalIndexer {
 		foreach ( $analyzed as $result ) {
 			$indexed[] = $this->index_analyzed( $result );
 		}
-		$this->repository->put_many( $indexed );
-		$this->repository->mark_lexical( $hashes );
+		if ( $this->repository->put_many( $indexed ) ) {
+			$this->repository->mark_lexical( $hashes );
+		}
 
 		return array(
 			'indexed'   => count( $indexed ),

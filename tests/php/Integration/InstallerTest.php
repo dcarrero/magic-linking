@@ -12,6 +12,8 @@ namespace MagicLinking\Tests\Integration;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Plugin;
 use MagicLinking\Core\Schema;
+use MagicLinking\Index\LexicalIndexer;
+use MagicLinking\Index\TableRepository;
 use WP_UnitTestCase;
 use wpdb;
 
@@ -29,6 +31,7 @@ final class InstallerTest extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
+		Installer::forget_check();
 		$this->drop_everything();
 		parent::tear_down();
 	}
@@ -42,7 +45,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( array(), $installer->missing_tables() );
 		$this->assertCount( 7, Schema::TABLES );
 		$this->assertSame( MAGICLINKING_DB_VERSION, $installer->installed_version() );
-		$this->assertSame( 2, MAGICLINKING_DB_VERSION );
+		$this->assertSame( 3, MAGICLINKING_DB_VERSION );
 		$this->assertContains( $this->autoload_of( Installer::DB_VERSION_OPTION ), array( 'no', 'off' ) );
 		$this->assertSame( 0, $this->own_autoloaded_options() );
 	}
@@ -52,7 +55,7 @@ final class InstallerTest extends WP_UnitTestCase {
 
 		$this->assertColumns( 'docs', array( 'post_id', 'post_type', 'lang', 'status', 'content_hash', 'word_count', 'doc_len', 'inbound', 'outbound', 'external', 'broken', 'embedding', 'embedding_model', 'indexed_at', 'lex_hash', 'lex_at' ) );
 		$this->assertColumns( 'terms', array( 'term_id', 'lang', 'stem', 'surface', 'df', 'n' ) );
-		$this->assertColumns( 'postings', array( 'term_id', 'post_id', 'weight', 'field' ) );
+		$this->assertColumns( 'postings', array( 'term_id', 'post_id', 'weight', 'field', 'pos' ) );
 		$this->assertColumns( 'links', array( 'id', 'source_id', 'target_id', 'target_url', 'anchor', 'block_path', 'kind', 'is_internal', 'is_broken' ) );
 		$this->assertColumns( 'rules', array( 'id', 'phrase', 'target_id', 'target_url', 'lang', 'max_per_post', 'first_only', 'exclude', 'active', 'created_at', 'created_by' ) );
 		$this->assertColumns( 'changes', array( 'id', 'batch_id', 'post_id', 'action', 'block_path', 'before_html', 'after_html', 'content_hash_after', 'user_id', 'created_at', 'undone_at' ) );
@@ -156,6 +159,67 @@ final class InstallerTest extends WP_UnitTestCase {
 		// Ya actualizado: no se repite nada.
 		$this->assertTrue( $installer->maybe_upgrade() );
 		$this->assertSame( array( 2, 3 ), $runs );
+	}
+
+	public function test_schema_3_marks_an_existing_lexical_index_for_rebuild(): void {
+		global $wpdb;
+
+		// Esquema 2 ficticio: postings sin la columna `pos`, con una entrada indexada.
+		$this->installer()->maybe_upgrade();
+		$docs     = Schema::table( $wpdb->prefix, 'docs' );
+		$postings = Schema::table( $wpdb->prefix, 'postings' );
+		$wpdb->query( "ALTER TABLE {$postings} DROP COLUMN pos" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( "INSERT INTO {$docs} (post_id, post_type, lang, doc_len, indexed_at, lex_hash, lex_at) VALUES (7, 'post', 'es', 120, '2026-09-01 00:00:00', 'abc', '2026-09-01 00:00:00')" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "INSERT INTO {$postings} (term_id, post_id, weight, field) VALUES (1, 7, 0.5, 1)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		update_option( Installer::DB_VERSION_OPTION, 2, false );
+		delete_option( LexicalIndexer::BUILDING_OPTION );
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		$this->assertContains( 'pos', $this->columns( 'postings' ) );
+		$this->assertSame( 3, $this->installer()->installed_version() );
+		$this->assertNotFalse( get_option( LexicalIndexer::BUILDING_OPTION, false ), 'el índice léxico antiguo no vale: no cuenta como construido' );
+		$this->assertNull( $wpdb->get_var( "SELECT NULLIF(lex_hash, '') FROM {$docs} WHERE post_id = 7" ), 'la huella léxica se vacía para que se reindexe' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	public function test_schema_3_keeps_the_id_of_a_build_in_progress(): void {
+		global $wpdb;
+
+		$this->installer()->maybe_upgrade();
+		$postings = Schema::table( $wpdb->prefix, 'postings' );
+		$wpdb->query( "INSERT INTO {$postings} (term_id, post_id, weight, field) VALUES (1, 7, 0.5, 1)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		update_option( Installer::DB_VERSION_OPTION, 2, false );
+		update_option( LexicalIndexer::BUILDING_OPTION, 42, false );
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		$this->assertSame( 42, (int) get_option( LexicalIndexer::BUILDING_OPTION ), 'solo el proceso que empezó la construcción puede cerrarla' );
+	}
+
+	public function test_the_index_checks_the_schema_before_using_it(): void {
+		global $wpdb;
+
+		// Una autoactualización deja el código nuevo contra el esquema 2 hasta la siguiente visita al administrador.
+		$this->installer()->maybe_upgrade();
+		$postings = Schema::table( $wpdb->prefix, 'postings' );
+		$wpdb->query( "ALTER TABLE {$postings} DROP COLUMN pos" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		update_option( Installer::DB_VERSION_OPTION, 2, false );
+		Installer::forget_check();
+
+		( new TableRepository( $wpdb ) )->terms( 7 );
+
+		$this->assertContains( 'pos', $this->columns( 'postings' ) );
+		$this->assertSame( 3, $this->installer()->installed_version() );
+	}
+
+	public function test_schema_3_leaves_an_empty_lexical_index_alone(): void {
+		$this->installer()->maybe_upgrade();
+		update_option( Installer::DB_VERSION_OPTION, 2, false );
+		delete_option( LexicalIndexer::BUILDING_OPTION );
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		$this->assertFalse( get_option( LexicalIndexer::BUILDING_OPTION, false ) );
 	}
 
 	public function test_newer_installed_version_is_left_alone(): void {
