@@ -336,6 +336,70 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( $content, get_post( $post_id )->post_content, 'Los enlaces escritos en el contenido se quedan, byte a byte.' );
 	}
 
+	public function test_uninstall_deletes_every_action_of_the_plugin_but_not_those_of_others(): void {
+		global $wpdb;
+
+		$installer = $this->installer();
+		$installer->maybe_upgrade();
+		$pending = as_enqueue_async_action( 'magiclinking_index_posts', array( array( 1 ), false ), Installer::ACTION_GROUP );
+		$done    = as_enqueue_async_action( 'magiclinking_index_posts', array( array( 2 ), false ), Installer::ACTION_GROUP );
+		$failed  = as_enqueue_async_action( 'magiclinking_index_posts', array( array( 3 ), false ), Installer::ACTION_GROUP );
+		$other   = as_enqueue_async_action( 'other_plugin_hook', array(), 'other-plugin' );
+		\ActionScheduler::store()->mark_complete( $done );
+		\ActionScheduler::store()->mark_failure( $failed );
+		\ActionScheduler::logger()->log( $done, 'Hecho' );
+		update_option( Installer::SETTINGS_OPTION, array( Installer::DELETE_DATA_SETTING => true ) );
+		update_option( LexicalIndexer::BUILDING_OPTION, 5, false );
+		set_transient( 'magiclinking_epoch_abc', array( 'x' ) );
+
+		Installer::uninstall_everywhere();
+
+		$actions = $wpdb->prefix . 'actionscheduler_actions';
+		$logs    = $wpdb->prefix . 'actionscheduler_logs';
+		foreach ( array( $pending, $done, $failed ) as $id ) {
+			$this->assertSame( 0, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE action_id = %d', $actions, $id ) ), 'Acción del plugin borrada.' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		}
+		$this->assertSame( 0, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE action_id = %d', $logs, $done ) ), 'Su registro, también.' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE action_id = %d', $actions, $other ) ), 'La acción de otro plugin se queda.' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$this->assertFalse( get_option( LexicalIndexer::BUILDING_OPTION, false ) );
+		$this->assertFalse( get_transient( 'magiclinking_epoch_abc' ) );
+		$this->assertCount( 7, $installer->missing_tables(), 'Incluidas las tablas de historial (changes) y de procesos (jobs).' );
+	}
+
+	public function test_uninstall_keeps_history_jobs_and_options_when_the_user_did_not_ask(): void {
+		global $wpdb;
+
+		$installer = $this->installer();
+		$installer->maybe_upgrade();
+		$wpdb->insert(
+			Schema::table( $wpdb->prefix, 'jobs' ),
+			array(
+				'type'   => 'purge',
+				'status' => 'done',
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->insert(
+			Schema::table( $wpdb->prefix, 'jobs' ),
+			array(
+				'type'   => 'undo',
+				'status' => 'done',
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		update_option( LexicalIndexer::BUILDING_OPTION, 5, false );
+		update_option( Installer::SETTINGS_OPTION, array( Installer::DELETE_DATA_SETTING => false ) );
+		set_transient( 'magiclinking_epoch_abc', array( 'x' ) );
+
+		Installer::uninstall_everywhere();
+
+		$this->assertSame( array(), $installer->missing_tables() );
+		$this->assertSame( 2, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Schema::table( $wpdb->prefix, 'jobs' ) ) ); // phpcs:ignore WordPress.DB
+		$this->assertSame( 5, (int) get_option( LexicalIndexer::BUILDING_OPTION ) );
+		$this->assertSame( array( 'x' ), get_transient( 'magiclinking_epoch_abc' ) );
+
+		delete_transient( 'magiclinking_epoch_abc' );
+		delete_option( LexicalIndexer::BUILDING_OPTION );
+	}
+
 	private function installer(): Installer {
 		global $wpdb;
 
