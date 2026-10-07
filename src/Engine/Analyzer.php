@@ -360,6 +360,13 @@ final class Analyzer {
 	private const CACHE_SIZE = 200000;
 
 	/**
+	 * Idioma dominante de cada frase si no es el de la entrada ('' si lo es).
+	 *
+	 * @var \WeakMap<Sentence, string>|null
+	 */
+	private ?\WeakMap $foreign = null;
+
+	/**
 	 * Analizadores por idioma.
 	 *
 	 * @var array<string, self>
@@ -473,6 +480,155 @@ final class Analyzer {
 			return true;
 		}
 		return null !== $next && $next->is_stopword && 1 === preg_match( self::PARTICIPLE_ES, $token->normal );
+	}
+
+	/**
+	 * Idioma de una frase si no es el de la entrada: otro idioma con lista de
+	 * palabras vacías cuyas palabras vacías aparecen al menos dos veces y más del
+	 * doble que las del idioma de la entrada. Cubre contenido en castellano en un
+	 * sitio o una entrada declarados en inglés (o al revés), donde las palabras
+	 * vacías del texto no se reconocen y quedarían en los extremos de un ancla.
+	 * No cambia el idioma de la entrada (regla 9); solo se usa para recortar.
+	 * Si el idioma de la entrada no tiene lista propia (pt, fr, ca…) no se aplica:
+	 * sin palabras vacías propias cualquier «de» o «la» haría pasar la frase por española.
+	 *
+	 * @param Sentence $sentence Frase (el resultado se recuerda mientras exista el objeto).
+	 * @return string|null Código del otro idioma, o null si la frase es del idioma de la entrada.
+	 */
+	public function foreign_language( Sentence $sentence ): ?string {
+		return $this->dominant( $sentence, $sentence->tokens );
+	}
+
+	/**
+	 * Lo mismo que {@see foreign_language()} para todo el texto de un origen
+	 * (para los términos que se enseñan en los motivos, que no tienen frase).
+	 *
+	 * @param AnalyzedDocument $document Origen analizado con frases.
+	 * @return string|null Código del otro idioma, o null si el texto es del idioma de la entrada.
+	 */
+	public function foreign_document( AnalyzedDocument $document ): ?string {
+		$tokens = array();
+		foreach ( $document->sentences as $sentence ) {
+			array_push( $tokens, ...$sentence->tokens );
+		}
+		return $this->dominant( $document, $tokens );
+	}
+
+	/**
+	 * Idioma dominante de unos tokens si no es el de la entrada, con memoria por objeto.
+	 *
+	 * @param object  $owner  Frase o documento al que se asocia el resultado.
+	 * @param Token[] $tokens Tokens.
+	 *
+	 * @phpstan-param list<Token> $tokens
+	 */
+	private function dominant( object $owner, array $tokens ): ?string {
+		$this->foreign ??= new \WeakMap();
+		if ( isset( $this->foreign[ $owner ] ) ) {
+			return '' === $this->foreign[ $owner ] ? null : $this->foreign[ $owner ];
+		}
+		$found = null;
+		if ( in_array( $this->language, Stopwords::languages(), true ) ) {
+			$own     = 0;
+			$foreign = array();
+			foreach ( $tokens as $token ) {
+				if ( $token->is_stopword ) {
+					++$own;
+				}
+				foreach ( Stopwords::languages() as $code ) {
+					if ( $code !== $this->language && Stopwords::is( $token->normal, $code ) ) {
+						$foreign[ $code ] = ( $foreign[ $code ] ?? 0 ) + 1;
+					}
+				}
+			}
+			arsort( $foreign );
+			$code  = (string) array_key_first( $foreign );
+			$found = '' !== $code && $foreign[ $code ] >= 2 && $foreign[ $code ] > 2 * $own ? $code : null;
+		}
+
+		$this->foreign[ $owner ] = $found ?? '';
+		return $found;
+	}
+
+	/**
+	 * Recorta el tramo [$start, $end] de unos tokens hasta que no empiece ni acabe
+	 * en palabra vacía: del idioma de la entrada o del idioma que domina el texto
+	 * ($foreign). Es el único recorte, para anclas y para los términos de los
+	 * motivos. Además, una palabra con guion al final del tramo se recorta si su
+	 * última parte es un artículo o preposición con mayúscula y la palabra
+	 * siguiente del texto la continúa también con mayúscula («Castilla-La» de
+	 * «Castilla-La Mancha» cortado); «e-commerce», «sign-up» o «all-in-one» se
+	 * conservan.
+	 *
+	 * @param Token[]     $tokens  Tokens.
+	 * @param int         $start   Primer token del tramo.
+	 * @param int         $end     Último token del tramo.
+	 * @param string|null $foreign Idioma que domina el texto, de {@see foreign_language()}.
+	 * @return array{0: int, 1: int} Con `$end < $start` si no queda nada.
+	 *
+	 * @phpstan-param list<Token> $tokens
+	 */
+	public function trim_edges( array $tokens, int $start, int $end, ?string $foreign = null ): array {
+		while ( $start <= $end && $this->is_stopword_in( $tokens[ $start ], $foreign ) ) {
+			++$start;
+		}
+		while ( $end >= $start && ( $this->is_stopword_in( $tokens[ $end ], $foreign ) || $this->is_cut_compound( $tokens[ $end ], $tokens[ $end + 1 ] ?? null ) ) ) {
+			--$end;
+		}
+		return array( $start, $end );
+	}
+
+	/**
+	 * Término listo para enseñar en un motivo: la forma de superficie sin
+	 * palabras vacías en los extremos (mismo recorte que las anclas).
+	 *
+	 * @param string      $surface Forma de superficie en minúsculas («de calefacción»).
+	 * @param string|null $foreign Idioma que domina el texto del origen, de {@see foreign_document()}.
+	 * @return string|null Null si no queda ninguna palabra de contenido o es una forma verbal suelta.
+	 */
+	public function display_term( string $surface, ?string $foreign = null ): ?string {
+		$tokens          = $this->tokenizer->tokenize( $surface );
+		[ $start, $end ] = $this->trim_edges( $tokens, 0, count( $tokens ) - 1, $foreign );
+		$span            = array_slice( $tokens, $start, $end - $start + 1 );
+		if ( array() === $span || ( 1 === count( $span ) && $this->is_verb_like( $span[0] ) ) ) {
+			return null;
+		}
+		foreach ( $span as $token ) {
+			if ( $this->is_content( $token ) ) {
+				return implode( ' ', array_map( static fn( Token $t ): string => $t->surface, $span ) );
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Si un token es palabra vacía del idioma de la entrada o del que domina el texto.
+	 *
+	 * @param Token       $token   Token.
+	 * @param string|null $foreign Idioma que domina el texto.
+	 */
+	private function is_stopword_in( Token $token, ?string $foreign ): bool {
+		return $token->is_stopword || ( null !== $foreign && Stopwords::is( $token->normal, $foreign ) );
+	}
+
+	/**
+	 * Si un token es una palabra con guion cuya última parte es un artículo o
+	 * preposición con mayúscula y el token siguiente, pegado a él, también empieza
+	 * con mayúscula: el compuesto sigue fuera del tramo.
+	 *
+	 * @param Token      $token Último token del tramo.
+	 * @param Token|null $next  Token que sigue en el texto.
+	 */
+	private function is_cut_compound( Token $token, ?Token $next ): bool {
+		if ( null === $next || $next->break_before || ! str_contains( $token->surface, '-' ) ) {
+			return false;
+		}
+		$parts = explode( '-', $token->surface );
+		$last  = $parts[ count( $parts ) - 1 ];
+		return mb_strlen( $last ) >= 2
+			&& 1 === preg_match( '/^\p{Lu}/u', $last )
+			&& 1 === preg_match( '/^\p{Lu}/u', $next->surface )
+			&& Stopwords::is( mb_strtolower( $last ), $this->language );
 	}
 
 	/**

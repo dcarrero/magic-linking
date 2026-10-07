@@ -306,6 +306,40 @@ final class SuggestionsRestTest extends GraphTestCase {
 
 	// ------------------------------------------------------------------ Salientes.
 
+	public function test_anchors_and_reasons_have_no_stopwords_at_the_edges_with_the_wrong_language(): void {
+		$this->corpus();
+		// Texto en castellano en entradas declaradas en inglés (sitio en en_US): «de» y «el» no son vacías para el analizador.
+		$this->english = array_merge( array( $this->target ), $this->sources );
+		$this->build_index();
+
+		$stop  = array( 'el', 'la', 'las', 'los', 'de', 'del', 'en', 'con', 'una', 'un', 'y', 'para', 'por', 'que', 'se' );
+		$items = array();
+		foreach ( $this->sources as $source ) {
+			$items = array_merge( $items, $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $source ) )->get_data()['items'] );
+		}
+		$this->assertNotEmpty( $items );
+
+		foreach ( $items as $item ) {
+			$words = explode( ' ', mb_strtolower( $item['anchor'] ) );
+			$this->assertNotContains( $words[0], $stop, $item['anchor'] );
+			$this->assertNotContains( end( $words ), $stop, $item['anchor'] );
+
+			foreach ( $item['reasons'] as $reason ) {
+				if ( 'shared_terms' !== $reason['code'] ) {
+					continue;
+				}
+				// «Comparten: a, b, c»: el texto no lleva palabras vacías en los extremos de ningún término.
+				$list = trim( (string) substr( $reason['text'], (int) strpos( $reason['text'], ':' ) + 1 ) );
+				$this->assertNotSame( '', $list );
+				foreach ( explode( ', ', $list ) as $term ) {
+					$words = explode( ' ', mb_strtolower( $term ) );
+					$this->assertNotContains( $words[0], $stop, $reason['text'] );
+					$this->assertNotContains( end( $words ), $stop, $reason['text'] );
+				}
+			}
+		}
+	}
+
 	public function test_outbound_suggestions_have_the_shape_the_card_needs(): void {
 		$this->corpus();
 		$response = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $this->sources[1] ) );
