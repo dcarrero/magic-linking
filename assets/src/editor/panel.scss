@@ -1,0 +1,168 @@
+// Panel del editor (barra lateral de Gutenberg y caja del clásico). Los estados llevan siempre texto, no solo color.
+
+.magiclinking-panel {
+	font-size: 13px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+
+	.components-tab-panel__tabs {
+		border-bottom: 1px solid #ddd;
+		margin: 0 -16px;
+		padding: 0 16px;
+	}
+}
+
+.magiclinking-editor-root .magiclinking-panel .components-tab-panel__tabs {
+	margin: 0;
+	padding: 0;
+}
+
+.magiclinking-panel__list {
+	padding-top: 12px;
+
+	&:focus {
+		outline: none;
+	}
+}
+
+.magiclinking-panel__toolbar {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.magiclinking-panel__hint {
+	color: #50575e;
+	flex: 1 1 140px;
+	font-size: 12px;
+	min-width: 0;
+}
+
+.magiclinking-panel__empty,
+.magiclinking-panel__loading {
+	color: #1e1e1e;
+	margin: 8px 0;
+}
+
+.magiclinking-panel__error {
+	background: #fcf0f1;
+	border-left: 4px solid #cc1818;
+	color: #1e1e1e;
+	margin-bottom: 12px;
+	padding: 8px 12px;
+
+	p {
+		margin: 0 0 8px;
+	}
+}
+
+.magiclinking-panel__cards {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.magiclinking-card {
+	border: 1px solid #ddd;
+	border-radius: 2px;
+	margin: 0 0 12px;
+	padding: 12px;
+
+	&:hover,
+	&:focus-within {
+		border-color: var(--wp-admin-theme-color, #3858e9);
+		box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
+	}
+
+	&.is-added {
+		background: #f6f7f7;
+	}
+
+	p {
+		margin: 0 0 6px;
+	}
+}
+
+.magiclinking-card__sentence {
+	line-height: 1.5;
+}
+
+.magiclinking-card__anchor {
+	background: #ffe58f;
+	color: #1e1e1e;
+	font-weight: 600;
+	padding: 0 2px;
+}
+
+.magiclinking-card__source,
+.magiclinking-card__target {
+	font-weight: 600;
+}
+
+.magiclinking-card__reasons,
+.magiclinking-card__note {
+	color: #50575e;
+	font-size: 12px;
+}
+
+.magiclinking-card__actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 8px;
+
+	.magiclinking-card__status {
+		flex-basis: 100%;
+		margin: 0;
+	}
+}
+
+.magiclinking-card__status {
+	&:focus {
+		outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+		outline-offset: 2px;
+	}
+
+	&.is-error {
+		color: #8a1f1f;
+		font-weight: 600;
+	}
+}
+
+.magiclinking-pager {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+	margin-top: 4px;
+}
+
+.magiclinking-toolbar-icon {
+	display: inline-flex;
+	position: relative;
+}
+
+.magiclinking-toolbar-icon__count {
+	background: #cc1818;
+	border-radius: 8px;
+	color: #fff;
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 14px;
+	min-width: 14px;
+	padding: 0 3px;
+	position: absolute;
+	right: -8px;
+	text-align: center;
+	top: -6px;
+}
+
+@media (forced-colors: active) {
+	.magiclinking-card__anchor {
+		background: Highlight;
+		color: HighlightText;
+	}
+}
