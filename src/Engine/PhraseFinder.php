@@ -217,13 +217,9 @@ final class PhraseFinder {
 					continue;
 				}
 
-				$kind  = $trimmed ? ( $words > 1 ? Phrase::NGRAM : Phrase::UNIGRAM ) : $phrase->kind;
-				$index = $s . ':' . $offset . ':' . $key;
-				// Si dos frases dan el mismo tramo gana la de más calidad (como en target_phrases()).
-				if ( isset( $found[ $index ] ) && Scorer::ANCHOR_QUALITY[ $found[ $index ]->kind ] >= Scorer::ANCHOR_QUALITY[ $kind ] ) {
-					continue;
-				}
-				$found[ $index ] = new AnchorMatch( $s, $offset, $anchor, $key, $kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last );
+				$kind = $trimmed ? ( $words > 1 ? Phrase::NGRAM : Phrase::UNIGRAM ) : $phrase->kind;
+				// Si dos frases dan el mismo tramo gana la última (comportamiento de siempre; D-52).
+				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, $kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last );
 			}//end foreach
 		}//end foreach
 
