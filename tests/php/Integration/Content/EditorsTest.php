@@ -290,6 +290,20 @@ final class EditorsTest extends TestCase {
 		$this->refused( InsertionException::UNSAFE_ANCHOR, $this->p( 'Compra aire [shortcode] acondicionado ya.' ), $this->req( 'aire   acondicionado', 'Compra ', ' ya.' ) );
 	}
 
+	public function test_extra_el_codigo_en_linea_y_las_imagenes_casan_con_el_separador_del_motor(): void {
+		// El extractor del motor escribe « · » donde hay <code>, <kbd>, <samp> o <img>.
+		$content = $this->p( 'Usa <code>wp plugin list</code> para ver el aire acondicionado<img src="a.jpg" alt=""/> y <kbd>Ctrl</kbd>.' );
+
+		$edit = $this->insert( $content, $this->req( 'aire acondicionado', 'Usa · para ver el ', ' · y ·.' ) );
+		$this->assertStringContainsString( 'ver el ' . $this->a( 'aire acondicionado' ) . '<img', $edit->content );
+
+		$edit = $this->insert( $content, $this->req( 'ver', 'Usa · para ', ' el aire' ) );
+		$this->assertStringContainsString( 'para ' . $this->a( 'ver' ) . ' el', $edit->content );
+
+		// El ancla no puede incluir el código.
+		$this->refused( InsertionException::TEXT_CHANGED, $content, $this->req( 'wp plugin list', 'Usa ', ' para' ) );
+	}
+
 	public function test_extra_la_aparicion_ya_enlazada_no_impide_enlazar_la_libre(): void {
 		$content = $this->doc(
 			$this->p( 'Compra <a href="/x/">aire acondicionado</a> ya.' ),
@@ -391,6 +405,7 @@ final class EditorsTest extends TestCase {
 				"<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">Guía de climatización</h2>\n<!-- /wp:heading -->\n\n"
 				. "<!-- wp:paragraph -->\n<p>La <strong>bomba de calor</strong> y el aire&nbsp;acondicionado son &quot;dos amigos&quot; en Cádiz 🍕 [gallery ids=\"1,2\"] según la <em>guía</em> de verano.</p>\n<!-- /wp:paragraph -->\n\n"
 				. "<!-- wp:paragraph -->\n<p>Mira <a href=\"/x/\">este enlace previo</a> y sigue con el suelo radiante, que funciona   bien\ncon agua caliente.<br>Otra línea tras salto.</p>\n<!-- /wp:paragraph -->\n\n"
+				. "<!-- wp:paragraph -->\n<p>Usa <code>wp plugin list</code> o <kbd>Ctrl</kbd>+<samp>C</samp> para ver el aire acondicionado<img src=\"a.jpg\" alt=\"\"/> y la bomba de calor.</p>\n<!-- /wp:paragraph -->\n\n"
 				. "<!-- wp:list -->\n<ul><!-- wp:list-item -->\n<li>Ventilación mecánica &amp; aislamiento térmico</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->",
 			),
 			'clasico' => array(

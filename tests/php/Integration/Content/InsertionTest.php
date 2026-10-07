@@ -170,10 +170,29 @@ final class InsertionTest extends GraphTestCase {
 		$this->assertSame( $content, $this->stored( $post ) );
 		$this->assertSame( array(), $this->changes() );
 
-		// Un bloqueo caducado, o el propio, no impide nada.
+		// Un bloqueo caducado no impide nada.
 		update_post_meta( $post, '_edit_lock', ( time() - 3600 ) . ':' . $ana );
 		$this->inserter()->insert( $this->request( $post ) );
 		$this->assertNotSame( $content, $this->stored( $post ) );
+	}
+
+	public function test_caso_11_el_bloqueo_del_propio_usuario_tambien_cuenta(): void {
+		// La tiene abierta en Gutenberg en otra pestaña: al pulsar Actualizar allí pisaría el enlace.
+		$content = $this->p( 'Compra aire acondicionado ya.' );
+		$post    = $this->post( $content );
+
+		update_post_meta( $post, '_edit_lock', time() . ':' . $this->admin );
+		$this->refused( InsertionException::LOCKED, $this->request( $post ) );
+		$this->assertSame( $content, $this->stored( $post ) );
+		$this->assertSame( array(), $this->changes() );
+
+		update_post_meta( $post, '_edit_lock', ( time() - 3600 ) . ':' . $this->admin );
+		$result = $this->inserter()->insert( $this->request( $post ) );
+
+		update_post_meta( $post, '_edit_lock', time() . ':' . $this->admin );
+		$undone = $this->undo()->revert( $result->change_id );
+		$this->assertSame( UndoResult::FAILED, $undone->status );
+		$this->assertSame( InsertionException::LOCKED, $undone->reason );
 	}
 
 	public function test_caso_11_el_deshacer_tampoco_toca_una_entrada_bloqueada(): void {
@@ -375,9 +394,15 @@ final class InsertionTest extends GraphTestCase {
 		kses_init();
 
 		try {
-			$this->refused( InsertionException::WRITE_FAILED, $this->request( $post ) );
-			$this->assertSame( $content, $this->stored( $post ), 'El contenido anterior se restaura tal cual.' );
+			$modified  = get_post_field( 'post_modified', $post );
+			$revisions = count( wp_get_post_revisions( $post ) );
+
+			$this->refused( InsertionException::ALTERED, $this->request( $post ) );
+
+			$this->assertSame( $content, $this->stored( $post ) );
 			$this->assertSame( array(), $this->changes(), 'Lo que no se escribió no queda en el historial.' );
+			$this->assertSame( $modified, get_post_field( 'post_modified', $post, 'raw' ), 'Ni siquiera se ha escrito: no hay fecha de modificación nueva.' );
+			$this->assertCount( $revisions, wp_get_post_revisions( $post ), 'Ni revisión.' );
 		} finally {
 			wp_set_current_user( $this->admin );
 			kses_init();
@@ -437,6 +462,268 @@ final class InsertionTest extends GraphTestCase {
 			$this->stored( $post )
 		);
 		$this->assertCount( 2, $this->changes() );
+	}
+
+	// -------------------------------------------------------------- Revisión de código del PR #4.
+
+	public function test_un_filtro_de_guardado_que_cambiaria_otro_campo_se_detecta_antes_de_escribir(): void {
+		$post      = $this->post( $this->p( 'Compra aire acondicionado ya.' ), array( 'post_title' => 'Título' ) );
+		$modified  = get_post_field( 'post_modified', $post, 'raw' );
+		$revisions = count( wp_get_post_revisions( $post ) );
+		add_filter( 'title_save_pre', static fn( string $title ): string => $title . ' (!)' );
+
+		$this->refused( InsertionException::ALTERED, $this->request( $post ) );
+		remove_all_filters( 'title_save_pre' );
+
+		$this->assertSame( $this->p( 'Compra aire acondicionado ya.' ), $this->stored( $post ) );
+		$this->assertSame( 'Título', get_post_field( 'post_title', $post, 'raw' ) );
+		$this->assertSame( $modified, get_post_field( 'post_modified', $post, 'raw' ) );
+		$this->assertCount( $revisions, wp_get_post_revisions( $post ) );
+		$this->assertSame( array(), $this->changes() );
+	}
+
+	public function test_si_algo_distinto_del_contenido_cambia_al_escribir_se_restaura_todo(): void {
+		$content   = $this->p( 'Compra aire acondicionado ya.' );
+		$post      = $this->post( $content, array( 'post_excerpt' => 'Resumen original' ) );
+		$modified  = get_post_field( 'post_modified', $post, 'raw' );
+		$revisions = count( wp_get_post_revisions( $post ) );
+		// Un complemento que toca el extracto en el último momento, fuera de la sanitización normal.
+		add_filter(
+			'wp_insert_post_data',
+			static function ( array $data ): array {
+				$data['post_excerpt'] = 'Cambiado por otro';
+				return $data;
+			}
+		);
+
+		$this->refused( InsertionException::ALTERED, $this->request( $post ) );
+		remove_all_filters( 'wp_insert_post_data' );
+
+		$this->assertSame( $content, $this->stored( $post ) );
+		$this->assertSame( 'Resumen original', get_post_field( 'post_excerpt', $post, 'raw' ) );
+		$this->assertSame( $modified, get_post_field( 'post_modified', $post, 'raw' ) );
+		$this->assertCount( $revisions, wp_get_post_revisions( $post ), 'La revisión creada se borra.' );
+		$this->assertSame( array(), $this->changes() );
+		$this->assertSame( array(), $this->link_rows( $post ), 'El grafo describe el contenido que quedó, no el que se descartó.' );
+	}
+
+	public function test_sin_usuario_conectado_una_peticion_sin_usuario_no_se_ejecuta(): void {
+		$content = $this->p( 'Compra aire acondicionado ya.' );
+		$post    = $this->post( $content );
+		$result  = $this->inserter()->insert( $this->request( $post ) );
+		$linked  = $this->stored( $post );
+
+		wp_set_current_user( 0 );
+		$this->refused( InsertionException::NOT_ALLOWED, $this->request( $post, 'Compra ', ' ya.', null, 'aire acondicionado' ) );
+		$this->assertSame( UndoResult::FAILED, $this->undo()->revert( $result->change_id )->status );
+		$this->assertSame( $linked, $this->stored( $post ) );
+
+		// El sistema, solo si se pide expresamente.
+		$this->assertSame( UndoResult::RESTORED, $this->undo()->revert( $result->change_id, 0 )->status );
+		wp_set_current_user( $this->admin );
+	}
+
+	/**
+	 * Otra conexión a MySQL que retiene el candado de una entrada.
+	 *
+	 * @param int $post Entrada.
+	 */
+	private function hold_lock( int $post ): \mysqli {
+		$other = new \mysqli( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME ); // phpcs:ignore WordPress.DB.RestrictedClasses.mysql__mysqli -- Segunda conexión: el candado es de sesión.
+		$name  = sprintf( 'magiclinking_post_%d_%d', get_current_blog_id(), $post );
+		$res   = $other->query( "SELECT GET_LOCK( '{$name}', 0 )" );
+		$this->assertSame( '1', (string) $res->fetch_row()[0] );
+
+		return $other;
+	}
+
+	public function test_dos_operaciones_a_la_vez_sobre_la_misma_entrada_no_se_pisan(): void {
+		$content = $this->p( 'Compra aire acondicionado ya.' );
+		$post    = $this->post( $content );
+		add_filter( 'magiclinking_post_lock_timeout', '__return_zero' );
+		$other = $this->hold_lock( $post );
+
+		$this->refused( InsertionException::BUSY, $this->request( $post ) );
+		$this->assertSame( $content, $this->stored( $post ) );
+		$this->assertSame( array(), $this->changes() );
+
+		$other->close();
+		$result = $this->inserter()->insert( $this->request( $post ) );
+
+		// Y lo mismo al deshacer.
+		$other = $this->hold_lock( $post );
+		$this->assertSame( InsertionException::BUSY, $this->undo()->revert( $result->change_id )->reason );
+		$other->close();
+		remove_filter( 'magiclinking_post_lock_timeout', '__return_zero' );
+		$this->assertSame( UndoResult::RESTORED, $this->undo()->revert( $result->change_id )->status );
+	}
+
+	public function test_el_candado_se_libera_aunque_la_operacion_falle(): void {
+		$post = $this->post( $this->p( 'Texto distinto.' ) );
+		$this->refused( InsertionException::TEXT_CHANGED, $this->request( $post ) );
+
+		// Si siguiera retenido, otra conexión no podría tomarlo.
+		$other = new \mysqli( DB_HOST, DB_USER, DB_PASSWORD, DB_NAME ); // phpcs:ignore WordPress.DB.RestrictedClasses.mysql__mysqli -- Segunda conexión: el candado es de sesión.
+		$name  = sprintf( 'magiclinking_post_%d_%d', get_current_blog_id(), $post );
+		$res   = $other->query( "SELECT GET_LOCK( '{$name}', 0 )" );
+		$this->assertSame( '1', (string) $res->fetch_row()[0] );
+		$other->close();
+	}
+
+	public function test_una_excepcion_que_no_es_nuestra_antes_de_escribir_no_deja_fila_huerfana(): void {
+		$content = $this->p( 'Compra aire acondicionado ya.' );
+		$post    = $this->post( $content );
+		add_filter(
+			'wp_insert_post_data',
+			static function (): array {
+				throw new \RuntimeException( 'otro complemento' );
+			}
+		);
+
+		try {
+			$this->inserter()->insert( $this->request( $post ) );
+			$this->fail( 'Debía propagarse.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'otro complemento', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_insert_post_data' );
+		}
+
+		$this->assertSame( $content, $this->stored( $post ) );
+		$this->assertSame( array(), $this->changes() );
+	}
+
+	public function test_una_excepcion_que_no_es_nuestra_despues_de_escribir_conserva_la_fila(): void {
+		$content = $this->p( 'Compra aire acondicionado ya.' );
+		$post    = $this->post( $content );
+		$boom    = static function (): void {
+			throw new \RuntimeException( 'tras guardar' );
+		};
+		add_action( 'wp_after_insert_post', $boom, 5 );
+
+		try {
+			$this->inserter()->insert( $this->request( $post ) );
+			$this->fail( 'Debía propagarse.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'tras guardar', $e->getMessage() );
+		} finally {
+			remove_action( 'wp_after_insert_post', $boom, 5 );
+		}
+
+		$this->assertNotSame( $content, $this->stored( $post ), 'La escritura llegó a hacerse.' );
+		$this->assertCount( 1, $this->changes(), 'Y entonces el historial tiene que conservarse para poder deshacerlo.' );
+		$this->assertSame( UndoResult::RESTORED, $this->undo()->revert( (int) $this->changes()[0]['id'] )->status );
+		$this->assertSame( $content, $this->stored( $post ) );
+	}
+
+	public function test_el_enlace_borrado_a_mano_se_da_por_deshecho(): void {
+		$content = $this->p( 'Compra aire acondicionado ya.' );
+		$post    = $this->post( $content );
+		$result  = $this->inserter()->insert( $this->request( $post ) );
+
+		// El usuario lo borra a mano y además cambia otra cosa.
+		$later = str_replace( 'ya.', 'ya mismo.', $content );
+		wp_update_post(
+			array(
+				'ID'           => $post,
+				'post_content' => wp_slash( $later ),
+			)
+		);
+
+		$undone = $this->undo()->revert( $result->change_id );
+
+		$this->assertSame( UndoResult::GONE, $undone->status );
+		$this->assertTrue( $undone->done() );
+		$this->assertSame( $later, $this->stored( $post ), 'No se escribe nada.' );
+		$this->assertNotNull( $this->changes()[0]['undone_at'] );
+		$this->assertCount( 1, $this->changes(), 'Y no hay registro nuevo: no hubo cambio.' );
+	}
+
+	public function test_el_enlace_cambiado_pero_presente_sigue_siendo_manual(): void {
+		$post   = $this->post( $this->p( 'Compra aire acondicionado ya.' ) );
+		$result = $this->inserter()->insert( $this->request( $post ) );
+		$later  = str_replace( '>aire acondicionado<', '><em>aire</em> acondicionado<', $this->stored( $post ) );
+		wp_update_post(
+			array(
+				'ID'           => $post,
+				'post_content' => wp_slash( $later ),
+			)
+		);
+
+		$this->assertSame( UndoResult::MANUAL, $this->undo()->revert( $result->change_id )->status );
+		$this->assertNull( $this->changes()[0]['undone_at'] );
+	}
+
+	public function test_el_hook_de_lote_deshecho_solo_se_dispara_si_algo_se_deshizo(): void {
+		$counts = array();
+		add_action(
+			'magiclinking_batch_undone',
+			static function ( string $batch, int $undone ) use ( &$counts ): void {
+				$counts[] = array( $batch, $undone );
+			},
+			10,
+			2
+		);
+
+		$batch = BatchId::generate();
+		$ids   = array();
+		foreach ( array( 'uno', 'dos', 'tres' ) as $name ) {
+			$post  = $this->post( $this->p( "Compra aire acondicionado ya {$name}." ) );
+			$ids[] = $post;
+			$this->inserter()->insert( $this->request( $post, 'Compra ', " ya {$name}." ), $batch );
+		}
+
+		// Todo falla: las tres entradas están abiertas por Ana.
+		$ana = self::factory()->user->create( array( 'role' => 'editor' ) );
+		foreach ( $ids as $post ) {
+			update_post_meta( $post, '_edit_lock', time() . ':' . $ana );
+		}
+		$this->undo()->revert_batch( $batch );
+		$this->assertSame( array(), $counts );
+
+		// Se libera una: se deshace una sola.
+		delete_post_meta( $ids[0], '_edit_lock' );
+		$this->undo()->revert_batch( $batch );
+		$this->assertSame( array( array( $batch, 1 ) ), $counts );
+	}
+
+	public function test_guardar_una_vez_no_reindexa_dos_veces(): void {
+		$content = $this->p( 'Compra aire acondicionado ya.' );
+		$a       = $this->post( $content );
+		$b       = $this->post( $content );
+		$calls   = 0;
+		add_filter(
+			'magiclinking_post_html',
+			static function ( string $html ) use ( &$calls ): string {
+				++$calls;
+				return $html;
+			}
+		);
+
+		// Referencia: guardar el mismo cambio con WordPress a secas.
+		$this->post_updated( $b, str_replace( 'aire acondicionado', $this->a_target( 'aire acondicionado' ), $content ) );
+		$baseline = $calls;
+		$calls    = 0;
+
+		$this->inserter()->insert( $this->request( $a ) );
+
+		$this->assertGreaterThan( 0, $baseline );
+		$this->assertSame( $baseline, $calls, 'La inserción no añade análisis a los que ya hace el guardado.' );
+	}
+
+	/**
+	 * Guarda contenido nuevo como lo haría el editor.
+	 *
+	 * @param int    $post    Entrada.
+	 * @param string $content Contenido.
+	 */
+	private function post_updated( int $post, string $content ): void {
+		wp_update_post(
+			array(
+				'ID'           => $post,
+				'post_content' => wp_slash( $content ),
+			)
+		);
 	}
 
 	/**
