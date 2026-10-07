@@ -33,8 +33,9 @@ use WP_REST_Server;
  *
  * Permisos (docs/03 §6 y §12): todas piden `edit_posts` y, además, `edit_post` sobre la entrada abierta; insertar
  * pide `edit_post` sobre **cada** entrada que se toca, comprobado antes de escribir nada (si falla una, no se
- * toca ninguna). La nonce de REST la exige el núcleo con la autenticación por cookie. Las entrantes solo
- * enseñan los orígenes que el usuario puede editar: no podría enlazarlos. Sin sesión, 401; sin permiso, 403.
+ * toca ninguna). La nonce de REST la exige el núcleo con la autenticación por cookie. Las entrantes listan todos los
+ * orígenes, cada uno con `can_insert`: los que el usuario no puede editar no llevan `insert` ni `edit_url` y
+ * `POST /links` los rechaza con 403. Sin sesión, 401; sin permiso, 403.
  *
  * El índice léxico sin construir no es un error: las listas van vacías con `ready: false` y `state:
  * "index_not_ready"` (la pantalla enseña el avance con `/status`). Con una caché de objetos persistente el
@@ -262,14 +263,19 @@ final class SuggestionsController implements Module {
 			return $this->not_found();
 		}
 
-		$state = $this->state( $post, false, null !== $content );
+		$state = $this->suggestions->state( $post, false, null !== $content );
 		if ( 'ok' !== $state ) {
 			return $this->empty( $state );
 		}
 
-		$found = null === $content
-			? SuggestionCache::remember( 'out', $post_id, fn(): array => $this->suggestions->outgoing( $post_id ) )
-			: $this->suggestions->outgoing( $post_id, array(), $content, $title );
+		// Solo se guardan las de una entrada publicada: la de un borrador cambia con cada guardado y no invalida nada.
+		if ( null !== $content ) {
+			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title );
+		} elseif ( 'publish' === $post->post_status ) {
+			$found = SuggestionCache::remember( 'out', $post_id, fn(): array => $this->suggestions->outgoing( $post_id ) );
+		} else {
+			$found = $this->suggestions->outgoing( $post_id );
+		}
 
 		$this->presenter->prime( $found );
 
@@ -301,15 +307,15 @@ final class SuggestionsController implements Module {
 			return $this->not_found();
 		}
 
-		$state = $this->state( $post, true, false );
+		$state = $this->suggestions->state( $post, true, false );
 		if ( 'ok' !== $state ) {
 			return $this->empty( $state, $page, $per_page );
 		}
 
 		$all = SuggestionCache::remember( 'in', $post_id, fn(): array => $this->suggestions->incoming( $post_id ) );
 
-		// El motor da la mejor frase de cada origen. Se enseña solo lo que el usuario puede insertar.
-		$all = array_values( array_filter( $all, static fn( Suggestion $s ): bool => current_user_can( 'edit_post', $s->source ) ) );
+		// El motor da la mejor frase de cada origen y se listan todas (07 §3); `can_insert` dice cuáles puede
+		// insertar el usuario. Los permisos solo se miran en la página que se enseña, con sus entradas ya cargadas.
 		$cut = array_slice( $all, ( $page - 1 ) * $per_page, $per_page );
 		$this->presenter->prime( $cut );
 
@@ -378,13 +384,77 @@ final class SuggestionsController implements Module {
 			}
 		}
 
-		$batch    = BatchId::generate();
-		$results  = array();
-		$inserted = 0;
+		$batch   = BatchId::generate();
+		$results = array();
+		$groups  = array();
+
+		// Primero se valida cada enlace; los válidos se agrupan por entrada para escribir cada entrada una sola vez.
 		foreach ( $links as $index => $link ) {
-			$result    = $this->insert_one( $link, $batch );
-			$inserted += 'inserted' === $result['status'] ? 1 : 0;
-			$results[] = array_merge( array( 'index' => $index ), $result );
+			$post_id   = (int) $link['post_id'];
+			$target_id = (int) $link['target_id'];
+			$base      = array(
+				'index'      => $index,
+				'post_id'    => $post_id,
+				'target_id'  => $target_id,
+				'post_title' => $this->title( $post_id ),
+			);
+
+			$url = $this->destination( $post_id, $target_id );
+			if ( $url instanceof InsertionException ) {
+				$results[ $index ] = $this->failure( $base, $url );
+				continue;
+			}
+
+			$path = isset( $link['block_path'] ) && is_string( $link['block_path'] ) && '' !== $link['block_path'] ? $link['block_path'] : null;
+			try {
+				$request = InsertRequest::from_sentence( $post_id, $url, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'], array(), $path );
+			} catch ( InsertionException $e ) {
+				$results[ $index ] = $this->failure( $base, $e );
+				continue;
+			}
+
+			$groups[ $post_id ][ $index ] = array( $request, $base );
+		}//end foreach
+
+		foreach ( $groups as $items ) {
+			$requests = array_column( array_values( $items ), 0 );
+			$indexes  = array_keys( $items );
+
+			try {
+				$done = $this->inserter->insert_many( $requests, $batch );
+			} catch ( Throwable $e ) {
+				PostWriter::log( sprintf( 'Fallo inesperado al insertar enlaces en la entrada %d: %s', $requests[0]->post_id, $e->getMessage() ) );
+				$done = array_fill(
+					0,
+					count( $requests ),
+					new InsertionException( InsertionException::WRITE_FAILED, __( 'The link could not be saved; nothing was changed.', 'magic-linking' ) )
+				);
+			}
+
+			foreach ( $indexes as $position => $index ) {
+				$base   = $items[ $index ][1];
+				$result = $done[ $position ];
+
+				$results[ $index ] = $result instanceof InsertionException
+					? $this->failure( $base, $result )
+					: array_merge(
+						$base,
+						array(
+							'status'    => 'inserted',
+							'change_id' => $result->change_id,
+							'path'      => $result->path,
+						)
+					);
+			}
+		}//end foreach
+
+		ksort( $results );
+		$results  = array_values( $results );
+		$inserted = count( array_filter( $results, static fn( array $r ): bool => 'inserted' === $r['status'] ) );
+
+		// Una sola invalidación por petición (cada escritura ya renovó la época si tocaba una publicada).
+		if ( $inserted > 0 ) {
+			SuggestionCache::bump();
 		}
 
 		return new WP_REST_Response(
@@ -396,56 +466,6 @@ final class SuggestionsController implements Module {
 				'group'    => $inserted > 0 ? $this->reader->group( $batch, get_current_user_id() ) : null,
 			)
 		);
-	}
-
-	/**
-	 * Inserta un enlace y cuenta qué pasó, sin lanzar nada.
-	 *
-	 * @param array<string, mixed> $link  Enlace pedido.
-	 * @param string               $batch Lote.
-	 *
-	 * @return array<string, mixed>
-	 */
-	private function insert_one( array $link, string $batch ): array {
-		$post_id   = (int) $link['post_id'];
-		$target_id = (int) $link['target_id'];
-		$base      = array(
-			'post_id'    => $post_id,
-			'target_id'  => $target_id,
-			'post_title' => $this->title( $post_id ),
-		);
-
-		try {
-			$url = $this->destination( $post_id, $target_id );
-			if ( $url instanceof InsertionException ) {
-				return $this->failure( $base, $url );
-			}
-			$path  = isset( $link['block_path'] ) && is_string( $link['block_path'] ) && '' !== $link['block_path'] ? $link['block_path'] : null;
-			$input = InsertRequest::from_sentence( $post_id, $url, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'], array(), $path );
-			$done  = $this->inserter->insert( $input, $batch );
-
-			return array_merge(
-				$base,
-				array(
-					'status'    => 'inserted',
-					'change_id' => $done->change_id,
-					'path'      => $done->path,
-				)
-			);
-		} catch ( InsertionException $e ) {
-			return $this->failure( $base, $e );
-		} catch ( Throwable $e ) {
-			PostWriter::log( sprintf( 'Fallo inesperado al insertar un enlace en la entrada %d: %s', $post_id, $e->getMessage() ) );
-
-			return array_merge(
-				$base,
-				array(
-					'status'  => 'failed',
-					'reason'  => InsertionException::WRITE_FAILED,
-					'message' => __( 'The link could not be saved; nothing was changed.', 'magic-linking' ),
-				)
-			);
-		}//end try
 	}
 
 	/**
@@ -491,27 +511,6 @@ final class SuggestionsController implements Module {
 		}
 
 		return $url;
-	}
-
-	/**
-	 * Estado de la respuesta: `ok`, o por qué no hay sugerencias.
-	 *
-	 * @param WP_Post $post    Entrada abierta.
-	 * @param bool    $inbound Entrantes: el destino tiene que estar publicado.
-	 * @param bool    $draft   Se analiza el contenido del editor.
-	 */
-	private function state( WP_Post $post, bool $inbound, bool $draft ): string {
-		if ( ! $this->suggestions->ready() ) {
-			return 'index_not_ready';
-		}
-		if ( ! in_array( $post->post_type, $this->settings->post_types(), true ) || in_array( $post->post_status, array( 'trash', 'inherit' ), true ) || ( 'auto-draft' === $post->post_status && ! $draft ) ) {
-			return 'not_analyzed';
-		}
-		if ( $inbound && 'publish' !== $post->post_status ) {
-			return 'not_published';
-		}
-
-		return 'ok';
 	}
 
 	/**

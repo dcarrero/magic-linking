@@ -18,7 +18,7 @@ use WP_Post;
  * Una sugerencia es: origen (donde irá el enlace), destino (a donde lleva), ancla y frase (con el ancla
  * localizada en la frase de dos formas: `before`/`after` para pintarla sin contar bytes y
  * `anchor_start`/`anchor_end` en unidades UTF-16, los índices de `String.prototype.slice`), puntuación,
- * motivos con su texto, frases alternativas y `insert`, el cuerpo que `POST /links` espera tal cual.
+ * motivos con su texto, frases alternativas y `can_insert` y, solo si el usuario puede editar el origen, `insert`, el cuerpo que `POST /links` espera tal cual.
  *
  * `offset` es el byte de la frase donde empieza el ancla (el del motor); es lo que se devuelve al insertar.
  */
@@ -60,6 +60,7 @@ final class SuggestionPresenter {
 	public function present( Suggestion $suggestion, bool $nested = false ): array {
 		$before = substr( $suggestion->sentence, 0, $suggestion->offset );
 		$start  = self::utf16( $before );
+		$can    = current_user_can( 'edit_post', $suggestion->source );
 
 		$item = array(
 			'anchor'       => $suggestion->anchor,
@@ -71,7 +72,11 @@ final class SuggestionPresenter {
 			'anchor_end'   => $start + self::utf16( $suggestion->anchor ),
 			'paragraph'    => $suggestion->paragraph,
 			'score'        => round( $suggestion->score->value, 3 ),
-			'insert'       => array(
+		);
+
+		// Sin permiso sobre el origen no hay nada que enviar: la tarjeta se enseña sin botón de enlazar.
+		if ( $can ) {
+			$item['insert'] = array(
 				'post_id'    => $suggestion->source,
 				'target_id'  => $suggestion->target,
 				'sentence'   => $suggestion->sentence,
@@ -79,8 +84,8 @@ final class SuggestionPresenter {
 				'anchor'     => $suggestion->anchor,
 				// El motor numera párrafos del texto extraído, no bloques de `parse_blocks()`: el servidor localiza la frase por su contexto.
 				'block_path' => null,
-			),
-		);
+			);
+		}
 
 		if ( $nested ) {
 			return $item;
@@ -91,6 +96,7 @@ final class SuggestionPresenter {
 				'source' => $this->post( $suggestion->source ),
 				'target' => $this->post( $suggestion->target ),
 			),
+			array( 'can_insert' => $can ),
 			$item,
 			array(
 				'reasons'      => array_map( array( $this, 'reason' ), $suggestion->reasons ),
