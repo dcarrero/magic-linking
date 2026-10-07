@@ -8,6 +8,10 @@ import type {
 	HistoryGroup,
 	HistoryJob,
 	HistoryResponse,
+	InboundResponse,
+	InsertLink,
+	InsertResponse,
+	OutboundResponse,
 	RunResponse,
 	Job,
 	ReportFilter,
@@ -120,6 +124,70 @@ export const api = {
 				'changeId' in target
 					? { change_id: target.changeId }
 					: { batch_id: target.batchId },
+		} ),
+	/**
+	 * Sugerencias salientes de una entrada tal como está guardada.
+	 *
+	 * @param postId Entrada.
+	 * @param signal Para cancelar.
+	 */
+	outbound: ( postId: number, signal?: AbortSignal ) =>
+		apiFetch< OutboundResponse >( {
+			path: path( '/suggestions/outbound', { post_id: postId } ),
+			signal,
+		} ),
+	/**
+	 * Salientes de lo que el usuario tiene ahora en el editor, sin guardar: no se escribe nada.
+	 *
+	 * @param postId  Entrada abierta.
+	 * @param content Contenido actual (bloques serializados o HTML).
+	 * @param title   Título actual.
+	 * @param signal  Para cancelar.
+	 */
+	outboundDraft: (
+		postId: number,
+		content: string,
+		title?: string,
+		signal?: AbortSignal
+	) =>
+		apiFetch< OutboundResponse >( {
+			path: path( '/suggestions/outbound' ),
+			method: 'POST',
+			data: { post_id: postId, content, ...( title ? { title } : {} ) },
+			signal,
+		} ),
+	/**
+	 * Sugerencias entrantes hacia una entrada (solo desde orígenes que el usuario puede editar), paginadas.
+	 *
+	 * @param postId  Destino.
+	 * @param page    Página.
+	 * @param perPage Por página (1 a 50).
+	 * @param signal  Para cancelar.
+	 */
+	inbound: (
+		postId: number,
+		page: number,
+		perPage: number,
+		signal?: AbortSignal
+	) =>
+		apiFetch< InboundResponse >( {
+			path: path( '/suggestions/inbound', {
+				post_id: postId,
+				page,
+				per_page: perPage,
+			} ),
+			signal,
+		} ),
+	/**
+	 * Inserta uno o varios enlaces (un lote, hasta 25) en el servidor. Cada elemento es el `insert` de una sugerencia.
+	 *
+	 * @param links Enlaces a insertar.
+	 */
+	insertLinks: ( links: InsertLink[] ) =>
+		apiFetch< InsertResponse >( {
+			path: path( '/links' ),
+			method: 'POST',
+			data: { links },
 		} ),
 	settings: () =>
 		apiFetch< SettingsResponse >( { path: path( '/settings' ) } ),

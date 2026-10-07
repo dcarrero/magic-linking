@@ -241,6 +241,109 @@ export interface RunResponse {
 	job: HistoryJob | null;
 }
 
+/** Entrada tal como la enseña la tarjeta de una sugerencia. */
+export interface SuggestionPost {
+	id: number;
+	title?: string;
+	url?: string;
+	type?: string;
+	type_label?: string;
+	lang?: string;
+	/** Solo si el usuario puede editarla. */
+	edit_url?: string | null;
+}
+
+/** Cuerpo de `POST /links` para un enlace: es el `insert` de una sugerencia, tal cual. */
+export interface InsertLink {
+	/** Entrada donde se escribe el enlace (el origen). */
+	post_id: number;
+	/** Entrada a la que enlaza; la dirección la pone el servidor. */
+	target_id: number;
+	sentence: string;
+	/** Byte de la frase donde empieza el ancla. */
+	offset: number;
+	anchor: string;
+	block_path: string | null;
+}
+
+export interface SuggestionReason {
+	code: string;
+	/** Texto en el idioma del usuario. */
+	text: string;
+}
+
+/** Frase alternativa del mismo destino (`04 §5`); vacío mientras el motor no las devuelva. */
+export interface SuggestionAlternative {
+	anchor: string;
+	sentence: string;
+	offset: number;
+	before: string;
+	after: string;
+	anchor_start: number;
+	anchor_end: number;
+	paragraph: number;
+	score: number;
+	insert: InsertLink;
+}
+
+export interface Suggestion extends SuggestionAlternative {
+	source: SuggestionPost;
+	target: SuggestionPost;
+	reasons: SuggestionReason[];
+	alternatives: SuggestionAlternative[];
+}
+
+/** Por qué no hay sugerencias, o `ok`. */
+export type SuggestionState =
+	| 'ok'
+	| 'index_not_ready'
+	| 'not_analyzed'
+	| 'not_published';
+
+export interface OutboundResponse {
+	/** El índice léxico está construido; si no, `items` va vacío. */
+	ready: boolean;
+	state: SuggestionState;
+	/** Se analizó el contenido del editor y no el guardado. */
+	draft?: boolean;
+	total: number;
+	items: Suggestion[];
+	post_id?: number;
+}
+
+export interface InboundResponse extends Paged {
+	ready: boolean;
+	state: SuggestionState;
+	per_page: number;
+	items: Suggestion[];
+	post_id?: number;
+}
+
+export type InsertStatus = 'inserted' | 'failed';
+
+export interface InsertResult {
+	index: number;
+	post_id: number;
+	target_id: number;
+	post_title: string | null;
+	status: InsertStatus;
+	/** Solo si se insertó. */
+	change_id?: number;
+	path?: string;
+	/** Solo si falló: `text_changed`, `locked`, `already_linked`, `language_mismatch`, `bad_target`… */
+	reason?: string;
+	message?: string;
+}
+
+export interface InsertResponse {
+	/** Para deshacer con `/undo`; null si no se insertó ninguno. */
+	batch_id: string | null;
+	inserted: number;
+	failed: number;
+	results: InsertResult[];
+	group: HistoryGroup | null;
+}
+
 declare global {
 	interface Window {
 		magiclinking?: Boot;
