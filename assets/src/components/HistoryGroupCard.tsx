@@ -1,7 +1,7 @@
 import { Button, Notice } from '@wordpress/components';
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { api, errorMessage } from '../api';
+import { api, errorMessage, errorStatus } from '../api';
 import type {
 	ChangeResult,
 	HistoryChange,
@@ -121,7 +121,17 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 			const response = await api.historyGroup( batchId );
 			onChange( response.group );
 		} catch ( e ) {
-			onChange( null );
+			// Solo si el grupo ya no existe se quita la tarjeta; con cualquier otro error se conserva y se avisa.
+			if ( errorStatus( e ) === 404 ) {
+				onChange( null );
+				return;
+			}
+			setFailure(
+				errorMessage(
+					e,
+					__( 'Could not refresh this batch.', 'magic-linking' )
+				)
+			);
 		}
 		if ( detailsLoaded.current > 0 ) {
 			await loadDetails( 1, true );
@@ -148,6 +158,11 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 					await refresh();
 				}
 			} catch ( e ) {
+				const status = errorStatus( e );
+				if ( status === 403 || status === 404 ) {
+					// Ya no se puede seguir (permiso o proceso desaparecido): se deja de sondear.
+					setJob( null );
+				}
 				setFailure(
 					errorMessage(
 						e,
@@ -198,6 +213,41 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 			}
 		} catch ( e ) {
 			setPending( null );
+			setFailure(
+				errorMessage(
+					e,
+					__( 'That did not work. Try again.', 'magic-linking' )
+				)
+			);
+		} finally {
+			setBusy( false );
+		}
+	};
+
+	const control = async ( action: 'resume' | 'cancel' ) => {
+		if ( ! job ) {
+			return;
+		}
+		setBusy( true );
+		setFailure( '' );
+		try {
+			const response = await api.controlHistoryJob( job.id, action );
+			setJob( response.job );
+			if ( action === 'cancel' ) {
+				setOutcome(
+					Object.keys( response.job.counts ).length === 0
+						? null
+						: {
+								redo: response.job.mode === 'redo',
+								counts: response.job.counts,
+								lines: response.job.issues,
+						  }
+				);
+				if ( response.group ) {
+					onChange( response.group );
+				}
+			}
+		} catch ( e ) {
 			setFailure(
 				errorMessage(
 					e,
@@ -305,6 +355,27 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 								'magic-linking'
 							) }
 						</Notice>
+					) }
+					{ job.stalled && job.can_control && (
+						<div className="magiclinking-actions">
+							<Button
+								variant="secondary"
+								onClick={ () => control( 'resume' ) }
+								disabled={ busy }
+								accessibleWhenDisabled
+							>
+								{ __( 'Resume', 'magic-linking' ) }
+							</Button>
+							<Button
+								variant="secondary"
+								isDestructive
+								onClick={ () => control( 'cancel' ) }
+								disabled={ busy }
+								accessibleWhenDisabled
+							>
+								{ __( 'Cancel process', 'magic-linking' ) }
+							</Button>
+						</div>
 					) }
 				</div>
 			) }

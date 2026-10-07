@@ -98,6 +98,11 @@ export const api = {
 		apiFetch< { job: HistoryJob } >( {
 			path: path( `/history/jobs/${ id }` ),
 		} ),
+	controlHistoryJob: ( id: number, action: 'resume' | 'cancel' ) =>
+		apiFetch< { job: HistoryJob; group: HistoryGroup | null } >( {
+			path: path( `/history/jobs/${ id }/${ action }` ),
+			method: 'POST',
+		} ),
 	/**
 	 * Deshace o rehace un cambio (`changeId`) o un grupo entero (`batchId`).
 	 *
@@ -125,6 +130,19 @@ export const api = {
 			data: values,
 		} ),
 };
+
+/**
+ * Código HTTP de un error de apiFetch, o 0 si no lo trae.
+ *
+ * @param error Lo que lanzó apiFetch.
+ */
+export function errorStatus( error: unknown ): number {
+	if ( typeof error === 'object' && error !== null && 'data' in error ) {
+		const data = ( error as { data?: { status?: unknown } } ).data;
+		return typeof data?.status === 'number' ? data.status : 0;
+	}
+	return 0;
+}
 
 /**
  * Mensaje de un error de apiFetch, sin códigos sueltos.

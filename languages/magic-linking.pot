@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-07T10:15:02+00:00\n"
+"POT-Creation-Date: 2026-10-07T10:56:35+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -121,140 +121,153 @@ msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp
 msgstr ""
 
 #. translators: %d: process ID.
-#: src/Cli/Command.php:155
+#: src/Cli/Command.php:165
 #, php-format
 msgid "Process %1$d is paused. Resume it with: wp magic-linking job resume %2$d"
 msgstr ""
 
 #. translators: %d: process ID.
-#: src/Cli/Command.php:166
+#: src/Cli/Command.php:176
 #, php-format
 msgid "Process %d queued. It will run in the background with Action Scheduler."
 msgstr ""
 
-#: src/Cli/Command.php:173
+#: src/Cli/Command.php:183
 msgid "Analyzing entries"
 msgstr ""
 
 #. translators: 1: new or modified entries, 2: unchanged entries skipped.
-#: src/Cli/Command.php:189
+#: src/Cli/Command.php:199
 #, php-format
 msgid "%1$d new or modified, %2$d unchanged and skipped."
 msgstr ""
 
 #. translators: %d: number of entries.
-#: src/Cli/Command.php:197
+#: src/Cli/Command.php:207
 #, php-format
 msgid "%d entry analyzed."
 msgid_plural "%d entries analyzed."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:207
+#: src/Cli/Command.php:217
 msgid "The process did not finish. Check its state with: wp magic-linking status"
 msgstr ""
 
-#: src/Cli/Command.php:340
+#: src/Cli/Command.php:350
 msgid "Invalid filter. Use: all, orphans, low, over or broken."
 msgstr ""
 
-#: src/Cli/Command.php:343
+#: src/Cli/Command.php:353
 msgid "Invalid column for --orderby."
 msgstr ""
 
-#: src/Cli/Command.php:466
+#: src/Cli/Command.php:476
 msgid "Unknown action. Use: list, pause, resume or cancel."
 msgstr ""
 
-#: src/Cli/Command.php:471
+#: src/Cli/Command.php:481
 msgid "There is no such process."
 msgstr ""
 
-#: src/Cli/Command.php:486
-#: src/Rest/JobsController.php:179
+#: src/Cli/Command.php:496
+#: src/Rest/HistoryController.php:285
+#: src/Rest/JobsController.php:170
+#: src/Rest/JobsController.php:185
 msgid "That process cannot be changed in its current state."
 msgstr ""
 
 #. translators: 1: process ID, 2: new state.
-#: src/Cli/Command.php:492
+#: src/Cli/Command.php:502
 #, php-format
 msgid "Process %1$d is now %2$s."
 msgstr ""
 
-#: src/Cli/Command.php:577
+#. translators: %s: batch ID.
+#: src/Cli/Command.php:584
+#, php-format
+msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
+msgstr ""
+
+#: src/Cli/Command.php:601
 msgid "Unknown action. Use: list, undo, redo or purge."
 msgstr ""
 
-#: src/Cli/Command.php:589
+#: src/Cli/Command.php:613
 msgid "There is no such group in the history (or you cannot edit all of its entries)."
 msgstr ""
 
-#: src/Cli/Command.php:594
-#: src/Rest/HistoryController.php:420
+#: src/Cli/Command.php:617
+#: src/Rest/HistoryController.php:485
+msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
+msgstr ""
+
+#: src/Cli/Command.php:622
+#: src/Rest/HistoryController.php:499
 msgid "You do not have permission to edit one of the entries involved."
 msgstr ""
 
 #. translators: %d: number of changes.
-#: src/Cli/Command.php:618
+#: src/Cli/Command.php:646
 #, php-format
 msgid "%d change could not be applied by itself."
 msgid_plural "%d changes could not be applied by themselves."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:625
+#: src/Cli/Command.php:653
 msgid "Group redone."
 msgstr ""
 
-#: src/Cli/Command.php:625
+#: src/Cli/Command.php:653
 msgid "Group undone."
 msgstr ""
 
-#: src/Cli/Command.php:636
+#: src/Cli/Command.php:664
 msgid "The history never expires with the current setting; nothing to delete."
 msgstr ""
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:645
+#: src/Cli/Command.php:673
 #, php-format
 msgid "%d history row has expired."
 msgid_plural "%d history rows have expired."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:654
+#: src/Cli/Command.php:682
 msgid "Nothing has expired."
 msgstr ""
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:664
+#: src/Cli/Command.php:692
 #, php-format
 msgid "%d history row deleted."
 msgid_plural "%d history rows deleted."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:678
+#: src/Cli/Command.php:706
 msgid "That entry does not exist."
 msgstr ""
 
-#: src/Cli/Command.php:685
+#: src/Cli/Command.php:713
 msgid "Entry analyzed."
 msgstr ""
 
-#: src/Cli/Command.php:688
+#: src/Cli/Command.php:716
 msgid "Nothing changed since the last analysis. Use --force to analyze it again."
 msgstr ""
 
-#: src/Cli/Command.php:691
+#: src/Cli/Command.php:719
 msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
 msgstr ""
 
-#: src/Cli/Command.php:694
+#: src/Cli/Command.php:722
 msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
 msgstr ""
 
-#: src/Cli/Command.php:707
+#: src/Cli/Command.php:735
 msgid "Could not open the output."
 msgstr ""
 
@@ -294,13 +307,13 @@ msgid "This content type is not one that Magic Linking analyzes."
 msgstr ""
 
 #: src/Content/Inserter.php:96
-#: src/History/Redo.php:159
+#: src/History/Redo.php:150
 msgid "The change could not be confirmed as only the link; nothing was written."
 msgstr ""
 
 #: src/Content/Inserter.php:104
-#: src/History/Redo.php:165
-#: src/History/Undo.php:191
+#: src/History/Redo.php:156
+#: src/History/Undo.php:184
 msgid "The change history could not be saved; nothing was written."
 msgstr ""
 
@@ -345,7 +358,7 @@ msgid "Another change is being applied to this post; try again in a moment."
 msgstr ""
 
 #: src/Content/PostWriter.php:212
-#: src/History/BatchJob.php:192
+#: src/History/BatchJob.php:275
 msgid "WordPress could not save the post; nothing was changed."
 msgstr ""
 
@@ -421,17 +434,17 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: src/History/Reader.php:321
+#: src/History/Reader.php:314
 msgid "Automatic"
 msgstr ""
 
-#: src/History/Reader.php:326
+#: src/History/Reader.php:319
 msgid "Deleted user"
 msgstr ""
 
 #: src/History/Redo.php:57
-#: src/History/Undo.php:97
-#: src/Rest/HistoryController.php:413
+#: src/History/Undo.php:90
+#: src/Rest/HistoryController.php:492
 msgid "That change does not exist."
 msgstr ""
 
@@ -451,27 +464,27 @@ msgstr ""
 msgid "Link added again."
 msgstr ""
 
-#: src/History/Undo.php:102
+#: src/History/Undo.php:95
 msgid "This change was already undone."
 msgstr ""
 
-#: src/History/Undo.php:121
+#: src/History/Undo.php:114
 msgid "Link undone."
 msgstr ""
 
-#: src/History/Undo.php:122
+#: src/History/Undo.php:115
 msgid "The post was edited afterwards: only the link was removed."
 msgstr ""
 
-#: src/History/Undo.php:123
+#: src/History/Undo.php:116
 msgid "The link is no longer in the post."
 msgstr ""
 
-#: src/History/Undo.php:176
+#: src/History/Undo.php:169
 msgid "The change could not be confirmed as only removing the link; nothing was written."
 msgstr ""
 
-#: src/History/Undo.php:327
+#: src/History/Undo.php:320
 msgid "This post was edited afterwards; remove the link by hand."
 msgstr ""
 
@@ -479,15 +492,15 @@ msgstr ""
 msgid "You are not allowed to export this data."
 msgstr ""
 
-#: src/Rest/HistoryController.php:293
+#: src/Rest/HistoryController.php:358
 msgid "Send either a group or a single change."
 msgstr ""
 
-#: src/Rest/HistoryController.php:329
+#: src/Rest/HistoryController.php:400
 msgid "Another large undo is already running. Wait for it to finish."
 msgstr ""
 
-#: src/Rest/JobsController.php:164
+#: src/Rest/JobsController.php:165
 msgid "That process does not exist."
 msgstr ""
 
@@ -702,6 +715,7 @@ msgid "Analysis started."
 msgstr ""
 
 #: assets/build/index.js:10
+#: assets/build/index.js:14
 #: assets/build/index.js:20
 #: assets/build/index.js:30
 msgid "That did not work. Try again."
@@ -778,6 +792,10 @@ msgid "Could not load the links of this batch."
 msgstr ""
 
 #: assets/build/index.js:14
+msgid "Could not refresh this batch."
+msgstr ""
+
+#: assets/build/index.js:14
 msgid "Could not read the progress of the process."
 msgstr ""
 
@@ -814,6 +832,15 @@ msgstr ""
 
 #: assets/build/index.js:17
 msgid "This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running."
+msgstr ""
+
+#: assets/build/index.js:17
+#: assets/build/index.js:32
+msgid "Resume"
+msgstr ""
+
+#: assets/build/index.js:17
+msgid "Cancel process"
 msgstr ""
 
 #: assets/build/index.js:17
@@ -1038,10 +1065,6 @@ msgstr ""
 
 #: assets/build/index.js:32
 msgid "Analysis resumed."
-msgstr ""
-
-#: assets/build/index.js:32
-msgid "Resume"
 msgstr ""
 
 #: assets/build/index.js:32

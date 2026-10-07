@@ -229,6 +229,8 @@ export interface HistoryJob {
 	error: string;
 	/** El proceso lleva más de 10 minutos sin avanzar. */
 	stalled: boolean;
+	/** Quien mira puede reanudarlo o cancelarlo (lo lanzó o administra el plugin). */
+	can_control: boolean;
 	created_at: string;
 	updated_at: string;
 }
