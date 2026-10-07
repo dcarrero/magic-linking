@@ -2,7 +2,6 @@
  * Configuración que el servidor pasa al panel del editor (`EditorPanel::enqueue`).
  */
 export interface EditorBoot {
-	namespace: string;
 	mode: 'block' | 'classic';
 	postId: number;
 	/** Sugerencias entrantes por página. */

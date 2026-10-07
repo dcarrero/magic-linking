@@ -8,6 +8,7 @@
 import type { Suggestion } from '../../types';
 import { locate, rangeFromOffsets } from '../locate';
 import type { TextUnit } from '../locate';
+import { classicTextElements } from '../dom';
 import { clearHighlight, showHighlight } from '../highlight';
 import type { ApplyResult, EditorAdapter } from './types';
 
@@ -18,7 +19,6 @@ interface TinyMceEditor {
 	nodeChanged: () => void;
 	undoManager: {
 		transact: ( callback: () => void ) => void;
-		undo: () => void;
 	};
 }
 
@@ -36,18 +36,14 @@ function visual(): TinyMceEditor | null {
 }
 
 /**
- * Párrafos y elementos de lista que no están dentro de citas ni tablas (donde el servidor no escribe por defecto).
+ * Elementos de texto hoja del cuerpo (los que lee el motor, sin contar dos veces un `p` dentro de un `li`).
  * @param body
  */
 function units( body: HTMLElement ): {
 	units: TextUnit[];
 	elements: Element[];
 } {
-	const elements = Array.from( body.querySelectorAll( 'p, li' ) ).filter(
-		( element ) =>
-			! element.closest( 'blockquote, table' ) &&
-			! element.querySelector( 'ul, ol' )
-	);
+	const elements = classicTextElements( body );
 	return {
 		elements,
 		units: elements.map( ( element, index ) => ( {
@@ -114,9 +110,9 @@ export function classicAdapter( postId: number ): EditorAdapter {
 			}
 
 			const url = suggestion.target.url ?? '';
-			const before = editor.getContent();
+			const applied = range.toString();
+			const link = body.ownerDocument.createElement( 'a' );
 			editor.undoManager.transact( () => {
-				const link = body.ownerDocument.createElement( 'a' );
 				link.setAttribute( 'href', url );
 				link.setAttribute( 'data-mce-href', url );
 				link.appendChild( range.extractContents() );
@@ -124,20 +120,30 @@ export function classicAdapter( postId: number ): EditorAdapter {
 			} );
 			editor.nodeChanged();
 			clearHighlight();
-			const after = editor.getContent();
 
 			return {
 				ok: true,
+				// Quita solo este `<a>`, si sigue en el documento tal como se puso: no usa el deshacer de
+				// TinyMCE, que podría llevarse texto escrito después.
 				undo: () => {
 					const current = visual();
 					if (
 						! current ||
-						current.getContent() !== after ||
-						before === after
+						! link.isConnected ||
+						link.getAttribute( 'href' ) !== url ||
+						link.textContent !== applied ||
+						link.querySelector( 'a' )
 					) {
 						return false;
 					}
-					current.undoManager.undo();
+					current.undoManager.transact( () => {
+						const parent = link.parentNode;
+						while ( parent && link.firstChild ) {
+							parent.insertBefore( link.firstChild, link );
+						}
+						link.remove();
+					} );
+					current.nodeChanged();
 					return true;
 				},
 			};

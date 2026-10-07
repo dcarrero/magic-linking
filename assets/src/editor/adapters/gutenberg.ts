@@ -7,11 +7,18 @@
 import { select, dispatch, subscribe } from '@wordpress/data';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { store as editorStore } from '@wordpress/editor';
-import { applyFormat, create, toHTMLString } from '@wordpress/rich-text';
+import {
+	applyFormat,
+	create,
+	removeFormat,
+	toHTMLString,
+} from '@wordpress/rich-text';
 import type { Suggestion } from '../../types';
 import { locate, rangeFromOffsets } from '../locate';
 import type { TextUnit } from '../locate';
+import { ownEditable } from '../dom';
 import { clearHighlight, showHighlight } from '../highlight';
+import { findOwnLink } from '../richLink';
 import type { ApplyResult, EditorAdapter } from './types';
 
 /** Bloques de texto donde se pone el enlace: los mismos que admite el servidor por defecto (docs/06 §3). */
@@ -125,34 +132,59 @@ export function gutenbergAdapter( postId: number ): EditorAdapter {
 				return { ok: false, reason: 'already_linked' };
 			}
 
+			const url = suggestion.target.url ?? '';
+			const applied = value.text.slice( found.start, found.end );
 			const next = applyFormat(
 				value,
-				{
-					type: 'core/link',
-					attributes: { url: suggestion.target.url ?? '' },
-				},
+				{ type: 'core/link', attributes: { url } },
 				found.start,
 				found.end
 			);
-			const after = toHTMLString( { value: next } );
-			const content = serialized();
+			// El enlace es un nivel de deshacer propio: lo escrito antes y después no se mezcla con él.
+			markPersistent();
 			dispatch( blockEditorStore ).updateBlockAttributes( found.key, {
-				content: after,
+				content: toHTMLString( { value: next } ),
 			} );
-			const afterContent = serialized();
+			markPersistent();
 			clearHighlight();
 
+			const clientId = found.key;
 			return {
 				ok: true,
+				// Quita solo este enlace, si sigue tal como se puso, como una edición nueva: no usa el
+				// `undo()` global, que podría deshacer otro cambio (título, categorías, texto escrito).
 				undo: () => {
-					// Solo si no se ha tocado nada desde entonces: si no, el usuario usa el deshacer del editor.
-					if (
-						serialized() !== afterContent ||
-						content === afterContent
-					) {
+					const block = select( blockEditorStore ).getBlock(
+						clientId
+					) as Block | null;
+					if ( ! block ) {
 						return false;
 					}
-					dispatch( editorStore ).undo();
+					const current = create( { html: html( block ) } );
+					const run = findOwnLink(
+						current.text,
+						current.formats,
+						url,
+						applied
+					);
+					if ( ! run ) {
+						return false;
+					}
+					markPersistent();
+					dispatch( blockEditorStore ).updateBlockAttributes(
+						clientId,
+						{
+							content: toHTMLString( {
+								value: removeFormat(
+									current,
+									'core/link',
+									run.start,
+									run.end
+								),
+							} ),
+						}
+					);
+					markPersistent();
 					return true;
 				},
 			};
@@ -171,10 +203,12 @@ export function gutenbergAdapter( postId: number ): EditorAdapter {
 					`[data-block="${ block.clientId }"]`
 				);
 				if ( element ) {
-					elements.set( block.clientId, element );
+					// Solo el texto propio del bloque: un `li` padre incluiría el de sus listas anidadas.
+					const editable = ownEditable( element );
+					elements.set( block.clientId, editable );
 					units.push( {
 						key: block.clientId,
-						text: element.textContent ?? '',
+						text: editable.textContent ?? '',
 					} );
 				}
 			}
@@ -191,6 +225,19 @@ export function gutenbergAdapter( postId: number ): EditorAdapter {
 			}
 		},
 	};
+}
+
+/**
+ * Cierra el nivel de deshacer en curso: el cambio siguiente (o el anterior) no se fusiona con el último. Es la
+ * misma función que usa el propio editor al guardar; no hay una pública con otro nombre (`createUndoLevel` de
+ * `core/editor` está caducada).
+ */
+function markPersistent(): void {
+	(
+		dispatch( blockEditorStore ) as {
+			__unstableMarkLastChangeAsPersistent?: () => void;
+		}
+	 ).__unstableMarkLastChangeAsPersistent?.();
 }
 
 /** Contenido actual del editor, serializado como se guardaría. */

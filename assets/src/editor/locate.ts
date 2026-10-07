@@ -4,7 +4,9 @@
  * El servidor propone una frase con el ancla marcada (`before` + ancla + `after`); aquí se busca esa frase en
  * el texto de cada bloque (o párrafo del editor clásico). Como en el servidor (docs/06 §3, D-48), manda el
  * contexto —30 caracteres a cada lado— y debe aparecer exactamente una vez: si no, no se toca nada.
- * Las secuencias de espacios (también `&nbsp;`) cuentan como uno solo.
+ * Las secuencias de espacios (también `&nbsp;`) cuentan como uno solo, con la misma clase de espacios que el
+ * servidor (`[\s\x{00A0}]` de PCRE: espacio, tabulador, saltos y NBSP; no U+2028, U+2029 ni otros espacios Unicode),
+ * y los caracteres invisibles U+FEFF y U+200B no cuentan.
  *
  * Todas las posiciones son unidades UTF-16, como los índices de `String.prototype.slice`.
  */
@@ -37,8 +39,10 @@ interface Normalized {
 	map: number[];
 }
 
-// `\s` incluye el espacio de no ruptura (U+00A0).
-const SPACE = /\s/;
+/** Espacios que el servidor colapsa: ASCII y NBSP (docs/06 §3). */
+const SPACE = /[ \t\n\v\f\r\u00a0]/;
+/** Invisibles que se ignoran. */
+const INVISIBLE = /[\ufeff\u200b]/;
 
 /**
  * Colapsa los espacios y recuerda de dónde sale cada carácter.
@@ -51,6 +55,9 @@ export function normalize( text: string ): Normalized {
 	let inSpace = false;
 	for ( let i = 0; i < text.length; i++ ) {
 		const char = text.charAt( i );
+		if ( INVISIBLE.test( char ) ) {
+			continue;
+		}
 		if ( SPACE.test( char ) ) {
 			if ( ! inSpace ) {
 				norm += ' ';

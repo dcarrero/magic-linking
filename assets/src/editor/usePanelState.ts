@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from '@wordpress/element';
+import { useCallback, useEffect, useMemo, useState } from '@wordpress/element';
 import type { Suggestion, InboundResponse, OutboundResponse } from '../types';
 import type { EditorAdapter } from './adapters/types';
 import type { CardStatus } from './SuggestionCard';
@@ -13,10 +13,18 @@ export interface PanelState {
 	setPage: ( page: number ) => void;
 	statuses: Record< string, CardStatus >;
 	setStatus: ( suggestion: Suggestion, status: CardStatus | null ) => void;
-	dismissed: ReadonlySet< string >;
-	dismiss: ( suggestion: Suggestion ) => void;
+	/** Descartadas en esta sesión, por dirección. */
+	dismissed: Record< 'outbound' | 'inbound', ReadonlySet< string > >;
+	dismiss: (
+		suggestion: Suggestion,
+		direction: 'outbound' | 'inbound'
+	) => void;
 	/** Salientes que se enseñan (sin las descartadas). */
 	visibleOutbound: Suggestion[];
+	/** Entrantes de la página que se enseñan (sin las descartadas). */
+	visibleInbound: Suggestion[];
+	/** Entrantes sin las descartadas (de todas las páginas). */
+	inboundCount: number;
 	/** Vuelve a pedir las salientes y recupera las descartadas. */
 	refreshOutbound: () => void;
 }
@@ -38,9 +46,10 @@ export function usePanelState(
 	const [ statuses, setStatuses ] = useState< Record< string, CardStatus > >(
 		{}
 	);
-	const [ dismissed, setDismissed ] = useState< ReadonlySet< string > >(
-		new Set()
-	);
+	const [ dismissed, setDismissed ] = useState< {
+		outbound: ReadonlySet< string >;
+		inbound: ReadonlySet< string >;
+	} >( { outbound: new Set(), inbound: new Set() } );
 
 	const setStatus = useCallback(
 		( suggestion: Suggestion, status: CardStatus | null ) => {
@@ -58,15 +67,24 @@ export function usePanelState(
 		[]
 	);
 
-	const dismiss = useCallback( ( suggestion: Suggestion ) => {
-		setDismissed( ( previous ) =>
-			new Set( previous ).add( suggestionKey( suggestion ) )
-		);
-	}, [] );
+	const dismiss = useCallback(
+		( suggestion: Suggestion, direction: 'outbound' | 'inbound' ) => {
+			setDismissed( ( previous ) => ( {
+				...previous,
+				[ direction ]: new Set( previous[ direction ] ).add(
+					suggestionKey( suggestion )
+				),
+			} ) );
+		},
+		[]
+	);
 
 	const { refresh } = outbound;
 	const refreshOutbound = useCallback( () => {
-		setDismissed( new Set() );
+		setDismissed( ( previous ) => ( {
+			...previous,
+			outbound: new Set(),
+		} ) );
 		setStatuses( {} );
 		refresh();
 	}, [ refresh ] );
@@ -74,10 +92,37 @@ export function usePanelState(
 	const visibleOutbound = useMemo(
 		() =>
 			( outbound.data?.items ?? [] ).filter(
-				( item ) => ! dismissed.has( suggestionKey( item ) )
+				( item ) => ! dismissed.outbound.has( suggestionKey( item ) )
 			),
-		[ outbound.data, dismissed ]
+		[ outbound.data, dismissed.outbound ]
 	);
+
+	const visibleInbound = useMemo(
+		() =>
+			( inbound.data?.items ?? [] ).filter(
+				( item ) => ! dismissed.inbound.has( suggestionKey( item ) )
+			),
+		[ inbound.data, dismissed.inbound ]
+	);
+
+	const inboundCount = Math.max(
+		0,
+		( inbound.data?.total ?? 0 ) - dismissed.inbound.size
+	);
+
+	// Tras enlazar la última de una página (o al cambiar el total), la página pedida puede no existir ya:
+	// se vuelve a la última que sí.
+	const { data: inboundData, loading: inboundLoading } = inbound;
+	useEffect( () => {
+		if (
+			inboundData &&
+			! inboundLoading &&
+			inboundData.total_pages >= 1 &&
+			page > inboundData.total_pages
+		) {
+			setPage( inboundData.total_pages );
+		}
+	}, [ inboundData, inboundLoading, page ] );
 
 	return {
 		outbound,
@@ -89,6 +134,8 @@ export function usePanelState(
 		dismissed,
 		dismiss,
 		visibleOutbound,
+		visibleInbound,
+		inboundCount,
 		refreshOutbound,
 	};
 }

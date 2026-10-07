@@ -66,6 +66,30 @@ describe( 'locate', () => {
 		}
 	} );
 
+	it( 'ignora U+FEFF y U+200B y no trata U+2028 como espacio, igual que el servidor', () => {
+		const text =
+			'La instalación de una bom\ufeffba de\u200b calor reduce el consumo.';
+		const result = locate( [ { key: 'x', text } ], target );
+		expect( result.status ).toBe( 'found' );
+		if ( result.status === 'found' ) {
+			expect( text.slice( result.start, result.end ) ).toBe(
+				'bom\ufeffba de\u200b calor'
+			);
+		}
+		// U+2028 no es un espacio para el servidor: no se colapsa con el espacio de al lado.
+		expect(
+			locate(
+				[
+					{
+						key: 'y',
+						text: 'La instalación de una bomba de calor\u2028 reduce el consumo.',
+					},
+				],
+				target
+			).status
+		).toBe( 'not_found' );
+	} );
+
 	it( 'normaliza recordando las posiciones originales', () => {
 		const { norm, map } = normalize( 'a  b' );
 		expect( norm ).toBe( 'a b' );

@@ -108,11 +108,16 @@ function Pager( {
 export function Panel( { adapter, boot, state }: Props ) {
 	const { outbound, inbound, statuses, setStatus } = state;
 
-	// Anuncia el resultado cuando llegan sugerencias nuevas después de abrir el panel (no la carga inicial).
+	// Anuncia el resultado cuando llegan sugerencias nuevas después de las primeras (no la carga inicial, que en
+	// el editor clásico ocurre con el panel ya montado y se leería en cada carga de la pantalla).
 	const announced = useRef< unknown >( outbound.data );
 	useEffect( () => {
 		if ( outbound.data && outbound.data !== announced.current ) {
+			const initial = announced.current === null;
 			announced.current = outbound.data;
+			if ( initial ) {
+				return;
+			}
 			speak(
 				sprintf(
 					/* translators: %d: number of suggestions. */
@@ -236,14 +241,17 @@ export function Panel( { adapter, boot, state }: Props ) {
 		}
 	};
 
-	const dismiss = ( suggestion: Suggestion ) => {
-		state.dismiss( suggestion );
+	const dismiss = (
+		suggestion: Suggestion,
+		direction: 'outbound' | 'inbound'
+	) => {
+		state.dismiss( suggestion, direction );
 		speak( __( 'Suggestion dismissed.', 'magic-linking' ), 'polite' );
 		listRef.current?.focus();
 	};
 
 	const outboundCount = state.visibleOutbound.length;
-	const inboundTotal = inbound.data?.total ?? 0;
+	const inboundTotal = state.inboundCount;
 
 	const tabs = [
 		{
@@ -335,7 +343,12 @@ export function Panel( { adapter, boot, state }: Props ) {
 														boot.historyUrl
 													}
 													onLink={ linkOutbound }
-													onDismiss={ dismiss }
+													onDismiss={ ( card ) =>
+														dismiss(
+															card,
+															'outbound'
+														)
+													}
 													onUndo={ undo }
 													onHighlight={
 														adapter.highlight
@@ -377,30 +390,30 @@ export function Panel( { adapter, boot, state }: Props ) {
 							) }
 							{ inbound.loading && ! inbound.data && <Loading /> }
 							{ inbound.data &&
-								( inbound.data.items.length === 0 ? (
-									! inbound.loading && (
+								( state.visibleInbound.length === 0 ? (
+									! inbound.loading &&
+									( inbound.data.total > 0 &&
+									inbound.data.items.length === 0 ? (
+										// La página pedida ya no existe (se enlazó la última de ella): se vuelve a pedir la última.
+										<Loading />
+									) : (
 										<EmptyState
 											state={ inbound.data.state }
 											direction="inbound"
 											reportUrl={ boot.reportUrl }
+											dismissedAll={
+												inbound.data.items.length > 0
+											}
 										/>
-									)
+									) )
 								) : (
 									<>
 										<ul
 											className="magiclinking-panel__cards"
 											aria-busy={ inbound.loading }
 										>
-											{ inbound.data.items
-												.filter(
-													( item ) =>
-														! state.dismissed.has(
-															suggestionKey(
-																item
-															)
-														)
-												)
-												.map( ( item ) => (
+											{ state.visibleInbound.map(
+												( item ) => (
 													<SuggestionCard
 														key={ suggestionKey(
 															item
@@ -418,10 +431,16 @@ export function Panel( { adapter, boot, state }: Props ) {
 															boot.historyUrl
 														}
 														onLink={ linkInbound }
-														onDismiss={ dismiss }
+														onDismiss={ ( card ) =>
+															dismiss(
+																card,
+																'inbound'
+															)
+														}
 														onUndo={ undo }
 													/>
-												) ) }
+												)
+											) }
 										</ul>
 										<Pager
 											page={ state.page }
