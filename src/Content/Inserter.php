@@ -50,71 +50,146 @@ final class Inserter {
 	 * @throws InsertionException Si no se puede insertar con seguridad. No se ha escrito nada.
 	 */
 	public function insert( InsertRequest $request, ?string $batch_id = null ): InsertResult {
-		$post = $this->writer->assert_editable( $request->post_id, $request->user_id );
-		if ( ! in_array( $post->post_type, $this->settings->post_types(), true ) ) {
-			throw new InsertionException( InsertionException::NOT_ALLOWED, __( 'This content type is not one that Magic Linking analyzes.', 'magic-linking' ) );
+		$result = $this->insert_many( array( $request ), $batch_id )[0];
+		if ( $result instanceof InsertionException ) {
+			throw $result;
 		}
-
-		$batch_id = $batch_id ?? BatchId::generate();
-
-		// Leer, verificar y escribir con la entrada reservada: dos operaciones a la vez no se pisan.
-		// El guardado no indexa por su cuenta: se indexa una sola vez, ya con el cambio verificado y escrito.
-		$result = $this->jobs->without_save_indexing(
-			fn(): InsertResult => $this->writer->exclusive( $request->post_id, fn(): InsertResult => $this->apply( $request, $batch_id ) )
-		);
-
-		$this->refresh( $request->post_id );
-
-		/**
-		 * Se ha insertado un enlace.
-		 *
-		 * @param int    $change_id Fila de magiclinking_changes.
-		 * @param int    $post_id   Entrada modificada.
-		 * @param string $batch_id  Lote.
-		 */
-		do_action( 'magiclinking_link_inserted', $result->change_id, $result->post_id, $result->batch_id );
 
 		return $result;
 	}
 
 	/**
-	 * Calcula, verifica, anota y escribe.
+	 * Inserta varios enlaces en **una misma entrada** con una sola escritura: una revisión, un reindexado y
+	 * un candado. Cada enlace se calcula y se verifica por separado sobre el resultado del anterior (cada uno
+	 * cambia exactamente un enlace) y tiene su propia fila en el historial, con la huella del contenido que
+	 * dejó, de modo que se deshace por separado igual que si se hubieran insertado de uno en uno.
 	 *
-	 * @param InsertRequest $request  Petición.
-	 * @param string        $batch_id Lote.
+	 * Un enlace que no se puede insertar no impide los demás; si falla la escritura, ninguno se ha insertado.
 	 *
-	 * @throws InsertionException Si no se puede insertar con seguridad; no se ha escrito nada.
-	 * @throws Throwable Lo que lance WordPress o un complemento al guardar (se relanza tras limpiar el historial).
+	 * @param InsertRequest[] $requests Peticiones, todas de la misma entrada.
+	 * @param string|null     $batch_id Lote; si es null se crea uno.
+	 *
+	 * @phpstan-param list<InsertRequest> $requests
+	 *
+	 * @return array<int, InsertResult|InsertionException> Un resultado por petición, en el mismo orden.
+	 *
+	 * @throws Throwable Lo que lance WordPress o un complemento al guardar (no se ha insertado ninguno).
 	 */
-	private function apply( InsertRequest $request, string $batch_id ): InsertResult {
-		$content = $this->writer->read( $request->post_id );
-		$edit    = BlockEditor::handles( $content ) ? ( new BlockEditor() )->insert( $content, $request ) : ( new ClassicEditor() )->insert( $content, $request );
-
-		$check = Verifier::check( $content, $edit->content, array( $edit->start, $edit->end ), 1 );
-		if ( ! $check->ok ) {
-			PostWriter::log( sprintf( 'Verificación fallida al insertar en la entrada %d: %s.', $request->post_id, $check->reason ) );
-			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only the link; nothing was written.', 'magic-linking' ) );
+	public function insert_many( array $requests, ?string $batch_id = null ): array {
+		if ( array() === $requests ) {
+			return array();
 		}
 
-		$user = $request->user_id ?? get_current_user_id();
+		$post_id  = $requests[0]->post_id;
+		$batch_id = $batch_id ?? BatchId::generate();
 
-		// El historial va primero: si la escritura no llega a hacerse, la fila se retira.
-		$id = $this->changes->record( $batch_id, $request->post_id, ChangeRepository::INSERT, $edit->path, $edit->before_html, $edit->after_html, PostWriter::hash( $edit->content ), $user );
-		if ( 0 === $id ) {
-			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) );
+		try {
+			$post = $this->writer->assert_editable( $post_id, $requests[0]->user_id );
+			if ( ! in_array( $post->post_type, $this->settings->post_types(), true ) ) {
+				return array_fill( 0, count( $requests ), new InsertionException( InsertionException::NOT_ALLOWED, __( 'This content type is not one that Magic Linking analyzes.', 'magic-linking' ) ) );
+			}
+
+			// Leer, verificar y escribir con la entrada reservada: dos operaciones a la vez no se pisan.
+			// El guardado no indexa por su cuenta: se indexa una sola vez, ya con los cambios verificados y escritos.
+			$results = $this->jobs->without_save_indexing(
+				fn(): array => $this->writer->exclusive( $post_id, fn(): array => $this->apply_many( $requests, $batch_id ) )
+			);
+		} catch ( InsertionException $e ) {
+			return array_fill( 0, count( $requests ), $e );
+		}
+
+		$done = array_filter( $results, static fn( $r ): bool => $r instanceof InsertResult );
+		if ( array() !== $done ) {
+			$this->refresh( $post_id );
+		}
+
+		foreach ( $done as $result ) {
+			/**
+			 * Se ha insertado un enlace.
+			 *
+			 * @param int    $change_id Fila de magiclinking_changes.
+			 * @param int    $post_id   Entrada modificada.
+			 * @param string $batch_id  Lote.
+			 */
+			do_action( 'magiclinking_link_inserted', $result->change_id, $result->post_id, $result->batch_id );
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Calcula y verifica cada enlace sobre el anterior, anota todos y escribe una vez.
+	 *
+	 * @param InsertRequest[] $requests Peticiones de la misma entrada.
+	 * @param string          $batch_id Lote.
+	 *
+	 * @phpstan-param list<InsertRequest> $requests
+	 *
+	 * @return array<int, InsertResult|InsertionException>
+	 *
+	 * @throws InsertionException Si no se puede escribir con seguridad; no se ha escrito nada.
+	 * @throws Throwable Lo que lance WordPress o un complemento al guardar (se relanza tras limpiar el historial).
+	 */
+	private function apply_many( array $requests, string $batch_id ): array {
+		$post_id  = $requests[0]->post_id;
+		$original = $this->writer->read( $post_id );
+		$content  = $original;
+		$results  = array();
+		$edits    = array();
+
+		foreach ( $requests as $index => $request ) {
+			try {
+				$edit  = BlockEditor::handles( $content ) ? ( new BlockEditor() )->insert( $content, $request ) : ( new ClassicEditor() )->insert( $content, $request );
+				$check = Verifier::check( $content, $edit->content, array( $edit->start, $edit->end ), 1 );
+				if ( ! $check->ok ) {
+					PostWriter::log( sprintf( 'Verificación fallida al insertar en la entrada %d: %s.', $post_id, $check->reason ) );
+					throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only the link; nothing was written.', 'magic-linking' ) );
+				}
+			} catch ( InsertionException $e ) {
+				$results[ $index ] = $e;
+				continue;
+			}
+
+			$edits[ $index ] = $edit;
+			$content         = $edit->content;
+		}
+
+		if ( array() === $edits ) {
+			return array_values( $results );
+		}
+
+		// El historial va primero: si la escritura no llega a hacerse, las filas se retiran.
+		$user = $requests[0]->user_id ?? get_current_user_id();
+		$ids  = array();
+		foreach ( $edits as $index => $edit ) {
+			$id = $this->changes->record( $batch_id, $post_id, ChangeRepository::INSERT, $edit->path, $edit->before_html, $edit->after_html, PostWriter::hash( $edit->content ), $user );
+			if ( 0 === $id ) {
+				foreach ( $ids as $done ) {
+					$this->changes->delete( $done );
+				}
+				throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) );
+			}
+			$ids[ $index ] = $id;
 		}
 
 		try {
-			$this->writer->write( $request->post_id, $content, $edit->content, $request->user_id );
+			$this->writer->write( $post_id, $original, $content, $requests[0]->user_id );
 		} catch ( Throwable $e ) {
-			// Solo se conserva la fila si el contenido nuevo llegó a quedar guardado.
-			if ( $this->writer->read( $request->post_id ) !== $edit->content ) {
-				$this->changes->delete( $id );
+			// Solo se conservan las filas si el contenido nuevo llegó a quedar guardado.
+			if ( $this->writer->read( $post_id ) !== $content ) {
+				foreach ( $ids as $done ) {
+					$this->changes->delete( $done );
+				}
 			}
 			throw $e;
 		}
 
-		return new InsertResult( $id, $batch_id, $request->post_id, $edit->path );
+		foreach ( $edits as $index => $edit ) {
+			$results[ $index ] = new InsertResult( $ids[ $index ], $batch_id, $post_id, $edit->path );
+		}
+		ksort( $results );
+
+		return array_values( $results );
 	}
 
 	/**
