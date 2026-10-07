@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-07T10:56:35+00:00\n"
+"POT-Creation-Date: 2026-10-07T11:43:41+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -204,6 +204,7 @@ msgstr ""
 
 #: src/Cli/Command.php:622
 #: src/Rest/HistoryController.php:499
+#: src/Rest/SuggestionsController.php:377
 msgid "You do not have permission to edit one of the entries involved."
 msgstr ""
 
@@ -248,6 +249,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: src/Cli/Command.php:706
+#: src/Rest/SuggestionsController.php:553
 msgid "That entry does not exist."
 msgstr ""
 
@@ -502,6 +504,49 @@ msgstr ""
 
 #: src/Rest/JobsController.php:165
 msgid "That process does not exist."
+msgstr ""
+
+#. translators: %s: comma-separated list of shared terms.
+#: src/Rest/SuggestionPresenter.php:140
+#, php-format
+msgid "They share: %s"
+msgstr ""
+
+#: src/Rest/SuggestionPresenter.php:143
+msgid "The anchor matches the title of the destination"
+msgstr ""
+
+#: src/Rest/SuggestionPresenter.php:146
+msgid "The anchor matches the focus keyword of the destination"
+msgstr ""
+
+#: src/Rest/SuggestionPresenter.php:149
+msgid "The destination is an orphan (0 inbound links)"
+msgstr ""
+
+#: src/Rest/SuggestionPresenter.php:152
+msgid "Very similar in meaning"
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:242
+msgid "The content is too long to analyze."
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:369
+msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:445
+msgid "The link could not be saved; nothing was changed."
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:482
+#: src/Rest/SuggestionsController.php:490
+msgid "The destination is not a published entry that can be linked."
+msgstr ""
+
+#: src/Rest/SuggestionsController.php:485
+msgid "The destination is in a different language, so no link is added."
 msgstr ""
 
 #. translators: 1: current page, 2: total pages.
