@@ -109,10 +109,8 @@ final class Redo {
 	 */
 	public function redo_batch( string $batch_id, ?int $user_id = null ): array {
 		$results = array();
-		foreach ( Slots::collapse( $this->changes->inserts_of( array( $batch_id ) )[ $batch_id ] ?? array() ) as $slot ) {
-			if ( null !== $slot['undone_at'] ) {
-				$results[] = $this->redo( $slot['id'], $user_id );
-			}
+		foreach ( Slots::ordered_ids( $this->changes->inserts_of( array( $batch_id ) )[ $batch_id ] ?? array(), true ) as $change_id ) {
+			$results[] = $this->redo( $change_id, $user_id );
 		}
 
 		return $results;
@@ -139,18 +137,11 @@ final class Redo {
 		$after  = (string) $change['after_html'];
 		$path   = (string) $change['block_path'];
 
-		if ( str_starts_with( $path, '@' ) ) {
-			$start = (int) substr( $path, 1 );
-		} else {
-			$map   = BlockMap::parse( $content );
-			$node  = null === $map ? null : $map->find( $path );
-			$start = null === $node ? -1 : $node->start;
-		}
-
-		$end = $start + strlen( $before );
-		if ( $start < 0 || $end > strlen( $content ) || substr( $content, $start, $end - $start ) !== $before ) {
+		$start = $this->locate( $content, $before, $path );
+		if ( null === $start ) {
 			return null;
 		}
+		$end = $start + strlen( $before );
 
 		$next  = substr( $content, 0, $start ) . $after . substr( $content, $end );
 		$check = Verifier::check( $content, $next, array( $start, $end ), 1 );
@@ -176,5 +167,52 @@ final class Redo {
 		}
 
 		return $id;
+	}
+
+	/**
+	 * Dónde está ahora el tramo tal como estaba antes del enlace.
+	 *
+	 * Se busca por contenido: la ruta guardada (el índice del bloque, o el byte en el editor clásico) solo es una
+	 * pista, porque una edición anterior en la entrada desplaza ambas y el tramo puede estar intacto. El tramo exacto
+	 * tiene que aparecer una sola vez; si aparece varias, solo vale el que está donde decía la pista.
+	 *
+	 * @param string $content Contenido actual.
+	 * @param string $before  Tramo antes del enlace.
+	 * @param string $path    Ruta guardada.
+	 *
+	 * @return int|null Byte donde empieza; null si no está o no se puede saber cuál es.
+	 */
+	private function locate( string $content, string $before, string $path ): ?int {
+		if ( '' === $before ) {
+			return null;
+		}
+
+		$found = array();
+		$at    = strpos( $content, $before );
+		while ( false !== $at ) {
+			$found[] = $at;
+			if ( count( $found ) > 1 ) {
+				break;
+			}
+			$at = strpos( $content, $before, $at + 1 );
+		}
+
+		if ( 1 === count( $found ) ) {
+			return $found[0];
+		}
+		if ( array() === $found ) {
+			return null;
+		}
+
+		// Más de uno: manda la pista.
+		if ( str_starts_with( $path, '@' ) ) {
+			$hint = (int) substr( $path, 1 );
+		} else {
+			$map  = BlockMap::parse( $content );
+			$node = null === $map ? null : $map->find( $path );
+			$hint = null === $node ? -1 : $node->start;
+		}
+
+		return substr( $content, $hint, strlen( $before ) ) === $before && $hint >= 0 ? $hint : null;
 	}
 }

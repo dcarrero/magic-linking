@@ -32,4 +32,29 @@ final class Slots {
 
 		return array_values( $latest );
 	}
+
+	/**
+	 * Ids de las filas más recientes de cada hueco, en el orden en que se tratan: de la más nueva a la más
+	 * antigua para deshacer (y para «todos»), de la más antigua a la más nueva para rehacer. El orden es por id,
+	 * no por posición del hueco, porque un hueco rehecho lleva un id alto y los procesos avanzan con un cursor de id.
+	 *
+	 * @param array     $rows   Inserciones de un lote (de `ChangeRepository::inserts_of()`).
+	 * @param bool|null $undone true = solo los deshechos (rehacer); false = solo los puestos (deshacer); null = todos.
+	 *
+	 * @phpstan-param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}> $rows
+	 *
+	 * @return list<int>
+	 */
+	public static function ordered_ids( array $rows, ?bool $undone ): array {
+		$ids = array();
+		foreach ( self::collapse( $rows ) as $slot ) {
+			if ( null === $undone || ( null !== $slot['undone_at'] ) === $undone ) {
+				$ids[] = $slot['id'];
+			}
+		}
+
+		true === $undone ? sort( $ids ) : rsort( $ids );
+
+		return $ids;
+	}
 }

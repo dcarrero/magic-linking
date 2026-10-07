@@ -55,15 +55,8 @@ final class Undo {
 		$results = array();
 
 		// Un enlace puesto, quitado y vuelto a poner (rehacer, F1-10) cuenta una vez: vale su fila más reciente.
-		$latest = array();
-		foreach ( $this->changes->batch( $batch_id ) as $change ) {
-			if ( ChangeRepository::INSERT === $change['action'] ) {
-				$latest[ md5( implode( '|', array( $change['post_id'], (string) $change['block_path'], $change['before_html'], $change['after_html'] ) ) ) ] = $change;
-			}
-		}
-
-		foreach ( array_reverse( array_values( $latest ) ) as $change ) {
-			$results[] = $this->revert( $change['id'], $user_id );
+		foreach ( Slots::ordered_ids( $this->changes->inserts_of( array( $batch_id ) )[ $batch_id ] ?? array(), null ) as $change_id ) {
+			$results[] = $this->revert( $change_id, $user_id );
 		}
 
 		$undone = count(

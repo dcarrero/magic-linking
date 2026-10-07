@@ -299,9 +299,10 @@ final class HistoryRestTest extends HistoryTestCase {
 		$mine = array_values( array_filter( $list, static fn( array $g ): bool => $g['batch_id'] === $batch['batch'] ) )[0];
 		$this->assertSame( $job['id'], $mine['job']['id'] );
 
-		// Lo ve quien lo lanzó y un administrador; no otro editor.
+		// Lo ve quien lo lanzó y quien puede ver el grupo (un editor), pero no quien no lo ve.
 		$this->assertSame( 200, $this->request( 'GET', '/history/jobs/' . $job['id'] )->get_status() );
-		$this->assertSame( 403, $this->request( 'GET', '/history/jobs/' . $job['id'], array(), $this->editor )->get_status() );
+		$this->assertSame( 200, $this->request( 'GET', '/history/jobs/' . $job['id'], array(), $this->editor )->get_status() );
+		$this->assertSame( 403, $this->request( 'GET', '/history/jobs/' . $job['id'], array(), $this->author )->get_status() );
 
 		// Action Scheduler lo ejecuta con presupuesto agotado: una tanda cada vez, sin perder el sitio.
 		wp_set_current_user( $this->subscriber );

@@ -141,6 +141,16 @@ final class HistoryController implements Module {
 			)
 		);
 
+		register_rest_route(
+			$ns,
+			'/history/jobs/(?P<id>\d+)/(?P<action>resume|cancel)',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'change_job' ),
+				'permission_callback' => array( $this, 'can_read' ),
+			)
+		);
+
 		foreach ( array(
 			'undo' => 'post_undo',
 			'redo' => 'post_redo',
@@ -246,12 +256,67 @@ final class HistoryController implements Module {
 			return $this->not_found();
 		}
 
-		// Un proceso lo ve quien lo lanzó y quien administra el plugin.
-		if ( get_current_user_id() !== $job['created_by'] && ! current_user_can( 'manage_options' ) ) {
+		// Lo ve quien puede ver el grupo (el listado lo adjunta a todos ellos), además de quien lo lanzó y quien administra.
+		if ( ! $this->can_follow( $job ) ) {
 			return $this->forbidden();
 		}
 
 		return new WP_REST_Response( array( 'job' => $this->present_job( $job ) ) );
+	}
+
+	/**
+	 * POST /history/jobs/{id}/resume|cancel: recupera o cancela un proceso atascado (quien lo lanzó o un administrador).
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function change_job( WP_REST_Request $request ) {
+		$job = $this->jobs->get( (int) $request['id'] );
+		if ( null === $job || BatchJob::TYPE !== $job['type'] ) {
+			return $this->not_found();
+		}
+		if ( ! $this->can_control( $job ) ) {
+			return $this->forbidden();
+		}
+
+		$ok = 'cancel' === $request['action'] ? $this->batches->cancel( $job['id'] ) : $this->batches->resume( $job['id'] );
+		if ( ! $ok ) {
+			return new WP_Error( 'magiclinking_job_state', __( 'That process cannot be changed in its current state.', 'magic-linking' ), array( 'status' => 409 ) );
+		}
+
+		$batch = (string) ( $job['params']['batch_id'] ?? '' );
+
+		return new WP_REST_Response(
+			array(
+				'job'   => $this->present_job( (array) $this->jobs->get( $job['id'] ) ),
+				'group' => '' === $batch ? null : $this->reader->group( $batch, get_current_user_id() ),
+			)
+		);
+	}
+
+	/**
+	 * Si el usuario puede ver el avance de un proceso.
+	 *
+	 * @param array<string, mixed> $job Proceso.
+	 */
+	private function can_follow( array $job ): bool {
+		if ( $this->can_control( $job ) ) {
+			return true;
+		}
+
+		$batch = (string) ( $job['params']['batch_id'] ?? '' );
+
+		return '' !== $batch && null !== $this->reader->group( $batch, get_current_user_id() );
+	}
+
+	/**
+	 * Si el usuario puede reanudar o cancelar un proceso: quien lo lanzó o quien administra el plugin.
+	 *
+	 * @param array<string, mixed> $job Proceso.
+	 */
+	private function can_control( array $job ): bool {
+		return get_current_user_id() === (int) $job['created_by'] || current_user_can( 'manage_options' );
 	}
 
 	/**
@@ -301,6 +366,9 @@ final class HistoryController implements Module {
 			if ( ! $this->reader->can_edit( $user, $change['post_id'] ) ) {
 				return $this->forbidden();
 			}
+			if ( $this->batches->is_busy( $change['batch_id'] ) ) {
+				return $this->busy_batch();
+			}
 
 			$result = $redo ? $this->redo->redo( $change_id, $user ) : $this->undo->revert( $change_id, $user );
 
@@ -311,13 +379,16 @@ final class HistoryController implements Module {
 					'job'     => null,
 				)
 			);
-		}
+		}//end if
 
 		if ( null === $this->reader->group( $batch_id, $user ) ) {
 			return $this->not_found();
 		}
 		if ( array() !== $this->reader->not_editable( $batch_id, $user ) ) {
 			return $this->forbidden();
+		}
+		if ( $this->batches->is_busy( $batch_id ) ) {
+			return $this->busy_batch();
 		}
 
 		// Un grupo grande va por Action Scheduler: de uno en uno por sitio, con su avance en magiclinking_jobs.
@@ -390,20 +461,28 @@ final class HistoryController implements Module {
 		$params  = (array) $job['params'];
 
 		return array(
-			'id'         => $base['id'],
-			'status'     => $base['status'],
-			'mode'       => 'redo' === ( $params['mode'] ?? '' ) ? 'redo' : 'undo',
-			'batch_id'   => (string) ( $params['batch_id'] ?? '' ),
-			'total'      => $base['total'],
-			'done'       => $base['done'],
-			'percent'    => $base['percent'],
-			'counts'     => (object) ( is_array( $params['counts'] ?? null ) ? $params['counts'] : array() ),
-			'issues'     => is_array( $params['issues'] ?? null ) ? $params['issues'] : array(),
-			'error'      => $base['error'],
-			'stalled'    => in_array( $job['status'], array( JobRepository::QUEUED, JobRepository::RUNNING ), true ) && false !== $updated && ( time() - $updated ) > 10 * MINUTE_IN_SECONDS,
-			'created_at' => $base['created_at'],
-			'updated_at' => $base['updated_at'],
+			'id'          => $base['id'],
+			'status'      => $base['status'],
+			'mode'        => 'redo' === ( $params['mode'] ?? '' ) ? 'redo' : 'undo',
+			'batch_id'    => (string) ( $params['batch_id'] ?? '' ),
+			'total'       => $base['total'],
+			'done'        => $base['done'],
+			'percent'     => $base['percent'],
+			'counts'      => (object) ( is_array( $params['counts'] ?? null ) ? $params['counts'] : array() ),
+			'issues'      => is_array( $params['issues'] ?? null ) ? $params['issues'] : array(),
+			'error'       => $base['error'],
+			'can_control' => $this->can_control( $job ),
+			'stalled'     => in_array( $job['status'], array( JobRepository::QUEUED, JobRepository::RUNNING ), true ) && false !== $updated && ( time() - $updated ) > 10 * MINUTE_IN_SECONDS,
+			'created_at'  => $base['created_at'],
+			'updated_at'  => $base['updated_at'],
 		);
+	}
+
+	/**
+	 * Error 409: el lote ya lo está tratando un proceso en segundo plano.
+	 */
+	private function busy_batch(): WP_Error {
+		return new WP_Error( 'magiclinking_batch_busy', __( 'This batch is being processed in the background. Wait for it to finish or cancel it.', 'magic-linking' ), array( 'status' => 409 ) );
 	}
 
 	/**

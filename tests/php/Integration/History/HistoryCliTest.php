@@ -14,6 +14,7 @@ use MagicLinking\Core\Plugin;
 use MagicLinking\Core\Settings;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\ReportRepository;
+use MagicLinking\History\BatchJob;
 use MagicLinking\History\ChangeRepository;
 use MagicLinking\History\Reader;
 use MagicLinking\History\Redo;
@@ -40,7 +41,8 @@ final class HistoryCliTest extends HistoryTestCase {
 			$c->get( Undo::class ),
 			$c->get( Retention::class ),
 			$c->get( ChangeRepository::class ),
-			$c->get( Redo::class )
+			$c->get( Redo::class ),
+			$c->get( BatchJob::class )
 		);
 	}
 

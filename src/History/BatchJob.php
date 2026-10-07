@@ -13,6 +13,7 @@ use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
 use MagicLinking\Jobs\JobRepository;
+use MagicLinking\Jobs\Jobs;
 use Throwable;
 use WP_Post;
 
@@ -70,7 +71,13 @@ final class BatchJob implements Module {
 	 */
 	public function register(): void {
 		add_action( self::HOOK, array( $this, 'run' ), 10, 1 );
+		add_action( Jobs::HOOK_NIGHTLY, array( $this, 'recover' ), 30 );
 	}
+
+	/**
+	 * Minutos sin avanzar a partir de los cuales un proceso sin acción pendiente se da por muerto.
+	 */
+	public const STALL_MINUTES = 10;
 
 	/**
 	 * Cambios por encima de los cuales se va a segundo plano.
@@ -123,12 +130,88 @@ final class BatchJob implements Module {
 	}
 
 	/**
-	 * Proceso sin terminar de este tipo.
+	 * Proceso sin terminar de este tipo (antes de devolverlo se recupera el que se haya quedado atascado).
 	 *
 	 * @return array{id: int, type: string, status: string, total: int, done: int, params: array<string, mixed>, error: string, created_by: int, created_at: string, updated_at: string}|null
 	 */
 	public function active(): ?array {
+		$this->recover();
+
 		return $this->jobs->active( self::TYPE );
+	}
+
+	/**
+	 * Si un grupo tiene ahora mismo un proceso en segundo plano (no se puede deshacer ni rehacer a mano).
+	 *
+	 * @param string $batch_id Lote.
+	 */
+	public function is_busy( string $batch_id ): bool {
+		$active = $this->active();
+
+		return null !== $active && ( $active['params']['batch_id'] ?? '' ) === $batch_id;
+	}
+
+	/**
+	 * Recupera un proceso atascado para que no bloquee para siempre los deshacer grandes: uno en pausa (este
+	 * proceso no se pausa) se cancela, y uno en cola o en marcha que lleva {@see self::STALL_MINUTES} minutos sin
+	 * avanzar y sin acción pendiente en Action Scheduler (murió, o se borró la acción) se vuelve a programar.
+	 */
+	public function recover(): void {
+		$job = $this->jobs->active( self::TYPE );
+		if ( null === $job ) {
+			return;
+		}
+
+		if ( JobRepository::PAUSED === $job['status'] ) {
+			$this->cancel( $job['id'] );
+			return;
+		}
+
+		$updated = strtotime( $job['updated_at'] . ' UTC' );
+		if ( false === $updated || ( time() - $updated ) <= self::STALL_MINUTES * MINUTE_IN_SECONDS ) {
+			return;
+		}
+		if ( ! as_has_scheduled_action( self::HOOK, array( $job['id'] ), Installer::ACTION_GROUP ) ) {
+			$this->resume( $job['id'] );
+		}
+	}
+
+	/**
+	 * Vuelve a programar un proceso sin terminar (continúa por el cursor).
+	 *
+	 * @param int $job_id Proceso.
+	 *
+	 * @return bool False si no es de este tipo o ya terminó.
+	 */
+	public function resume( int $job_id ): bool {
+		$job = $this->jobs->get( $job_id );
+		if ( null === $job || self::TYPE !== $job['type'] || ! in_array( $job['status'], JobRepository::ACTIVE, true ) ) {
+			return false;
+		}
+
+		$this->jobs->set_status( $job_id, JobRepository::QUEUED );
+		as_enqueue_async_action( self::HOOK, array( $job_id ), Installer::ACTION_GROUP, true );
+
+		return true;
+	}
+
+	/**
+	 * Cancela un proceso sin terminar: lo ya tratado se queda tratado y el grupo vuelve a poder deshacerse a mano.
+	 *
+	 * @param int $job_id Proceso.
+	 *
+	 * @return bool False si no es de este tipo o ya terminó.
+	 */
+	public function cancel( int $job_id ): bool {
+		$job = $this->jobs->get( $job_id );
+		if ( null === $job || self::TYPE !== $job['type'] || ! in_array( $job['status'], JobRepository::ACTIVE, true ) ) {
+			return false;
+		}
+
+		as_unschedule_all_actions( self::HOOK, array( $job_id ), Installer::ACTION_GROUP );
+		$this->jobs->set_status( $job_id, JobRepository::CANCELLED );
+
+		return true;
 	}
 
 	/**

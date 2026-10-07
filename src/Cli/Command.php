@@ -12,6 +12,7 @@ namespace MagicLinking\Cli;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\IndexOutcome;
 use MagicLinking\Graph\ReportRepository;
+use MagicLinking\History\BatchJob;
 use MagicLinking\History\ChangeRepository;
 use MagicLinking\History\Reader;
 use MagicLinking\History\Redo;
@@ -87,6 +88,13 @@ final class Command {
 	private Redo $redo;
 
 	/**
+	 * Procesos de deshacer en segundo plano.
+	 *
+	 * @var BatchJob
+	 */
+	private BatchJob $batches;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Jobs             $jobs      Procesos.
@@ -97,8 +105,9 @@ final class Command {
 	 * @param Retention        $retention Purga del historial.
 	 * @param ChangeRepository $changes   Historial.
 	 * @param Redo             $redo      Rehacer.
+	 * @param BatchJob         $batches   Procesos de deshacer en segundo plano.
 	 */
-	public function __construct( Jobs $jobs, ReportRepository $report, BrokenRepository $broken, Reader $history, Undo $undo, Retention $retention, ChangeRepository $changes, Redo $redo ) {
+	public function __construct( Jobs $jobs, ReportRepository $report, BrokenRepository $broken, Reader $history, Undo $undo, Retention $retention, ChangeRepository $changes, Redo $redo, BatchJob $batches ) {
 		$this->jobs      = $jobs;
 		$this->report    = $report;
 		$this->broken    = $broken;
@@ -107,6 +116,7 @@ final class Command {
 		$this->retention = $retention;
 		$this->changes   = $changes;
 		$this->redo      = $redo;
+		$this->batches   = $batches;
 	}
 
 	/**
@@ -524,6 +534,9 @@ final class Command {
 	 * [--per-page=<n>]
 	 * : Con list, cuántos grupos mostrar (20 por defecto).
 	 *
+	 * [--before=<batch_id>]
+	 * : Con list, empieza por los grupos anteriores a este (el cursor que imprime la página anterior).
+	 *
 	 * [--format=<format>]
 	 * : Formato de list.
 	 * ---
@@ -549,8 +562,9 @@ final class Command {
 
 		switch ( $action ) {
 			case 'list':
-				$page  = $this->history->groups( $user, null, max( 1, absint( $assoc_args['per-page'] ?? 20 ) ) );
-				$items = array();
+				$before = isset( $assoc_args['before'] ) ? (string) $assoc_args['before'] : null;
+				$page   = $this->history->groups( $user, $before, max( 1, absint( $assoc_args['per-page'] ?? 20 ) ) );
+				$items  = array();
 				foreach ( $page['items'] as $group ) {
 					$items[] = array(
 						'batch_id'   => $group['batch_id'],
@@ -562,6 +576,16 @@ final class Command {
 					);
 				}
 				\WP_CLI\Utils\format_items( (string) ( $assoc_args['format'] ?? 'table' ), $items, array( 'batch_id', 'created_at', 'user', 'links', 'active', 'entries' ) );
+				if ( null !== $page['next'] ) {
+					// Hay más grupos (o se acabó el escaneo de esta vuelta): se da el cursor para seguir.
+					WP_CLI::warning(
+						sprintf(
+							/* translators: %s: batch ID. */
+							__( 'There are more batches. Continue with: wp magic-linking history list --before=%s', 'magic-linking' ),
+							$page['next']
+						)
+					);
+				}
 				return;
 
 			case 'purge':
@@ -587,6 +611,10 @@ final class Command {
 	private function history_batch( bool $redo, string $batch_id, int $user ): void {
 		if ( null === $this->history->group( $batch_id, $user ) ) {
 			WP_CLI::error( __( 'There is no such group in the history (or you cannot edit all of its entries).', 'magic-linking' ) );
+		}
+
+		if ( $this->batches->is_busy( $batch_id ) ) {
+			WP_CLI::error( __( 'This batch is being processed in the background. Wait for it to finish or cancel it.', 'magic-linking' ) );
 		}
 
 		$denied = $this->history->not_editable( $batch_id, $user );

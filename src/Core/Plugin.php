@@ -269,7 +269,7 @@ final class Plugin {
 			SettingsController::class => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ) ),
 			ExportHandler::class      => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ) ),
 			CliModule::class          => static fn( Container $c ): CliModule => new CliModule(
-				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ) )
+				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) )
 			),
 			Screen::class             => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ) ),
 			TextDomain::class         => static fn(): TextDomain => new TextDomain(),

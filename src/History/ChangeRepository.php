@@ -41,6 +41,14 @@ final class ChangeRepository {
 	private string $table;
 
 	/**
+	 * Inserciones ya leídas de un solo lote en esta petición (la huella MD5 recorre el HTML de cada fila, y una
+	 * petición pregunta varias veces por el mismo lote). Cualquier escritura la vacía.
+	 *
+	 * @var array<string, array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}>>>
+	 */
+	private array $memo = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param wpdb $wpdb Conexión.
@@ -65,7 +73,8 @@ final class ChangeRepository {
 	 * @return int ID de la fila; 0 si no se ha podido guardar (en ese caso no se escribe el contenido).
 	 */
 	public function record( string $batch_id, int $post_id, string $action, ?string $block_path, string $before_html, string $after_html, string $content_hash_after, int $user_id ): int {
-		$wpdb = $this->wpdb;
+		$wpdb       = $this->wpdb;
+		$this->memo = array();
 
 		$done = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Tabla propia.
 			$this->table,
@@ -120,6 +129,7 @@ final class ChangeRepository {
 	 * @param int $id ID.
 	 */
 	public function mark_undone( int $id ): void {
+		$this->memo = array();
 		$this->wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Tabla propia.
 			$this->table,
 			array( 'undone_at' => current_time( 'mysql', true ) ),
@@ -135,6 +145,7 @@ final class ChangeRepository {
 	 * @param int $id ID.
 	 */
 	public function delete( int $id ): void {
+		$this->memo = array();
 		$this->wpdb->delete( $this->table, array( 'id' => $id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Tabla propia.
 	}
 
@@ -205,6 +216,9 @@ final class ChangeRepository {
 		if ( array() === $batch_ids ) {
 			return array();
 		}
+		if ( 1 === count( $batch_ids ) && isset( $this->memo[ $batch_ids[0] ] ) ) {
+			return $this->memo[ $batch_ids[0] ];
+		}
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Lista de marcadores generada con array_fill().
 		$placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%s' ) );
@@ -229,6 +243,10 @@ final class ChangeRepository {
 				'undone_at'  => null === $row['undone_at'] ? null : (string) $row['undone_at'],
 				'slot'       => (string) $row['slot'],
 			);
+		}
+
+		if ( 1 === count( $batch_ids ) ) {
+			$this->memo[ $batch_ids[0] ] = $by_batch;
 		}
 
 		return $by_batch;
@@ -280,7 +298,7 @@ final class ChangeRepository {
 
 		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
 			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE batch_id IN ( SELECT batch_id FROM ( SELECT batch_id FROM %i GROUP BY batch_id HAVING MAX( created_at ) < %s ) AS expired )',
+				'SELECT COUNT(*) FROM %i WHERE batch_id IN ( SELECT batch_id FROM ( SELECT batch_id FROM %i GROUP BY batch_id HAVING GREATEST( MAX( created_at ), COALESCE( MAX( undone_at ), MAX( created_at ) ) ) < %s ) AS expired )',
 				$this->table,
 				$this->table,
 				$cutoff
@@ -289,7 +307,7 @@ final class ChangeRepository {
 	}
 
 	/**
-	 * Borra grupos enteros cuya última actividad (insertar o deshacer) es anterior a la fecha límite.
+	 * Borra grupos enteros cuya última actividad (insertar, o deshacer aunque no escriba nada) es anterior a la fecha límite.
 	 * Un grupo con actividad reciente se conserva completo. Trabaja por lotes: llámala hasta que
 	 * devuelva 0.
 	 *
@@ -299,15 +317,17 @@ final class ChangeRepository {
 	 * @return int Filas borradas.
 	 */
 	public function purge( string $cutoff, int $groups = 100 ): int {
-		$wpdb = $this->wpdb;
+		$wpdb       = $this->wpdb;
+		$this->memo = array();
 
 		// Grupos con alguna fila antigua (índice created_at) y ninguna reciente.
 		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
 			$wpdb->prepare(
-				'SELECT DISTINCT c.batch_id FROM %i c WHERE c.created_at < %s AND NOT EXISTS ( SELECT 1 FROM %i n WHERE n.batch_id = c.batch_id AND n.created_at >= %s ) LIMIT %d',
+				'SELECT DISTINCT c.batch_id FROM %i c WHERE c.created_at < %s AND NOT EXISTS ( SELECT 1 FROM %i n WHERE n.batch_id = c.batch_id AND ( n.created_at >= %s OR n.undone_at >= %s ) ) LIMIT %d',
 				$this->table,
 				$cutoff,
 				$this->table,
+				$cutoff,
 				$cutoff,
 				max( 1, $groups )
 			)

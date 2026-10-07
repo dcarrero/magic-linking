@@ -226,14 +226,7 @@ final class Reader {
 	 * @return list<int>
 	 */
 	public function pending( string $batch_id, bool $undone ): array {
-		$ids = array();
-		foreach ( Slots::collapse( $this->changes->inserts_of( array( $batch_id ) )[ $batch_id ] ?? array() ) as $slot ) {
-			if ( ( null !== $slot['undone_at'] ) === $undone ) {
-				$ids[] = $slot['id'];
-			}
-		}
-
-		return $undone ? $ids : array_reverse( $ids );
+		return Slots::ordered_ids( $this->changes->inserts_of( array( $batch_id ) )[ $batch_id ] ?? array(), $undone );
 	}
 
 	/**
