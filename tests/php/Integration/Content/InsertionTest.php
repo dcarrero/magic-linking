@@ -25,6 +25,11 @@ final class InsertionTest extends GraphTestCase {
 	use Fixtures;
 
 	/**
+	 * URL de destino de las pruebas.
+	 */
+	private const URL = 'https://example.org/aire-acondicionado/';
+
+	/**
 	 * Destino de los enlaces.
 	 *
 	 * @var int

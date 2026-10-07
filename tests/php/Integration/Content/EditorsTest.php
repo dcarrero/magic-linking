@@ -26,6 +26,11 @@ final class EditorsTest extends TestCase {
 	use Fixtures;
 
 	/**
+	 * URL de destino de las pruebas.
+	 */
+	private const URL = 'https://example.org/aire-acondicionado/';
+
+	/**
 	 * Inserta en bloques y comprueba, además, que el verificador da por bueno el resultado.
 	 *
 	 * @param string        $content Contenido.

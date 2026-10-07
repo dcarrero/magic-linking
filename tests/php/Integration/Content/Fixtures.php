@@ -11,12 +11,10 @@ namespace MagicLinking\Tests\Integration\Content;
 
 use MagicLinking\Content\InsertRequest;
 
+/**
+ * Las clases que lo usan declaran `private const URL` (los rasgos no pueden tener constantes en PHP 8.1).
+ */
 trait Fixtures {
-
-	/**
-	 * URL de destino de las pruebas.
-	 */
-	private const URL = 'https://example.org/aire-acondicionado/';
 
 	/**
 	 * Un párrafo de bloques, tal como lo guarda el editor.
