@@ -10,9 +10,10 @@ declare(strict_types=1);
 namespace MagicLinking\Content;
 
 use MagicLinking\Core\Settings;
-use MagicLinking\Graph\GraphIndexer;
+use MagicLinking\Jobs\Jobs;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\ChangeRepository;
+use Throwable;
 
 /**
  * Orquesta una inserción: comprueba que se puede tocar la entrada, localiza la frase y el ancla
@@ -29,13 +30,13 @@ final class Inserter {
 	 *
 	 * @param PostWriter       $writer   Lectura y escritura del contenido.
 	 * @param ChangeRepository $changes  Historial.
-	 * @param GraphIndexer     $graph    Grafo de enlaces (se actualiza tras escribir).
+	 * @param Jobs             $jobs     Indexado (se reindexa una vez tras escribir).
 	 * @param Settings         $settings Ajustes.
 	 */
 	public function __construct(
 		private PostWriter $writer,
 		private ChangeRepository $changes,
-		private GraphIndexer $graph,
+		private Jobs $jobs,
 		private Settings $settings
 	) {
 	}
@@ -54,30 +55,13 @@ final class Inserter {
 			throw new InsertionException( InsertionException::NOT_ALLOWED, __( 'This content type is not one that Magic Linking analyzes.', 'magic-linking' ) );
 		}
 
-		$content = $this->writer->read( $request->post_id );
-		$edit    = BlockEditor::handles( $content ) ? ( new BlockEditor() )->insert( $content, $request ) : ( new ClassicEditor() )->insert( $content, $request );
-
-		$check = Verifier::check( $content, $edit->content, array( $edit->start, $edit->end ), 1 );
-		if ( ! $check->ok ) {
-			PostWriter::log( sprintf( 'Verificación fallida al insertar en la entrada %d: %s.', $request->post_id, $check->reason ) );
-			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only the link; nothing was written.', 'magic-linking' ) );
-		}
-
-		$user     = $request->user_id ?? get_current_user_id();
 		$batch_id = $batch_id ?? BatchId::generate();
 
-		// El historial va primero: si la escritura no llega a hacerse, la fila se retira.
-		$id = $this->changes->record( $batch_id, $request->post_id, ChangeRepository::INSERT, $edit->path, $edit->before_html, $edit->after_html, PostWriter::hash( $edit->content ), $user );
-		if ( 0 === $id ) {
-			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) );
-		}
-
-		try {
-			$this->writer->write( $request->post_id, $content, $edit->content, $request->user_id );
-		} catch ( InsertionException $e ) {
-			$this->changes->delete( $id );
-			throw $e;
-		}
+		// Leer, verificar y escribir con la entrada reservada: dos operaciones a la vez no se pisan.
+		// El guardado no indexa por su cuenta: se indexa una sola vez, ya con el cambio verificado y escrito.
+		$result = $this->jobs->without_save_indexing(
+			fn(): InsertResult => $this->writer->exclusive( $request->post_id, fn(): InsertResult => $this->apply( $request, $batch_id ) )
+		);
 
 		$this->refresh( $request->post_id );
 
@@ -88,18 +72,62 @@ final class Inserter {
 		 * @param int    $post_id   Entrada modificada.
 		 * @param string $batch_id  Lote.
 		 */
-		do_action( 'magiclinking_link_inserted', $id, $request->post_id, $batch_id );
+		do_action( 'magiclinking_link_inserted', $result->change_id, $result->post_id, $result->batch_id );
+
+		return $result;
+	}
+
+	/**
+	 * Calcula, verifica, anota y escribe.
+	 *
+	 * @param InsertRequest $request  Petición.
+	 * @param string        $batch_id Lote.
+	 *
+	 * @throws InsertionException Si no se puede insertar con seguridad; no se ha escrito nada.
+	 * @throws Throwable Lo que lance WordPress o un complemento al guardar (se relanza tras limpiar el historial).
+	 */
+	private function apply( InsertRequest $request, string $batch_id ): InsertResult {
+		$content = $this->writer->read( $request->post_id );
+		$edit    = BlockEditor::handles( $content ) ? ( new BlockEditor() )->insert( $content, $request ) : ( new ClassicEditor() )->insert( $content, $request );
+
+		$check = Verifier::check( $content, $edit->content, array( $edit->start, $edit->end ), 1 );
+		if ( ! $check->ok ) {
+			PostWriter::log( sprintf( 'Verificación fallida al insertar en la entrada %d: %s.', $request->post_id, $check->reason ) );
+			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only the link; nothing was written.', 'magic-linking' ) );
+		}
+
+		$user = $request->user_id ?? get_current_user_id();
+
+		// El historial va primero: si la escritura no llega a hacerse, la fila se retira.
+		$id = $this->changes->record( $batch_id, $request->post_id, ChangeRepository::INSERT, $edit->path, $edit->before_html, $edit->after_html, PostWriter::hash( $edit->content ), $user );
+		if ( 0 === $id ) {
+			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) );
+		}
+
+		try {
+			$this->writer->write( $request->post_id, $content, $edit->content, $request->user_id );
+		} catch ( Throwable $e ) {
+			// Solo se conserva la fila si el contenido nuevo llegó a quedar guardado.
+			if ( $this->writer->read( $request->post_id ) !== $edit->content ) {
+				$this->changes->delete( $id );
+			}
+			throw $e;
+		}
 
 		return new InsertResult( $id, $batch_id, $request->post_id, $edit->path );
 	}
 
 	/**
-	 * Actualiza el grafo de la entrada y los recuentos de su destino y de los que cambian.
+	 * Reindexa la entrada una vez (el grafo y el índice léxico).
 	 *
 	 * @param int $post_id Entrada.
 	 */
 	private function refresh( int $post_id ): void {
-		$this->graph->flush();
-		$this->graph->index_and_refresh( $post_id );
+		try {
+			$this->jobs->reindex_now( $post_id );
+		} catch ( Throwable $e ) {
+			// El enlace ya está escrito; un fallo del índice se reintenta en el siguiente guardado o en el recálculo nocturno.
+			PostWriter::log( sprintf( 'No se pudo actualizar el grafo de la entrada %d: %s', $post_id, $e->getMessage() ) );
+		}
 	}
 }

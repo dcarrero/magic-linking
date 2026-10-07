@@ -23,6 +23,9 @@ final class UndoResult {
 	/** No se ha tocado nada: hay que quitar el enlace a mano. */
 	public const MANUAL = 'manual';
 
+	/** El enlace ya no estaba en la entrada (borrado a mano o recuperado de una revisión). */
+	public const GONE = 'already_gone';
+
 	/** El cambio ya estaba deshecho. */
 	public const ALREADY = 'already_undone';
 
@@ -53,6 +56,6 @@ final class UndoResult {
 	 * Si el contenido quedó sin el enlace (ahora o antes).
 	 */
 	public function done(): bool {
-		return in_array( $this->status, array( self::RESTORED, self::LINK_REMOVED, self::ALREADY ), true );
+		return in_array( $this->status, array( self::RESTORED, self::LINK_REMOVED, self::GONE, self::ALREADY ), true );
 	}
 }

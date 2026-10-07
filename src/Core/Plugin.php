@@ -201,13 +201,13 @@ final class Plugin {
 			Inserter::class           => static fn( Container $c ): Inserter => new Inserter(
 				$c->get( PostWriter::class ),
 				$c->get( ChangeRepository::class ),
-				$c->get( GraphIndexer::class ),
+				$c->get( Jobs::class ),
 				$c->get( Settings::class )
 			),
 			Undo::class               => static fn( Container $c ): Undo => new Undo(
 				$c->get( PostWriter::class ),
 				$c->get( ChangeRepository::class ),
-				$c->get( GraphIndexer::class )
+				$c->get( Jobs::class )
 			),
 			JobRepository::class      => static function (): JobRepository {
 				global $wpdb;
