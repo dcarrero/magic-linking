@@ -37,3 +37,6 @@
 /test-results
 /playwright-report
 /.wordpress-org
+# Las traducciones viajan compiladas (.mo para PHP y .json para JavaScript); los .po son su fuente
+# y WordPress no los lee. Quitarlos ahorra unos 80 KB del ZIP con seis idiomas.
+/languages/*.po

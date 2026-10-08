@@ -1,0 +1,1478 @@
+# Tradução para português do Brasil do Magic Linking.
+# Copyright (C) 2026 Color Vivo
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Magic Linking 0.10.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
+"POT-Creation-Date: 2026-10-07T13:47:59+00:00\n"
+"PO-Revision-Date: 2026-10-08 12:00+0000\n"
+"Last-Translator: Color Vivo\n"
+"Language-Team: Português do Brasil\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: magic-linking\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#. Plugin Name of the plugin
+#: magic-linking.php src/Admin/Screen.php:136
+msgid "Magic Linking"
+msgstr "Magic Linking"
+
+#. Plugin URI of the plugin
+#: magic-linking.php
+msgid "https://magiclinking.com"
+msgstr "https://magiclinking.com"
+
+#. Description of the plugin
+#: magic-linking.php
+msgid "Internal link suggestions in the editor. Link in one click, check that nothing else changes, undo from History. Plus orphan and broken link reports."
+msgstr "Sugestões de links internos no editor. Vincule com um clique, confira que nada mais muda e desfaça pelo Histórico. Além disso, relatórios de conteúdos órfãos e de links quebrados."
+
+#. Author of the plugin
+#: magic-linking.php
+msgid "Color Vivo"
+msgstr "Color Vivo"
+
+#. Author URI of the plugin
+#: magic-linking.php
+msgid "https://colorvivo.com"
+msgstr "https://colorvivo.com"
+
+#. translators: 1: minimum PHP version, 2: PHP version in use.
+#: magic-linking.php:53
+#, php-format
+msgid "PHP %1$s or later (this site runs PHP %2$s)"
+msgstr "PHP %1$s ou posterior (este site usa o PHP %2$s)"
+
+#. translators: 1: minimum WordPress version, 2: WordPress version in use.
+#: magic-linking.php:58
+#, php-format
+msgid "WordPress %1$s or later (this site runs WordPress %2$s)"
+msgstr "WordPress %1$s ou posterior (este site usa o WordPress %2$s)"
+
+#: magic-linking.php:62
+msgid "the PHP mbstring extension"
+msgstr "a extensão mbstring do PHP"
+
+#. translators: %s: list of missing requirements, separated by commas.
+#: magic-linking.php:75
+#, php-format
+msgid "Magic Linking needs %s. It has not been loaded."
+msgstr "O Magic Linking precisa de %s. Ele não foi carregado."
+
+#: magic-linking.php:104
+msgid "Plugin not activated"
+msgstr "Plugin não ativado"
+
+#: magic-linking.php:125
+msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
+msgstr "Estão faltando no Magic Linking as bibliotecas incluídas (a pasta vendor). Reinstale o plugin a partir do wordpress.org. Ele não foi carregado."
+
+#: src/Admin/EditorPanel.php:88 src/Admin/Screen.php:283
+#: assets/build/editor.js:9 assets/build/index.js:38
+msgid "Internal links"
+msgstr "Links internos"
+
+#: src/Admin/EditorPanel.php:101 src/Admin/Screen.php:284
+#: assets/build/index.js:6 assets/build/index.js:17 assets/build/index.js:25
+#: assets/build/index.js:37
+msgid "Loading…"
+msgstr "Carregando…"
+
+#: src/Admin/EditorPanel.php:102
+msgid "This box needs JavaScript to show the link suggestions."
+msgstr "Esta caixa precisa de JavaScript para mostrar as sugestões de links."
+
+#: src/Admin/Screen.php:92
+msgid "Open report"
+msgstr "Abrir relatório"
+
+#: src/Admin/Screen.php:141 assets/build/index.js:37
+msgid "Report"
+msgstr "Relatório"
+
+#: src/Admin/Screen.php:147 assets/build/index.js:37 assets/build/index.js:38
+msgid "Broken links"
+msgstr "Links quebrados"
+
+#: src/Admin/Screen.php:151 assets/build/index.js:37
+msgid "History"
+msgstr "Histórico"
+
+#: src/Admin/Screen.php:155 assets/build/index.js:37
+msgid "Settings"
+msgstr "Configurações"
+
+#: src/Admin/Screen.php:202
+msgid "Items per page"
+msgstr "Itens por página"
+
+#: src/Admin/Screen.php:278
+msgid "You do not have permission to see this page."
+msgstr "Você não tem permissão para ver esta página."
+
+#: src/Admin/Screen.php:285
+msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
+msgstr "Esta tela precisa de JavaScript. Você pode obter o mesmo relatório com o WP-CLI: wp magic-linking report"
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:165
+#, php-format
+msgid "Process %1$d is paused. Resume it with: wp magic-linking job resume %2$d"
+msgstr "O processo %1$d está pausado. Retome-o com: wp magic-linking job resume %2$d"
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:176
+#, php-format
+msgid "Process %d queued. It will run in the background with Action Scheduler."
+msgstr "Processo %d na fila. Ele será executado em segundo plano com o Action Scheduler."
+
+#: src/Cli/Command.php:183
+msgid "Analyzing entries"
+msgstr "Analisando conteúdos"
+
+#. translators: 1: new or modified entries, 2: unchanged entries skipped.
+#: src/Cli/Command.php:199
+#, php-format
+msgid "%1$d new or modified, %2$d unchanged and skipped."
+msgstr "%1$d novos ou modificados, %2$d sem alterações e ignorados."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:207
+#, php-format
+msgid "%d entry analyzed."
+msgid_plural "%d entries analyzed."
+msgstr[0] "%d conteúdo analisado."
+msgstr[1] "%d conteúdos analisados."
+
+#: src/Cli/Command.php:217
+msgid "The process did not finish. Check its state with: wp magic-linking status"
+msgstr "O processo não terminou. Verifique o estado dele com: wp magic-linking status"
+
+#: src/Cli/Command.php:350
+msgid "Invalid filter. Use: all, orphans, low, over or broken."
+msgstr "Filtro inválido. Use: all, orphans, low, over ou broken."
+
+#: src/Cli/Command.php:353
+msgid "Invalid column for --orderby."
+msgstr "Coluna inválida para --orderby."
+
+#: src/Cli/Command.php:476
+msgid "Unknown action. Use: list, pause, resume or cancel."
+msgstr "Ação desconhecida. Use: list, pause, resume ou cancel."
+
+#: src/Cli/Command.php:481
+msgid "There is no such process."
+msgstr "Esse processo não existe."
+
+#: src/Cli/Command.php:496 src/Rest/HistoryController.php:285
+#: src/Rest/JobsController.php:170 src/Rest/JobsController.php:185
+msgid "That process cannot be changed in its current state."
+msgstr "Esse processo não pode ser alterado no estado atual."
+
+#. translators: 1: process ID, 2: new state.
+#: src/Cli/Command.php:502
+#, php-format
+msgid "Process %1$d is now %2$s."
+msgstr "O processo %1$d agora está no estado %2$s."
+
+#. translators: %s: batch ID.
+#: src/Cli/Command.php:584
+#, php-format
+msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
+msgstr "Há mais lotes. Continue com: wp magic-linking history list --before=%s"
+
+#: src/Cli/Command.php:601
+msgid "Unknown action. Use: list, undo, redo or purge."
+msgstr "Ação desconhecida. Use: list, undo, redo ou purge."
+
+#: src/Cli/Command.php:613
+msgid "There is no such group in the history (or you cannot edit all of its entries)."
+msgstr "Esse grupo não existe no histórico (ou você não pode editar todos os conteúdos dele)."
+
+#: src/Cli/Command.php:617 src/Rest/HistoryController.php:485
+msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
+msgstr "Este lote está sendo processado em segundo plano. Aguarde até que termine ou cancele-o."
+
+#: src/Cli/Command.php:622 src/Rest/HistoryController.php:499
+#: src/Rest/SuggestionsController.php:383
+msgid "You do not have permission to edit one of the entries involved."
+msgstr "Você não tem permissão para editar um dos conteúdos envolvidos."
+
+#. translators: %d: number of changes.
+#: src/Cli/Command.php:646
+#, php-format
+msgid "%d change could not be applied by itself."
+msgid_plural "%d changes could not be applied by themselves."
+msgstr[0] "%d alteração não pôde ser aplicada isoladamente."
+msgstr[1] "%d alterações não puderam ser aplicadas isoladamente."
+
+#: src/Cli/Command.php:653
+msgid "Group redone."
+msgstr "Grupo refeito."
+
+#: src/Cli/Command.php:653
+msgid "Group undone."
+msgstr "Grupo desfeito."
+
+#: src/Cli/Command.php:664
+msgid "The history never expires with the current setting; nothing to delete."
+msgstr "Com a configuração atual, o histórico nunca expira; não há nada para excluir."
+
+#. translators: %d: number of history rows.
+#: src/Cli/Command.php:673
+#, php-format
+msgid "%d history row has expired."
+msgid_plural "%d history rows have expired."
+msgstr[0] "%d linha do histórico expirou."
+msgstr[1] "%d linhas do histórico expiraram."
+
+#: src/Cli/Command.php:682
+msgid "Nothing has expired."
+msgstr "Nada expirou."
+
+#. translators: %d: number of history rows.
+#: src/Cli/Command.php:692
+#, php-format
+msgid "%d history row deleted."
+msgid_plural "%d history rows deleted."
+msgstr[0] "%d linha do histórico excluída."
+msgstr[1] "%d linhas do histórico excluídas."
+
+#: src/Cli/Command.php:706 src/Rest/SuggestionsController.php:552
+msgid "That entry does not exist."
+msgstr "Esse conteúdo não existe."
+
+#: src/Cli/Command.php:713
+msgid "Entry analyzed."
+msgstr "Conteúdo analisado."
+
+#: src/Cli/Command.php:716
+msgid "Nothing changed since the last analysis. Use --force to analyze it again."
+msgstr "Nada mudou desde a última análise. Use --force para analisá-lo novamente."
+
+#: src/Cli/Command.php:719
+msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
+msgstr "O conteúdo não está publicado ou não é de um tipo de conteúdo escolhido: foi retirado do relatório."
+
+#: src/Cli/Command.php:722
+msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
+msgstr "O conteúdo não está publicado ou não é de um tipo de conteúdo escolhido, então não é analisado."
+
+#: src/Cli/Command.php:735
+msgid "Could not open the output."
+msgstr "Não foi possível abrir a saída."
+
+#: src/Content/BlockEditor.php:46
+msgid "The block structure of this post could not be read, so it was left untouched."
+msgstr "Não foi possível ler a estrutura de blocos deste conteúdo, então ele não foi alterado."
+
+#: src/Content/BlockEditor.php:70
+msgid "The block contains markup (script, styles…) that cannot be scanned safely."
+msgstr "O bloco contém marcação (scripts, estilos…) que não pode ser examinada com segurança."
+
+#: src/Content/BlockEditor.php:90 src/Content/BlockEditor.php:129
+#: src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:181
+msgid "The text has changed."
+msgstr "O texto mudou."
+
+#: src/Content/BlockEditor.php:96
+msgid "The text of this block comes from another source (data binding) and cannot be edited here."
+msgstr "O texto deste bloco vem de outra fonte (vinculação de dados) e não pode ser editado aqui."
+
+#: src/Content/BlockEditor.php:172
+msgid "This text belongs to a reusable block: edit the original pattern."
+msgstr "Este texto pertence a um bloco reutilizável: edite o padrão original."
+
+#: src/Content/BlockEditor.php:175
+msgid "This text is in a block where links are not inserted automatically."
+msgstr "Este texto está em um bloco onde os links não são inseridos automaticamente."
+
+#: src/Content/ClassicEditor.php:45
+msgid "The post contains markup (script, styles…) that cannot be scanned safely."
+msgstr "O conteúdo contém marcação (scripts, estilos…) que não pode ser examinada com segurança."
+
+#: src/Content/Inserter.php:88
+msgid "All the links of one write must be for the same post and the same user."
+msgstr "Todos os links de uma mesma gravação devem ser para o mesmo conteúdo e o mesmo usuário."
+
+#: src/Content/Inserter.php:97
+msgid "This content type is not one that Magic Linking analyzes."
+msgstr "Este tipo de conteúdo não é um dos que o Magic Linking analisa."
+
+#: src/Content/Inserter.php:159 src/History/Redo.php:150
+msgid "The change could not be confirmed as only the link; nothing was written."
+msgstr "Não foi possível confirmar que a alteração afeta apenas o link; nada foi escrito."
+
+#: src/Content/Inserter.php:183 src/History/Redo.php:156
+#: src/History/Undo.php:184
+msgid "The change history could not be saved; nothing was written."
+msgstr "Não foi possível salvar o histórico de alterações; nada foi escrito."
+
+#: src/Content/InsertRequest.php:75
+msgid "The anchor is not part of the sentence."
+msgstr "A âncora não faz parte da frase."
+
+#: src/Content/Linker.php:46
+msgid "The anchor cannot be empty or start or end with a space."
+msgstr "A âncora não pode estar vazia nem começar ou terminar com um espaço."
+
+#: src/Content/Linker.php:75
+msgid "That text is already linked."
+msgstr "Esse texto já tem um link."
+
+#: src/Content/Linker.php:78
+msgid "This text is a heading and links in headings are not allowed."
+msgstr "Este texto é um título, e links em títulos não são permitidos."
+
+#: src/Content/Linker.php:81
+msgid "The anchor includes a shortcode, code or a line break and cannot be linked safely."
+msgstr "A âncora inclui um shortcode, código ou uma quebra de linha e não pode receber um link com segurança."
+
+#: src/Content/Linker.php:102
+msgid "The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it."
+msgstr "A âncora atravessa formatação de texto (negrito, itálico…) e não pode receber um link sem quebrá-la."
+
+#: src/Content/Linker.php:124
+msgid "The link address is not valid."
+msgstr "O endereço do link não é válido."
+
+#: src/Content/PostWriter.php:93
+msgid "The post does not exist or is in the trash."
+msgstr "O conteúdo não existe ou está na lixeira."
+
+#: src/Content/PostWriter.php:98
+msgid "You do not have permission to edit this post."
+msgstr "Você não tem permissão para editar este conteúdo."
+
+#: src/Content/PostWriter.php:136
+msgid "Another change is being applied to this post; try again in a moment."
+msgstr "Outra alteração está sendo aplicada a este conteúdo; tente novamente em instantes."
+
+#: src/Content/PostWriter.php:212 src/History/BatchJob.php:275
+msgid "WordPress could not save the post; nothing was changed."
+msgstr "O WordPress não conseguiu salvar o conteúdo; nada foi alterado."
+
+#: src/Content/PostWriter.php:293
+msgid "This post is open in your editor (maybe in another tab); add the link from there or close it and try again."
+msgstr "Este conteúdo está aberto no seu editor (talvez em outra aba); adicione o link por lá ou feche-o e tente novamente."
+
+#: src/Content/PostWriter.php:297
+msgid "someone else"
+msgstr "outra pessoa"
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:303
+#, php-format
+msgid "This post has just been opened by %s; try again later."
+msgstr "Este conteúdo acabou de ser aberto por %s; tente novamente mais tarde."
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:305
+#, php-format
+msgid "This post is being edited by %s; try again later."
+msgstr "Este conteúdo está sendo editado por %s; tente novamente mais tarde."
+
+#: src/Content/PostWriter.php:318
+msgid "WordPress altered the content when saving it (security filters); the original was restored and the link was not inserted."
+msgstr "O WordPress alterou o conteúdo ao salvá-lo (filtros de segurança); o original foi restaurado e o link não foi inserido."
+
+#: src/Content/PostWriter.php:319
+msgid "WordPress would alter the content when saving it (security filters); nothing was written and the link was not inserted."
+msgstr "O WordPress alteraria o conteúdo ao salvá-lo (filtros de segurança); nada foi escrito e o link não foi inserido."
+
+#: src/Graph/BrokenReason.php:31
+msgid "No entry exists with this URL."
+msgstr "Não existe nenhum conteúdo com esta URL."
+
+#: src/Graph/BrokenReason.php:33
+msgid "The destination entry is in the trash."
+msgstr "O conteúdo de destino está na lixeira."
+
+#: src/Graph/BrokenReason.php:35
+msgid "The destination entry is not published (draft, pending or scheduled)."
+msgstr "O conteúdo de destino não está publicado (rascunho, pendente ou agendado)."
+
+#: src/Graph/BrokenReason.php:37
+msgid "The destination entry is private."
+msgstr "O conteúdo de destino é privado."
+
+#: src/Graph/BrokenRepository.php:105 src/Graph/ReportRepository.php:294
+#: assets/build/classic.js:1 assets/build/editor.js:1 assets/build/index.js:14
+msgid "(no title)"
+msgstr "(sem título)"
+
+#: src/Graph/LinkStatus.php:69 assets/build/index.js:35
+msgid "Orphan"
+msgstr "Órfão"
+
+#: src/Graph/LinkStatus.php:71 assets/build/index.js:35
+#: assets/build/index.js:36
+msgid "Under-linked"
+msgstr "Pouco vinculado"
+
+#: src/Graph/LinkStatus.php:73 assets/build/index.js:35
+#: assets/build/index.js:36
+msgid "Over-linked"
+msgstr "Excesso de links"
+
+#: src/Graph/LinkStatus.php:75 assets/build/index.js:35
+msgid "OK"
+msgstr "OK"
+
+#: src/History/Reader.php:314
+msgid "Automatic"
+msgstr "Automático"
+
+#: src/History/Reader.php:319
+msgid "Deleted user"
+msgstr "Usuário excluído"
+
+#: src/History/Redo.php:57 src/History/Undo.php:90
+#: src/Rest/HistoryController.php:492
+msgid "That change does not exist."
+msgstr "Essa alteração não existe."
+
+#: src/History/Redo.php:62
+msgid "This link has not been undone, so there is nothing to redo."
+msgstr "Este link não foi desfeito, então não há nada para refazer."
+
+#: src/History/Redo.php:66
+msgid "This link was already added again."
+msgstr "Este link já foi adicionado novamente."
+
+#: src/History/Redo.php:84
+msgid "This post was edited afterwards; add the link again by hand."
+msgstr "Este conteúdo foi editado depois; adicione o link novamente manualmente."
+
+#: src/History/Redo.php:99
+msgid "Link added again."
+msgstr "Link adicionado novamente."
+
+#: src/History/Undo.php:95
+msgid "This change was already undone."
+msgstr "Esta alteração já foi desfeita."
+
+#: src/History/Undo.php:114
+msgid "Link undone."
+msgstr "Link desfeito."
+
+#: src/History/Undo.php:115
+msgid "The post was edited afterwards: only the link was removed."
+msgstr "O conteúdo foi editado depois: somente o link foi removido."
+
+#: src/History/Undo.php:116
+msgid "The link is no longer in the post."
+msgstr "O link não está mais no conteúdo."
+
+#: src/History/Undo.php:169
+msgid "The change could not be confirmed as only removing the link; nothing was written."
+msgstr "Não foi possível confirmar que a alteração apenas remove o link; nada foi escrito."
+
+#: src/History/Undo.php:320
+msgid "This post was edited afterwards; remove the link by hand."
+msgstr "Este conteúdo foi editado depois; remova o link manualmente."
+
+#: src/Report/ExportHandler.php:70
+msgid "You are not allowed to export this data."
+msgstr "Você não tem permissão para exportar estes dados."
+
+#: src/Rest/HistoryController.php:358
+msgid "Send either a group or a single change."
+msgstr "Envie um grupo ou uma única alteração."
+
+#: src/Rest/HistoryController.php:400
+msgid "Another large undo is already running. Wait for it to finish."
+msgstr "Outra operação grande de desfazer já está em execução. Aguarde até que termine."
+
+#: src/Rest/JobsController.php:165
+msgid "That process does not exist."
+msgstr "Esse processo não existe."
+
+#. translators: %s: comma-separated list of shared terms.
+#: src/Rest/SuggestionPresenter.php:146
+#, php-format
+msgid "They share: %s"
+msgstr "Têm em comum: %s"
+
+#: src/Rest/SuggestionPresenter.php:149
+msgid "The anchor matches the title of the destination"
+msgstr "A âncora coincide com o título do destino"
+
+#: src/Rest/SuggestionPresenter.php:152
+msgid "The anchor matches the focus keyword of the destination"
+msgstr "A âncora coincide com a palavra-chave principal do destino"
+
+#: src/Rest/SuggestionPresenter.php:155
+msgid "The destination is an orphan (0 inbound links)"
+msgstr "O destino é órfão (0 links de entrada)"
+
+#: src/Rest/SuggestionPresenter.php:158
+msgid "Very similar in meaning"
+msgstr "Muito parecido em significado"
+
+#: src/Rest/SuggestionsController.php:243
+msgid "The content is too long to analyze."
+msgstr "O conteúdo é longo demais para ser analisado."
+
+#: src/Rest/SuggestionsController.php:375
+msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
+msgstr "Cada link precisa do conteúdo, do destino, da frase, da posição e da âncora."
+
+#: src/Rest/SuggestionsController.php:430
+msgid "The link could not be saved; nothing was changed."
+msgstr "Não foi possível salvar o link; nada foi alterado."
+
+#: src/Rest/SuggestionsController.php:502
+#: src/Rest/SuggestionsController.php:510
+msgid "The destination is not a published entry that can be linked."
+msgstr "O destino não é um conteúdo publicado que possa receber um link."
+
+#: src/Rest/SuggestionsController.php:505
+msgid "The destination is in a different language, so no link is added."
+msgstr "O destino está em outro idioma, então nenhum link é adicionado."
+
+#: assets/build/classic.js:1 assets/build/editor.js:1
+msgid "In:"
+msgstr "Em:"
+
+#. translators: %s: title of the entry that would get the link.
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "In: %s"
+msgstr "Em: %s"
+
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "Links to:"
+msgstr "Aponta para:"
+
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "(opens in a new tab)"
+msgstr "(abre em uma nova aba)"
+
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "You cannot edit this entry, so the link cannot be added from here."
+msgstr "Você não pode editar este conteúdo, então o link não pode ser adicionado daqui."
+
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "Undo"
+msgstr "Desfazer"
+
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "See in History"
+msgstr "Ver no Histórico"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgid "Link to “%s”"
+msgstr "Link para “%s”"
+
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgctxt "button: add the link to the text"
+msgid "Link"
+msgstr "Vincular"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "Dismiss the suggestion for “%s”"
+msgstr "Descartar a sugestão para “%s”"
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "Dismiss"
+msgstr "Descartar"
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "The site has not been analyzed yet, so there are no suggestions. Analyze it from the report and come back."
+msgstr "O site ainda não foi analisado, então não há sugestões. Analise-o a partir do relatório e volte."
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "Open the report"
+msgstr "Abrir o relatório"
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "This entry is not analyzed yet. Save it and refresh in a moment, or check that its content type is analyzed in Settings."
+msgstr "Este conteúdo ainda não foi analisado. Salve-o e atualize em alguns instantes, ou verifique se o tipo de conteúdo dele é analisado em Configurações."
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "Other entries can only link to this one once it is published."
+msgstr "Outros conteúdos só podem apontar para este depois que ele for publicado."
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "You have dismissed all the suggestions. They come back when you refresh."
+msgstr "Você descartou todas as sugestões. Elas voltam quando você atualiza."
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "There are no suggestions with enough confidence. This usually happens with very short entries or on a topic that has no other content on the site yet."
+msgstr "Não há sugestões com confiança suficiente. Isso costuma acontecer com conteúdos muito curtos ou com um tema que ainda não tem outros conteúdos no site."
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "No other entry has a sentence that fits a link to this one yet."
+msgstr "Nenhum outro conteúdo tem ainda uma frase que caiba um link para este."
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "Try again"
+msgstr "Tentar novamente"
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "Looking for suggestions…"
+msgstr "Procurando sugestões…"
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "Inbound suggestions pages"
+msgstr "Páginas de sugestões de entrada"
+
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgid "Previous"
+msgstr "Anterior"
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/classic.js:5 assets/build/classic.js:8 assets/build/editor.js:5
+#: assets/build/editor.js:8 assets/build/index.js:2
+msgid "Page %1$s of %2$s"
+msgstr "Página %1$s de %2$s"
+
+#: assets/build/classic.js:5 assets/build/editor.js:5
+msgid "Next"
+msgstr "Próxima"
+
+#. translators: %d: number of suggestions.
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "%d outbound suggestion"
+msgid_plural "%d outbound suggestions"
+msgstr[0] "%d sugestão de saída"
+msgstr[1] "%d sugestões de saída"
+
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "Link added."
+msgstr "Link adicionado."
+
+#: assets/build/classic.js:6 assets/build/classic.js:7 assets/build/editor.js:6
+#: assets/build/editor.js:7
+msgid "Link removed."
+msgstr "Link removido."
+
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "The text has changed since the suggestion was made. Refresh the suggestions and try again."
+msgstr "O texto mudou desde que a sugestão foi feita. Atualize as sugestões e tente novamente."
+
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "This sentence appears more than once, so the right place is unclear. Add the link by hand."
+msgstr "Esta frase aparece mais de uma vez, então o lugar certo não está claro. Adicione o link manualmente."
+
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "This text is already a link."
+msgstr "Este texto já é um link."
+
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "Switch to the Visual tab to add the link, or add it by hand."
+msgstr "Mude para a aba Visual para adicionar o link ou adicione-o manualmente."
+
+#. translators: %s: title of the entry that got the link.
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "Link added in “%s”."
+msgstr "Link adicionado em “%s”."
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "The link could not be added."
+msgstr "Não foi possível adicionar o link."
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "The link could not be added. Check your connection and try again."
+msgstr "Não foi possível adicionar o link. Verifique sua conexão e tente novamente."
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "The text has changed since the link was added. Use Undo in the editor or remove the link by hand."
+msgstr "O texto mudou desde que o link foi adicionado. Use Desfazer no editor ou remova o link manualmente."
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "The link could not be removed."
+msgstr "Não foi possível remover o link."
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "Suggestion dismissed."
+msgstr "Sugestão descartada."
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "Outbound"
+msgstr "De saída"
+
+#: assets/build/classic.js:7 assets/build/editor.js:7 assets/build/index.js:36
+msgid "Inbound"
+msgstr "De entrada"
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "Refresh"
+msgstr "Atualizar"
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "Analyzes what you have in the editor now, saved or not."
+msgstr "Analisa o que está no editor agora, salvo ou não."
+
+#: assets/build/classic.js:7 assets/build/editor.js:7
+msgid "Sentences in other entries where a link to this one fits."
+msgstr "Frases em outros conteúdos onde cabe um link para este."
+
+#: assets/build/classic.js:8 assets/build/editor.js:8
+msgid "The suggestions could not be loaded. Check your connection and try again."
+msgstr "Não foi possível carregar as sugestões. Verifique sua conexão e tente novamente."
+
+#. translators: %d: number of outbound suggestions.
+#: assets/build/editor.js:9
+msgid "Internal links (%d)"
+msgstr "Links internos (%d)"
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:3 assets/build/index.js:16
+msgid "%s entry"
+msgid_plural "%s entries"
+msgstr[0] "%s conteúdo"
+msgstr[1] "%s conteúdos"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:4
+msgid "%s link"
+msgid_plural "%s links"
+msgstr[0] "%s link"
+msgstr[1] "%s links"
+
+#: assets/build/index.js:4
+msgid "First page"
+msgstr "Primeira página"
+
+#: assets/build/index.js:4
+msgid "Previous page"
+msgstr "Página anterior"
+
+#: assets/build/index.js:4 assets/build/index.js:5
+msgid "Current page"
+msgstr "Página atual"
+
+#. translators: %s: total number of pages.
+#: assets/build/index.js:5
+msgid "of %s"
+msgstr "de %s"
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/index.js:6
+msgid "%1$s of %2$s"
+msgstr "%1$s de %2$s"
+
+#: assets/build/index.js:6
+msgid "Next page"
+msgstr "Próxima página"
+
+#: assets/build/index.js:6
+msgid "Last page"
+msgstr "Última página"
+
+#: assets/build/index.js:6
+msgid "Sorted descending."
+msgstr "Ordenado de forma decrescente."
+
+#: assets/build/index.js:6
+msgid "Sorted ascending."
+msgstr "Ordenado de forma crescente."
+
+#: assets/build/index.js:6
+msgid "Show more details"
+msgstr "Mostrar mais detalhes"
+
+#: assets/build/index.js:6
+msgid "Search"
+msgstr "Pesquisar"
+
+#: assets/build/index.js:6
+msgid "Could not load the broken links."
+msgstr "Não foi possível carregar os links quebrados."
+
+#: assets/build/index.js:6
+msgid "No broken links found."
+msgstr "Nenhum link quebrado encontrado."
+
+#. translators: %d: number of broken links.
+#: assets/build/index.js:7
+msgid "%d broken link"
+msgid_plural "%d broken links"
+msgstr[0] "%d link quebrado"
+msgstr[1] "%d links quebrados"
+
+#: assets/build/index.js:7 assets/build/index.js:17
+msgid "Entry"
+msgstr "Conteúdo"
+
+#: assets/build/index.js:7
+msgid "Broken URL"
+msgstr "URL quebrada"
+
+#: assets/build/index.js:7 assets/build/index.js:17
+msgid "Anchor text"
+msgstr "Texto âncora"
+
+#: assets/build/index.js:7
+msgid "(no text)"
+msgstr "(sem texto)"
+
+#: assets/build/index.js:7
+msgid "Reason"
+msgstr "Motivo"
+
+#: assets/build/index.js:7
+msgid "Internal links that lead nowhere: the destination is in the trash, is not published, is private or does not exist. Nothing is checked over the network. Fix each one by editing the entry."
+msgstr "Links internos que não levam a lugar nenhum: o destino está na lixeira, não está publicado, é privado ou não existe. Nada é verificado pela rede. Corrija cada um editando o conteúdo."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:8
+msgid "Showing only the broken links in “%s”."
+msgstr "Mostrando apenas os links quebrados em “%s”."
+
+#: assets/build/index.js:8
+msgid "Show all"
+msgstr "Mostrar todos"
+
+#: assets/build/index.js:8
+msgid "Search broken links"
+msgstr "Pesquisar links quebrados"
+
+#: assets/build/index.js:8
+msgid "Broken internal links"
+msgstr "Links internos quebrados"
+
+#: assets/build/index.js:8 assets/build/index.js:17
+msgid "Edit entry"
+msgstr "Editar conteúdo"
+
+#: assets/build/index.js:8
+msgid "There are no broken internal links. Well done."
+msgstr "Não há links internos quebrados. Muito bem."
+
+#: assets/build/index.js:8 assets/build/index.js:37
+msgid "Export CSV"
+msgstr "Exportar CSV"
+
+#: assets/build/index.js:8 assets/build/index.js:10 assets/build/index.js:32
+msgid "Cancel"
+msgstr "Cancelar"
+
+#. translators: %s: number of seconds.
+#: assets/build/index.js:9
+msgid "%s s"
+msgstr "%s s"
+
+#. translators: 1: minutes, 2: seconds.
+#: assets/build/index.js:10
+msgid "%1$s min %2$s s"
+msgstr "%1$s min %2$s s"
+
+#: assets/build/index.js:10
+msgid "Maintenance"
+msgstr "Manutenção"
+
+#: assets/build/index.js:10
+msgid "Last full analysis"
+msgstr "Última análise completa"
+
+#: assets/build/index.js:10
+msgid "Duration"
+msgstr "Duração"
+
+#: assets/build/index.js:10 assets/build/index.js:38
+msgid "Entries analyzed"
+msgstr "Conteúdos analisados"
+
+#: assets/build/index.js:10
+msgid "There is no completed analysis yet."
+msgstr "Ainda não há nenhuma análise concluída."
+
+#: assets/build/index.js:10
+msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background. Analyzing only reads your content; it never changes it."
+msgstr "Analisa todos os conteúdos novamente do zero, mesmo os que não mudaram. Para analisar somente o que é novo ou foi modificado, use “Analisar alterações” no Relatório. Isso é feito em segundo plano. A análise apenas lê seu conteúdo; nunca o altera."
+
+#: assets/build/index.js:10
+msgid "Analyze everything again from scratch"
+msgstr "Analisar tudo novamente do zero"
+
+#: assets/build/index.js:10
+msgid "An analysis is already running; its progress is shown above."
+msgstr "Uma análise já está em execução; o progresso dela é mostrado acima."
+
+#: assets/build/index.js:10
+msgid "Analyze everything again from scratch?"
+msgstr "Analisar tudo novamente do zero?"
+
+#: assets/build/index.js:10
+msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it."
+msgstr "O Magic Linking vai ler todos os conteúdos novamente. Isso é feito em segundo plano, então você pode continuar trabalhando. A análise apenas lê seu conteúdo; nunca o altera."
+
+#: assets/build/index.js:10 assets/build/index.js:30
+msgid "Analysis started."
+msgstr "Análise iniciada."
+
+#: assets/build/index.js:10 assets/build/index.js:14 assets/build/index.js:20
+#: assets/build/index.js:30
+msgid "That did not work. Try again."
+msgstr "Isso não funcionou. Tente novamente."
+
+#: assets/build/index.js:10
+msgid "Start analysis"
+msgstr "Iniciar análise"
+
+#: assets/build/index.js:10 assets/build/index.js:14 assets/build/index.js:17
+msgid "Undone"
+msgstr "Desfeito"
+
+#: assets/build/index.js:10
+msgid "Link removed"
+msgstr "Link removido"
+
+#: assets/build/index.js:10
+msgid "Already gone"
+msgstr "Já não existe"
+
+#: assets/build/index.js:10
+msgid "Already undone"
+msgstr "Já desfeito"
+
+#: assets/build/index.js:10
+msgid "Added again"
+msgstr "Adicionado novamente"
+
+#: assets/build/index.js:10
+msgid "Needs your attention"
+msgstr "Precisa da sua atenção"
+
+#: assets/build/index.js:10
+msgid "Not changed"
+msgstr "Não alterado"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:11
+msgid "%s link added again."
+msgid_plural "%s links added again."
+msgstr[0] "%s link adicionado novamente."
+msgstr[1] "%s links adicionados novamente."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:12
+msgid "%s link undone."
+msgid_plural "%s links undone."
+msgstr[0] "%s link desfeito."
+msgstr[1] "%s links desfeitos."
+
+#. translators: 1: links added again, 2: links that need attention.
+#: assets/build/index.js:13
+msgid "Added again: %1$s. Need your attention: %2$s."
+msgstr "Adicionados novamente: %1$s. Precisam da sua atenção: %2$s."
+
+#. translators: 1: links undone, 2: links that need attention.
+#: assets/build/index.js:14
+msgid "Undone: %1$s. Need your attention: %2$s."
+msgstr "Desfeitos: %1$s. Precisam da sua atenção: %2$s."
+
+#: assets/build/index.js:14
+msgid "(deleted entry)"
+msgstr "(conteúdo excluído)"
+
+#: assets/build/index.js:14
+msgid "Could not load the links of this batch."
+msgstr "Não foi possível carregar os links deste lote."
+
+#: assets/build/index.js:14
+msgid "Could not refresh this batch."
+msgstr "Não foi possível atualizar este lote."
+
+#: assets/build/index.js:14
+msgid "Could not read the progress of the process."
+msgstr "Não foi possível ler o progresso do processo."
+
+#: assets/build/index.js:14 assets/build/index.js:17
+msgid "In place"
+msgstr "No lugar"
+
+#: assets/build/index.js:14
+msgid "Partly undone"
+msgstr "Parcialmente desfeito"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:15
+msgid "%s link added"
+msgid_plural "%s links added"
+msgstr[0] "%s link adicionado"
+msgstr[1] "%s links adicionados"
+
+#: assets/build/index.js:16
+msgid "Progress of redoing the batch"
+msgstr "Progresso de refazer o lote"
+
+#: assets/build/index.js:16
+msgid "Progress of undoing the batch"
+msgstr "Progresso de desfazer o lote"
+
+#. translators: 1: changes done, 2: total changes.
+#: assets/build/index.js:17
+msgid "Working in the background: %1$s of %2$s."
+msgstr "Trabalhando em segundo plano: %1$s de %2$s."
+
+#: assets/build/index.js:17
+msgid "This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running."
+msgstr "Isso está demorando mais do que o esperado. As tarefas em segundo plano precisam que o WP-Cron ou o Action Scheduler esteja em execução."
+
+#: assets/build/index.js:17 assets/build/index.js:32
+msgid "Resume"
+msgstr "Retomar"
+
+#: assets/build/index.js:17
+msgid "Cancel process"
+msgstr "Cancelar processo"
+
+#: assets/build/index.js:17 assets/build/index.js:20
+msgid "Undo batch"
+msgstr "Desfazer lote"
+
+#: assets/build/index.js:17 assets/build/index.js:20
+msgid "Redo batch"
+msgstr "Refazer lote"
+
+#: assets/build/index.js:17
+msgid "Hide links"
+msgstr "Ocultar links"
+
+#: assets/build/index.js:17
+msgid "Show links"
+msgstr "Mostrar links"
+
+#: assets/build/index.js:17
+msgid "Links in this batch"
+msgstr "Links deste lote"
+
+#: assets/build/index.js:17
+msgid "Links to"
+msgstr "Aponta para"
+
+#: assets/build/index.js:17 assets/build/index.js:37
+msgid "Status"
+msgstr "Status"
+
+#: assets/build/index.js:17
+msgid "Actions"
+msgstr "Ações"
+
+#: assets/build/index.js:17
+msgid "No links to show."
+msgstr "Não há links para mostrar."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:18
+msgid "Redo change in %s"
+msgstr "Refazer alteração em %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:19
+msgid "Undo change in %s"
+msgstr "Desfazer alteração em %s"
+
+#: assets/build/index.js:19 assets/build/index.js:20
+msgid "Redo change"
+msgstr "Refazer alteração"
+
+#: assets/build/index.js:19 assets/build/index.js:20
+msgid "Undo change"
+msgstr "Desfazer alteração"
+
+#. translators: 1: links shown, 2: total links.
+#: assets/build/index.js:20
+msgid "Show more links (%1$s of %2$s)"
+msgstr "Mostrar mais links (%1$s de %2$s)"
+
+#: assets/build/index.js:20
+msgid "Undo this batch?"
+msgstr "Desfazer este lote?"
+
+#: assets/build/index.js:20
+msgid "Redo this batch?"
+msgstr "Refazer este lote?"
+
+#: assets/build/index.js:20
+msgid "Undo this change?"
+msgstr "Desfazer esta alteração?"
+
+#: assets/build/index.js:20
+msgid "Redo this change?"
+msgstr "Refazer esta alteração?"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:21
+msgid "%s link will be taken out."
+msgid_plural "%s links will be taken out."
+msgstr[0] "%s link será retirado."
+msgstr[1] "%s links serão retirados."
+
+#: assets/build/index.js:21
+msgid "Where an entry was edited afterwards, only the link is removed; anything that cannot be undone safely is left alone and listed so you can fix it by hand."
+msgstr "Quando um conteúdo foi editado depois, somente o link é removido; tudo o que não puder ser desfeito com segurança é deixado como está e listado para que você corrija manualmente."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:22
+msgid "%s undone link will be added again, as it was."
+msgid_plural "%s undone links will be added again, as they were."
+msgstr[0] "%s link desfeito será adicionado novamente, como estava."
+msgstr[1] "%s links desfeitos serão adicionados novamente, como estavam."
+
+#: assets/build/index.js:22
+msgid "Any entry edited in that spot since is left alone and listed."
+msgstr "Qualquer conteúdo editado nesse ponto desde então é deixado como está e listado."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:23
+msgid "The link in “%s” will be taken out. If the entry was edited afterwards, only this link is removed."
+msgstr "O link em “%s” será retirado. Se o conteúdo foi editado depois, somente este link é removido."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:24
+msgid "The link will be added again in “%s”, as it was."
+msgstr "O link será adicionado novamente em “%s”, como estava."
+
+#: assets/build/index.js:24
+msgid "There are no changes in the history."
+msgstr "Não há alterações no histórico."
+
+#. translators: %s: number of batches.
+#: assets/build/index.js:25
+msgid "%s batch in the history."
+msgid_plural "%s batches in the history."
+msgstr[0] "%s lote no histórico."
+msgstr[1] "%s lotes no histórico."
+
+#: assets/build/index.js:25 assets/build/index.js:27
+msgid "Could not load the history."
+msgstr "Não foi possível carregar o histórico."
+
+#: assets/build/index.js:25
+msgid "Every link Magic Linking writes into your content is listed here, newest first, so you can undo it."
+msgstr "Cada link que o Magic Linking escreve no seu conteúdo é listado aqui, do mais recente ao mais antigo, para que você possa desfazê-lo."
+
+#. translators: %s: number of days.
+#: assets/build/index.js:26
+msgid "Changes are kept for %s days."
+msgstr "As alterações são guardadas por %s dias."
+
+#: assets/build/index.js:26
+msgid "Changes are kept with no expiry date."
+msgstr "As alterações são guardadas sem data de expiração."
+
+#: assets/build/index.js:26
+msgid "Change how long they are kept"
+msgstr "Alterar por quanto tempo são guardadas"
+
+#: assets/build/index.js:26
+msgid "No changes yet. When you add a link with Magic Linking it will appear here, and you will be able to undo it."
+msgstr "Ainda não há alterações. Quando você adicionar um link com o Magic Linking, ele aparecerá aqui e você poderá desfazê-lo."
+
+#. translators: %s: number of batches.
+#: assets/build/index.js:27
+msgid "%s older batch shown."
+msgid_plural "%s older batches shown."
+msgstr[0] "%s lote mais antigo exibido."
+msgstr[1] "%s lotes mais antigos exibidos."
+
+#: assets/build/index.js:27
+msgid "Show older batches"
+msgstr "Mostrar lotes mais antigos"
+
+#: assets/build/index.js:27
+msgid "Less than a minute left."
+msgstr "Falta menos de um minuto."
+
+#. translators: %s: number of minutes.
+#: assets/build/index.js:28
+msgid "About %s minute left."
+msgid_plural "About %s minutes left."
+msgstr[0] "Falta cerca de %s minuto."
+msgstr[1] "Faltam cerca de %s minutos."
+
+#. translators: %s: number of hours.
+#: assets/build/index.js:29
+msgid "About %s hour left."
+msgid_plural "About %s hours left."
+msgstr[0] "Falta cerca de %s hora."
+msgstr[1] "Faltam cerca de %s horas."
+
+#. translators: 1: new or modified entries analyzed, 2: unchanged entries skipped.
+#: assets/build/index.js:30
+msgid "Analysis finished: %1$s new or modified, %2$s unchanged and skipped."
+msgstr "Análise concluída: %1$s novos ou modificados, %2$s sem alterações e ignorados."
+
+#: assets/build/index.js:30
+msgid "Analysis finished."
+msgstr "Análise concluída."
+
+#: assets/build/index.js:30
+msgid "Could not read the analysis status."
+msgstr "Não foi possível ler o status da análise."
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:31
+msgid "Analysis paused: %1$s of %2$s entries."
+msgstr "Análise pausada: %1$s de %2$s conteúdos."
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:32
+msgid "Analyzing your entries: %1$s of %2$s."
+msgstr "Analisando seus conteúdos: %1$s de %2$s."
+
+#: assets/build/index.js:32
+msgid "The analysis seems to have stopped. Resume it, or check that WP-Cron or Action Scheduler is running."
+msgstr "A análise parece ter parado. Retome-a ou verifique se o WP-Cron ou o Action Scheduler está em execução."
+
+#: assets/build/index.js:32
+msgid "Analysis resumed."
+msgstr "Análise retomada."
+
+#: assets/build/index.js:32
+msgid "Analysis paused."
+msgstr "Análise pausada."
+
+#: assets/build/index.js:32
+msgid "Pause"
+msgstr "Pausar"
+
+#: assets/build/index.js:32
+msgid "Analysis cancelled."
+msgstr "Análise cancelada."
+
+#: assets/build/index.js:32
+msgid "Analyze your site"
+msgstr "Analise seu site"
+
+#: assets/build/index.js:32
+msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "O Magic Linking lê os links internos que já estão escritos nos seus conteúdos e mostra quais não recebem nenhum link, quais recebem poucos, quais têm links demais e quais estão quebrados. A análise apenas lê seu conteúdo; nunca o altera. Os links só são adicionados quando você clica em Vincular."
+
+#: assets/build/index.js:32
+msgid "Analyze my site"
+msgstr "Analisar meu site"
+
+#: assets/build/index.js:32
+msgid "An administrator has to run the first analysis."
+msgstr "Um administrador precisa executar a primeira análise."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:33
+msgid "%s new or modified entry pending."
+msgid_plural "%s new or modified entries pending."
+msgstr[0] "%s conteúdo novo ou modificado pendente."
+msgstr[1] "%s conteúdos novos ou modificados pendentes."
+
+#: assets/build/index.js:33 assets/build/index.js:35
+msgid "Analyze changes"
+msgstr "Analisar alterações"
+
+#. translators: %s: error message.
+#: assets/build/index.js:34
+msgid "The last analysis failed: %s"
+msgstr "A última análise falhou: %s"
+
+#: assets/build/index.js:34
+msgid "unknown error"
+msgstr "erro desconhecido"
+
+#. translators: %s: date and time of the last analysis.
+#: assets/build/index.js:35
+msgid "Last analysis: %s"
+msgstr "Última análise: %s"
+
+#: assets/build/index.js:35
+msgid "Could not load the report."
+msgstr "Não foi possível carregar o relatório."
+
+#: assets/build/index.js:35
+msgid "No entries found."
+msgstr "Nenhum conteúdo encontrado."
+
+#. translators: %d: number of entries.
+#: assets/build/index.js:36
+msgid "%d entry"
+msgid_plural "%d entries"
+msgstr[0] "%d conteúdo"
+msgstr[1] "%d conteúdos"
+
+#: assets/build/index.js:36
+msgid "All"
+msgstr "Todos"
+
+#: assets/build/index.js:36
+msgid "Orphans"
+msgstr "Órfãos"
+
+#: assets/build/index.js:36
+msgid "With broken links"
+msgstr "Com links quebrados"
+
+#: assets/build/index.js:36
+msgid "Title"
+msgstr "Título"
+
+#: assets/build/index.js:36
+msgid "Type · Language"
+msgstr "Tipo · Idioma"
+
+#: assets/build/index.js:36
+msgid "Type"
+msgstr "Tipo"
+
+#: assets/build/index.js:36
+msgid "Internal outbound"
+msgstr "Internos de saída"
+
+#: assets/build/index.js:36
+msgid "External"
+msgstr "Externos"
+
+#: assets/build/index.js:36
+msgid "Broken"
+msgstr "Quebrados"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:37
+msgid "broken links in %s"
+msgstr "links quebrados em %s"
+
+#: assets/build/index.js:37
+msgid "Analyzed"
+msgstr "Analisado"
+
+#: assets/build/index.js:37
+msgid "Search entries by title"
+msgstr "Pesquisar conteúdos por título"
+
+#: assets/build/index.js:37
+msgid "Internal links by entry"
+msgstr "Links internos por conteúdo"
+
+#: assets/build/index.js:37
+msgid "Edit"
+msgstr "Editar"
+
+#: assets/build/index.js:37
+msgid "View"
+msgstr "Ver"
+
+#: assets/build/index.js:37
+msgid "View broken links"
+msgstr "Ver links quebrados"
+
+#: assets/build/index.js:37
+msgid "No entries match these filters."
+msgstr "Nenhum conteúdo corresponde a estes filtros."
+
+#: assets/build/index.js:37
+msgid "Content type"
+msgstr "Tipo de conteúdo"
+
+#: assets/build/index.js:37
+msgid "All types"
+msgstr "Todos os tipos"
+
+#: assets/build/index.js:37
+msgid "Language"
+msgstr "Idioma"
+
+#: assets/build/index.js:37
+msgid "All languages"
+msgstr "Todos os idiomas"
+
+#: assets/build/index.js:37
+msgid "Could not load the settings."
+msgstr "Não foi possível carregar as configurações."
+
+#: assets/build/index.js:37
+msgid "Settings saved. The content types changed, so your site is being analyzed again."
+msgstr "Configurações salvas. Os tipos de conteúdo mudaram, então seu site está sendo analisado novamente."
+
+#: assets/build/index.js:37
+msgid "Settings saved."
+msgstr "Configurações salvas."
+
+#: assets/build/index.js:37
+msgid "The settings could not be saved."
+msgstr "Não foi possível salvar as configurações."
+
+#: assets/build/index.js:37
+msgid "Content types to analyze"
+msgstr "Tipos de conteúdo a analisar"
+
+#: assets/build/index.js:37
+msgid "Under-linked below this many inbound links"
+msgstr "Pouco vinculado abaixo deste número de links de entrada"
+
+#: assets/build/index.js:37
+msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
+msgstr "Um conteúdo com pelo menos um link de entrada, mas menos do que este número, é mostrado como pouco vinculado."
+
+#: assets/build/index.js:37
+msgid "Words per internal link"
+msgstr "Palavras por link interno"
+
+#: assets/build/index.js:37
+msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed)."
+msgstr "Um conteúdo com mais links internos do que um a cada este número de palavras é mostrado com excesso de links (sempre é permitido pelo menos um link)."
+
+#: assets/build/index.js:37
+msgid "Keep the history of changes for"
+msgstr "Manter o histórico de alterações por"
+
+#: assets/build/index.js:37
+msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
+msgstr "Os lotes mais antigos são excluídos pela tarefa noturna e, a partir daí, não podem mais ser desfeitos. Os links permanecem no seu conteúdo. Não há limite para o número de alterações guardadas."
+
+#: assets/build/index.js:37
+msgid "30 days"
+msgstr "30 dias"
+
+#: assets/build/index.js:37
+msgid "90 days"
+msgstr "90 dias"
+
+#: assets/build/index.js:37
+msgid "365 days"
+msgstr "365 dias"
+
+#: assets/build/index.js:37
+msgid "No expiry date"
+msgstr "Sem data de expiração"
+
+#: assets/build/index.js:37
+msgid "Delete all Magic Linking data when the plugin is deleted"
+msgstr "Excluir todos os dados do Magic Linking quando o plugin for excluído"
+
+#: assets/build/index.js:37
+msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
+msgstr "Remove as tabelas, o histórico e as configurações do plugin. Os links que já estão nos seus conteúdos ficam como estão; seu conteúdo não é alterado."
+
+#: assets/build/index.js:37
+msgid "Save settings"
+msgstr "Salvar configurações"
+
+#: assets/build/index.js:37
+msgid "Choose at least one content type."
+msgstr "Escolha pelo menos um tipo de conteúdo."
+
+#. translators: %s: section name (Report, Broken links, Settings).
+#: assets/build/index.js:38
+msgid "Magic Linking · %s"
+msgstr "Magic Linking · %s"
+
+#: assets/build/index.js:38
+msgid "Orphan entries"
+msgstr "Conteúdos órfãos"
+
+#: assets/build/index.js:38
+msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
+msgstr "São contados apenas os links escritos dentro do conteúdo de cada publicação. Links em menus, widgets e templates do tema não são contados."
+
+#. translators: %s: WP-CLI command.
+#: assets/build/index.js:39
+msgid "You can also run the analysis from the terminal: %s"
+msgstr "Você também pode executar a análise pelo terminal: %s"
+
