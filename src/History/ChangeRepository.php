@@ -35,6 +35,21 @@ final class ChangeRepository {
 	public const PRIMARY = array( self::INSERT, self::RETARGET, self::UNLINK );
 
 	/**
+	 * Origen de un cambio: lo escribió Magic Linking en el servidor (lo normal).
+	 */
+	public const ORIGIN_PLUGIN = 'plugin';
+
+	/**
+	 * Origen de un cambio: el usuario puso el enlace en el editor y el servidor solo lo registró (F1-34, D-58).
+	 */
+	public const ORIGIN_EDITOR = 'editor';
+
+	/**
+	 * Inserciones activas de una entrada que se miran como máximo al comprobar duplicados (las más recientes).
+	 */
+	public const ACTIVE_LIMIT = 500;
+
+	/**
 	 * Conexión.
 	 *
 	 * @var wpdb
@@ -52,7 +67,7 @@ final class ChangeRepository {
 	 * Inserciones ya leídas de un solo lote en esta petición (la huella MD5 recorre el HTML de cada fila, y una
 	 * petición pregunta varias veces por el mismo lote). Cualquier escritura la vacía.
 	 *
-	 * @var array<string, array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}>>>
+	 * @var array<string, array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, origin?: string}>>>
 	 */
 	private array $memo = array();
 
@@ -77,10 +92,12 @@ final class ChangeRepository {
 	 * @param string      $after_html         HTML del tramo después.
 	 * @param string      $content_hash_after SHA-1 del contenido completo después del cambio.
 	 * @param int         $user_id            Quien lo hace (0 = sistema).
+	 * @param string      $origin             `plugin` (lo escribió el servidor) o `editor` (solo registrado, F1-34).
+	 * @param string|null $origin_key         Clave idempotente de un registro del editor (SHA-1); null en el resto.
 	 *
 	 * @return int ID de la fila; 0 si no se ha podido guardar (en ese caso no se escribe el contenido).
 	 */
-	public function record( string $batch_id, int $post_id, string $action, ?string $block_path, string $before_html, string $after_html, string $content_hash_after, int $user_id ): int {
+	public function record( string $batch_id, int $post_id, string $action, ?string $block_path, string $before_html, string $after_html, string $content_hash_after, int $user_id, string $origin = self::ORIGIN_PLUGIN, ?string $origin_key = null ): int {
 		$wpdb       = $this->wpdb;
 		$this->memo = array();
 
@@ -96,11 +113,94 @@ final class ChangeRepository {
 				'content_hash_after' => $content_hash_after,
 				'user_id'            => $user_id,
 				'created_at'         => current_time( 'mysql', true ),
+				'origin'             => $origin,
+				'origin_key'         => $origin_key,
 			),
-			array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
+			array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
 		);
 
 		return false === $done ? 0 : (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * Filas registradas con claves idempotentes del editor, en una sola consulta (F1-34).
+	 *
+	 * @param array $keys Claves (SHA-1).
+	 *
+	 * @phpstan-param list<string> $keys
+	 *
+	 * @return array<string, int> ID de la fila por clave; solo las que existen.
+	 */
+	public function ids_for_origin_keys( array $keys ): array {
+		$wpdb = $this->wpdb;
+		$keys = array_values( array_unique( $keys ) );
+		if ( array() === $keys ) {
+			return array();
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Lista de marcadores generada con array_fill().
+		$placeholders = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
+		$rows         = $wpdb->get_results( $wpdb->prepare( "SELECT id, origin_key FROM %i WHERE origin_key IN ({$placeholders})", $this->table, ...$keys ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		$found = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$found[ (string) $row['origin_key'] ] = (int) $row['id'];
+		}
+
+		return $found;
+	}
+
+	/**
+	 * Inserciones de una entrada que siguen puestas (no deshechas), con su HTML, las más recientes primero. Sirve para
+	 * no registrar dos veces el mismo tramo. Con más de {@see self::ACTIVE_LIMIT} solo se miran las más recientes.
+	 *
+	 * @param int $post_id Entrada.
+	 *
+	 * @return list<array{id: int, before_html: string, after_html: string}>
+	 */
+	public function active_inserts_of_post( int $post_id ): array {
+		return $this->active_rows( $post_id, null, self::ACTIVE_LIMIT );
+	}
+
+	/**
+	 * Inserciones puestas de origen `editor` de una entrada, las más recientes primero, con las columnas mínimas (F1-34).
+	 *
+	 * @param int $post_id Entrada.
+	 * @param int $limit   Máximo de filas (las más recientes).
+	 *
+	 * @return list<array{id: int, before_html: string, after_html: string}>
+	 */
+	public function active_editor_rows( int $post_id, int $limit ): array {
+		return $this->active_rows( $post_id, self::ORIGIN_EDITOR, $limit );
+	}
+
+	/**
+	 * Inserciones puestas de una entrada, de la más reciente a la más antigua.
+	 *
+	 * @param int         $post_id Entrada.
+	 * @param string|null $origin  Solo de este origen, o todos.
+	 * @param int         $limit   Máximo de filas.
+	 *
+	 * @return list<array{id: int, before_html: string, after_html: string}>
+	 */
+	private function active_rows( int $post_id, ?string $origin, int $limit ): array {
+		$wpdb  = $this->wpdb;
+		$where = null === $origin
+			? $wpdb->prepare( 'post_id = %d AND action = %s AND undone_at IS NULL', $post_id, self::INSERT )
+			: $wpdb->prepare( 'post_id = %d AND action = %s AND undone_at IS NULL AND origin = %s', $post_id, self::INSERT, $origin );
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT id, before_html, after_html FROM %i WHERE {$where} ORDER BY id DESC LIMIT %d", $this->table, max( 1, $limit ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia; $where ya está preparado.
+
+		$out = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[] = array(
+				'id'          => (int) $row['id'],
+				'before_html' => (string) $row['before_html'],
+				'after_html'  => (string) $row['after_html'],
+			);
+		}
+
+		return $out;
 	}
 
 	/**
@@ -108,7 +208,7 @@ final class ChangeRepository {
 	 *
 	 * @param int $id ID.
 	 *
-	 * @return array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null}|null
+	 * @return array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}|null
 	 */
 	public function get( int $id ): ?array {
 		$wpdb = $this->wpdb;
@@ -122,7 +222,7 @@ final class ChangeRepository {
 	 *
 	 * @param string $batch_id Lote.
 	 *
-	 * @return list<array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null}>
+	 * @return list<array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}>
 	 */
 	public function batch( string $batch_id ): array {
 		$wpdb = $this->wpdb;
@@ -164,7 +264,7 @@ final class ChangeRepository {
 	 *
 	 * @phpstan-param list<int> $ids
 	 *
-	 * @return array<int, array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null}>
+	 * @return array<int, array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}>
 	 */
 	public function get_many( array $ids ): array {
 		$wpdb = $this->wpdb;
@@ -217,7 +317,7 @@ final class ChangeRepository {
 	 *
 	 * @phpstan-param list<string> $batch_ids
 	 *
-	 * @return array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}>> Por lote.
+	 * @return array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, origin?: string}>> Por lote.
 	 */
 	public function inserts_of( array $batch_ids ): array {
 		$wpdb = $this->wpdb;
@@ -232,7 +332,7 @@ final class ChangeRepository {
 		$placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%s' ) );
 		$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
 			$wpdb->prepare(
-				"SELECT id, batch_id, post_id, action, user_id, created_at, undone_at, MD5( CONCAT_WS( '|', post_id, COALESCE( block_path, '' ), before_html, after_html ) ) AS slot FROM %i WHERE action IN ( %s, %s, %s ) AND batch_id IN ({$placeholders}) ORDER BY id",
+				"SELECT id, batch_id, post_id, action, user_id, created_at, undone_at, origin, MD5( CONCAT_WS( '|', post_id, COALESCE( block_path, '' ), before_html, after_html ) ) AS slot FROM %i WHERE action IN ( %s, %s, %s ) AND batch_id IN ({$placeholders}) ORDER BY id",
 				$this->table,
 				...array_merge( self::PRIMARY, $batch_ids )
 			),
@@ -250,6 +350,7 @@ final class ChangeRepository {
 				'created_at' => (string) $row['created_at'],
 				'undone_at'  => null === $row['undone_at'] ? null : (string) $row['undone_at'],
 				'slot'       => (string) $row['slot'],
+				'origin'     => (string) $row['origin'],
 			);
 		}
 
@@ -361,7 +462,7 @@ final class ChangeRepository {
 	 *
 	 * @phpstan-param array<string, mixed> $row
 	 *
-	 * @return array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null}
+	 * @return array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}
 	 */
 	private function cast( array $row ): array {
 		return array(
@@ -376,6 +477,7 @@ final class ChangeRepository {
 			'user_id'            => (int) $row['user_id'],
 			'created_at'         => (string) $row['created_at'],
 			'undone_at'          => null === $row['undone_at'] ? null : (string) $row['undone_at'],
+			'origin'             => (string) ( $row['origin'] ?? self::ORIGIN_PLUGIN ),
 		);
 	}
 }

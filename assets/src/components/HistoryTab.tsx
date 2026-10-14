@@ -158,6 +158,10 @@ export function HistoryTab( { settingsUrl }: Props ) {
 					'Every link Magic Linking writes into your content is listed here, newest first, so you can undo it.',
 					'magic-linking'
 				) }{ ' ' }
+				{ __(
+					'Links you add from the editor panel are listed here too once you save the entry. Magic Linking only records them: it never rewrites the entry when you save.',
+					'magic-linking'
+				) }{ ' ' }
 				{ retentionText( retention ) }{ ' ' }
 				{ settingsUrl && (
 					<a href={ settingsUrl }>

@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\History;
 
-use WP_HTML_Tag_Processor;
+use MagicLinking\Content\OpenTag;
 use WP_Post;
 
 /**
@@ -179,10 +179,12 @@ final class Reader {
 	 * @return array{items: list<array<string, mixed>>, total: int}
 	 */
 	public function changes_of( string $batch_id, int $page, int $per_page ): array {
-		$slots = Slots::collapse( $this->changes->inserts_of( array( $batch_id ) )[ $batch_id ] ?? array() );
-		$total = count( $slots );
-		$slice = array_slice( $slots, max( 0, $page - 1 ) * $per_page, $per_page );
-		$full  = $this->changes->get_many( array_column( $slice, 'id' ) );
+		$rows   = $this->changes->inserts_of( array( $batch_id ) )[ $batch_id ] ?? array();
+		$origin = self::origin_of( $rows );
+		$slots  = Slots::collapse( $rows );
+		$total  = count( $slots );
+		$slice  = array_slice( $slots, max( 0, $page - 1 ) * $per_page, $per_page );
+		$full   = $this->changes->get_many( array_column( $slice, 'id' ) );
 
 		_prime_post_caches( array_column( $slice, 'post_id' ), false, false );
 
@@ -203,6 +205,7 @@ final class Reader {
 				'post_title'   => $post instanceof WP_Post ? get_the_title( $post ) : null,
 				'edit_url'     => is_string( $edit ) ? $edit : null,
 				'kind'         => $change['action'],
+				'origin'       => $origin,
 				'anchor'       => $view['anchor'],
 				'url'          => $view['url'],
 				'previous_url' => $view['previous_url'],
@@ -239,8 +242,8 @@ final class Reader {
 
 			return null === $tags ? $none : array(
 				'anchor'       => self::plain( $tags['inner'] ),
-				'url'          => self::href( $tags['new'] ),
-				'previous_url' => self::href( $tags['old'] ),
+				'url'          => OpenTag::href( $tags['new'] ),
+				'previous_url' => OpenTag::href( $tags['old'] ),
 			);
 		}
 
@@ -250,7 +253,7 @@ final class Reader {
 			return null === $link ? $none : array(
 				'anchor'       => self::plain( $link['inner'] ),
 				'url'          => '',
-				'previous_url' => self::href( $link['open'] ),
+				'previous_url' => OpenTag::href( $link['open'] ),
 			);
 		}
 
@@ -258,7 +261,7 @@ final class Reader {
 
 		return null === $link ? $none : array(
 			'anchor'       => self::plain( $link['inner'] ),
-			'url'          => self::href( $link['open'] ),
+			'url'          => OpenTag::href( $link['open'] ),
 			'previous_url' => null,
 		);
 	}
@@ -344,12 +347,26 @@ final class Reader {
 			'created_at' => (string) mysql_to_rfc3339( $first['created_at'] ),
 			'user_id'    => $user,
 			'user_name'  => self::user_name( $user ),
+			'origin'     => self::origin_of( $rows ),
 			'links'      => count( $slots ),
 			'active'     => count( $slots ) - $undone,
 			'undone'     => $undone,
 			'posts'      => count( $posts ),
 			'titles'     => $titles,
 		);
+	}
+
+	/**
+	 * De dónde viene un lote: `editor` si el usuario puso los enlaces en el editor y el servidor solo los
+	 * registró (F1-34, D-58); `plugin` si los escribió Magic Linking. Lo dice la primera fila (un lote es de un
+	 * solo origen; rehacer añade filas al final).
+	 *
+	 * @param array $rows Inserciones del lote, en orden.
+	 *
+	 * @phpstan-param list<array{origin?: string}> $rows
+	 */
+	private static function origin_of( array $rows ): string {
+		return ChangeRepository::ORIGIN_EDITOR === ( $rows[0]['origin'] ?? '' ) ? ChangeRepository::ORIGIN_EDITOR : ChangeRepository::ORIGIN_PLUGIN;
 	}
 
 	/**
@@ -374,21 +391,5 @@ final class Reader {
 	 */
 	private static function plain( string $html ): string {
 		return mb_substr( trim( wp_specialchars_decode( wp_strip_all_tags( $html ), ENT_QUOTES ) ), 0, 255 );
-	}
-
-	/**
-	 * Valor de `href` de una etiqueta de apertura `<a …>`.
-	 *
-	 * @param string $open Etiqueta.
-	 */
-	private static function href( string $open ): string {
-		$tags = new WP_HTML_Tag_Processor( $open );
-		if ( ! $tags->next_tag( array( 'tag_name' => 'a' ) ) ) {
-			return '';
-		}
-
-		$href = $tags->get_attribute( 'href' );
-
-		return is_string( $href ) ? $href : '';
 	}
 }

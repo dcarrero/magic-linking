@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-14T10:42:47+00:00\n"
+"POT-Creation-Date: 2026-10-14T11:01:41+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -261,6 +261,7 @@ msgstr[1] ""
 
 #: src/Cli/Command.php:706
 #: src/Rest/DismissalsController.php:141
+#: src/Rest/EditorHistoryController.php:96
 #: src/Rest/SuggestionsController.php:573
 msgid "That entry does not exist."
 msgstr ""
@@ -503,11 +504,11 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: src/History/Reader.php:362
+#: src/History/Reader.php:379
 msgid "Automatic"
 msgstr ""
 
-#: src/History/Reader.php:367
+#: src/History/Reader.php:384
 msgid "Deleted user"
 msgstr ""
 
@@ -1397,6 +1398,14 @@ msgid "Partly undone"
 msgstr ""
 
 #: assets/build/index.js:19
+msgid "Added in the editor"
+msgstr ""
+
+#: assets/build/index.js:19
+msgid "Added by Magic Linking"
+msgstr ""
+
+#: assets/build/index.js:19
 msgid "Progress of redoing the batch"
 msgstr ""
 
@@ -1612,6 +1621,10 @@ msgstr ""
 
 #: assets/build/index.js:32
 msgid "Every link Magic Linking writes into your content is listed here, newest first, so you can undo it."
+msgstr ""
+
+#: assets/build/index.js:32
+msgid "Links you add from the editor panel are listed here too once you save the entry. Magic Linking only records them: it never rewrites the entry when you save."
 msgstr ""
 
 #. translators: %s: number of days.

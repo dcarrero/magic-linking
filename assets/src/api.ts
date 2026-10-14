@@ -7,6 +7,8 @@ import type {
 	BrokenTargetsResponse,
 	FixResponse,
 	DismissalResponse,
+	EditorHistoryResponse,
+	EditorLink,
 	HistoryChangesResponse,
 	HistoryGroup,
 	HistoryJob,
@@ -158,6 +160,19 @@ export const api = {
 				'changeId' in target
 					? { change_id: target.changeId }
 					: { batch_id: target.batchId },
+		} ),
+	/**
+	 * Avisa de los enlaces que el panel puso en el editor y que ya están guardados: el servidor comprueba que
+	 * siguen en el contenido y los registra en el Historial, sin escribir nada en la entrada (F1-34).
+	 *
+	 * @param postId Entrada guardada.
+	 * @param links  Enlaces que el panel puso.
+	 */
+	recordEditorLinks: ( postId: number, links: EditorLink[] ) =>
+		apiFetch< EditorHistoryResponse >( {
+			path: path( '/history/editor' ),
+			method: 'POST',
+			data: { post_id: postId, links },
 		} ),
 	/**
 	 * Sugerencias salientes de una entrada tal como está guardada.

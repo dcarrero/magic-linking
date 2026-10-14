@@ -304,7 +304,15 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 						'magic-linking'
 					),
 					group.posts.toLocaleString()
-				) }
+				) }{ ' ' }
+				·{ ' ' }
+				<span
+					className={ `magiclinking-origin magiclinking-origin--${ group.origin }` }
+				>
+					{ group.origin === 'editor'
+						? __( 'Added in the editor', 'magic-linking' )
+						: __( 'Added by Magic Linking', 'magic-linking' ) }
+				</span>
 			</p>
 			<p className="magiclinking-batch__entries">
 				{ group.titles.map( entryTitle ).join( ', ' ) }

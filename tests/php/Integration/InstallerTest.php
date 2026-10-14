@@ -46,9 +46,27 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( array(), $installer->missing_tables() );
 		$this->assertCount( 8, Schema::TABLES );
 		$this->assertSame( MAGICLINKING_DB_VERSION, $installer->installed_version() );
-		$this->assertSame( 4, MAGICLINKING_DB_VERSION );
+		$this->assertSame( 5, MAGICLINKING_DB_VERSION );
 		$this->assertContains( $this->autoload_of( Installer::DB_VERSION_OPTION ), array( 'no', 'off' ) );
 		$this->assertSame( 0, $this->own_autoloaded_options() );
+	}
+
+	public function test_upgrading_from_schema_4_adds_the_origin_columns_and_keeps_old_rows_as_plugin(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'changes' );
+
+		// Un sitio con el esquema 4: sin las columnas de origen y con una fila antigua.
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX origin_key, DROP COLUMN origin_key, DROP COLUMN origin" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		$wpdb->query( "INSERT INTO {$table} ( batch_id, post_id, action, before_html, after_html, created_at ) VALUES ( 'A', 1, 'insert', 'a', 'b', NOW() )" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		update_option( Installer::DB_VERSION_OPTION, 4, false );
+		Installer::forget_check();
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		$this->assertContains( 'origin', $this->columns( 'changes' ) );
+		$this->assertContains( 'origin_key', $this->columns( 'changes' ) );
+		$this->assertSame( 'plugin', $wpdb->get_var( "SELECT origin FROM {$table} WHERE batch_id = 'A'" ) ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
 	}
 
 	public function test_tables_have_the_documented_columns(): void {
@@ -59,7 +77,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertColumns( 'postings', array( 'term_id', 'post_id', 'weight', 'field', 'pos' ) );
 		$this->assertColumns( 'links', array( 'id', 'source_id', 'target_id', 'target_url', 'anchor', 'block_path', 'kind', 'is_internal', 'is_broken' ) );
 		$this->assertColumns( 'rules', array( 'id', 'phrase', 'target_id', 'target_url', 'lang', 'max_per_post', 'first_only', 'exclude', 'active', 'created_at', 'created_by' ) );
-		$this->assertColumns( 'changes', array( 'id', 'batch_id', 'post_id', 'action', 'block_path', 'before_html', 'after_html', 'content_hash_after', 'user_id', 'created_at', 'undone_at' ) );
+		$this->assertColumns( 'changes', array( 'id', 'batch_id', 'post_id', 'action', 'block_path', 'before_html', 'after_html', 'content_hash_after', 'user_id', 'created_at', 'undone_at', 'origin', 'origin_key' ) );
 		$this->assertColumns( 'jobs', array( 'id', 'type', 'status', 'total', 'done', 'params', 'ai_tokens_est', 'ai_tokens_real', 'ai_cost_est', 'ai_cost_real', 'ai_provider', 'ai_model', 'error', 'created_by', 'created_at', 'updated_at' ) );
 	}
 
@@ -70,7 +88,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'PRIMARY', 'lang_stem_n' ), $this->index_names( 'terms' ) );
 		$this->assertSame( array( 'PRIMARY', 'post_id' ), $this->index_names( 'postings' ) );
 		$this->assertSame( array( 'PRIMARY', 'is_broken', 'source_id', 'target_id' ), $this->index_names( 'links' ) );
-		$this->assertSame( array( 'PRIMARY', 'batch_id', 'created_at', 'post_created' ), $this->index_names( 'changes' ) );
+		$this->assertSame( array( 'PRIMARY', 'batch_id', 'created_at', 'origin_key', 'post_created' ), $this->index_names( 'changes' ) );
 	}
 
 	public function test_stems_differing_only_in_accents_do_not_collide(): void {

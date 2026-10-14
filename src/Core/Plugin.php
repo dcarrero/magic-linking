@@ -25,6 +25,8 @@ use MagicLinking\Graph\LinkResolver;
 use MagicLinking\Graph\ReportRepository;
 use MagicLinking\History\BatchJob;
 use MagicLinking\History\ChangeRepository;
+use MagicLinking\History\EditorLinks;
+use MagicLinking\History\EditorReconciler;
 use MagicLinking\History\Reader;
 use MagicLinking\History\Redo;
 use MagicLinking\History\Retention;
@@ -43,6 +45,7 @@ use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
 use MagicLinking\Rest\DismissalsController;
+use MagicLinking\Rest\EditorHistoryController;
 use MagicLinking\Rest\FixController;
 use MagicLinking\Rest\HistoryController;
 use MagicLinking\Rest\JobsController;
@@ -74,6 +77,8 @@ final class Plugin {
 		ReportController::class,
 		FixController::class,
 		HistoryController::class,
+		EditorHistoryController::class,
+		EditorReconciler::class,
 		SuggestionCache::class,
 		SuggestionsController::class,
 		DismissalsController::class,
@@ -172,13 +177,13 @@ final class Plugin {
 	 */
 	private static function services(): array {
 		return array(
-			Language::class              => static fn(): Language => new Language(),
-			Settings::class              => static fn(): Settings => new Settings(),
-			GraphRepository::class       => static function (): GraphRepository {
+			Language::class                => static fn(): Language => new Language(),
+			Settings::class                => static fn(): Settings => new Settings(),
+			GraphRepository::class         => static function (): GraphRepository {
 				global $wpdb;
 				return new GraphRepository( $wpdb );
 			},
-			GraphIndexer::class          => static function ( Container $c ): GraphIndexer {
+			GraphIndexer::class            => static function ( Container $c ): GraphIndexer {
 				global $wpdb;
 				return new GraphIndexer(
 					$c->get( GraphRepository::class ),
@@ -187,40 +192,40 @@ final class Plugin {
 					$c->get( Language::class )
 				);
 			},
-			TableRepository::class       => static function (): TableRepository {
+			TableRepository::class         => static function (): TableRepository {
 				global $wpdb;
 				return new TableRepository( $wpdb );
 			},
-			PostSource::class            => static fn( Container $c ): PostSource => new PostSource(
+			PostSource::class              => static fn( Container $c ): PostSource => new PostSource(
 				new ScopedExtractor( $c->get( Settings::class ) ),
 				$c->get( Language::class ),
 				$c->get( Settings::class ),
 				$c->get( GraphRepository::class )
 			),
-			LexicalIndexer::class        => static fn( Container $c ): LexicalIndexer => new LexicalIndexer(
+			LexicalIndexer::class          => static fn( Container $c ): LexicalIndexer => new LexicalIndexer(
 				$c->get( TableRepository::class ),
 				$c->get( PostSource::class ),
 				$c->get( JobRepository::class )
 			),
-			TableDocuments::class        => static function ( Container $c ): TableDocuments {
+			TableDocuments::class          => static function ( Container $c ): TableDocuments {
 				global $wpdb;
 				return new TableDocuments( $c->get( PostSource::class ), new LinkResolver( $wpdb ), $c->get( GraphRepository::class ) );
 			},
-			DismissalRepository::class   => static function (): DismissalRepository {
+			DismissalRepository::class     => static function (): DismissalRepository {
 				global $wpdb;
 				return new DismissalRepository( $wpdb );
 			},
-			DismissalsController::class  => static fn( Container $c ): DismissalsController => new DismissalsController( $c->get( DismissalRepository::class ), $c->get( Settings::class ) ),
-			Suggestions::class           => static fn( Container $c ): Suggestions => new Suggestions(
+			DismissalsController::class    => static fn( Container $c ): DismissalsController => new DismissalsController( $c->get( DismissalRepository::class ), $c->get( Settings::class ) ),
+			Suggestions::class             => static fn( Container $c ): Suggestions => new Suggestions(
 				$c->get( TableRepository::class ),
 				$c->get( LexicalIndexer::class ),
 				$c->get( TableDocuments::class ),
 				$c->get( Settings::class ),
 				$c->get( DismissalRepository::class )
 			),
-			SuggestionCache::class       => static fn(): SuggestionCache => new SuggestionCache(),
-			SuggestionPresenter::class   => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ) ),
-			SuggestionsController::class => static fn( Container $c ): SuggestionsController => new SuggestionsController(
+			SuggestionCache::class         => static fn(): SuggestionCache => new SuggestionCache(),
+			SuggestionPresenter::class     => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ) ),
+			SuggestionsController::class   => static fn( Container $c ): SuggestionsController => new SuggestionsController(
 				$c->get( Suggestions::class ),
 				$c->get( Inserter::class ),
 				$c->get( Reader::class ),
@@ -228,28 +233,28 @@ final class Plugin {
 				$c->get( SuggestionPresenter::class ),
 				$c->get( Destination::class )
 			),
-			PostWriter::class            => static function (): PostWriter {
+			PostWriter::class              => static function (): PostWriter {
 				global $wpdb;
 				return new PostWriter( $wpdb );
 			},
-			ChangeRepository::class      => static function (): ChangeRepository {
+			ChangeRepository::class        => static function (): ChangeRepository {
 				global $wpdb;
 				return new ChangeRepository( $wpdb );
 			},
-			Inserter::class              => static fn( Container $c ): Inserter => new Inserter(
+			Inserter::class                => static fn( Container $c ): Inserter => new Inserter(
 				$c->get( PostWriter::class ),
 				$c->get( ChangeRepository::class ),
 				$c->get( Jobs::class ),
 				$c->get( Settings::class )
 			),
-			Repairer::class              => static fn( Container $c ): Repairer => new Repairer(
+			Repairer::class                => static fn( Container $c ): Repairer => new Repairer(
 				$c->get( PostWriter::class ),
 				$c->get( ChangeRepository::class ),
 				$c->get( Jobs::class ),
 				$c->get( Settings::class )
 			),
-			Destination::class           => static fn( Container $c ): Destination => new Destination( $c->get( Settings::class ), $c->get( Language::class ) ),
-			FixController::class         => static fn( Container $c ): FixController => new FixController(
+			Destination::class             => static fn( Container $c ): Destination => new Destination( $c->get( Settings::class ), $c->get( Language::class ) ),
+			FixController::class           => static fn( Container $c ): FixController => new FixController(
 				$c->get( BrokenRepository::class ),
 				$c->get( Repairer::class ),
 				$c->get( Destination::class ),
@@ -257,29 +262,32 @@ final class Plugin {
 				$c->get( Language::class ),
 				$c->get( Reader::class )
 			),
-			Undo::class                  => static fn( Container $c ): Undo => new Undo(
+			Undo::class                    => static fn( Container $c ): Undo => new Undo(
 				$c->get( PostWriter::class ),
 				$c->get( ChangeRepository::class ),
 				$c->get( Jobs::class )
 			),
-			Redo::class                  => static fn( Container $c ): Redo => new Redo(
+			Redo::class                    => static fn( Container $c ): Redo => new Redo(
 				$c->get( PostWriter::class ),
 				$c->get( ChangeRepository::class ),
 				$c->get( Jobs::class )
 			),
-			Reader::class                => static fn( Container $c ): Reader => new Reader( $c->get( ChangeRepository::class ) ),
-			Retention::class             => static fn( Container $c ): Retention => new Retention(
+			EditorReconciler::class        => static fn( Container $c ): EditorReconciler => new EditorReconciler( $c->get( ChangeRepository::class ) ),
+			EditorLinks::class             => static fn( Container $c ): EditorLinks => new EditorLinks( $c->get( PostWriter::class ), $c->get( ChangeRepository::class ) ),
+			EditorHistoryController::class => static fn( Container $c ): EditorHistoryController => new EditorHistoryController( $c->get( EditorLinks::class ) ),
+			Reader::class                  => static fn( Container $c ): Reader => new Reader( $c->get( ChangeRepository::class ) ),
+			Retention::class               => static fn( Container $c ): Retention => new Retention(
 				$c->get( ChangeRepository::class ),
 				$c->get( JobRepository::class ),
 				$c->get( Settings::class )
 			),
-			BatchJob::class              => static fn( Container $c ): BatchJob => new BatchJob(
+			BatchJob::class                => static fn( Container $c ): BatchJob => new BatchJob(
 				$c->get( Reader::class ),
 				$c->get( Undo::class ),
 				$c->get( Redo::class ),
 				$c->get( JobRepository::class )
 			),
-			HistoryController::class     => static fn( Container $c ): HistoryController => new HistoryController(
+			HistoryController::class       => static fn( Container $c ): HistoryController => new HistoryController(
 				$c->get( Reader::class ),
 				$c->get( Undo::class ),
 				$c->get( Redo::class ),
@@ -288,38 +296,38 @@ final class Plugin {
 				$c->get( JobRepository::class ),
 				$c->get( Settings::class )
 			),
-			JobRepository::class         => static function (): JobRepository {
+			JobRepository::class           => static function (): JobRepository {
 				global $wpdb;
 				return new JobRepository( $wpdb );
 			},
-			Jobs::class                  => static fn( Container $c ): Jobs => new Jobs(
+			Jobs::class                    => static fn( Container $c ): Jobs => new Jobs(
 				$c->get( JobRepository::class ),
 				$c->get( GraphIndexer::class ),
 				$c->get( Settings::class ),
 				$c->get( LexicalIndexer::class )
 			),
-			ReportRepository::class      => static function ( Container $c ): ReportRepository {
+			ReportRepository::class        => static function ( Container $c ): ReportRepository {
 				global $wpdb;
 				return new ReportRepository( $wpdb, $c->get( Settings::class ) );
 			},
-			BrokenRepository::class      => static function (): BrokenRepository {
+			BrokenRepository::class        => static function (): BrokenRepository {
 				global $wpdb;
 				return new BrokenRepository( $wpdb );
 			},
-			ReportController::class      => static fn( Container $c ): ReportController => new ReportController(
+			ReportController::class        => static fn( Container $c ): ReportController => new ReportController(
 				$c->get( ReportRepository::class ),
 				$c->get( BrokenRepository::class )
 			),
-			JobsController::class        => static fn( Container $c ): JobsController => new JobsController( $c->get( Jobs::class ) ),
-			SettingsController::class    => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ) ),
-			ExportHandler::class         => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ) ),
-			CliModule::class             => static fn( Container $c ): CliModule => new CliModule(
+			JobsController::class          => static fn( Container $c ): JobsController => new JobsController( $c->get( Jobs::class ) ),
+			SettingsController::class      => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ) ),
+			ExportHandler::class           => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ) ),
+			CliModule::class               => static fn( Container $c ): CliModule => new CliModule(
 				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) )
 			),
-			Screen::class                => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ) ),
-			EditorPanel::class           => static fn( Container $c ): EditorPanel => new EditorPanel( $c->get( Settings::class ) ),
-			TextDomain::class            => static fn(): TextDomain => new TextDomain(),
-			Installer::class             => static function (): Installer {
+			Screen::class                  => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ) ),
+			EditorPanel::class             => static fn( Container $c ): EditorPanel => new EditorPanel( $c->get( Settings::class ) ),
+			TextDomain::class              => static fn(): TextDomain => new TextDomain(),
+			Installer::class               => static function (): Installer {
 				global $wpdb;
 				return new Installer( $wpdb, MAGICLINKING_DB_VERSION );
 			},

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from '@wordpress/element';
+import { api } from '../api';
 import type { Suggestion, InboundResponse, OutboundResponse } from '../types';
 import type { EditorAdapter } from './adapters/types';
 import type { CardStatus } from './SuggestionCard';
+import { createInsertionLog, shortKey } from './insertions';
+import { InsertionSync } from './sync';
 import { suggestionKey } from './keys';
 import { useInbound, useOutbound } from './useSuggestions';
 import type { Fetched } from './useSuggestions';
@@ -22,6 +25,13 @@ export interface PanelState {
 	inboundCount: number;
 	/** Vuelve a pedir las salientes (el servidor ya no propone las descartadas). */
 	refreshOutbound: () => void;
+	/**
+	 * Apunta un enlace que el panel acaba de poner en el editor; al guardar la entrada se avisa al servidor para que
+	 * lo registre en el Historial (F1-34). Devuelve el identificador de la inserción.
+	 */
+	trackInsertion: ( suggestion: Suggestion, anchor: string ) => string;
+	/** Deja de contar un enlace que se deshizo en el editor antes de guardar. */
+	forgetInsertion: ( insertionId: string ) => void;
 }
 
 /**
@@ -69,6 +79,43 @@ export function usePanelState(
 			} );
 		},
 		[]
+	);
+
+	// Enlaces puestos en el editor, pendientes de registrar en el Historial cuando la entrada se guarde.
+	const sync = useMemo(
+		() =>
+			new InsertionSync(
+				createInsertionLog( adapter.postId ),
+				( links ) => api.recordEditorLinks( adapter.postId, links )
+			),
+		[ adapter.postId ]
+	);
+
+	// Al terminar un guardado con éxito (Gutenberg) y al cargar (el clásico recarga la página al guardar).
+	useEffect(
+		() =>
+			adapter.onSaveCycle( {
+				begin: () => sync.begin(),
+				finish: ( autosave ) => void sync.finish( autosave ),
+			} ),
+		[ adapter, sync ]
+	);
+	useEffect( () => {
+		void sync.flushAll();
+	}, [ sync ] );
+
+	const trackInsertion = useCallback(
+		( suggestion: Suggestion, anchor: string ) =>
+			sync.add( {
+				suggestion: shortKey( suggestionKey( suggestion ) ),
+				target_id: suggestion.target.id,
+				anchor,
+			} ),
+		[ sync ]
+	);
+	const forgetInsertion = useCallback(
+		( insertionId: string ) => sync.forget( insertionId ),
+		[ sync ]
 	);
 
 	const { refresh } = outbound;
@@ -147,5 +194,7 @@ export function usePanelState(
 		inboundItems,
 		inboundCount,
 		refreshOutbound,
+		trackInsertion,
+		forgetInsertion,
 	};
 }
