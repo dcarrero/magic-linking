@@ -9,6 +9,7 @@ import {
 	formatDate,
 	formatFullDate,
 	parseServerDate,
+	batchOriginLabel,
 } from './historyFormat';
 import { JobProgress, OutcomeSummary } from './HistoryJobParts';
 import { countStatuses } from './historyText';
@@ -215,9 +216,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 				<span
 					className={ `magiclinking-origin magiclinking-origin--${ group.origin }` }
 				>
-					{ group.origin === 'editor'
-						? __( 'Added in the editor', 'magic-linking' )
-						: __( 'Added by Magic Linking', 'magic-linking' ) }
+					{ batchOriginLabel( group.origin, group.kind ) }
 				</span>
 			</p>
 			{ ! expanded && (

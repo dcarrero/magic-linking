@@ -1,9 +1,10 @@
 import { useMemo } from '@wordpress/element';
 import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/editor';
-import { __, sprintf } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 import { Icon, link } from '@wordpress/icons';
 import { gutenbergAdapter } from './adapters/gutenberg';
 import type { EditorBoot } from './boot';
+import { buttonName } from './buttonName';
 import { Panel } from './Panel';
 import { usePanelState } from './usePanelState';
 
@@ -11,7 +12,7 @@ export const SIDEBAR = 'magiclinking-sidebar';
 
 /**
  * Icono del botón de la barra superior con el número de salientes (docs/07 §3). El número va solo como
- * adorno: el nombre accesible del botón ya lo lleva en el título.
+ * adorno: el nombre accesible del botón lo lleva `buttonLabel` (el título visible del panel no lleva número).
  *
  * @param root0
  * @param root0.count
@@ -47,14 +48,17 @@ export function Sidebar( { boot }: { boot: EditorBoot } ) {
 	const state = usePanelState( adapter, boot.perPage );
 	const count = state.outbound.data ? state.visibleOutbound.length : null;
 
-	const title =
-		count !== null && count > 0
-			? sprintf(
-					/* translators: %d: number of outbound suggestions. */
-					__( 'Internal links (%d)', 'magic-linking' ),
-					count
-			  )
-			: __( 'Internal links', 'magic-linking' );
+	const title = __( 'Internal links', 'magic-linking' );
+	const buttonLabel = buttonName( title, count );
+
+	// `header` llega a ComplementaryArea (sustituye al h2 del título) pero no está en los tipos de PluginSidebar.
+	const headerProp = {
+		header: (
+			<h2 className="interface-complementary-area-header__title">
+				{ title }
+			</h2>
+		),
+	};
 
 	return (
 		<>
@@ -63,7 +67,8 @@ export function Sidebar( { boot }: { boot: EditorBoot } ) {
 			</PluginSidebarMoreMenuItem>
 			<PluginSidebar
 				name={ SIDEBAR }
-				title={ title }
+				title={ buttonLabel }
+				{ ...headerProp }
 				icon={ <CountIcon count={ count } /> }
 				className="magiclinking-sidebar"
 			>

@@ -1,6 +1,6 @@
 import { useCallback, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
-import { __, sprintf } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { HistoryBatches } from './HistoryBatches';
 import { HistoryEntries } from './HistoryEntries';
 
@@ -19,7 +19,12 @@ function retentionText( days: number ): string {
 	return days > 0
 		? sprintf(
 				/* translators: %s: number of days. */
-				__( 'Changes are kept for %s days.', 'magic-linking' ),
+				_n(
+					'Changes are kept for %s day.',
+					'Changes are kept for %s days.',
+					days,
+					'magic-linking'
+				),
 				days.toLocaleString()
 		  )
 		: __( 'Changes are kept with no expiry date.', 'magic-linking' );
@@ -84,7 +89,7 @@ export function HistoryTab( { settingsUrl }: Props ) {
 		<>
 			<p className="description">
 				{ __(
-					'Every link Magic Linking changes is listed here so you can undo it. Links you add from the editor panel appear once you save the entry; Magic Linking only records them.',
+					'Every link Magic Linking changes is listed here so you can undo it. Links you add in the editor panel appear here once you save the entry. Links added to other entries from the panel appear right away.',
 					'magic-linking'
 				) }{ ' ' }
 				{ retentionText( retention ) }{ ' ' }

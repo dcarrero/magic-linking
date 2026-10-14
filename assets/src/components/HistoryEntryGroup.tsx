@@ -212,7 +212,12 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 				<p className="magiclinking-entry__meta">
 					{ sprintf(
 						/* translators: 1: active changes, 2: total changes. */
-						__( '%1$s of %2$s changes active', 'magic-linking' ),
+						_n(
+							'%1$s of %2$s change active',
+							'%1$s of %2$s changes active',
+							entry.total,
+							'magic-linking'
+						),
 						entry.active.toLocaleString(),
 						entry.total.toLocaleString()
 					) }{ ' ' }

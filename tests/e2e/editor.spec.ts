@@ -251,6 +251,26 @@ test.describe( 'Editor panel', () => {
 		).toBeVisible();
 	} );
 
+	test( 'the toolbar button keeps the outbound count in its accessible name, the panel title has none', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		await expect(
+			page
+				.getByRole( 'button', {
+					name: /^Internal links, \d+ outbound suggestions?$/,
+				} )
+				.first()
+		).toBeVisible();
+		await expect(
+			page.getByRole( 'heading', { level: 2, name: 'Internal links', exact: true } )
+		).toBeVisible();
+		await expect( panel ).toBeVisible();
+	} );
+
 	test( 'outbound: shows the card, highlights, links in the client and leaves the rest intact', async ( {
 		page,
 	} ) => {
@@ -742,9 +762,9 @@ test.describe( 'Editor panel', () => {
 		const batch = page.locator( '.magiclinking-batch' );
 		await expect( batch ).toHaveCount( 1 );
 		await expect( batch.getByRole( 'heading', { level: 2 } ) ).toContainText( '1 link added' );
-		await expect( batch ).toContainText( 'Added in the editor' );
+		await expect( batch ).toContainText( 'Added from the editor panel' );
 		await expect( page.locator( '.magiclinking-wrap' ) ).toContainText(
-			'Links you add from the editor panel appear once you save the entry; Magic Linking only records them.'
+			'Links you add in the editor panel appear here once you save the entry.'
 		);
 		await expectHistoryAccessible( page );
 
@@ -796,7 +816,7 @@ test.describe( 'Editor panel', () => {
 
 		await openHistoryByBatch( page );
 		const batch = page.locator( '.magiclinking-batch' );
-		await expect( batch ).toContainText( 'Added in the editor' );
+		await expect( batch ).toContainText( 'Added from the editor panel' );
 		await expect( batch ).toContainText( 'Undone' );
 		await expectHistoryAccessible( page );
 	} );
@@ -908,7 +928,7 @@ test.describe( 'Editor panel', () => {
 		await openHistoryByBatch( page );
 		const batch = page.locator( '.magiclinking-batch' );
 		await expect( batch ).toHaveCount( 1 );
-		await expect( batch ).toContainText( 'Added in the editor' );
+		await expect( batch ).toContainText( 'Added from the editor panel' );
 		await expectHistoryAccessible( page );
 
 		await batch.locator( 'button[aria-controls^="magiclinking-details-"]' ).click();
