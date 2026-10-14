@@ -16,7 +16,7 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 - **💡 Outbound suggestions** - In the block editor (sidebar panel) and in the classic editor (box): phrases of your text that can link to other entries, with the anchor highlighted in the text and the reason
 - **🖱️ One-click linking** - The link is inserted in the editor itself, on that phrase only; you save when you want, and you can undo it from the card
 - **📥 Inbound suggestions** - Other entries that mention the one you are editing; the link is written there, on the server, and the rest of that entry must stay identical byte for byte or nothing is written. WordPress keeps a revision
-- **↩️ History with undo and redo** - Every link added from the server is listed; configurable retention (30, 90, 365 days or forever); large groups are undone in the background
+- **↩️ History with undo and redo** - Every link added by Magic Linking is listed, from the server or (once saved) from the editor; configurable retention (30, 90, 365 days or forever); large groups are undone in the background
 - **🧭 Link report** - Orphan, under-linked and over-linked entries, with inbound, internal outbound, external and broken counts for every entry
 - **🔎 Filters and search** - Filter by problem type, search by title, sort, paginate
 - **📤 CSV export** - Export the exact view you are looking at
@@ -70,7 +70,7 @@ See [Development](#-development) to build the assets.
 
 1. Open **Magic Linking** in the admin sidebar and press **Analyse my site**. Nothing is analysed until you do it; the first time it also builds the suggestions index in the background.
 2. **Editor**: open a post or page and the **Magic Linking** panel (block editor) or box (classic). Press **Link** on the suggestions you like.
-3. **History**: undo or redo any link added from the server.
+3. **History**: undo or redo any link added by Magic Linking.
 4. **Report**: use the filters *Orphans*, *Under-linked*, *Over-linked* and *With broken links*; export to CSV.
 5. **Broken links**: review each broken internal link and open its entry to fix it.
 6. **Settings**: thresholds for under-linked and over-linked entries, history retention, full re-analysis (*Maintenance*) and what to do with the data when the plugin is deleted.
@@ -174,6 +174,13 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 [GPL-2.0-or-later](LICENSE).
 
 ## 📝 Changelog
+
+### 0.11.1
+- The editor panel is more compact after you link or dismiss a suggestion.
+- The Settings screen is reorganized into cards by topic; no setting has changed.
+- Fix a broken internal link from the list, one at a time: change its destination or remove the link keeping its text, with the usual check and undo from History.
+- History also records the links added from the editor panel (once the entry is saved) and marks them as undone if you remove them.
+- Translations up to date in all six languages.
 
 ### 0.11.0
 - Dismiss a suggestion for good, with undo; targets dismissed from more than 10 published entries rank slightly lower.

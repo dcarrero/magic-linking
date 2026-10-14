@@ -3,9 +3,9 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Magic Linking 0.11.0\n"
+"Project-Id-Version: Magic Linking 0.11.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-14T11:01:41+00:00\n"
+"POT-Creation-Date: 2026-10-14T11:51:00+00:00\n"
 "PO-Revision-Date: 2026-10-07 12:30+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -202,8 +202,8 @@ msgstr "No existe ese lote en el historial (o no puedes editar todas sus entrada
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr "Este lote lo está tratando un proceso en segundo plano. Espera a que termine o cancélalo."
 
-#: src/Cli/Command.php:622 src/Rest/HistoryController.php:499
-#: src/Rest/SuggestionsController.php:417
+#: src/Cli/Command.php:622 src/Rest/EditorHistoryController.php:98
+#: src/Rest/HistoryController.php:499 src/Rest/SuggestionsController.php:417
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "No tienes permiso para editar una de las entradas afectadas."
 
@@ -248,7 +248,7 @@ msgstr[0] "Se ha borrado %d fila del historial."
 msgstr[1] "Se han borrado %d filas del historial."
 
 #: src/Cli/Command.php:706 src/Rest/DismissalsController.php:141
-#: src/Rest/EditorHistoryController.php:96
+#: src/Rest/EditorHistoryController.php:95
 #: src/Rest/SuggestionsController.php:573
 msgid "That entry does not exist."
 msgstr "Esa entrada no existe."

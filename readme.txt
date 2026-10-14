@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.11.0
+Stable tag: 0.11.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,6 +36,7 @@ It works entirely on your server, with no artificial intelligence, no account, n
 **History**
 
 * Every link added from an inbound suggestion is listed with who added it, when, where and the anchor text.
+* Links added from the editor panel are listed too, marked "Added in the editor", once you save the entry. Magic Linking only records them: it writes nothing to the entry. If you remove one of them, History shows it as undone.
 * Undo and redo from the screen or with WP-CLI. A large group is undone in the background.
 * The history is kept 90 days by default; you can choose 30 days, a year or forever.
 
@@ -175,7 +176,7 @@ Each site of a network has its own report, history and settings.
 1. Outbound suggestions in the block editor: each card shows the destination and the reason, and the anchor text is highlighted in the text.
 2. A link added with one click, with the Undo button on the card.
 3. Inbound suggestions: other entries that could link to the one you are editing.
-4. History: every link added from the server, with undo and redo.
+4. History: every link added with Magic Linking, from the server or from the editor, with undo and redo.
 5. The report: totals for analyzed entries, orphans, internal links and broken links, with filters, search and sorting.
 6. Settings: content types, where links can be inserted, suggestions shown, history retention and maintenance.
 
@@ -191,13 +192,20 @@ Magic Linking does not connect to any external service.
 
 == Privacy ==
 
-Magic Linking does not collect, store or send personal data. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added (which user, when, which entry and the text of the paragraph that changed, so it can be undone). The pairs (entry, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies.
+Magic Linking does not collect, store or send personal data. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added, from the server and, once you save, from the editor panel (which user, when, which entry and the text of the paragraph that changed, so it can be undone). The pairs (entry, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies.
 
 == Third-party libraries ==
 
 * Action Scheduler (WooCommerce) 4.2.x, GPL-3.0-or-later, bundled in `vendor/woocommerce/action-scheduler/`. Used to run the analysis and the index in the background.
 
 == Changelog ==
+
+= 0.11.1 =
+* Improved: the editor panel is more compact after you link or dismiss a suggestion.
+* Improved: the Settings screen is reorganized into cards by topic. No setting has changed.
+* New: fix a broken internal link from the list, one at a time: change its destination to another published entry, or remove the link and keep its text. Magic Linking checks that nothing else in the entry changes, and you can undo it from History.
+* New: History also records the links you add from the editor panel, once you save the entry, and marks them as undone if you later remove them.
+* Improved: translations are up to date in all six bundled languages.
 
 = 0.11.0 =
 * New: dismiss a suggestion for good. A dismissed pair (entry, target) is not proposed again, in either direction, and you can undo it. A target dismissed from more than 10 published entries is ranked slightly lower across the site.
