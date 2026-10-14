@@ -151,7 +151,7 @@ test.describe( 'History by entry', () => {
 		}
 		await expect( table.locator( 'tbody' ) ).not.toContainText( 'E2E origen A' );
 		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'ventilador industrial' );
-		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'Panel (inbound)' );
+		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'Another entry\'s panel' );
 		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'E2E destino' );
 		await expect( table.getByRole( 'link', { name: 'E2E destino' } ).first() ).toHaveAttribute( 'href', /e2e-destino|[?&]p=\d+/ );
 

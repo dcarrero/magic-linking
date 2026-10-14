@@ -251,6 +251,26 @@ test.describe( 'Editor panel', () => {
 		).toBeVisible();
 	} );
 
+	test( 'the toolbar button keeps the outbound count in its accessible name, the panel title has none', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		await expect(
+			page
+				.getByRole( 'button', {
+					name: /^Internal links, \d+ outbound suggestions?$/,
+				} )
+				.first()
+		).toBeVisible();
+		await expect(
+			page.getByRole( 'heading', { level: 2, name: 'Internal links', exact: true } )
+		).toBeVisible();
+		await expect( panel ).toBeVisible();
+	} );
+
 	test( 'outbound: shows the card, highlights, links in the client and leaves the rest intact', async ( {
 		page,
 	} ) => {

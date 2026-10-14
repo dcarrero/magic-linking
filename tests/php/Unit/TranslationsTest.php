@@ -37,15 +37,23 @@ final class TranslationsTest extends TestCase {
 
 		foreach ( $files as $path ) {
 			$source = (string) file_get_contents( $path );
-			preg_match_all( "/\b(?:__|esc_html__|esc_attr__)\(\s*'((?:[^'\\\\]|\\\\.)*)'\s*,\s*'magic-linking'/s", $source, $m );
-			foreach ( $m[1] as $string ) {
-				$strings[] = stripcslashes( $string );
+			// Literal entre comillas simples o dobles (el apóstrofo obliga a las dobles en TypeScript).
+			$lit = "(?:'((?:[^'\\\\\\\\]|\\\\\\\\.)*)'|\"((?:[^\"\\\\\\\\]|\\\\\\\\.)*)\")";
+			preg_match_all( "/\\b(?:__|esc_html__|esc_attr__)\\(\\s*{$lit}\\s*,\\s*'magic-linking'/s", $source, $m, PREG_SET_ORDER );
+			foreach ( $m as $hit ) {
+				$strings[] = stripcslashes( '' !== $hit[1] ? $hit[1] : ( $hit[2] ?? '' ) );
 			}
-			preg_match_all( "/\b_n\(\s*'((?:[^'\\\\]|\\\\.)*)'\s*,\s*'((?:[^'\\\\]|\\\\.)*)'/s", $source, $m );
-			foreach ( $m[1] as $i => $singular ) {
+			// Con contexto: en el catálogo la clave es contexto + \x04 + msgid.
+			preg_match_all( "/\\b(?:_x|esc_html_x|esc_attr_x)\\(\\s*{$lit}\\s*,\\s*{$lit}\\s*,\\s*'magic-linking'/s", $source, $m, PREG_SET_ORDER );
+			foreach ( $m as $hit ) {
+				$text      = '' !== $hit[1] ? $hit[1] : $hit[2];
+				$context   = '' !== ( $hit[3] ?? '' ) ? $hit[3] : ( $hit[4] ?? '' );
+				$strings[] = stripcslashes( $context ) . "\x04" . stripcslashes( $text );
+			}
+			preg_match_all( "/\\b_n\\(\\s*{$lit}\\s*,\\s*{$lit}/s", $source, $m, PREG_SET_ORDER );
+			foreach ( $m as $hit ) {
 				// En el catálogo, el plural va en msgid_plural de la misma entrada.
-				$strings[] = stripcslashes( $singular );
-				unset( $m[2][ $i ] );
+				$strings[] = stripcslashes( '' !== $hit[1] ? $hit[1] : ( $hit[2] ?? '' ) );
 			}
 		}
 
@@ -70,7 +78,8 @@ final class TranslationsTest extends TestCase {
 		foreach ( preg_split( '/\n\n/', (string) file_get_contents( self::ROOT . 'languages/' . $file ) ) as $block ) {
 			if ( preg_match( '/^msgid "(.*)"$/m', $block, $id ) && '' !== $id[1] ) {
 				preg_match( '/^msgstr "(.*)"$/m', $block, $str );
-				$entries[ stripcslashes( $id[1] ) ] = stripcslashes( $str[1] ?? '' );
+				$context = preg_match( '/^msgctxt "(.*)"$/m', $block, $ctx ) ? stripcslashes( $ctx[1] ) . "\x04" : '';
+				$entries[ $context . stripcslashes( $id[1] ) ] = stripcslashes( $str[1] ?? '' );
 			}
 		}
 
@@ -111,6 +120,6 @@ final class TranslationsTest extends TestCase {
 	}
 
 	private function is_plural( string $text ): bool {
-		return in_array( $text, array( '%d entry analyzed.', '%d outbound suggestion', '%d broken link', '%s entry', '%s link', '%d entry', 'About %s minute left.', 'About %s hour left.', '%s new or modified entry pending.', '%s link added', '%s link undone.', '%s link added again.', '%s link will be taken out.', '%s undone link will be added again, as it was.', '%s batch in the history.', '%s older batch shown.', '%d change could not be applied by itself.', '%d history row has expired.', '%d history row deleted.', '%d entry found', '%s link destination changed', '%s link removed', '%s more change shown.', '%1$s change will be undone in “%2$s”, newest first.', '%1$s undone change will be applied again in “%2$s”, as it was.', '%s entry with changes.', '%1$s of %2$s change active', 'Changes are kept for %s day.' ), true );
+		return in_array( $text, array( '%d entry analyzed.', '%d outbound suggestion', '%d broken link', '%s entry', '%s link', '%d entry', 'About %s minute left.', 'About %s hour left.', '%s new or modified entry pending.', '%s link added', '%s link undone.', '%s link added again.', '%s link will be taken out.', '%s undone link will be added again, as it was.', '%s batch in the history.', '%s older batch shown.', '%d change could not be applied by itself.', '%d history row has expired.', '%d history row deleted.', '%d entry found', '%s link destination changed', '%s link removed', '%s more change shown.', '%1$s change will be undone in “%2$s”, newest first.', '%1$s undone change will be applied again in “%2$s”, as it was.', '%s entry with changes.', '%1$s of %2$s change active', 'Changes are kept for %s day.', '%1$s, %2$d outbound suggestion' ), true );
 	}
 }

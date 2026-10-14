@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.12.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-14T14:43:08+00:00\n"
+"POT-Creation-Date: 2026-10-14T19:21:05+00:00\n"
 "PO-Revision-Date: 2026-10-07 12:30+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -858,6 +858,13 @@ msgstr "Frases de otras entradas donde encaja un enlace a esta."
 msgid "The suggestions could not be loaded. Check your connection and try again."
 msgstr "No se han podido cargar las sugerencias. Comprueba la conexión e inténtalo de nuevo."
 
+#. translators: 1: panel title, 2: number of outbound suggestions.
+#: assets/build/editor.js:13
+msgid "%1$s, %2$d outbound suggestion"
+msgid_plural "%1$s, %2$d outbound suggestions"
+msgstr[0] "%1$s, %2$d sugerencia saliente"
+msgstr[1] "%1$s, %2$d sugerencias salientes"
+
 #. translators: %s: number of entries.
 #: assets/build/index.js:3 assets/build/index.js:18
 msgid "%s entry"
@@ -1073,6 +1080,33 @@ msgstr "Enlace quitado"
 #: assets/build/index.js:12
 msgid "Added"
 msgstr "Añadido"
+
+#: assets/build/index.js:12 assets/build/index.js:48
+msgctxt "history origin"
+msgid "Editor panel"
+msgstr "Panel del editor"
+
+#: assets/build/index.js:12
+msgctxt "history origin"
+msgid "Another entry's panel"
+msgstr "Panel de otra entrada"
+
+#: assets/build/index.js:12
+msgctxt "history origin"
+msgid "Broken links"
+msgstr "Enlaces rotos"
+
+#: assets/build/index.js:12
+msgid "Added from the editor panel"
+msgstr "Añadido desde el panel del editor"
+
+#: assets/build/index.js:12
+msgid "Added from another entry's panel"
+msgstr "Añadido desde el panel de otra entrada"
+
+#: assets/build/index.js:12
+msgid "Fixed from Broken links"
+msgstr "Arreglado desde Enlaces rotos"
 
 #: assets/build/index.js:12 assets/build/index.js:17 assets/build/index.js:18
 #: assets/build/index.js:45
@@ -1339,18 +1373,6 @@ msgid "%s (link removed)"
 msgstr "%s (enlace quitado)"
 
 #: assets/build/index.js:29
-msgid "Added from the editor panel"
-msgstr "Añadido desde el panel del editor"
-
-#: assets/build/index.js:29
-msgid "Added to other entries from the editor panel"
-msgstr "Añadido a otras entradas desde el panel del editor"
-
-#: assets/build/index.js:29
-msgid "Fixed from Broken links"
-msgstr "Arreglado desde Enlaces rotos"
-
-#: assets/build/index.js:29
 msgid "There are no changes in the history."
 msgstr "No hay cambios en el historial."
 
@@ -1526,21 +1548,6 @@ msgstr "Parte de un lote de %s entradas"
 msgid "Was: %s"
 msgstr "Antes: %s"
 
-#: assets/build/index.js:45 assets/build/index.js:48
-msgctxt "history origin"
-msgid "Panel (outbound)"
-msgstr "Panel (saliente)"
-
-#: assets/build/index.js:45
-msgctxt "history origin"
-msgid "Panel (inbound)"
-msgstr "Panel (entrante)"
-
-#: assets/build/index.js:45
-msgctxt "history origin"
-msgid "Broken links"
-msgstr "Enlaces rotos"
-
 #. translators: 1: anchor text, 2: entry title.
 #: assets/build/index.js:46
 msgid "Redo “%1$s” in %2$s"
@@ -1588,8 +1595,8 @@ msgstr "Todos los orígenes"
 
 #: assets/build/index.js:48
 msgctxt "history origin filter"
-msgid "Panel (inbound) and broken links"
-msgstr "Panel (entrante) y enlaces rotos"
+msgid "Another entry's panel and broken links"
+msgstr "Panel de otra entrada y enlaces rotos"
 
 #: assets/build/index.js:48
 msgid "Search entries…"
@@ -1616,8 +1623,8 @@ msgid "Batch"
 msgstr "Lote"
 
 #: assets/build/index.js:48
-msgid "Every link Magic Linking changes is listed here so you can undo it. Links you add from the editor panel appear once you save the entry; Magic Linking only records them."
-msgstr "Cada enlace que Magic Linking cambia aparece aquí para que puedas deshacerlo. Los enlaces que añades desde el panel del editor aparecen al guardar la entrada; Magic Linking solo los registra."
+msgid "Every link Magic Linking changes is listed here so you can undo it. Links you add in the editor panel appear here once you save the entry. Links added to other entries from the panel appear right away."
+msgstr "Cada enlace que cambia Magic Linking aparece aquí para que puedas deshacerlo. Los enlaces que añades en el panel del editor aparecen aquí al guardar la entrada. Los que añades a otras entradas desde el panel aparecen al momento."
 
 #. translators: %s: number of days.
 #: assets/build/index.js:49

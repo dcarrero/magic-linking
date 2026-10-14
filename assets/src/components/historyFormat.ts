@@ -65,16 +65,60 @@ export function actionLabel( kind: ChangeKind ): string {
 	}
 }
 
+export type OriginKey = 'panel' | 'other_panel' | 'broken';
+
 /**
- * De dónde viene un cambio: el panel del editor (enlace saliente de la entrada que se editaba), el panel de otra entrada (enlace entrante) o el arreglo de enlaces rotos.
+ * Desde dónde se puso un cambio (la única clasificación de origen de la pantalla): el panel de la propia entrada,
+ * el panel de otra entrada (el servidor lo escribió) o el arreglo de enlaces rotos.
+ * @param origin Origen.
+ * @param kind   Acción (sin ella, una inserción).
+ */
+export function originKey(
+	origin: HistoryOrigin,
+	kind: ChangeKind = 'insert'
+): OriginKey {
+	if ( origin === 'editor' ) {
+		return 'panel';
+	}
+	return kind === 'insert' ? 'other_panel' : 'broken';
+}
+
+/**
+ * De dónde viene un cambio, dicho sin dirección (en la vista por entrada todas las filas son enlaces escritos en
+ * esa entrada): el panel del editor, el panel de otra entrada o el arreglo de enlaces rotos.
  * @param origin Origen.
  * @param kind   Acción.
  */
 export function sourceLabel( origin: HistoryOrigin, kind: ChangeKind ): string {
-	if ( origin === 'editor' ) {
-		return _x( 'Panel (outbound)', 'history origin', 'magic-linking' );
+	switch ( originKey( origin, kind ) ) {
+		case 'panel':
+			return _x( 'Editor panel', 'history origin', 'magic-linking' );
+		case 'other_panel':
+			return _x(
+				"Another entry's panel",
+				'history origin',
+				'magic-linking'
+			);
+		default:
+			return _x( 'Broken links', 'history origin', 'magic-linking' );
 	}
-	return kind === 'insert'
-		? _x( 'Panel (inbound)', 'history origin', 'magic-linking' )
-		: _x( 'Broken links', 'history origin', 'magic-linking' );
+}
+
+/**
+ * Texto de origen de la tarjeta de un lote.
+ * @param origin Origen.
+ * @param kind   Acción del primer cambio del lote.
+ */
+export function batchOriginLabel(
+	origin: HistoryOrigin,
+	kind?: ChangeKind
+): string {
+	switch ( originKey( origin, kind ) ) {
+		case 'panel':
+			return __( 'Added from the editor panel', 'magic-linking' );
+		case 'other_panel':
+			return __( "Added from another entry's panel", 'magic-linking' );
+		default:
+			return __( 'Fixed from Broken links', 'magic-linking' );
+	}
 }

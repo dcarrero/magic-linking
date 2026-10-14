@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-14T19:02:31+00:00\n"
+"POT-Creation-Date: 2026-10-14T19:21:05+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -964,6 +964,14 @@ msgstr ""
 msgid "The suggestions could not be loaded. Check your connection and try again."
 msgstr ""
 
+#. translators: 1: panel title, 2: number of outbound suggestions.
+#: assets/build/editor.js:13
+#, js-format
+msgid "%1$s, %2$d outbound suggestion"
+msgid_plural "%1$s, %2$d outbound suggestions"
+msgstr[0] ""
+msgstr[1] ""
+
 #. translators: %s: number of entries.
 #: assets/build/index.js:3
 #: assets/build/index.js:18
@@ -1205,6 +1213,34 @@ msgstr ""
 
 #: assets/build/index.js:12
 msgid "Added"
+msgstr ""
+
+#: assets/build/index.js:12
+#: assets/build/index.js:48
+msgctxt "history origin"
+msgid "Editor panel"
+msgstr ""
+
+#: assets/build/index.js:12
+msgctxt "history origin"
+msgid "Another entry's panel"
+msgstr ""
+
+#: assets/build/index.js:12
+msgctxt "history origin"
+msgid "Broken links"
+msgstr ""
+
+#: assets/build/index.js:12
+msgid "Added from the editor panel"
+msgstr ""
+
+#: assets/build/index.js:12
+msgid "Added from another entry's panel"
+msgstr ""
+
+#: assets/build/index.js:12
+msgid "Fixed from Broken links"
 msgstr ""
 
 #: assets/build/index.js:12
@@ -1510,18 +1546,6 @@ msgid "%s (link removed)"
 msgstr ""
 
 #: assets/build/index.js:29
-msgid "Added from the editor panel"
-msgstr ""
-
-#: assets/build/index.js:29
-msgid "Added to other entries from the editor panel"
-msgstr ""
-
-#: assets/build/index.js:29
-msgid "Fixed from Broken links"
-msgstr ""
-
-#: assets/build/index.js:29
 msgid "There are no changes in the history."
 msgstr ""
 
@@ -1724,22 +1748,6 @@ msgstr ""
 msgid "Was: %s"
 msgstr ""
 
-#: assets/build/index.js:45
-#: assets/build/index.js:48
-msgctxt "history origin"
-msgid "Panel (outbound)"
-msgstr ""
-
-#: assets/build/index.js:45
-msgctxt "history origin"
-msgid "Panel (inbound)"
-msgstr ""
-
-#: assets/build/index.js:45
-msgctxt "history origin"
-msgid "Broken links"
-msgstr ""
-
 #. translators: 1: anchor text, 2: entry title.
 #: assets/build/index.js:46
 #, js-format
@@ -1791,7 +1799,7 @@ msgstr ""
 
 #: assets/build/index.js:48
 msgctxt "history origin filter"
-msgid "Panel (inbound) and broken links"
+msgid "Another entry's panel and broken links"
 msgstr ""
 
 #: assets/build/index.js:48
@@ -1820,7 +1828,7 @@ msgid "Batch"
 msgstr ""
 
 #: assets/build/index.js:48
-msgid "Every link Magic Linking changes is listed here so you can undo it. Links you add from the editor panel appear once you save the entry; Magic Linking only records them."
+msgid "Every link Magic Linking changes is listed here so you can undo it. Links you add in the editor panel appear here once you save the entry. Links added to other entries from the panel appear right away."
 msgstr ""
 
 #. translators: %s: number of days.

@@ -177,14 +177,14 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 					</option>
 					<option value="editor">
 						{ _x(
-							'Panel (outbound)',
+							'Editor panel',
 							'history origin',
 							'magic-linking'
 						) }
 					</option>
 					<option value="plugin">
 						{ _x(
-							'Panel (inbound) and broken links',
+							"Another entry's panel and broken links",
 							'history origin filter',
 							'magic-linking'
 						) }

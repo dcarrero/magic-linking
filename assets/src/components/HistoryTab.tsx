@@ -89,7 +89,7 @@ export function HistoryTab( { settingsUrl }: Props ) {
 		<>
 			<p className="description">
 				{ __(
-					'Every link Magic Linking changes is listed here so you can undo it. Links you add from the editor panel appear once you save the entry; Magic Linking only records them.',
+					'Every link Magic Linking changes is listed here so you can undo it. Links you add in the editor panel appear here once you save the entry. Links added to other entries from the panel appear right away.',
 					'magic-linking'
 				) }{ ' ' }
 				{ retentionText( retention ) }{ ' ' }
