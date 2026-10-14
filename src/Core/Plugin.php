@@ -285,7 +285,8 @@ final class Plugin {
 				$c->get( Reader::class ),
 				$c->get( Undo::class ),
 				$c->get( Redo::class ),
-				$c->get( JobRepository::class )
+				$c->get( JobRepository::class ),
+				$c->get( ChangeRepository::class )
 			),
 			HistoryController::class       => static fn( Container $c ): HistoryController => new HistoryController(
 				$c->get( Reader::class ),

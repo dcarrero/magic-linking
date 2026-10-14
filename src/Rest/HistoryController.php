@@ -557,7 +557,7 @@ final class HistoryController implements Module {
 			if ( ! $this->reader->can_edit( $user, $change['post_id'] ) ) {
 				return $this->forbidden();
 			}
-			if ( $this->batches->is_busy( $change['batch_id'] ) ) {
+			if ( $this->batches->is_busy_for_change( $change ) ) {
 				return $this->busy_batch();
 			}
 
@@ -654,12 +654,9 @@ final class HistoryController implements Module {
 			return $this->not_found();
 		}
 
-		// Un proceso en segundo plano de esta entrada, o de un lote al que pertenece alguno de sus cambios (una consulta).
-		if ( $this->batches->is_busy_post( $post_id ) ) {
-			return $this->busy_batch();
-		}
+		// Un único guard: proceso propio de la entrada o de alguno de los lotes de los cambios (una consulta).
 		$active = $this->batches->active();
-		if ( null !== $active && '' !== (string) ( $active['params']['batch_id'] ?? '' ) && in_array( $active['params']['batch_id'], array_column( $this->changes->light_of( $pending ), 'batch_id' ), true ) ) {
+		if ( $this->batches->is_busy_for_post( $post_id, array_values( array_unique( array_column( $this->changes->light_of( $pending ), 'batch_id' ) ) ) ) ) {
 			return $this->busy_batch();
 		}
 

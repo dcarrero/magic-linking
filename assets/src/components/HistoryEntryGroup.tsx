@@ -31,7 +31,7 @@ interface Props {
 	/** Filtro de origen activo: lo que se cuenta, se confirma y se deshace es lo que el filtro deja ver. */
 	origin: string;
 	/** La entrada ha cambiado (o ya no hay nada que enseñar: null). */
-	onChange: ( entry: HistoryEntry | null ) => void;
+	onChange: ( postId: number, entry: HistoryEntry | null ) => void;
 }
 
 interface Pending {
@@ -94,6 +94,7 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 	const refresh = useCallback( async () => {
 		try {
 			onChange(
+				entry.post_id,
 				( await api.historyEntry( entry.post_id, origin ) ).entry
 			);
 		} catch ( e ) {
@@ -217,7 +218,7 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 			} );
 			speak( summaryText( counts, mode === 'redo' ), 'polite' );
 		}
-		onChange( latest );
+		onChange( entry.post_id, latest );
 	};
 
 	const loadMore = async () => {

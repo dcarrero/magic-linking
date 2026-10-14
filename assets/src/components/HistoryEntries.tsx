@@ -94,27 +94,36 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 	};
 
 	const onEntry = useCallback(
-		( postId: number ) =>
-			( entry: HistoryEntriesResponse[ 'items' ][ number ] | null ) => {
-				// Con un filtro de estado, una entrada puede dejar de cumplirlo: se vuelve a pedir la página.
-				if ( ! entry || status !== 'all' ) {
-					setVersion( ( previous ) => previous + 1 );
-					requestAnimationFrame( () => list.current?.focus() );
-					return;
-				}
-				setLocal( ( previous ) =>
-					previous
-						? {
-								...previous,
-								items: previous.items.map( ( item ) =>
-									item.post_id === postId ? entry : item
-								),
-						  }
-						: previous
-				);
-			},
+		(
+			postId: number,
+			entry: HistoryEntriesResponse[ 'items' ][ number ] | null
+		) => {
+			// Con un filtro de estado, una entrada puede dejar de cumplirlo: se vuelve a pedir la página.
+			if ( ! entry || status !== 'all' ) {
+				setVersion( ( previous ) => previous + 1 );
+				requestAnimationFrame( () => list.current?.focus() );
+				return;
+			}
+			setLocal( ( previous ) =>
+				previous
+					? {
+							...previous,
+							items: previous.items.map( ( item ) =>
+								item.post_id === postId ? entry : item
+							),
+					  }
+					: previous
+			);
+		},
 		[ status ]
 	);
+
+	// Si tras deshacer o rehacer con filtro la página ya no existe, se va a la última que quede.
+	useEffect( () => {
+		if ( data && page > data.total_pages ) {
+			setPage( Math.max( 1, data.total_pages ) );
+		}
+	}, [ data, page ] );
 
 	const items = local?.items ?? [];
 	const total = local?.total ?? 0;
@@ -260,7 +269,7 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 						key={ entry.post_id }
 						entry={ entry }
 						origin={ origin }
-						onChange={ onEntry( entry.post_id ) }
+						onChange={ onEntry }
 					/>
 				) ) }
 			</div>

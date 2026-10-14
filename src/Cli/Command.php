@@ -622,6 +622,10 @@ final class Command {
 			WP_CLI::error( __( 'That change does not exist.', 'magic-linking' ) );
 		}
 
+		if ( $this->batches->is_busy_for_post( $post_id, array_values( array_unique( array_column( $this->changes->light_of( $ids ), 'batch_id' ) ) ) ) ) {
+			WP_CLI::error( __( 'This batch is being processed in the background. Wait for it to finish or cancel it.', 'magic-linking' ) );
+		}
+
 		$results = $redo ? $this->redo->redo_post( $post_id, $ids, $user ) : $this->undo->revert_post( $post_id, $ids, $user );
 		$this->print_results( $results, $redo );
 	}

@@ -32,6 +32,13 @@ use Throwable;
 final class Redo {
 
 	/**
+	 * Avisos de cambios rehechos que esperan al reindexado final de {@see self::redo_post()}.
+	 *
+	 * @var list<array{0: int, 1: int, 2: string, 3: string}>
+	 */
+	private array $deferred = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param PostWriter       $writer  Lectura y escritura del contenido.
@@ -94,17 +101,12 @@ final class Redo {
 			$this->reindex( $post_id );
 		}
 
-		// El cambio ya está escrito y anotado: un oyente que falla no puede ocultarlo.
-		try {
-			if ( ChangeRepository::INSERT === $change['action'] ) {
-				// Es el hook de \MagicLinking\Content\Inserter::insert(): rehacer es insertar otra vez.
-				do_action( 'magiclinking_link_inserted', $new_id, $post_id, (string) $change['batch_id'] );
-			} else {
-				// Es el hook de \MagicLinking\Content\Repairer::fix(): rehacer es arreglar otra vez.
-				do_action( 'magiclinking_link_fixed', $new_id, $post_id, (string) $change['batch_id'], (string) $change['action'] );
-			}
-		} catch ( Throwable $e ) {
-			PostWriter::log( sprintf( 'Un oyente de rehacer falló en la entrada %d: %s', $post_id, $e->getMessage() ) );
+		// Quien rehace varios de la misma entrada reindexa al final y avisa después, así que los avisos se aplazan.
+		$notices = array( $new_id, $post_id, (string) $change['batch_id'], (string) $change['action'] );
+		if ( $reindex ) {
+			$this->notify( $notices );
+		} else {
+			$this->deferred[] = $notices;
 		}
 
 		$done = array(
@@ -113,6 +115,41 @@ final class Redo {
 		);
 
 		return new UndoResult( $change_id, $post_id, UndoResult::REDONE, $done[ $change['action'] ] ?? __( 'Link added again.', 'magic-linking' ) );
+	}
+
+	/**
+	 * Devuelve y vacía los avisos aplazados.
+	 *
+	 * @return list<array{0: int, 1: int, 2: string, 3: string}>
+	 */
+	private function take_deferred(): array {
+		$notices        = $this->deferred;
+		$this->deferred = array();
+
+		return $notices;
+	}
+
+	/**
+	 * Avisa de un cambio rehecho. El cambio ya está escrito y anotado: un oyente que falla no puede ocultarlo.
+	 *
+	 * @param array $notice Fila nueva, entrada, lote y acción.
+	 *
+	 * @phpstan-param array{0: int, 1: int, 2: string, 3: string} $notice
+	 */
+	private function notify( array $notice ): void {
+		[ $new_id, $post_id, $batch, $action ] = $notice;
+
+		try {
+			if ( ChangeRepository::INSERT === $action ) {
+				// Es el hook de \MagicLinking\Content\Inserter::insert(): rehacer es insertar otra vez.
+				do_action( 'magiclinking_link_inserted', $new_id, $post_id, $batch );
+			} else {
+				// Es el hook de \MagicLinking\Content\Repairer::fix(): rehacer es arreglar otra vez.
+				do_action( 'magiclinking_link_fixed', $new_id, $post_id, $batch, $action );
+			}
+		} catch ( Throwable $e ) {
+			PostWriter::log( sprintf( 'Un oyente de rehacer falló en la entrada %d: %s', $post_id, $e->getMessage() ) );
+		}
 	}
 
 	/**
@@ -141,21 +178,40 @@ final class Redo {
 	 */
 	public function redo_post( int $post_id, array $ids, ?int $user_id = null ): array {
 		sort( $ids );
+		$results = array();
+		$this->take_deferred();
 
 		try {
-			$results = $this->writer->exclusive(
+			$this->writer->exclusive(
 				$post_id,
-				function () use ( $ids, $user_id ): array {
-					return array_map( fn( int $id ): UndoResult => $this->redo( $id, $user_id, false ), $ids );
+				function () use ( $ids, $user_id, $post_id, &$results ): void {
+					foreach ( $ids as $id ) {
+						try {
+							$results[] = $this->redo( $id, $user_id, false );
+						} catch ( Throwable $e ) {
+							PostWriter::log( sprintf( 'Fallo al rehacer el cambio %d de la entrada %d: %s', $id, $post_id, $e->getMessage() ) );
+							$results[] = new UndoResult( $id, $post_id, UndoResult::FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) );
+						}
+					}
 				}
 			);
 		} catch ( InsertionException $e ) {
-			return array_map( static fn( int $id ): UndoResult => new UndoResult( $id, $post_id, UndoResult::FAILED, $e->getMessage(), $e->reason() ), $ids );
-		}
-
-		if ( array() !== array_filter( $results, static fn( UndoResult $result ): bool => UndoResult::REDONE === $result->status ) ) {
-			$this->reindex( $post_id );
-		}
+			$done = array_map( static fn( UndoResult $result ): int => $result->change_id, $results );
+			foreach ( $ids as $id ) {
+				if ( ! in_array( $id, $done, true ) ) {
+					$results[] = new UndoResult( $id, $post_id, UndoResult::FAILED, $e->getMessage(), $e->reason() );
+				}
+			}
+		} finally {
+			// Primero se reindexa y después se avisa, con lo que se haya rehecho.
+			$notices = $this->take_deferred();
+			if ( array() !== $notices ) {
+				$this->reindex( $post_id );
+			}
+			foreach ( $notices as $notice ) {
+				$this->notify( $notice );
+			}
+		}//end try
 
 		return $results;
 	}

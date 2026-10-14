@@ -58,16 +58,18 @@ final class BatchJob implements Module {
 	/**
 	 * Constructor.
 	 *
-	 * @param Reader        $reader Lectura del historial.
-	 * @param Undo          $undo   Deshacer.
-	 * @param Redo          $redo   Rehacer.
-	 * @param JobRepository $jobs   Procesos.
+	 * @param Reader           $reader Lectura del historial.
+	 * @param Undo             $undo   Deshacer.
+	 * @param Redo             $redo   Rehacer.
+	 * @param JobRepository    $jobs   Procesos.
+	 * @param ChangeRepository $changes Historial.
 	 */
 	public function __construct(
 		private Reader $reader,
 		private Undo $undo,
 		private Redo $redo,
-		private JobRepository $jobs
+		private JobRepository $jobs,
+		private ChangeRepository $changes
 	) {
 	}
 
@@ -207,8 +209,50 @@ final class BatchJob implements Module {
 	 */
 	public function is_busy( string $batch_id ): bool {
 		$active = $this->active();
+		if ( null === $active ) {
+			return false;
+		}
+		if ( ( $active['params']['batch_id'] ?? '' ) === $batch_id ) {
+			return true;
+		}
 
-		return null !== $active && ( $active['params']['batch_id'] ?? '' ) === $batch_id;
+		// Un proceso de una entrada también ocupa los lotes que la tocan.
+		$post_id = (int) ( $active['params']['post_id'] ?? 0 );
+
+		return $post_id > 0 && in_array( $post_id, $this->reader->posts_of_batch( $batch_id ), true );
+	}
+
+	/**
+	 * Si un cambio no se puede deshacer ni rehacer a mano ahora: su lote o su entrada tienen un proceso en segundo plano.
+	 *
+	 * @param array $change Fila del historial (basta `post_id` y `batch_id`).
+	 *
+	 * @phpstan-param array{post_id: int, batch_id: string} $change
+	 */
+	public function is_busy_for_change( array $change ): bool {
+		return $this->is_busy_for_post( $change['post_id'], array( $change['batch_id'] ) );
+	}
+
+	/**
+	 * Si una entrada no se puede tocar a mano ahora: tiene un proceso propio, o lo tiene alguno de los lotes dados.
+	 *
+	 * @param int   $post_id   Entrada.
+	 * @param array $batch_ids Lotes de los cambios que se van a tratar.
+	 *
+	 * @phpstan-param list<string> $batch_ids
+	 */
+	public function is_busy_for_post( int $post_id, array $batch_ids = array() ): bool {
+		$active = $this->active();
+		if ( null === $active ) {
+			return false;
+		}
+		if ( (int) ( $active['params']['post_id'] ?? 0 ) === $post_id ) {
+			return true;
+		}
+
+		$batch = (string) ( $active['params']['batch_id'] ?? '' );
+
+		return '' !== $batch && in_array( $batch, $batch_ids, true );
 	}
 
 	/**
@@ -405,6 +449,7 @@ final class BatchJob implements Module {
 		$counts  = is_array( $params['counts'] ?? null ) ? $params['counts'] : array();
 		$issues  = is_array( $params['issues'] ?? null ) ? $params['issues'] : array();
 		$undone  = (int) ( $params['undone'] ?? 0 );
+		$batches = is_array( $params['batches'] ?? null ) ? $params['batches'] : array();
 		$done    = (int) $job['done'];
 		$stop_at = microtime( true ) + ( $budget ?? (float) self::TIME_BUDGET );
 		$ids     = array_map( 'intval', is_array( $params['ids'] ?? null ) ? $params['ids'] : array() );
@@ -415,8 +460,10 @@ final class BatchJob implements Module {
 
 		try {
 			foreach ( array_chunk( $pending, self::POST_CHUNK ) as $chunk ) {
+				$light = $redo ? array() : $this->changes->light_of( $chunk );
 				try {
-					$results = $redo ? $this->redo->redo_post( $post_id, $chunk, $user_id ) : $this->undo->revert_post( $post_id, $chunk, $user_id );
+					// revert_post y redo_post ya devuelven un resultado por cambio, también cuando algo salta a medias.
+					$results = $redo ? $this->redo->redo_post( $post_id, $chunk, $user_id ) : $this->undo->revert_post( $post_id, $chunk, $user_id, false );
 				} catch ( Throwable $e ) {
 					PostWriter::log( sprintf( 'Fallo al tratar cambios de la entrada %d en segundo plano: %s', $post_id, $e->getMessage() ) );
 					$results = array_map( static fn( int $id ): UndoResult => new UndoResult( $id, $post_id, UndoResult::FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) ), $chunk );
@@ -426,6 +473,8 @@ final class BatchJob implements Module {
 					$counts[ $result->status ] = (int) ( $counts[ $result->status ] ?? 0 ) + 1;
 					if ( in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::FIX_REVERTED, UndoResult::GONE ), true ) ) {
 						++$undone;
+						$batch             = $light[ $result->change_id ]['batch_id'] ?? '';
+						$batches[ $batch ] = ( $batches[ $batch ] ?? 0 ) + 1;
 					}
 					if ( in_array( $result->status, array( UndoResult::MANUAL, UndoResult::FAILED ), true ) && count( $issues ) < self::MAX_ISSUES ) {
 						$issues[] = array(
@@ -450,15 +499,24 @@ final class BatchJob implements Module {
 			wp_set_current_user( $previous );
 		}//end try
 
-		$params['cursor'] = $cursor;
-		$params['counts'] = $counts;
-		$params['issues'] = $issues;
-		$params['undone'] = $undone;
+		$params['cursor']  = $cursor;
+		$params['counts']  = $counts;
+		$params['issues']  = $issues;
+		$params['undone']  = $undone;
+		$params['batches'] = $batches;
 
 		$finished = array() === $pending || (int) end( $pending ) === $cursor;
 		$this->jobs->set_progress( $job['id'], $done, max( (int) $job['total'], $done ), $params );
 		if ( $finished ) {
 			$this->jobs->set_status( $job['id'], JobRepository::DONE );
+			if ( ! $redo ) {
+				// Una sola vez por lote afectado y con el total, como al deshacer un lote en la petición.
+				foreach ( $batches as $batch => $count ) {
+					if ( '' !== (string) $batch && $count > 0 ) {
+						do_action( 'magiclinking_batch_undone', (string) $batch, (int) $count );
+					}
+				}
+			}
 		}
 
 		return ! $finished;

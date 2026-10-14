@@ -161,6 +161,17 @@ final class Reader {
 	}
 
 	/**
+	 * Entradas que toca un lote.
+	 *
+	 * @param string $batch_id Lote.
+	 *
+	 * @return list<int>
+	 */
+	public function posts_of_batch( string $batch_id ): array {
+		return array_values( array_unique( array_column( $this->changes->inserts_of( array( $batch_id ) )[ $batch_id ] ?? array(), 'post_id' ) ) );
+	}
+
+	/**
 	 * Si el usuario puede editar una entrada (si ya no existe, decide `edit_others_posts`; el 0 es el sistema y puede todo).
 	 *
 	 * @param int $user_id Quien pregunta.

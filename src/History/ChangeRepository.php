@@ -417,8 +417,11 @@ final class ChangeRepository {
 
 		$grouped = $wpdb->prepare( 'SELECT c.post_id, COUNT(*) AS total, SUM( c.undone_at IS NULL ) AS active, MAX( GREATEST( c.created_at, COALESCE( c.undone_at, c.created_at ) ) ) AS last_at FROM %i c', $this->table ) . $join . ' WHERE ' . $where . ' GROUP BY c.post_id' . $having; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
 
-		$total = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ( ' . $grouped . ' ) g' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
-		$rows  = $wpdb->get_results( $grouped . $wpdb->prepare( ' ORDER BY last_at DESC, MAX( c.id ) DESC LIMIT %d OFFSET %d', $per_page, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		// Una sola pasada por la tabla: se traen todas las entradas (tres números y una fecha cada una) y aquí se corta la
+		// página. Contar aparte obligaba a recorrer la tabla dos veces. Coste y límites, en D-59.
+		$all   = $wpdb->get_results( $grouped . ' ORDER BY last_at DESC, MAX( c.id ) DESC', ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$total = count( $all );
+		$rows  = array_slice( $all, $offset, $per_page );
 
 		$items = array();
 		foreach ( $rows as $row ) {

@@ -93,43 +93,61 @@ final class Undo {
 	 * @param int      $post_id Entrada.
 	 * @param array    $ids     Cambios de esa entrada.
 	 * @param int|null $user_id Quien lo pide (null = el usuario actual).
+	 * @param bool     $notify  Avisar con `magiclinking_batch_undone` (un proceso en segundo plano lo hace una vez al final).
 	 *
 	 * @phpstan-param list<int> $ids
 	 *
 	 * @return list<UndoResult> Un resultado por cambio, en el orden en que se han tratado.
 	 */
-	public function revert_post( int $post_id, array $ids, ?int $user_id = null ): array {
+	public function revert_post( int $post_id, array $ids, ?int $user_id = null, bool $notify = true ): array {
 		rsort( $ids );
 		$batches = $this->changes->light_of( $ids );
+		$results = array();
 
 		try {
-			$results = $this->writer->exclusive(
+			$this->writer->exclusive(
 				$post_id,
-				function () use ( $ids, $user_id ): array {
-					return array_map( fn( int $id ): UndoResult => $this->revert( $id, $user_id, false ), $ids );
+				function () use ( $ids, $user_id, $post_id, &$results ): void {
+					foreach ( $ids as $id ) {
+						try {
+							$results[] = $this->revert( $id, $user_id, false );
+						} catch ( Throwable $e ) {
+							// Un fallo de WordPress o de un complemento solo marca el cambio en el que saltó: lo ya aplicado sigue contando.
+							PostWriter::log( sprintf( 'Fallo al deshacer el cambio %d de la entrada %d: %s', $id, $post_id, $e->getMessage() ) );
+							$results[] = new UndoResult( $id, $post_id, UndoResult::FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) );
+						}
+					}
 				}
 			);
 		} catch ( InsertionException $e ) {
-			// Otra operación tiene la entrada y no la suelta: ninguno se ha tocado.
-			return array_map( static fn( int $id ): UndoResult => new UndoResult( $id, $post_id, UndoResult::FAILED, $e->getMessage(), $e->reason() ), $ids );
-		}
-
-		$per_batch = array();
-		foreach ( $results as $result ) {
-			if ( in_array( $result->status, self::UNDONE, true ) ) {
-				$batch               = $batches[ $result->change_id ]['batch_id'] ?? '';
-				$per_batch[ $batch ] = ( $per_batch[ $batch ] ?? 0 ) + 1;
+			// Otra operación tiene la entrada y no la suelta: ninguno de los que faltan se ha tocado.
+			$done = array_map( static fn( UndoResult $result ): int => $result->change_id, $results );
+			foreach ( $ids as $id ) {
+				if ( ! in_array( $id, $done, true ) ) {
+					$results[] = new UndoResult( $id, $post_id, UndoResult::FAILED, $e->getMessage(), $e->reason() );
+				}
 			}
-		}
-		if ( array() !== $per_batch ) {
-			$this->refresh( $post_id );
-		}
-		foreach ( $per_batch as $batch => $undone ) {
-			if ( '' !== $batch ) {
-				// Misma acción que al deshacer un lote entero ({@see self::revert_batch()}): una vez por lote, con lo deshecho ahora.
-				do_action( 'magiclinking_batch_undone', (string) $batch, $undone );
+		} finally {
+			// Se reindexa y se avisa con lo que se haya aplicado, haya o no saltado algo por el camino.
+			$per_batch = array();
+			foreach ( $results as $result ) {
+				if ( in_array( $result->status, self::UNDONE, true ) ) {
+					$batch               = $batches[ $result->change_id ]['batch_id'] ?? '';
+					$per_batch[ $batch ] = ( $per_batch[ $batch ] ?? 0 ) + 1;
+				}
 			}
-		}
+			if ( array() !== $per_batch ) {
+				$this->refresh( $post_id );
+			}
+			if ( $notify ) {
+				foreach ( $per_batch as $batch => $undone ) {
+					if ( '' !== $batch ) {
+						// Misma acción que al deshacer un lote entero ({@see self::revert_batch()}): una vez por lote, con lo deshecho ahora.
+						do_action( 'magiclinking_batch_undone', (string) $batch, $undone );
+					}
+				}
+			}
+		}//end try
 
 		return $results;
 	}
