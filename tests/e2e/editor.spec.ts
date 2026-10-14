@@ -59,6 +59,16 @@ function editorRows( id: number ): number {
 	);
 }
 
+/** Filas del editor registradas y todavía puestas para una entrada. */
+function activeEditorRows( id: number ): number {
+	return Number(
+		wp(
+			'eval',
+			`global $wpdb; echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}magiclinking_changes WHERE post_id = %d AND origin = 'editor' AND action = 'insert' AND undone_at IS NULL", ${ id } ) );`
+		).trim()
+	);
+}
+
 /**
  * Quien acaba de salir del editor deja el bloqueo `_edit_lock` vigente 150 s y Deshacer no escribe mientras dure
  * (docs/06 §1.5). Aquí se simula que ya venció.
@@ -749,6 +759,45 @@ test.describe( 'Editor panel', () => {
 		await expectHistoryAccessible( page );
 	} );
 
+	test( 'history: removing a recorded link by hand and saving marks it as undone in History', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		const before = content( ids.origen );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await expect( card ).toBeVisible();
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 1 );
+		await save( page );
+		await expect.poll( () => activeEditorRows( ids.origen ) ).toBe( 1 );
+
+		// El usuario quita el enlace a mano en el bloque y guarda: el servidor lo nota al guardar.
+		await page.evaluate( ( html ) => {
+			// @ts-expect-error wp lo pone WordPress.
+			const { select, dispatch } = window.wp.data;
+			const first = select( 'core/block-editor' ).getBlocks()[ 0 ];
+			dispatch( 'core/block-editor' ).updateBlockAttributes(
+				first.clientId,
+				{ content: html }
+			);
+		}, ( await canvas( page ).locator( 'p[data-block]' ).first().innerText() ) );
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
+		await save( page );
+		await expect.poll( () => activeEditorRows( ids.origen ) ).toBe( 0 );
+		expect( content( ids.origen ) ).not.toContain( '<a href=' );
+		expect( content( ids.origen ).replace( /\s+/g, ' ' ) ).toContain( 'bomba de calor' );
+		expect( before ).toContain( 'bomba de calor' );
+
+		await page.goto( SCREEN_HISTORY );
+		const batch = page.locator( '.magiclinking-batch' );
+		await expect( batch ).toContainText( 'Added in the editor' );
+		await expect( batch ).toContainText( 'Undone' );
+		await expectHistoryAccessible( page );
+	} );
+
 	test( 'classic editor: the box links in TinyMCE and does nothing in the Text tab', async ( {
 		page,
 	} ) => {
@@ -870,5 +919,47 @@ test.describe( 'Editor panel', () => {
 		await expect( batch.getByRole( 'status' ) ).toContainText( '1 link undone.' );
 		const plain = ( html: string ) => html.replace( /<\/?p>/g, '' ).trim();
 		expect( plain( content( clasico ) ) ).toBe( plain( before ) );
+	} );
+	test( 'history: removing a recorded link in the classic editor and saving marks it as undone', async ( {
+		page,
+	} ) => {
+		const clasico = Number(
+			wp(
+				'eval',
+				`echo wp_insert_post( array( 'post_name' => 'pe-clasico-quitar', 'post_title' => 'Guía clásica para quitar', 'post_status' => 'publish', 'post_content' => '<p>La instalación de una bomba de calor reduce el consumo de energía en las casas con buen aislamiento.</p>' ) );`
+			).trim()
+		);
+		wp( 'magic-linking', 'index' );
+		wp(
+			'eval',
+			`
+			if ( ! is_dir( WPMU_PLUGIN_DIR ) ) { mkdir( WPMU_PLUGIN_DIR ); }
+			file_put_contents( WPMU_PLUGIN_DIR . '/magiclinking-e2e-classic.php', "<?php\\nadd_filter( 'use_block_editor_for_post', '__return_false' );\\n" );
+			`
+		);
+		await login( page );
+		await page.goto( `/wp-admin/post.php?post=${ clasico }&action=edit` );
+		const card = page.locator( '#magiclinking-editor-panel .magiclinking-card' ).first();
+		await expect( card ).toBeVisible();
+		await page.locator( '#content-tmce' ).click();
+		const frame = page.frameLocator( '#content_ifr' );
+		await expect( frame.locator( 'body p' ) ).toBeVisible();
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( frame.locator( 'body a' ) ).toHaveCount( 1 );
+		await page.locator( '#publish' ).click();
+		await page.waitForURL( /message=1/ );
+		await expect.poll( () => activeEditorRows( clasico ) ).toBe( 1 );
+
+		// Se quita el enlace en TinyMCE y se guarda de nuevo.
+		await page.locator( '#content-tmce' ).click();
+		await expect( frame.locator( 'body a' ) ).toHaveCount( 1 );
+		await page.evaluate( () => {
+			// @ts-expect-error tinymce lo pone WordPress.
+			const editor = window.tinymce.get( 'content' );
+			editor.setContent( editor.getContent().replace( /<a [^>]*>(.*?)<\/a>/, '$1' ) );
+		} );
+		await page.locator( '#publish' ).click();
+		await page.waitForURL( /message=1/ );
+		await expect.poll( () => activeEditorRows( clasico ) ).toBe( 0 );
 	} );
 } );

@@ -26,6 +26,7 @@ use MagicLinking\Graph\ReportRepository;
 use MagicLinking\History\BatchJob;
 use MagicLinking\History\ChangeRepository;
 use MagicLinking\History\EditorLinks;
+use MagicLinking\History\EditorReconciler;
 use MagicLinking\History\Reader;
 use MagicLinking\History\Redo;
 use MagicLinking\History\Retention;
@@ -77,6 +78,7 @@ final class Plugin {
 		FixController::class,
 		HistoryController::class,
 		EditorHistoryController::class,
+		EditorReconciler::class,
 		SuggestionCache::class,
 		SuggestionsController::class,
 		DismissalsController::class,
@@ -270,6 +272,7 @@ final class Plugin {
 				$c->get( ChangeRepository::class ),
 				$c->get( Jobs::class )
 			),
+			EditorReconciler::class        => static fn( Container $c ): EditorReconciler => new EditorReconciler( $c->get( ChangeRepository::class ) ),
 			EditorLinks::class             => static fn( Container $c ): EditorLinks => new EditorLinks( $c->get( PostWriter::class ), $c->get( ChangeRepository::class ) ),
 			EditorHistoryController::class => static fn( Container $c ): EditorHistoryController => new EditorHistoryController( $c->get( EditorLinks::class ) ),
 			Reader::class                  => static fn( Container $c ): Reader => new Reader( $c->get( ChangeRepository::class ) ),

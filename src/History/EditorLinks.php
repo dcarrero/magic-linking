@@ -158,7 +158,15 @@ final class EditorLinks {
 				continue;
 			}
 
-			$edit = $this->edit( $content, $found[0] );
+			$one = $found[0];
+			if ( null === $map ) {
+				[ $from, $to ] = ( new ClassicEditor() )->chunk( $content, $one['start'], $one['end'] );
+				$one['path']   = '@' . $from;
+				$one['from']   = $from;
+				$one['to']     = $to;
+			}
+
+			$edit = $this->edit( $content, $one );
 			if ( null === $edit ) {
 				PostWriter::log( sprintf( 'El enlace del editor en la entrada %d no se pudo verificar; no se registra.', $post_id ) );
 				$results[ $index ] = $this->result( $insertion, self::UNVERIFIED );
@@ -190,11 +198,14 @@ final class EditorLinks {
 				continue;
 			}
 
-			$active[]          = $this->changes->get( $id ) ?? array();
+			$active[]          = array(
+				'id'          => $id,
+				'before_html' => $edit['before'],
+				'after_html'  => $edit['after'],
+			);
 			$results[ $index ] = $this->result( $insertion, self::RECORDED, $id );
 		}//end foreach
 
-		$this->reconcile( $content, $active );
 		ksort( $results );
 		$results  = array_values( $results );
 		$recorded = array_filter( $results, static fn( array $result ): bool => self::RECORDED === $result['status'] );
@@ -203,29 +214,6 @@ final class EditorLinks {
 			'batch_id' => array() === $recorded ? null : $batch,
 			'results'  => $results,
 		);
-	}
-
-	/**
-	 * Marca como deshechos los enlaces del editor ya registrados que ya no están en el contenido guardado (el usuario
-	 * los quitó con el panel o a mano y guardó). No escribe en la entrada; es lo que haría Deshacer al encontrar el
-	 * enlace «ya quitado» y deja el Historial al día (D-58).
-	 *
-	 * @param string $content Contenido guardado.
-	 * @param array  $active  Inserciones puestas de la entrada.
-	 *
-	 * @phpstan-param list<array<string, mixed>> $active
-	 */
-	private function reconcile( string $content, array $active ): void {
-		foreach ( $active as $row ) {
-			if ( ! isset( $row['id'], $row['origin'] ) || ChangeRepository::ORIGIN_EDITOR !== $row['origin'] ) {
-				continue;
-			}
-
-			$link = Undo::inserted_link( (string) $row['before_html'], (string) $row['after_html'] );
-			if ( null !== $link && ! str_contains( $content, $link['open'] ) && ! str_contains( $content, $link['exact'] ) ) {
-				$this->changes->mark_undone( (int) $row['id'] );
-			}
-		}
 	}
 
 	/**
@@ -278,9 +266,8 @@ final class EditorLinks {
 	 * @return list<array{start: int, end: int, open: int, inner: string, path: string|null, from: int, to: int, href: string, text: string}> `start`/`end`: el `<a>` entero; `open`: longitud de la etiqueta de apertura; `path`/`from`/`to`: el tramo que se guarda (bloque o trozo clásico).
 	 */
 	private function anchors( string $content, ?BlockMap $map ): array {
-		$found  = array();
-		$spans  = array();
-		$chunks = new ClassicEditor();
+		$found = array();
+		$spans = array();
 		if ( null === $map ) {
 			$spans[] = array( 0, strlen( $content ), null, 0, 0 );
 		} else {
@@ -310,18 +297,18 @@ final class EditorLinks {
 					continue;
 				}
 
-				$start                     = $from + $at;
-				$end                       = $from + $close + 4;
-				[ $chunk_from, $chunk_to ] = null === $map ? $chunks->chunk( $content, $start, $end ) : array( $node_start, $node_end );
+				$start = $from + $at;
+				$end   = $from + $close + 4;
 
 				$found[] = array(
 					'start' => $start,
 					'end'   => $end,
 					'open'  => strlen( $tag ),
 					'inner' => $inner,
-					'path'  => null === $map ? '@' . $chunk_from : (string) $path,
-					'from'  => $chunk_from,
-					'to'    => $chunk_to,
+					// En el editor clásico el tramo se calcula solo para el enlace que coincide (en run()).
+					'path'  => null === $map ? '' : (string) $path,
+					'from'  => null === $map ? 0 : $node_start,
+					'to'    => null === $map ? 0 : $node_end,
 					'href'  => OpenTag::href( $tag ),
 					'text'  => self::normalize( wp_strip_all_tags( $inner ) ),
 				);
@@ -391,7 +378,7 @@ final class EditorLinks {
 	 * @param string $url  Dirección del destino.
 	 */
 	private static function same_url( string $href, string $url ): bool {
-		return '' !== $href && untrailingslashit( trim( $href ) ) === untrailingslashit( $url );
+		return '' !== $href && EditorReconciler::normalize_url( $href ) === EditorReconciler::normalize_url( $url );
 	}
 
 	/**
@@ -400,9 +387,6 @@ final class EditorLinks {
 	 * @param string $text Texto.
 	 */
 	private static function normalize( string $text ): string {
-		$plain = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$plain = (string) preg_replace( '/[\x{200B}\x{FEFF}]+/u', '', $plain );
-
-		return trim( (string) preg_replace( '/[\s\x{00A0}]+/u', ' ', $plain ) );
+		return EditorReconciler::normalize( $text );
 	}
 }

@@ -41,23 +41,6 @@ function path( route: string, query: Record< string, string | number > = {} ) {
 	return `/${ NS }${ route }${ qs ? `?${ qs }` : '' }`;
 }
 
-/** Nonce de REST nueva (el punto de WordPress que la renueva para la sesión actual). */
-async function freshNonce(): Promise< string > {
-	const url = ( window as { ajaxurl?: string } ).ajaxurl;
-	if ( ! url ) {
-		return '';
-	}
-	try {
-		const response = await fetch( `${ url }?action=rest-nonce`, {
-			credentials: 'same-origin',
-		} );
-		const text = response.ok ? ( await response.text() ).trim() : '';
-		return /^[0-9a-f]{6,20}$/i.test( text ) ? text : '';
-	} catch {
-		return '';
-	}
-}
-
 export interface ReportQuery {
 	filter: ReportFilter;
 	search: string;
@@ -185,31 +168,12 @@ export const api = {
 	 * @param postId Entrada guardada.
 	 * @param links  Enlaces que el panel puso.
 	 */
-	recordEditorLinks: async ( postId: number, links: EditorLink[] ) => {
-		const request = ( headers?: Record< string, string > ) =>
-			apiFetch< EditorHistoryResponse >( {
-				path: path( '/history/editor' ),
-				method: 'POST',
-				data: { post_id: postId, links },
-				headers,
-			} );
-		try {
-			return await request();
-		} catch ( error ) {
-			// Una pestaña abierta mucho tiempo tiene la nonce caducada: se renueva y se reintenta una sola vez.
-			if (
-				( error as { code?: string } )?.code !==
-				'rest_cookie_invalid_nonce'
-			) {
-				throw error;
-			}
-			const nonce = await freshNonce();
-			if ( ! nonce ) {
-				throw error;
-			}
-			return request( { 'X-WP-Nonce': nonce } );
-		}
-	},
+	recordEditorLinks: ( postId: number, links: EditorLink[] ) =>
+		apiFetch< EditorHistoryResponse >( {
+			path: path( '/history/editor' ),
+			method: 'POST',
+			data: { post_id: postId, links },
+		} ),
 	/**
 	 * Sugerencias salientes de una entrada tal como está guardada.
 	 *

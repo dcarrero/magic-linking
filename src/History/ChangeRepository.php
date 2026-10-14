@@ -45,6 +45,11 @@ final class ChangeRepository {
 	public const ORIGIN_EDITOR = 'editor';
 
 	/**
+	 * Inserciones activas de una entrada que se miran como máximo al comprobar duplicados (las más recientes).
+	 */
+	public const ACTIVE_LIMIT = 500;
+
+	/**
 	 * Conexión.
 	 *
 	 * @var wpdb
@@ -147,18 +152,55 @@ final class ChangeRepository {
 	}
 
 	/**
-	 * Inserciones de una entrada que siguen puestas (no deshechas), con su HTML. Sirve para no registrar dos veces
-	 * el mismo tramo y para comprobar cuáles ya no están en el contenido (F1-34).
+	 * Inserciones de una entrada que siguen puestas (no deshechas), con su HTML, las más recientes primero. Sirve para
+	 * no registrar dos veces el mismo tramo. Con más de {@see self::ACTIVE_LIMIT} solo se miran las más recientes.
 	 *
 	 * @param int $post_id Entrada.
 	 *
-	 * @return list<array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}>
+	 * @return list<array{id: int, before_html: string, after_html: string}>
 	 */
 	public function active_inserts_of_post( int $post_id ): array {
-		$wpdb = $this->wpdb;
-		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d AND action = %s AND undone_at IS NULL ORDER BY id LIMIT 500', $this->table, $post_id, self::INSERT ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
+		return $this->active_rows( $post_id, null, self::ACTIVE_LIMIT );
+	}
 
-		return array_map( array( $this, 'cast' ), is_array( $rows ) ? $rows : array() );
+	/**
+	 * Inserciones puestas de origen `editor` de una entrada, las más recientes primero, con las columnas mínimas (F1-34).
+	 *
+	 * @param int $post_id Entrada.
+	 * @param int $limit   Máximo de filas (las más recientes).
+	 *
+	 * @return list<array{id: int, before_html: string, after_html: string}>
+	 */
+	public function active_editor_rows( int $post_id, int $limit ): array {
+		return $this->active_rows( $post_id, self::ORIGIN_EDITOR, $limit );
+	}
+
+	/**
+	 * Inserciones puestas de una entrada, de la más reciente a la más antigua.
+	 *
+	 * @param int         $post_id Entrada.
+	 * @param string|null $origin  Solo de este origen, o todos.
+	 * @param int         $limit   Máximo de filas.
+	 *
+	 * @return list<array{id: int, before_html: string, after_html: string}>
+	 */
+	private function active_rows( int $post_id, ?string $origin, int $limit ): array {
+		$wpdb  = $this->wpdb;
+		$where = null === $origin
+			? $wpdb->prepare( 'post_id = %d AND action = %s AND undone_at IS NULL', $post_id, self::INSERT )
+			: $wpdb->prepare( 'post_id = %d AND action = %s AND undone_at IS NULL AND origin = %s', $post_id, self::INSERT, $origin );
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT id, before_html, after_html FROM %i WHERE {$where} ORDER BY id DESC LIMIT %d", $this->table, max( 1, $limit ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia; $where ya está preparado.
+
+		$out = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[] = array(
+				'id'          => (int) $row['id'],
+				'before_html' => (string) $row['before_html'],
+				'after_html'  => (string) $row['after_html'],
+			);
+		}
+
+		return $out;
 	}
 
 	/**

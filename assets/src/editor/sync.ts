@@ -9,8 +9,8 @@
  *   reintenta uno a uno para descartar solo el rechazado).
  * - Tras un autoguardado el servidor puede no haber visto el enlace (si guardó en una revisión aparte): los
  *   `not_found` se conservan.
- * - Si se deshace un enlace que ya se había enviado (o se está enviando), el siguiente guardado manda una lista
- *   vacía para que el servidor marque como deshechas las filas cuyo enlace ya no está.
+ * - Si se deshace un enlace ya registrado, no hace falta avisar: el servidor marca como deshecha la fila al guardar
+ *   la entrada si el enlace ya no está (`History\EditorReconciler`).
  */
 import type { EditorHistoryResponse, EditorLink } from '../types';
 import type { InsertionLog } from './insertions';
@@ -21,21 +21,22 @@ export const MAX_LINKS = 50;
 type Send = ( links: EditorLink[] ) => Promise< EditorHistoryResponse >;
 
 /**
- * Si un error de la API es definitivo para esos enlaces (la petición está mal o la entrada ya no existe).
+ * Si un error de la API es definitivo para esos enlaces: la petición está mal (400), la entrada ya no existe (404) o
+ * el usuario ya no puede editarla (403), salvo una nonce caducada, que se arregla sola al recargar.
  *
  * @param error Lo que lanzó la petición.
  */
 export function isDefinitive( error: unknown ): boolean {
-	const status = ( error as { data?: { status?: number } } )?.data?.status;
-	return status === 400 || status === 404;
+	const failure = error as { code?: string; data?: { status?: number } };
+	if ( failure?.code === 'rest_cookie_invalid_nonce' ) {
+		return false;
+	}
+	const status = failure?.data?.status;
+	return status === 400 || status === 403 || status === 404;
 }
 
 export class InsertionSync {
 	private snapshot: string[] | null = null;
-
-	private inFlight = new Set< string >();
-
-	private reconcile = false;
 
 	private queue: Promise< void > = Promise.resolve();
 
@@ -65,18 +66,12 @@ export class InsertionSync {
 	}
 
 	/**
-	 * Deja de contar un enlace que se deshizo en el editor.
+	 * Deja de contar un enlace que se deshizo en el editor antes de que se enviara.
 	 *
 	 * @param insertionId Identificador de la inserción.
 	 */
 	forget( insertionId: string ): void {
-		const pending = this.log
-			.list()
-			.some( ( link ) => link.insertion_id === insertionId );
 		this.log.remove( insertionId );
-		if ( ! pending || this.inFlight.has( insertionId ) ) {
-			this.reconcile = true;
-		}
 	}
 
 	/**
@@ -112,35 +107,13 @@ export class InsertionSync {
 			.filter(
 				( link ) => ids === null || ids.includes( link.insertion_id )
 			);
-		if ( links.length === 0 && ! this.reconcile ) {
-			return;
-		}
-
-		const wasReconcile = this.reconcile;
-		this.reconcile = false;
-		this.inFlight = new Set( links.map( ( link ) => link.insertion_id ) );
-		let sent = false;
-
-		try {
-			const chunks: EditorLink[][] = [];
-			for ( let i = 0; i < links.length; i += MAX_LINKS ) {
-				chunks.push( links.slice( i, i + MAX_LINKS ) );
-			}
-			if ( chunks.length === 0 ) {
-				chunks.push( [] );
-			}
-
-			for ( const chunk of chunks ) {
-				const ok = await this.sendChunk( chunk, autosave );
-				if ( ! ok ) {
-					break;
-				}
-				sent = true;
-			}
-		} finally {
-			this.inFlight = new Set();
-			if ( wasReconcile && ! sent ) {
-				this.reconcile = true;
+		for ( let i = 0; i < links.length; i += MAX_LINKS ) {
+			const ok = await this.sendChunk(
+				links.slice( i, i + MAX_LINKS ),
+				autosave
+			);
+			if ( ! ok ) {
+				break;
 			}
 		}
 	}

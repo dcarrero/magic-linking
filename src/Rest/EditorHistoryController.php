@@ -20,7 +20,7 @@ use WP_REST_Server;
 /**
  * `POST /history/editor`: tras guardar la entrada, el panel dice qué enlaces puso en el editor. El servidor
  * comprueba que siguen en el contenido guardado y los apunta en el Historial; **no escribe nada en la entrada**
- * ({@see EditorLinks}). Pide `edit_posts` y `edit_post` sobre la entrada; la nonce de REST la exige el núcleo
+ * ({@see EditorLinks}). Pide `edit_posts` y, si la entrada existe (404 con código propio si no), `edit_post` sobre ella; la nonce de REST la exige el núcleo
  * con la autenticación por cookie.
  */
 final class EditorHistoryController implements Module {
@@ -65,6 +65,7 @@ final class EditorHistoryController implements Module {
 					'links'   => array(
 						'type'     => 'array',
 						'required' => true,
+						'minItems' => 1,
 						'maxItems' => self::MAX_LINKS,
 						// Cada elemento se valida en el servidor y se contesta por separado: uno mal formado no hunde el resto.
 						'items'    => array( 'type' => 'object' ),
@@ -75,12 +76,10 @@ final class EditorHistoryController implements Module {
 	}
 
 	/**
-	 * Permiso: editar entradas y la entrada indicada.
-	 *
-	 * @param WP_REST_Request $request Petición.
+	 * Permiso base: editar entradas. El permiso sobre la entrada indicada se comprueba después de saber que existe.
 	 */
-	public function can_record( WP_REST_Request $request ): bool {
-		return current_user_can( 'edit_posts' ) && current_user_can( 'edit_post', (int) $request['post_id'] );
+	public function can_record(): bool {
+		return current_user_can( 'edit_posts' );
 	}
 
 	/**
@@ -93,7 +92,10 @@ final class EditorHistoryController implements Module {
 	public function post_editor( WP_REST_Request $request ) {
 		$post_id = (int) $request['post_id'];
 		if ( ! $this->recordable( $post_id ) ) {
-			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
+			return new WP_Error( 'magiclinking_post_gone', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return new WP_Error( 'magiclinking_forbidden', __( 'You do not have permission to edit one of the entries involved.', 'magic-linking' ), array( 'status' => rest_authorization_required_code() ) );
 		}
 
 		$links = array_map( static fn( $link ): array => (array) $link, array_values( (array) $request['links'] ) );

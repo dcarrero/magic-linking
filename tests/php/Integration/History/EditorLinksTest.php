@@ -498,17 +498,6 @@ final class EditorLinksTest extends HistoryTestCase {
 	}
 
 	public function test_a_missing_entry_and_too_many_links_are_refused(): void {
-		$this->assertSame(
-			403,
-			$this->post_editor(
-				array(
-					'post_id' => 987654,
-					'links'   => array( $this->client_link() ),
-				),
-				$this->author
-			)->get_status()
-		);
-
 		$post = $this->saved_with_link();
 		$this->assertSame(
 			400,
@@ -539,57 +528,137 @@ final class EditorLinksTest extends HistoryTestCase {
 		$this->assertSame( array( 'invalid', 'recorded', 'invalid' ), array_column( $response->get_data()['results'], 'status' ) );
 	}
 
-	public function test_an_empty_list_only_reconciles_and_is_accepted(): void {
+	public function test_an_empty_list_is_refused(): void {
 		$post = $this->saved_with_link();
 
-		$response = $this->post_editor(
-			array(
-				'post_id' => $post,
-				'links'   => array(),
-			)
+		$this->assertSame(
+			400,
+			$this->post_editor(
+				array(
+					'post_id' => $post,
+					'links'   => array(),
+				)
+			)->get_status()
 		);
-
-		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( array(), $response->get_data()['results'] );
 	}
 
-	public function test_reconcile_marks_as_undone_the_recorded_links_that_are_no_longer_in_the_post(): void {
-		$post  = $this->saved_with_link();
-		$data  = $this->post_editor(
+	/**
+	 * Registra el enlace de la entrada y devuelve el id de la fila.
+	 *
+	 * @param int $post Entrada con el enlace guardado.
+	 */
+	private function record_row( int $post ): int {
+		return (int) $this->post_editor(
 			array(
 				'post_id' => $post,
 				'links'   => array( $this->client_link() ),
 			)
-		)->get_data();
-		$batch = (string) $data['batch_id'];
-		$repo  = Plugin::container()->get( ChangeRepository::class );
+		)->get_data()['results'][0]['change_id'];
+	}
 
-		// Sigue en el contenido: la fila sigue activa.
-		$this->post_editor(
-			array(
-				'post_id' => $post,
-				'links'   => array(),
-			)
-		);
-		$this->assertNull( $repo->get( $data['results'][0]['change_id'] )['undone_at'] );
+	private function undone( int $change ): bool {
+		return null !== Plugin::container()->get( ChangeRepository::class )->get( $change )['undone_at'];
+	}
 
-		// El usuario lo quitó en el editor y guardó: el aviso siguiente marca la fila como deshecha, sin escribir.
+	private function save_content( int $post, string $content ): void {
 		wp_update_post(
 			array(
 				'ID'           => $post,
-				'post_content' => wp_slash( $this->p( 'Compra aire acondicionado ya.' ) ),
+				'post_content' => wp_slash( $content ),
 			)
 		);
-		$this->post_editor(
-			array(
-				'post_id' => $post,
-				'links'   => array(),
-			)
-		);
+	}
 
-		$this->assertNotNull( $repo->get( $data['results'][0]['change_id'] )['undone_at'] );
+	public function test_saving_the_entry_marks_as_undone_the_recorded_link_that_is_gone_without_writing(): void {
+		$post   = $this->saved_with_link();
+		$change = $this->record_row( $post );
+		$batch  = (string) $this->rows_of( $post )[0]['batch_id'];
+
+		// Un guardado con el enlace puesto no cambia nada.
+		$this->save_content( $post, $this->stored( $post ) . "\n\n" . $this->p( 'Más texto.' ) );
+		$this->assertFalse( $this->undone( $change ) );
+
+		// El usuario lo quita (a mano, con el panel, desde cualquier editor) y guarda.
+		$plain = $this->p( 'Compra aire acondicionado ya.' );
+		$this->save_content( $post, $plain );
+
+		$this->assertTrue( $this->undone( $change ) );
 		$this->assertSame( 0, $this->reader()->group( $batch, $this->admin )['active'] );
-		$this->assertSame( $this->p( 'Compra aire acondicionado ya.' ), $this->stored( $post ) );
+		$this->assertSame( $plain, $this->stored( $post ), 'Reconciliar no escribe en la entrada.' );
+	}
+
+	public function test_a_link_with_attributes_added_later_stays_active(): void {
+		$post   = $this->saved_with_link();
+		$change = $this->record_row( $post );
+		$href   = (string) get_permalink( $this->target );
+
+		$this->save_content( $post, $this->p( 'Compra <a target="_blank" rel="noopener nofollow" href="' . $href . '/">aire acondicionado</a> ya.' ) );
+
+		$this->assertFalse( $this->undone( $change ) );
+	}
+
+	public function test_another_link_to_the_same_target_with_other_text_does_not_keep_it_active(): void {
+		$post   = $this->saved_with_link();
+		$change = $this->record_row( $post );
+		$href   = (string) get_permalink( $this->target );
+
+		$this->save_content( $post, $this->p( 'Compra el <a href="' . $href . '">aparato</a> ya.' ) );
+
+		$this->assertTrue( $this->undone( $change ) );
+	}
+
+	public function test_with_two_identical_links_and_one_removed_it_stays_active(): void {
+		$post   = $this->saved_with_link();
+		$change = $this->record_row( $post );
+		$href   = (string) get_permalink( $this->target );
+		$link   = '<a href="' . $href . '">aire acondicionado</a>';
+
+		$this->save_content( $post, $this->p( "Compra {$link} ya." ) . "\n\n" . $this->p( "Otra vez {$link}." ) );
+		$this->assertFalse( $this->undone( $change ) );
+
+		$this->save_content( $post, $this->p( "Compra {$link} ya." ) );
+		$this->assertFalse( $this->undone( $change ), 'No se puede distinguir cuál era: sigue activa.' );
+	}
+
+	public function test_a_link_in_classic_content_is_reconciled_too(): void {
+		$href = (string) get_permalink( $this->target );
+		$post = $this->post( array( 'post_content' => "Uno.\n\nCompra <a href=\"{$href}\">aire acondicionado</a> ya." ) );
+		$id   = $this->record_row( $post );
+
+		$this->save_content( $post, "Uno.\n\nCompra aire acondicionado ya." );
+
+		$this->assertTrue( $this->undone( $id ) );
+	}
+
+	public function test_only_editor_rows_are_reconciled(): void {
+		$linked = $this->link();
+		$change = $linked['change'];
+		$this->save_content( $linked['post'], $this->p( 'Compra aire acondicionado ya.' ) );
+
+		$this->assertFalse( $this->undone( $change ), 'Las filas del servidor las trata Deshacer, no el guardado.' );
+	}
+
+	public function test_a_nonexistent_entry_is_404_and_an_entry_without_permission_is_403(): void {
+		$gone = $this->post_editor(
+			array(
+				'post_id' => 987654,
+				'links'   => array( $this->client_link() ),
+			)
+		);
+		$this->assertSame( 404, $gone->get_status() );
+		$this->assertSame( 'magiclinking_post_gone', $gone->get_data()['code'] );
+
+		$theirs = $this->saved_with_link( 'aire acondicionado', array( 'post_author' => $this->admin ) );
+		$this->assertSame(
+			403,
+			$this->post_editor(
+				array(
+					'post_id' => $theirs,
+					'links'   => array( $this->client_link() ),
+				),
+				$this->author
+			)->get_status()
+		);
 	}
 
 	public function test_redo_keeps_the_editor_origin_on_the_new_row(): void {

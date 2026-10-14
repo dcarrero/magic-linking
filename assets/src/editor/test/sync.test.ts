@@ -125,74 +125,34 @@ describe( 'InsertionSync', () => {
 		expect( log.list() ).toEqual( [] );
 	} );
 
-	it( 'un 403 (permiso o nonce) no descarta nada', async () => {
+	it( 'un 403 o un 404 son definitivos: la entrada no existe o no se puede editar, no se reintenta para siempre', async () => {
+		for ( const status of [ 403, 404 ] ) {
+			const log = createInsertionLog( 1, null );
+			log.add( base );
+			const sync = new InsertionSync( log, () =>
+				Promise.reject( { code: 'x', data: { status } } )
+			);
+			sync.begin();
+			await sync.finish( false );
+			expect( log.list() ).toHaveLength( 0 );
+		}
+	} );
+
+	it( 'una nonce caducada (403 rest_cookie_invalid_nonce) conserva la lista', async () => {
 		const log = createInsertionLog( 1, null );
 		log.add( base );
 		const sync = new InsertionSync( log, () =>
-			Promise.reject( { data: { status: 403 } } )
+			Promise.reject( {
+				code: 'rest_cookie_invalid_nonce',
+				data: { status: 403 },
+			} )
 		);
 		sync.begin();
 		await sync.finish( false );
 		expect( log.list() ).toHaveLength( 1 );
 	} );
 
-	it( 'deshacer un enlace ya registrado pide reconciliar en el siguiente guardado, con la lista vacía', async () => {
-		const { calls, log, sync } = setup();
-		const id = log.add( base );
-		sync.begin();
-		await sync.finish( false );
-		expect( calls ).toHaveLength( 1 );
-
-		sync.forget( id ); // ya no está en la cuenta: estaba registrado
-		sync.begin();
-		await sync.finish( false );
-		expect( calls ).toHaveLength( 2 );
-		expect( calls[ 1 ] ).toEqual( [] );
-
-		sync.begin();
-		await sync.finish( false );
-		expect( calls ).toHaveLength( 2 ); // ya reconciliado
-	} );
-
-	it( 'deshacer mientras el envío está en vuelo también pide reconciliar', async () => {
-		const log = createInsertionLog( 1, null );
-		let release: () => void = () => undefined;
-		const calls: EditorLink[][] = [];
-		const sync = new InsertionSync( log, ( links ) => {
-			calls.push( links );
-			return new Promise( ( resolve ) => {
-				const answer = () =>
-					resolve( {
-						batch_id: 'B',
-						results: links.map( ( l ) => ( {
-							insertion_id: l.insertion_id,
-							status: 'recorded' as const,
-							change_id: 1,
-						} ) ),
-					} );
-				if ( calls.length === 1 ) {
-					release = answer;
-				} else {
-					answer();
-				}
-			} );
-		} );
-		const id = log.add( base );
-		sync.begin();
-		const pending = sync.finish( false );
-		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
-		expect( calls ).toHaveLength( 1 );
-		sync.forget( id ); // el usuario deshace con el envío en vuelo
-		release();
-		await pending;
-
-		sync.begin();
-		await sync.finish( false );
-		expect( calls ).toHaveLength( 2 );
-		expect( calls[ 1 ] ).toEqual( [] );
-	} );
-
-	it( 'un enlace deshecho antes de guardar no pide reconciliar', async () => {
+	it( 'un enlace deshecho antes de guardar no se envía', async () => {
 		const { calls, log, sync } = setup();
 		const id = log.add( base );
 		sync.forget( id );

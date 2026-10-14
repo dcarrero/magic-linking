@@ -18,6 +18,7 @@ import { locate, rangeFromOffsets } from '../locate';
 import type { TextUnit } from '../locate';
 import { ownEditable } from '../dom';
 import { clearHighlight, showHighlight } from '../highlight';
+import { autosaveWritesPost } from '../autosave';
 import { findOwnLink } from '../richLink';
 import type { AdapterOptions, ApplyResult, EditorAdapter } from './types';
 
@@ -191,52 +192,13 @@ export function gutenbergAdapter(
 				select( editorStore ).getEditedPostAttribute( 'title' ) ?? ''
 			),
 
-		onSaved: ( callback ) => {
-			let saving = false;
-			return subscribe( () => {
-				const store = select( editorStore );
-				const now = store.isSavingPost() && ! store.isAutosavingPost();
-				if ( saving && ! now && store.didPostSaveRequestSucceed() ) {
-					callback();
-				}
-				saving = now;
-			}, editorStore );
-		},
+		onSaved: ( callback ) => watchSaves( { saved: callback } ),
 
-		onSaveCycle: ( handlers ) => {
-			let saving = false;
-			let auto = false;
-			// El autoguardado de un borrador propio escribe `post_content`; el de una entrada publicada va a una
-			// revisión aparte y no cuenta.
-			const writes = () =>
-				! auto ||
-				[ 'draft', 'auto-draft', 'pending' ].includes(
-					String(
-						select( editorStore ).getCurrentPostAttribute(
-							'status'
-						) ?? ''
-					)
-				);
-			return subscribe( () => {
-				const store = select( editorStore );
-				const now = store.isSavingPost();
-				if ( ! saving && now ) {
-					auto = store.isAutosavingPost();
-					if ( writes() ) {
-						handlers.begin();
-					}
-				}
-				if (
-					saving &&
-					! now &&
-					store.didPostSaveRequestSucceed() &&
-					writes()
-				) {
-					handlers.finish( auto );
-				}
-				saving = now;
-			}, editorStore );
-		},
+		onSaveCycle: ( handlers ) =>
+			watchSaves( {
+				begin: handlers.begin,
+				finish: handlers.finish,
+			} ),
 
 		apply: ( suggestion: Suggestion ): ApplyResult => {
 			const targets = linkable( options.linkIn );
@@ -376,6 +338,76 @@ export function gutenbergAdapter(
 				showHighlight( range );
 			}
 		},
+	};
+}
+
+interface SaveHandlers {
+	/** Empieza un guardado que escribe la entrada. */
+	begin?: () => void;
+	/** Termina con éxito un guardado que escribe la entrada. */
+	finish?: ( autosave: boolean ) => void;
+	/** Termina con éxito un guardado manual (no un autoguardado). */
+	saved?: () => void;
+}
+
+const watchers = new Set< SaveHandlers >();
+let stopWatching: ( () => void ) | null = null;
+
+/**
+ * Una sola suscripción al almacén del editor para todos los que quieren saber de los guardados.
+ *
+ * @param handlers Qué hacer en cada momento.
+ * @return Función que deja de avisar.
+ */
+function watchSaves( handlers: SaveHandlers ): () => void {
+	watchers.add( handlers );
+	if ( ! stopWatching ) {
+		let saving = false;
+		let auto = false;
+		let writes = false;
+		stopWatching = subscribe( () => {
+			const store = select( editorStore );
+			const now = store.isSavingPost();
+			if ( ! saving && now ) {
+				auto = store.isAutosavingPost();
+				// El autoguardado solo escribe la entrada en un borrador propio; si no, va a una revisión aparte.
+				const user = (
+					select( 'core' ) as {
+						getCurrentUser?: () => { id?: number } | undefined;
+					}
+				 ).getCurrentUser?.();
+				const post = store.getCurrentPost() as {
+					status?: string;
+					author?: number;
+				};
+				writes =
+					! auto ||
+					autosaveWritesPost(
+						String( post.status ?? '' ),
+						Number( post.author ?? 0 ),
+						Number( user?.id ?? 0 )
+					);
+				if ( writes ) {
+					watchers.forEach( ( watcher ) => watcher.begin?.() );
+				}
+			}
+			if ( saving && ! now && store.didPostSaveRequestSucceed() ) {
+				if ( ! auto ) {
+					watchers.forEach( ( watcher ) => watcher.saved?.() );
+				}
+				if ( writes ) {
+					watchers.forEach( ( watcher ) => watcher.finish?.( auto ) );
+				}
+			}
+			saving = now;
+		}, editorStore );
+	}
+	return () => {
+		watchers.delete( handlers );
+		if ( watchers.size === 0 && stopWatching ) {
+			stopWatching();
+			stopWatching = null;
+		}
 	};
 }
 
