@@ -34,6 +34,9 @@ final class InsertionException extends RuntimeException {
 	public const BUSY              = 'busy';
 	public const ALTERED           = 'altered_on_save';
 	public const EDITED_AFTER      = 'edited_after';
+	public const LINK_GONE         = 'link_gone';
+	public const BAD_TARGET        = 'bad_target';
+	public const LANGUAGE          = 'language_mismatch';
 
 	/**
 	 * Código estable.

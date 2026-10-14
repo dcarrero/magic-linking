@@ -20,6 +20,9 @@ final class UndoResult {
 	/** La entrada se había editado después: se ha quitado solo el enlace. */
 	public const LINK_REMOVED = 'link_removed';
 
+	/** La entrada se había editado después: se ha devuelto a su estado anterior solo el enlace arreglado (F1-33). */
+	public const FIX_REVERTED = 'fix_reverted';
+
 	/** No se ha tocado nada: hay que quitar el enlace a mano. */
 	public const MANUAL = 'manual';
 
@@ -59,6 +62,6 @@ final class UndoResult {
 	 * Si el contenido quedó sin el enlace (ahora o antes).
 	 */
 	public function done(): bool {
-		return in_array( $this->status, array( self::RESTORED, self::LINK_REMOVED, self::GONE, self::ALREADY ), true );
+		return in_array( $this->status, array( self::RESTORED, self::LINK_REMOVED, self::FIX_REVERTED, self::GONE, self::ALREADY ), true );
 	}
 }

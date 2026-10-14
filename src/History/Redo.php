@@ -53,7 +53,7 @@ final class Redo {
 	 */
 	public function redo( int $change_id, ?int $user_id = null ): UndoResult {
 		$change = $this->changes->get( $change_id );
-		if ( null === $change || ChangeRepository::INSERT !== $change['action'] ) {
+		if ( null === $change || ! in_array( $change['action'], ChangeRepository::PRIMARY, true ) ) {
 			return new UndoResult( $change_id, 0, UndoResult::FAILED, __( 'That change does not exist.', 'magic-linking' ), InsertionException::BAD_REQUEST );
 		}
 
@@ -93,8 +93,13 @@ final class Redo {
 			PostWriter::log( sprintf( 'No se pudo actualizar el grafo de la entrada %d: %s', $post_id, $e->getMessage() ) );
 		}
 
-		// Es el hook de \MagicLinking\Content\Inserter::insert(): rehacer es insertar otra vez.
-		do_action( 'magiclinking_link_inserted', $new_id, $post_id, (string) $change['batch_id'] );
+		if ( ChangeRepository::INSERT === $change['action'] ) {
+			// Es el hook de \MagicLinking\Content\Inserter::insert(): rehacer es insertar otra vez.
+			do_action( 'magiclinking_link_inserted', $new_id, $post_id, (string) $change['batch_id'] );
+		} else {
+			// Es el hook de \MagicLinking\Content\Repairer::fix(): rehacer es arreglar otra vez.
+			do_action( 'magiclinking_link_fixed', $new_id, $post_id, (string) $change['batch_id'], (string) $change['action'] );
+		}
 
 		return new UndoResult( $change_id, $post_id, UndoResult::REDONE, __( 'Link added again.', 'magic-linking' ) );
 	}
@@ -144,14 +149,18 @@ final class Redo {
 		$end = $start + strlen( $before );
 
 		$next  = substr( $content, 0, $start ) . $after . substr( $content, $end );
-		$check = Verifier::check( $content, $next, array( $start, $end ), 1 );
+		$check = match ( $change['action'] ) {
+			ChangeRepository::RETARGET => Verifier::check_retarget( $content, $next, array( $start, $end ) ),
+			ChangeRepository::UNLINK => Verifier::check( $content, $next, array( $start, $end ), -1 ),
+			default => Verifier::check( $content, $next, array( $start, $end ), 1 ),
+		};
 		if ( ! $check->ok ) {
 			PostWriter::log( sprintf( 'Verificación fallida al rehacer el cambio %d: %s.', (int) $change['id'], $check->reason ) );
 			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only the link; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$user = $user_id ?? get_current_user_id();
-		$id   = $this->changes->record( (string) $change['batch_id'], $post_id, ChangeRepository::INSERT, '' === $path ? null : $path, $before, $after, PostWriter::hash( $next ), $user );
+		$id   = $this->changes->record( (string) $change['batch_id'], $post_id, (string) $change['action'], '' === $path ? null : $path, $before, $after, PostWriter::hash( $next ), $user );
 		if ( 0 === $id ) {
 			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}

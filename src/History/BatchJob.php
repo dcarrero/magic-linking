@@ -276,7 +276,7 @@ final class BatchJob implements Module {
 				}
 
 				$counts[ $result->status ] = (int) ( $counts[ $result->status ] ?? 0 ) + 1;
-				if ( in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::GONE ), true ) ) {
+				if ( in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::FIX_REVERTED, UndoResult::GONE ), true ) ) {
 					++$undone;
 				}
 				if ( in_array( $result->status, array( UndoResult::MANUAL, UndoResult::FAILED ), true ) ) {

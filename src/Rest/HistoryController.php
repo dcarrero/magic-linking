@@ -360,7 +360,7 @@ final class HistoryController implements Module {
 
 		if ( 0 !== $change_id ) {
 			$change = $this->changes->get( $change_id );
-			if ( null === $change || ChangeRepository::INSERT !== $change['action'] ) {
+			if ( null === $change || ! in_array( $change['action'], ChangeRepository::PRIMARY, true ) ) {
 				return $this->not_found();
 			}
 			if ( ! $this->reader->can_edit( $user, $change['post_id'] ) ) {

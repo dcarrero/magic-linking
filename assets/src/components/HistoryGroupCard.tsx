@@ -278,16 +278,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 				id={ `magiclinking-batch-${ batchId }` }
 				tabIndex={ -1 }
 			>
-				{ sprintf(
-					/* translators: %s: number of links. */
-					_n(
-						'%s link added',
-						'%s links added',
-						group.links,
-						'magic-linking'
-					),
-					group.links.toLocaleString()
-				) }{ ' ' }
+				{ groupTitle( group ) }{ ' ' }
 				<span
 					className={ `magiclinking-badge magiclinking-badge--${ state.cls }` }
 				>
@@ -536,7 +527,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 											</td>
 											<td>{ change.anchor }</td>
 											<td className="magiclinking-url">
-												{ change.url }
+												{ destination( change ) }
 											</td>
 											<td>
 												{ undone
@@ -679,6 +670,10 @@ function confirmLabel( pending: Pending ): string {
  * @param group   Grupo.
  */
 function confirmText( pending: Pending, group: HistoryGroup ): string {
+	if ( group.kind === 'retarget' || group.kind === 'unlink' ) {
+		return fixConfirmText( pending, group );
+	}
+
 	if ( ! pending.batch ) {
 		return pending.mode === 'undo'
 			? sprintf(
@@ -736,4 +731,100 @@ function confirmText( pending: Pending, group: HistoryGroup ): string {
 			'magic-linking'
 		)
 	);
+}
+
+/**
+ * Título de un grupo según lo que hizo.
+ * @param group Grupo.
+ */
+function groupTitle( group: HistoryGroup ): string {
+	const count = group.links.toLocaleString();
+	if ( group.kind === 'retarget' ) {
+		return sprintf(
+			/* translators: %s: number of links. */
+			_n(
+				'%s link destination changed',
+				'%s link destinations changed',
+				group.links,
+				'magic-linking'
+			),
+			count
+		);
+	}
+	if ( group.kind === 'unlink' ) {
+		return sprintf(
+			/* translators: %s: number of links. */
+			_n(
+				'%s link removed',
+				'%s links removed',
+				group.links,
+				'magic-linking'
+			),
+			count
+		);
+	}
+	return sprintf(
+		/* translators: %s: number of links. */
+		_n( '%s link added', '%s links added', group.links, 'magic-linking' ),
+		count
+	);
+}
+
+/**
+ * Explicación de lo que va a pasar al deshacer o rehacer un arreglo de enlace roto.
+ * @param pending Lo que se va a hacer.
+ * @param group   Grupo.
+ */
+function fixConfirmText( pending: Pending, group: HistoryGroup ): string {
+	const removed = group.kind === 'unlink';
+	if ( pending.mode === 'undo' ) {
+		const base = removed
+			? __(
+					'The link will be put back around its text, as it was.',
+					'magic-linking'
+			  )
+			: __(
+					'The link will point to its previous address again, and nothing else changes.',
+					'magic-linking'
+			  );
+		return (
+			base +
+			' ' +
+			__(
+				'If the entry was edited afterwards, only this link is touched; if that cannot be done safely, nothing is changed and you are told.',
+				'magic-linking'
+			)
+		);
+	}
+	return (
+		( removed
+			? __( 'The link will be removed again.', 'magic-linking' )
+			: __(
+					'The new destination will be applied again.',
+					'magic-linking'
+			  ) ) +
+		' ' +
+		__(
+			'Any entry edited in that spot since is left alone and listed.',
+			'magic-linking'
+		)
+	);
+}
+
+/**
+ * Dirección que enseña la lista de un cambio: la del enlace, o de dónde a dónde se cambió, o cuál se quitó.
+ * @param change Cambio.
+ */
+function destination( change: HistoryChange ): string {
+	if ( change.kind === 'retarget' && change.previous_url ) {
+		return `${ change.previous_url } → ${ change.url }`;
+	}
+	if ( change.kind === 'unlink' ) {
+		return sprintf(
+			/* translators: %s: address the removed link pointed to. */
+			__( '%s (link removed)', 'magic-linking' ),
+			change.previous_url ?? ''
+		);
+	}
+	return change.url;
 }

@@ -4,6 +4,8 @@
 import apiFetch from '@wordpress/api-fetch';
 import type {
 	BrokenResponse,
+	BrokenTargetsResponse,
+	FixResponse,
 	DismissalResponse,
 	HistoryChangesResponse,
 	HistoryGroup,
@@ -65,6 +67,36 @@ export const api = {
 		apiFetch< BrokenResponse >( {
 			path: path( '/broken', { ...q } ),
 			signal,
+		} ),
+	/**
+	 * Entradas publicadas a las que se puede apuntar para arreglar un enlace roto, por título.
+	 *
+	 * @param linkId Fila de la lista de rotos.
+	 * @param search Texto del título.
+	 * @param signal Para cancelar.
+	 */
+	brokenTargets: ( linkId: number, search: string, signal?: AbortSignal ) =>
+		apiFetch< BrokenTargetsResponse >( {
+			path: path( `/broken/${ linkId }/targets`, { search } ),
+			signal,
+		} ),
+	/**
+	 * Arregla un enlace roto: cambia su destino o lo quita dejando el texto.
+	 *
+	 * @param linkId Fila de la lista de rotos.
+	 * @param fix    Qué hacer.
+	 */
+	fixBroken: (
+		linkId: number,
+		fix: { mode: 'retarget'; targetId: number } | { mode: 'unlink' }
+	) =>
+		apiFetch< FixResponse >( {
+			path: path( `/broken/${ linkId }/fix` ),
+			method: 'POST',
+			data:
+				fix.mode === 'retarget'
+					? { mode: 'retarget', target_id: fix.targetId }
+					: { mode: 'unlink' },
 		} ),
 	status: ( signal?: AbortSignal ) =>
 		apiFetch< StatusResponse >( { path: path( '/status' ), signal } ),

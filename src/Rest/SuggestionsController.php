@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Rest;
 
+use MagicLinking\Content\Destination;
 use MagicLinking\Content\InsertionException;
 use MagicLinking\Content\Inserter;
 use MagicLinking\Content\InsertRequest;
@@ -531,20 +532,7 @@ final class SuggestionsController implements Module {
 	 * @return string|InsertionException La dirección, o el motivo por el que no se puede enlazar a ese destino.
 	 */
 	private function destination( int $post_id, int $target_id ): string|InsertionException {
-		$target = get_post( $target_id );
-		if ( ! $target instanceof WP_Post || 'publish' !== $target->post_status || ! in_array( $target->post_type, $this->settings->post_types(), true ) || '' !== $target->post_password || $target_id === $post_id ) {
-			return new InsertionException( 'bad_target', __( 'The destination is not a published entry that can be linked.', 'magic-linking' ) );
-		}
-		if ( $this->language->for_post( $post_id ) !== $this->language->for_post( $target_id ) ) {
-			return new InsertionException( 'language_mismatch', __( 'The destination is in a different language, so no link is added.', 'magic-linking' ) );
-		}
-
-		$url = (string) get_permalink( $target );
-		if ( '' === $url ) {
-			return new InsertionException( 'bad_target', __( 'The destination is not a published entry that can be linked.', 'magic-linking' ) );
-		}
-
-		return $url;
+		return ( new Destination( $this->settings, $this->language ) )->resolve( $post_id, $target_id );
 	}
 
 	/**

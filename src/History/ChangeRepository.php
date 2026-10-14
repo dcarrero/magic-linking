@@ -23,8 +23,16 @@ use wpdb;
  */
 final class ChangeRepository {
 
-	public const INSERT = 'insert';
-	public const REMOVE = 'remove';
+	public const INSERT   = 'insert';
+	public const REMOVE   = 'remove';
+	public const RETARGET = 'retarget';
+	public const UNLINK   = 'unlink';
+
+	/**
+	 * Acciones que el usuario ve en el Historial y puede deshacer y rehacer: poner un enlace, cambiar su destino
+	 * o quitarlo (F1-33). `remove` es el rastro de haber deshecho una de ellas.
+	 */
+	public const PRIMARY = array( self::INSERT, self::RETARGET, self::UNLINK );
 
 	/**
 	 * Conexión.
@@ -44,7 +52,7 @@ final class ChangeRepository {
 	 * Inserciones ya leídas de un solo lote en esta petición (la huella MD5 recorre el HTML de cada fila, y una
 	 * petición pregunta varias veces por el mismo lote). Cualquier escritura la vacía.
 	 *
-	 * @var array<string, array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}>>>
+	 * @var array<string, array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}>>>
 	 */
 	private array $memo = array();
 
@@ -63,7 +71,7 @@ final class ChangeRepository {
 	 *
 	 * @param string      $batch_id           Lote.
 	 * @param int         $post_id            Entrada.
-	 * @param string      $action             `insert` o `remove`.
+	 * @param string      $action             `insert`, `retarget`, `unlink` o `remove`.
 	 * @param string|null $block_path         Ruta del bloque (`3.0.1`) o `@` y el byte en el editor clásico.
 	 * @param string      $before_html        HTML del tramo antes.
 	 * @param string      $after_html         HTML del tramo después.
@@ -192,9 +200,9 @@ final class ChangeRepository {
 		$limit = max( 1, $limit );
 
 		if ( null !== $before && '' !== $before ) {
-			$query = $wpdb->prepare( 'SELECT batch_id FROM %i WHERE action = %s AND batch_id < %s GROUP BY batch_id ORDER BY batch_id DESC LIMIT %d', $this->table, self::INSERT, $before, $limit );
+			$query = $wpdb->prepare( 'SELECT batch_id FROM %i WHERE action IN ( %s, %s, %s ) AND batch_id < %s GROUP BY batch_id ORDER BY batch_id DESC LIMIT %d', $this->table, ...array_merge( self::PRIMARY, array( $before, $limit ) ) ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Tres acciones, más el cursor y el límite.
 		} else {
-			$query = $wpdb->prepare( 'SELECT batch_id FROM %i WHERE action = %s GROUP BY batch_id ORDER BY batch_id DESC LIMIT %d', $this->table, self::INSERT, $limit );
+			$query = $wpdb->prepare( 'SELECT batch_id FROM %i WHERE action IN ( %s, %s, %s ) GROUP BY batch_id ORDER BY batch_id DESC LIMIT %d', $this->table, ...array_merge( self::PRIMARY, array( $limit ) ) ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Tres acciones y el límite.
 		}
 
 		$ids = $wpdb->get_col( $query ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta ya preparada.
@@ -209,7 +217,7 @@ final class ChangeRepository {
 	 *
 	 * @phpstan-param list<string> $batch_ids
 	 *
-	 * @return array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}>> Por lote.
+	 * @return array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}>> Por lote.
 	 */
 	public function inserts_of( array $batch_ids ): array {
 		$wpdb = $this->wpdb;
@@ -224,10 +232,9 @@ final class ChangeRepository {
 		$placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%s' ) );
 		$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
 			$wpdb->prepare(
-				"SELECT id, batch_id, post_id, user_id, created_at, undone_at, MD5( CONCAT_WS( '|', post_id, COALESCE( block_path, '' ), before_html, after_html ) ) AS slot FROM %i WHERE action = %s AND batch_id IN ({$placeholders}) ORDER BY id",
+				"SELECT id, batch_id, post_id, action, user_id, created_at, undone_at, MD5( CONCAT_WS( '|', post_id, COALESCE( block_path, '' ), before_html, after_html ) ) AS slot FROM %i WHERE action IN ( %s, %s, %s ) AND batch_id IN ({$placeholders}) ORDER BY id",
 				$this->table,
-				self::INSERT,
-				...$batch_ids
+				...array_merge( self::PRIMARY, $batch_ids )
 			),
 			ARRAY_A
 		);
@@ -238,6 +245,7 @@ final class ChangeRepository {
 			$by_batch[ (string) $row['batch_id'] ][] = array(
 				'id'         => (int) $row['id'],
 				'post_id'    => (int) $row['post_id'],
+				'action'     => (string) $row['action'],
 				'user_id'    => (int) $row['user_id'],
 				'created_at' => (string) $row['created_at'],
 				'undone_at'  => null === $row['undone_at'] ? null : (string) $row['undone_at'],
@@ -253,11 +261,11 @@ final class ChangeRepository {
 	}
 
 	/**
-	 * Si el mismo enlace (mismo lote, entrada y tramo antes y después) se volvió a poner después de este cambio.
+	 * Si el mismo cambio (mismo lote, entrada, acción y tramo antes y después) se volvió a hacer después de este.
 	 *
-	 * @param array $change Fila `insert` del historial.
+	 * @param array $change Fila `insert`, `retarget` o `unlink` del historial.
 	 *
-	 * @phpstan-param array{id: int, batch_id: string, post_id: int, block_path: string|null, before_html: string, after_html: string} $change
+	 * @phpstan-param array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string} $change
 	 */
 	public function put_back_after( array $change ): bool {
 		$wpdb = $this->wpdb;
@@ -270,7 +278,7 @@ final class ChangeRepository {
 				$change['post_id'],
 				$change['batch_id'],
 				$change['id'],
-				self::INSERT,
+				$change['action'],
 				'',
 				$path,
 				$change['before_html'],

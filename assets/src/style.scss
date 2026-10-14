@@ -324,3 +324,37 @@
 		margin-bottom: 12px;
 	}
 }
+
+// Arreglar enlaces rotos desde la lista.
+.magiclinking-fix-notice {
+	&:focus {
+		outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+		outline-offset: 2px;
+	}
+
+	p {
+		margin: 8px 0;
+	}
+}
+
+.magiclinking-targets {
+	border: 0;
+	margin: 12px 0;
+	padding: 0;
+
+	ul {
+		margin: 0;
+		max-height: 260px;
+		overflow-y: auto;
+	}
+
+	li {
+		margin: 0 0 8px;
+	}
+
+	.magiclinking-url {
+		color: #50575e;
+		font-size: 12px;
+		overflow-wrap: anywhere;
+	}
+}
