@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.11.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-14T07:56:51+00:00\n"
+"POT-Creation-Date: 2026-10-14T09:55:37+00:00\n"
 "PO-Revision-Date: 2026-10-07 12:30+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -906,9 +906,13 @@ msgstr "%s s"
 msgid "%1$s min %2$s s"
 msgstr "%1$s min %2$s s"
 
-#: assets/build/index.js:10
+#: assets/build/index.js:10 assets/build/index.js:37
 msgid "Maintenance"
 msgstr "Mantenimiento"
+
+#: assets/build/index.js:10
+msgid "Run the analysis again and go back through the first steps."
+msgstr "Vuelve a analizar el sitio o repasa los primeros pasos."
 
 #: assets/build/index.js:10
 msgid "Last full analysis"
@@ -1428,6 +1432,38 @@ msgid "Could not load the settings."
 msgstr "No se pudieron cargar los ajustes."
 
 #: assets/build/index.js:37
+msgid "Content analyzed"
+msgstr "Contenido analizado"
+
+#: assets/build/index.js:37
+msgid "Suggestions"
+msgstr "Sugerencias"
+
+#: assets/build/index.js:37
+msgid "Link insertion"
+msgstr "Inserción de enlaces"
+
+#: assets/build/index.js:37
+msgid "Exclusions"
+msgstr "Exclusiones"
+
+#: assets/build/index.js:37
+msgid "History and data"
+msgstr "Historial y datos"
+
+#: assets/build/index.js:37 assets/build/index.js:40
+msgid "Choose at least one content type."
+msgstr "Elige al menos un tipo de contenido."
+
+#: assets/build/index.js:37
+msgid "Unsaved changes"
+msgstr "Cambios sin guardar"
+
+#: assets/build/index.js:37
+msgid "Settings sections"
+msgstr "Secciones de los ajustes"
+
+#: assets/build/index.js:37
 msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
 msgstr "Ajustes guardados. Ha cambiado lo que lee Magic Linking, así que se está analizando tu sitio de nuevo."
 
@@ -1439,77 +1475,37 @@ msgstr "Ajustes guardados."
 msgid "The settings could not be saved."
 msgstr "No se pudieron guardar los ajustes."
 
+#: assets/build/index.js:37
+msgid "Magic Linking reads these content types to find links between them."
+msgstr "Magic Linking lee estos tipos de contenido para encontrar enlaces entre ellos."
+
 #: assets/build/index.js:37 assets/build/index.js:39
 msgid "Content types to analyze"
 msgstr "Tipos de contenido que se analizan"
 
 #: assets/build/index.js:37
-msgid "Links you insert"
-msgstr "Enlaces que insertas"
+msgid "How many suggestions you see, and how entries are judged as linked too little or too much."
+msgstr "Cuántas sugerencias ves y cuándo una entrada se considera poco o demasiado enlazada."
 
 #: assets/build/index.js:37
-msgid "Open links in a new tab"
-msgstr "Abrir los enlaces en una pestaña nueva"
+msgid "Suggestions shown"
+msgstr "Sugerencias mostradas"
 
 #: assets/build/index.js:37
-msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
-msgstr "Desactivado por defecto. Añade target=\"_blank\" y rel=\"noopener\" a los enlaces que inserta Magic Linking; los que ya están en tu contenido no cambian."
+msgid "Outbound suggestions in the editor"
+msgstr "Sugerencias salientes en el editor"
 
 #: assets/build/index.js:37
-msgid "Additional rel values"
-msgstr "Valores de rel adicionales"
+msgid "The most useful links to add from the entry you are editing."
+msgstr "Los enlaces más útiles que añadir desde la entrada que estás editando."
 
 #: assets/build/index.js:37
-msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
-msgstr "Opcional, separados por espacios (por ejemplo: nofollow). Se añaden a los enlaces que inserta Magic Linking."
+msgid "Inbound suggestions per page in the editor"
+msgstr "Sugerencias entrantes por página en el editor"
 
 #: assets/build/index.js:37
-msgid "Keep the history of changes for"
-msgstr "Conservar el historial de cambios durante"
-
-#: assets/build/index.js:37
-msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
-msgstr "La tarea nocturna borra los lotes más antiguos y ya no se podrán deshacer. Los enlaces se quedan en tu contenido. No hay límite en el número de cambios que se conservan."
-
-#: assets/build/index.js:37
-msgid "30 days"
-msgstr "30 días"
-
-#: assets/build/index.js:37
-msgid "90 days"
-msgstr "90 días"
-
-#: assets/build/index.js:37
-msgid "365 days"
-msgstr "365 días"
-
-#: assets/build/index.js:37
-msgid "No expiry date"
-msgstr "Sin fecha de caducidad"
-
-#: assets/build/index.js:37
-msgid "Where links can be inserted"
-msgstr "Dónde se pueden insertar enlaces"
-
-#: assets/build/index.js:37
-msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
-msgstr "Los párrafos y las listas se usan siempre. Estos están desactivados por defecto; actívalos si quieres sugerencias y enlaces también ahí."
-
-#: assets/build/index.js:37
-msgid "Headings"
-msgstr "Encabezados"
-
-#: assets/build/index.js:37
-msgid "Quotes"
-msgstr "Citas"
-
-#: assets/build/index.js:37
-msgid "Tables"
-msgstr "Tablas"
-
-#: assets/build/index.js:37
-msgid "Changing these makes Magic Linking read your entries again."
-msgstr "Si los cambias, Magic Linking vuelve a leer tus entradas."
+msgid "Entries that could link to the one you are editing, shown this many at a time."
+msgstr "Entradas que podrían enlazar a la que estás editando, mostradas de tantas en tantas."
 
 #: assets/build/index.js:37
 msgid "To avoid overloading your texts"
@@ -1536,28 +1532,68 @@ msgid "Beyond this many entries, the same anchor text towards the same target is
 msgstr "A partir de este número de entradas, se sugiere menos la misma ancla hacia el mismo destino."
 
 #: assets/build/index.js:37
-msgid "Suggestions shown"
-msgstr "Sugerencias mostradas"
+msgid "Under-linked entries"
+msgstr "Entradas poco enlazadas"
 
 #: assets/build/index.js:37
-msgid "Outbound suggestions in the editor"
-msgstr "Sugerencias salientes en el editor"
+msgid "Under-linked below this many inbound links"
+msgstr "Poco enlazada por debajo de este número de enlaces entrantes"
 
 #: assets/build/index.js:37
-msgid "The most useful links to add from the entry you are editing."
-msgstr "Los enlaces más útiles que añadir desde la entrada que estás editando."
+msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
+msgstr "Una entrada con al menos un enlace entrante pero menos que este número se muestra como poco enlazada."
 
 #: assets/build/index.js:37
-msgid "Inbound suggestions per page in the editor"
-msgstr "Sugerencias entrantes por página en el editor"
+msgid "Where in your content links can go, and what the links Magic Linking inserts look like."
+msgstr "En qué partes del texto se pueden poner enlaces y cómo son los que inserta Magic Linking."
 
 #: assets/build/index.js:37
-msgid "Entries that could link to the one you are editing, shown this many at a time."
-msgstr "Entradas que podrían enlazar a la que estás editando, mostradas de tantas en tantas."
+msgid "Where links can be inserted"
+msgstr "Dónde se pueden insertar enlaces"
 
 #: assets/build/index.js:37
-msgid "Ignored"
-msgstr "Ignorado"
+msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
+msgstr "Los párrafos y las listas se usan siempre. Estos están desactivados por defecto; actívalos si quieres sugerencias y enlaces también ahí."
+
+#: assets/build/index.js:37
+msgid "Headings"
+msgstr "Encabezados"
+
+#: assets/build/index.js:37
+msgid "Quotes"
+msgstr "Citas"
+
+#: assets/build/index.js:37
+msgid "Tables"
+msgstr "Tablas"
+
+#: assets/build/index.js:37
+msgid "Changing these makes Magic Linking read your entries again."
+msgstr "Si los cambias, Magic Linking vuelve a leer tus entradas."
+
+#: assets/build/index.js:37
+msgid "Links you insert"
+msgstr "Enlaces que insertas"
+
+#: assets/build/index.js:37
+msgid "Open links in a new tab"
+msgstr "Abrir los enlaces en una pestaña nueva"
+
+#: assets/build/index.js:37
+msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
+msgstr "Desactivado por defecto. Añade target=\"_blank\" y rel=\"noopener\" a los enlaces que inserta Magic Linking; los que ya están en tu contenido no cambian."
+
+#: assets/build/index.js:37
+msgid "Additional rel values"
+msgstr "Valores de rel adicionales"
+
+#: assets/build/index.js:37
+msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
+msgstr "Opcional, separados por espacios (por ejemplo: nofollow). Se añaden a los enlaces que inserta Magic Linking."
+
+#: assets/build/index.js:37
+msgid "Entries and words that Magic Linking should leave alone."
+msgstr "Entradas y palabras que Magic Linking debe dejar en paz."
 
 #: assets/build/index.js:37
 msgid "Ignored addresses"
@@ -1576,16 +1612,32 @@ msgid "One word or phrase per line. Suggestions whose anchor text contains one o
 msgstr "Una palabra o frase por línea. No se muestran las sugerencias cuya ancla contiene alguna de ellas."
 
 #: assets/build/index.js:37
-msgid "Advanced"
-msgstr "Avanzado"
+msgid "How long you can undo changes, and what happens to the data when the plugin is deleted."
+msgstr "Cuánto tiempo puedes deshacer cambios y qué pasa con los datos al borrar el plugin."
 
 #: assets/build/index.js:37
-msgid "Under-linked below this many inbound links"
-msgstr "Poco enlazada por debajo de este número de enlaces entrantes"
+msgid "Keep the history of changes for"
+msgstr "Conservar el historial de cambios durante"
 
 #: assets/build/index.js:37
-msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
-msgstr "Una entrada con al menos un enlace entrante pero menos que este número se muestra como poco enlazada."
+msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
+msgstr "La tarea nocturna borra los lotes más antiguos y ya no se podrán deshacer. Los enlaces se quedan en tu contenido. No hay límite en el número de cambios que se conservan."
+
+#: assets/build/index.js:37
+msgid "30 days"
+msgstr "30 días"
+
+#: assets/build/index.js:37
+msgid "90 days"
+msgstr "90 días"
+
+#: assets/build/index.js:37
+msgid "365 days"
+msgstr "365 días"
+
+#: assets/build/index.js:37
+msgid "No expiry date"
+msgstr "Sin fecha de caducidad"
 
 #: assets/build/index.js:37
 msgid "Delete all Magic Linking data when the plugin is deleted"
@@ -1594,14 +1646,6 @@ msgstr "Borrar todos los datos de Magic Linking al eliminar el plugin"
 #: assets/build/index.js:37
 msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
 msgstr "Elimina sus tablas, el historial y los ajustes. Los enlaces que ya hay en tus entradas se quedan como están; tu contenido no se toca."
-
-#: assets/build/index.js:37
-msgid "Save settings"
-msgstr "Guardar ajustes"
-
-#: assets/build/index.js:37 assets/build/index.js:40
-msgid "Choose at least one content type."
-msgstr "Elige al menos un tipo de contenido."
 
 #: assets/build/index.js:37
 msgid "Setup assistant"
@@ -1614,6 +1658,10 @@ msgstr "Repasa los primeros pasos: tipos de contenido, IA y el primer análisis.
 #: assets/build/index.js:37
 msgid "Open the setup assistant"
 msgstr "Abrir el asistente de arranque"
+
+#: assets/build/index.js:37
+msgid "Save settings"
+msgstr "Guardar ajustes"
 
 #: assets/build/index.js:37
 msgid "Could not load the setup information."
@@ -1720,3 +1768,9 @@ msgstr "Solo se cuentan los enlaces escritos dentro del contenido de cada entrad
 #: assets/build/index.js:43
 msgid "You can also run the analysis from the terminal: %s"
 msgstr "También puedes ejecutar el análisis desde el terminal: %s"
+
+#~ msgid "Ignored"
+#~ msgstr "Ignorado"
+
+#~ msgid "Advanced"
+#~ msgstr "Avanzado"

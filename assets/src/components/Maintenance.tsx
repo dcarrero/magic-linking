@@ -4,11 +4,15 @@ import { speak } from '@wordpress/a11y';
 import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { StatusResponse } from '../types';
+import { SettingsSection } from './SettingsSection';
+import type { ReactNode } from 'react';
 
 interface Props {
 	status: StatusResponse | null;
 	/** Se llama cuando se ha lanzado el análisis, para refrescar el estado. */
 	onStarted: () => void;
+	/** Contenido extra de la tarjeta (el asistente de arranque). */
+	children?: ReactNode;
 }
 
 /**
@@ -55,8 +59,9 @@ export function formatDuration( from: string, to: string ): string {
  * @param root0
  * @param root0.status
  * @param root0.onStarted
+ * @param root0.children
  */
-export function Maintenance( { status, onStarted }: Props ) {
+export function Maintenance( { status, onStarted, children }: Props ) {
 	const [ confirming, setConfirming ] = useState( false );
 	const [ busy, setBusy ] = useState( false );
 	const [ failure, setFailure ] = useState( '' );
@@ -86,13 +91,14 @@ export function Maintenance( { status, onStarted }: Props ) {
 	};
 
 	return (
-		<section
-			className="magiclinking-maintenance"
-			aria-labelledby="magiclinking-maintenance-title"
+		<SettingsSection
+			id="magiclinking-maintenance"
+			title={ __( 'Maintenance', 'magic-linking' ) }
+			description={ __(
+				'Run the analysis again and go back through the first steps.',
+				'magic-linking'
+			) }
 		>
-			<h2 id="magiclinking-maintenance-title">
-				{ __( 'Maintenance', 'magic-linking' ) }
-			</h2>
 			{ last ? (
 				<dl className="magiclinking-maintenance-facts">
 					<div>
@@ -157,6 +163,7 @@ export function Maintenance( { status, onStarted }: Props ) {
 					) }
 				</p>
 			) }
+			{ children }
 			{ confirming && (
 				<Modal
 					title={ __(
@@ -190,6 +197,6 @@ export function Maintenance( { status, onStarted }: Props ) {
 					</div>
 				</Modal>
 			) }
-		</section>
+		</SettingsSection>
 	);
 }

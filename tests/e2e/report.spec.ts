@@ -154,9 +154,7 @@ test.describe( 'Internal links', () => {
 		await login( page );
 		await page.goto( SCREEN_SETTINGS );
 
-		// Los umbrales del informe están en «Advanced», plegado.
-		const advanced = page.locator( 'summary', { hasText: 'Advanced' } );
-		await advanced.click();
+		// El umbral de poco enlazada está en la tarjeta «Suggestions».
 		const threshold = page.getByLabel(
 			'Under-linked below this many inbound links'
 		);
@@ -167,13 +165,69 @@ test.describe( 'Internal links', () => {
 		).toBeVisible();
 
 		await page.reload();
-		await advanced.click();
 		await expect( threshold ).toHaveValue( '3' );
 		await threshold.fill( '2' );
 		await page.getByRole( 'button', { name: 'Save settings' } ).click();
 		await expect(
 			page.locator( '#magiclinking-root' ).getByText( 'Settings saved.' )
 		).toBeVisible();
+	} );
+
+	test( 'settings are grouped in cards and the sticky bar tracks unsaved changes', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+
+		// Una tarjeta por tema, cada una con su encabezado.
+		for ( const name of [
+			'Content analyzed',
+			'Suggestions',
+			'Link insertion',
+			'Exclusions',
+			'History and data',
+			'Maintenance',
+		] ) {
+			await expect(
+				root.getByRole( 'heading', { level: 2, name } )
+			).toBeVisible();
+		}
+
+		// Sin cambios: guardar está deshabilitado y no hay aviso.
+		const save = root.getByRole( 'button', { name: 'Save settings' } );
+		await expect( save ).toBeDisabled();
+		await expect( root.getByText( 'Unsaved changes' ) ).toHaveCount( 0 );
+
+		// Con cambios: aviso y botón activo; la barra queda visible aunque se baje.
+		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await expect( root.getByText( 'Unsaved changes' ) ).toBeVisible();
+		await expect( save ).toBeEnabled();
+		await root
+			.getByRole( 'heading', { level: 2, name: 'Maintenance' } )
+			.scrollIntoViewIfNeeded();
+		await expect( save ).toBeInViewport();
+
+		// Volver al valor guardado quita el aviso.
+		await root.getByLabel( 'Additional rel values' ).fill( '' );
+		await expect( root.getByText( 'Unsaved changes' ) ).toHaveCount( 0 );
+		await expect( save ).toBeDisabled();
+
+		// Guardar deja el estado limpio.
+		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await save.click();
+		await expect( root.getByText( 'Settings saved.' ) ).toBeVisible();
+		await expect( root.getByText( 'Unsaved changes' ) ).toHaveCount( 0 );
+		await expect( save ).toBeDisabled();
+
+		const results = await new AxeBuilder( { page } )
+			.include( '.magiclinking-wrap' )
+			.withTags( [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ] )
+			.analyze();
+		expect( results.violations ).toEqual( [] );
+
+		wp( 'option', 'delete', 'magiclinking_settings' );
 	} );
 
 	test( 'the new settings are saved and kept', async ( {
@@ -183,8 +237,7 @@ test.describe( 'Internal links', () => {
 		await login( page );
 		await page.goto( SCREEN_SETTINGS );
 
-		// Accesible también con «Advanced» desplegado y todos los campos nuevos a la vista.
-		await page.locator( 'summary', { hasText: 'Advanced' } ).click();
+		// Accesible con todas las tarjetas y campos a la vista.
 		await page.waitForLoadState( 'networkidle' );
 		const results = await new AxeBuilder( { page } )
 			.include( '.magiclinking-wrap' )
