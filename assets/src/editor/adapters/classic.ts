@@ -88,6 +88,9 @@ export function classicAdapter(
 		// Al guardar, el editor clásico recarga la página y el panel se vuelve a montar con lo guardado.
 		onSaved: () => () => undefined,
 
+		// Idem: el panel envía lo pendiente al cargar la página que sigue al guardado.
+		onSaveCycle: () => () => undefined,
+
 		apply: ( suggestion: Suggestion ): ApplyResult => {
 			const editor = visual();
 			if ( ! editor ) {

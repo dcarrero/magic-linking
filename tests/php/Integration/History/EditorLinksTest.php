@@ -497,7 +497,7 @@ final class EditorLinksTest extends HistoryTestCase {
 		$this->assertSame( 'recorded', $own->get_data()['results'][0]['status'] );
 	}
 
-	public function test_a_missing_entry_and_a_malformed_body_are_refused(): void {
+	public function test_a_missing_entry_and_too_many_links_are_refused(): void {
 		$this->assertSame(
 			403,
 			$this->post_editor(
@@ -515,28 +515,126 @@ final class EditorLinksTest extends HistoryTestCase {
 			$this->post_editor(
 				array(
 					'post_id' => $post,
-					'links'   => array(),
-				)
-			)->get_status()
-		);
-		$this->assertSame(
-			400,
-			$this->post_editor(
-				array(
-					'post_id' => $post,
-					'links'   => array( array_merge( $this->client_link(), array( 'insertion_id' => 'x' ) ) ),
-				)
-			)->get_status()
-		);
-		$this->assertSame(
-			400,
-			$this->post_editor(
-				array(
-					'post_id' => $post,
 					'links'   => array_fill( 0, 51, $this->client_link() ),
 				)
 			)->get_status()
 		);
+	}
+
+	public function test_a_malformed_element_is_reported_on_its_own_and_does_not_sink_the_others(): void {
+		$post = $this->saved_with_link();
+
+		$response = $this->post_editor(
+			array(
+				'post_id' => $post,
+				'links'   => array(
+					array_merge( $this->client_link( 'x' ), array( 'anchor' => 'aire acondicionado' ) ),
+					$this->client_link( 'ins-0000000a' ),
+					array_merge( $this->client_link( 'ins-0000000b' ), array( 'anchor' => str_repeat( 'a', 600 ) ) ),
+				),
+			)
+		);
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array( 'invalid', 'recorded', 'invalid' ), array_column( $response->get_data()['results'], 'status' ) );
+	}
+
+	public function test_an_empty_list_only_reconciles_and_is_accepted(): void {
+		$post = $this->saved_with_link();
+
+		$response = $this->post_editor(
+			array(
+				'post_id' => $post,
+				'links'   => array(),
+			)
+		);
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array(), $response->get_data()['results'] );
+	}
+
+	public function test_reconcile_marks_as_undone_the_recorded_links_that_are_no_longer_in_the_post(): void {
+		$post  = $this->saved_with_link();
+		$data  = $this->post_editor(
+			array(
+				'post_id' => $post,
+				'links'   => array( $this->client_link() ),
+			)
+		)->get_data();
+		$batch = (string) $data['batch_id'];
+		$repo  = Plugin::container()->get( ChangeRepository::class );
+
+		// Sigue en el contenido: la fila sigue activa.
+		$this->post_editor(
+			array(
+				'post_id' => $post,
+				'links'   => array(),
+			)
+		);
+		$this->assertNull( $repo->get( $data['results'][0]['change_id'] )['undone_at'] );
+
+		// El usuario lo quitó en el editor y guardó: el aviso siguiente marca la fila como deshecha, sin escribir.
+		wp_update_post(
+			array(
+				'ID'           => $post,
+				'post_content' => wp_slash( $this->p( 'Compra aire acondicionado ya.' ) ),
+			)
+		);
+		$this->post_editor(
+			array(
+				'post_id' => $post,
+				'links'   => array(),
+			)
+		);
+
+		$this->assertNotNull( $repo->get( $data['results'][0]['change_id'] )['undone_at'] );
+		$this->assertSame( 0, $this->reader()->group( $batch, $this->admin )['active'] );
+		$this->assertSame( $this->p( 'Compra aire acondicionado ya.' ), $this->stored( $post ) );
+	}
+
+	public function test_redo_keeps_the_editor_origin_on_the_new_row(): void {
+		$post   = $this->saved_with_link();
+		$change = $this->post_editor(
+			array(
+				'post_id' => $post,
+				'links'   => array( $this->client_link() ),
+			)
+		)->get_data()['results'][0]['change_id'];
+
+		Plugin::container()->get( Undo::class )->revert( $change );
+		$this->assertSame( UndoResult::REDONE, Plugin::container()->get( Redo::class )->redo( $change )->status );
+
+		$origins = array_column( $this->rows_of( $post ), 'origin', 'id' );
+		$this->assertSame( array( 'editor', 'plugin', 'editor' ), array_values( $origins ), 'insert, remove (traza del deshacer) e insert rehecho' );
+	}
+
+	public function test_the_keys_of_all_the_links_are_looked_up_with_one_query(): void {
+		$other = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$a     = (string) get_permalink( $this->target );
+		$b     = (string) get_permalink( $other );
+		$post  = $this->post(
+			array(
+				'post_content' => $this->p( 'Compra <a href="' . $a . '">aire acondicionado</a> ya.' ) . "\n\n" . $this->p( 'Y <a href="' . $b . '">otro</a>.' ),
+			)
+		);
+
+		$queries = 0;
+		$count   = static function ( $sql ) use ( &$queries ) {
+			if ( str_contains( (string) $sql, 'origin_key' ) && str_starts_with( ltrim( (string) $sql ), 'SELECT' ) ) {
+				++$queries;
+			}
+			return $sql;
+		};
+		add_filter( 'query', $count );
+		$this->post_editor(
+			array(
+				'post_id' => $post,
+				'links'   => array( $this->client_link( 'ins-0000000c' ), $this->client_link( 'ins-0000000d', 'otro', $other ) ),
+			)
+		);
+		remove_filter( 'query', $count );
+
+		$this->assertSame( 1, $queries );
 	}
 
 	public function test_the_idempotent_key_depends_on_every_part(): void {

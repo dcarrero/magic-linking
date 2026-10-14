@@ -38,6 +38,16 @@ export interface EditorAdapter {
 	getTitle: () => string;
 	/** Avisa cuando el usuario guarda la entrada. Devuelve la función que deja de avisar. */
 	onSaved: ( callback: () => void ) => () => void;
+	/**
+	 * Avisa cuando empieza un guardado que puede escribir la entrada (`begin`, para fijar qué enlaces entran en él) y
+	 * cuando termina con éxito (`finish`; `autosave` = fue un autoguardado). Solo cuenta el que escribe la entrada
+	 * misma: el autoguardado de un borrador propio sí, el que va a una revisión aparte no. Devuelve la función que
+	 * deja de avisar.
+	 */
+	onSaveCycle: ( handlers: {
+		begin: () => void;
+		finish: ( autosave: boolean ) => void;
+	} ) => () => void;
 	/** Pone el enlace de la sugerencia en el editor. */
 	apply: ( suggestion: Suggestion ) => ApplyResult;
 	/** Resalta (sin modificar el contenido) la frase en el lienzo; `null` quita el resalte. */

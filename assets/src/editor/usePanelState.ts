@@ -1,15 +1,10 @@
-import {
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from '@wordpress/element';
+import { useCallback, useEffect, useMemo, useState } from '@wordpress/element';
 import { api } from '../api';
 import type { Suggestion, InboundResponse, OutboundResponse } from '../types';
 import type { EditorAdapter } from './adapters/types';
 import type { CardStatus } from './SuggestionCard';
-import { createInsertionLog } from './insertions';
+import { createInsertionLog, shortKey } from './insertions';
+import { InsertionSync } from './sync';
 import { suggestionKey } from './keys';
 import { useInbound, useOutbound } from './useSuggestions';
 import type { Fetched } from './useSuggestions';
@@ -37,21 +32,6 @@ export interface PanelState {
 	trackInsertion: ( suggestion: Suggestion, anchor: string ) => string;
 	/** Deja de contar un enlace que se deshizo en el editor antes de guardar. */
 	forgetInsertion: ( insertionId: string ) => void;
-}
-
-/**
- * Error de la API con un código HTTP de cliente (y no un fallo de red ni un 409 de «ocupado»).
- *
- * @param error Lo que lanzó la petición.
- */
-function isRejected( error: unknown ): boolean {
-	const status = ( error as { data?: { status?: number } } )?.data?.status;
-	return (
-		typeof status === 'number' &&
-		status >= 400 &&
-		status < 500 &&
-		status !== 409
-	);
 }
 
 /**
@@ -102,72 +82,40 @@ export function usePanelState(
 	);
 
 	// Enlaces puestos en el editor, pendientes de registrar en el Historial cuando la entrada se guarde.
-	const log = useMemo(
-		() => createInsertionLog( adapter.postId ),
+	const sync = useMemo(
+		() =>
+			new InsertionSync(
+				createInsertionLog( adapter.postId ),
+				( links ) => api.recordEditorLinks( adapter.postId, links )
+			),
 		[ adapter.postId ]
 	);
-	const flushing = useRef( false );
-	const flushAgain = useRef( false );
-	const flush = useCallback( async () => {
-		if ( flushing.current ) {
-			flushAgain.current = true;
-			return;
-		}
-		flushing.current = true;
-		try {
-			do {
-				flushAgain.current = false;
-				const pending = log.list();
-				if ( pending.length === 0 ) {
-					break;
-				}
-				try {
-					const response = await api.recordEditorLinks(
-						adapter.postId,
-						pending
-					);
-					// El servidor ha tratado todos (registrados, ya registrados o no encontrados): no se repiten.
-					log.clear(
-						response.results.map(
-							( result ) => result.insertion_id
-						)
-					);
-				} catch ( error ) {
-					if ( isRejected( error ) ) {
-						log.clear(
-							pending.map( ( link ) => link.insertion_id )
-						);
-					}
-					// Fallo de red u ocupado: se conservan y se reintenta en el siguiente guardado.
-					break;
-				}
-			} while ( flushAgain.current );
-		} finally {
-			flushing.current = false;
-		}
-	}, [ adapter.postId, log ] );
 
 	// Al terminar un guardado con éxito (Gutenberg) y al cargar (el clásico recarga la página al guardar).
 	useEffect(
-		() => adapter.onSaved( () => void flush() ),
-		[ adapter, flush ]
+		() =>
+			adapter.onSaveCycle( {
+				begin: () => sync.begin(),
+				finish: ( autosave ) => void sync.finish( autosave ),
+			} ),
+		[ adapter, sync ]
 	);
 	useEffect( () => {
-		void flush();
-	}, [ flush ] );
+		void sync.flushAll();
+	}, [ sync ] );
 
 	const trackInsertion = useCallback(
 		( suggestion: Suggestion, anchor: string ) =>
-			log.add( {
-				suggestion: suggestionKey( suggestion ),
+			sync.add( {
+				suggestion: shortKey( suggestionKey( suggestion ) ),
 				target_id: suggestion.target.id,
 				anchor,
 			} ),
-		[ log ]
+		[ sync ]
 	);
 	const forgetInsertion = useCallback(
-		( insertionId: string ) => log.remove( insertionId ),
-		[ log ]
+		( insertionId: string ) => sync.forget( insertionId ),
+		[ sync ]
 	);
 
 	const { refresh } = outbound;

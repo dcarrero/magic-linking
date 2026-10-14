@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\History;
 
-use WP_HTML_Tag_Processor;
+use MagicLinking\Content\OpenTag;
 use WP_Post;
 
 /**
@@ -205,7 +205,7 @@ final class Reader {
 				'post_title' => $post instanceof WP_Post ? get_the_title( $post ) : null,
 				'edit_url'   => is_string( $edit ) ? $edit : null,
 				'anchor'     => null === $link ? '' : self::plain( $link['inner'] ),
-				'url'        => null === $link ? '' : self::href( $link['open'] ),
+				'url'        => null === $link ? '' : OpenTag::href( $link['open'] ),
 				'origin'     => $origin,
 				'state'      => null === $change['undone_at'] ? 'active' : 'undone',
 				'created_at' => (string) mysql_to_rfc3339( $change['created_at'] ),
@@ -343,21 +343,5 @@ final class Reader {
 	 */
 	private static function plain( string $html ): string {
 		return mb_substr( trim( wp_specialchars_decode( wp_strip_all_tags( $html ), ENT_QUOTES ) ), 0, 255 );
-	}
-
-	/**
-	 * Valor de `href` de una etiqueta de apertura `<a …>`.
-	 *
-	 * @param string $open Etiqueta.
-	 */
-	private static function href( string $open ): string {
-		$tags = new WP_HTML_Tag_Processor( $open );
-		if ( ! $tags->next_tag( array( 'tag_name' => 'a' ) ) ) {
-			return '';
-		}
-
-		$href = $tags->get_attribute( 'href' );
-
-		return is_string( $href ) ? $href : '';
 	}
 }

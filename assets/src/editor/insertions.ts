@@ -48,15 +48,17 @@ export function newInsertionId(): string {
  *
  * @param postId  Entrada que se edita.
  * @param storage Dónde se guarda (por defecto, `sessionStorage`); `null` = solo memoria.
+ * @param scope   Identifica el sitio: en multisitio por subdirectorio dos sitios repiten el ID de entrada.
  */
 export function createInsertionLog(
 	postId: number,
 	storage: Pick<
 		Storage,
 		'getItem' | 'setItem' | 'removeItem'
-	> | null = safeStorage()
+	> | null = safeStorage(),
+	scope: string = siteScope()
 ): InsertionLog {
-	const key = `${ PREFIX }${ postId }`;
+	const key = `${ PREFIX }${ scope }:${ postId }`;
 	let links: EditorLink[] = [];
 
 	try {
@@ -102,6 +104,33 @@ export function createInsertionLog(
 			save();
 		},
 	};
+}
+
+/** Dirección del sitio de administración: distingue sitios de una red por subdirectorio. */
+function siteScope(): string {
+	return (
+		( window as { ajaxurl?: string } ).ajaxurl ?? window.location.pathname
+	);
+}
+
+/**
+ * Clave corta y estable (dos huellas de 32 bits, en hexadecimal) para no mandar al servidor la
+ * clave larga de la sugerencia con el ancla entera.
+ *
+ * @param text Texto.
+ */
+export function shortKey( text: string ): string {
+	let a = 5381;
+	let b = 52711;
+	for ( let i = 0; i < text.length; i++ ) {
+		const code = text.charCodeAt( i );
+		a = ( a * 33 + code ) % 4294967291;
+		b = ( b * 131 + code + i ) % 4294967279;
+	}
+	return (
+		a.toString( 16 ).padStart( 8, '0' ) +
+		b.toString( 16 ).padStart( 8, '0' )
+	);
 }
 
 function safeStorage(): Storage | null {

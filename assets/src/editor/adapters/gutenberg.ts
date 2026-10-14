@@ -203,6 +203,41 @@ export function gutenbergAdapter(
 			}, editorStore );
 		},
 
+		onSaveCycle: ( handlers ) => {
+			let saving = false;
+			let auto = false;
+			// El autoguardado de un borrador propio escribe `post_content`; el de una entrada publicada va a una
+			// revisión aparte y no cuenta.
+			const writes = () =>
+				! auto ||
+				[ 'draft', 'auto-draft', 'pending' ].includes(
+					String(
+						select( editorStore ).getCurrentPostAttribute(
+							'status'
+						) ?? ''
+					)
+				);
+			return subscribe( () => {
+				const store = select( editorStore );
+				const now = store.isSavingPost();
+				if ( ! saving && now ) {
+					auto = store.isAutosavingPost();
+					if ( writes() ) {
+						handlers.begin();
+					}
+				}
+				if (
+					saving &&
+					! now &&
+					store.didPostSaveRequestSucceed() &&
+					writes()
+				) {
+					handlers.finish( auto );
+				}
+				saving = now;
+			}, editorStore );
+		},
+
 		apply: ( suggestion: Suggestion ): ApplyResult => {
 			const targets = linkable( options.linkIn );
 			const current = ( target: Target ): Block | null =>

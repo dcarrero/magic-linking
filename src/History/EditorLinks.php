@@ -13,9 +13,9 @@ use MagicLinking\Content\BlockEditor;
 use MagicLinking\Content\BlockMap;
 use MagicLinking\Content\ClassicEditor;
 use MagicLinking\Content\InsertionException;
+use MagicLinking\Content\OpenTag;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Content\Verifier;
-use WP_HTML_Tag_Processor;
 use WP_Post;
 
 /**
@@ -70,7 +70,7 @@ final class EditorLinks {
 	 * @param int   $user_id Quien los puso.
 	 * @param array $links   Enlaces que el cliente dice haber puesto.
 	 *
-	 * @phpstan-param list<array{insertion_id: string, suggestion: string, target_id: int, anchor: string}> $links
+	 * @phpstan-param list<array<string, mixed>> $links
 	 *
 	 * @return array{batch_id: string|null, results: list<array{insertion_id: string, status: string, change_id: int}>}
 	 *
@@ -90,11 +90,14 @@ final class EditorLinks {
 	/**
 	 * Comprueba y registra con la entrada reservada.
 	 *
+	 * El documento se recorre una vez para todos los enlaces y las claves y los tramos ya registrados se leen con una
+	 * consulta cada uno, no una por enlace: la reserva de la entrada dura lo mínimo.
+	 *
 	 * @param int   $post_id Entrada.
 	 * @param int   $user_id Usuario.
-	 * @param array $links   Enlaces.
+	 * @param array $links   Enlaces, tal como llegan (se validan aquí uno a uno).
 	 *
-	 * @phpstan-param list<array{insertion_id: string, suggestion: string, target_id: int, anchor: string}> $links
+	 * @phpstan-param list<array<string, mixed>> $links
 	 *
 	 * @return array{batch_id: string|null, results: list<array{insertion_id: string, status: string, change_id: int}>}
 	 */
@@ -105,47 +108,68 @@ final class EditorLinks {
 		$batch   = null;
 		$results = array();
 
-		foreach ( $links as $link ) {
-			$insertion = $link['insertion_id'];
-			$key       = self::key( $post_id, $link['suggestion'], $link['target_id'], $link['anchor'], $insertion );
+		// Validación de cada elemento: uno mal formado se queda en `invalid` sin afectar al resto.
+		$clean = array();
+		$keys  = array();
+		foreach ( $links as $index => $link ) {
+			$insertion = is_string( $link['insertion_id'] ?? null ) ? $link['insertion_id'] : '';
+			$suggest   = is_string( $link['suggestion'] ?? null ) ? $link['suggestion'] : '';
+			$anchor    = is_string( $link['anchor'] ?? null ) ? $link['anchor'] : '';
+			$target    = is_int( $link['target_id'] ?? null ) ? $link['target_id'] : 0;
 
-			$existing = $this->changes->id_for_origin_key( $key );
-			if ( 0 !== $existing ) {
-				$results[] = $this->result( $insertion, self::DUPLICATE, $existing );
+			if ( 1 !== preg_match( '/^[A-Za-z0-9_-]{8,64}$/', $insertion ) || strlen( $suggest ) > 300 || strlen( $anchor ) > 500 || '' === self::normalize( $anchor ) || $target <= 0 ) {
+				$results[ $index ] = $this->result( $insertion, self::INVALID );
 				continue;
 			}
 
-			$url = $this->target_url( $link['target_id'], $post_id, $user_id );
-			if ( '' === $url || '' === self::normalize( $link['anchor'] ) ) {
-				$results[] = $this->result( $insertion, self::INVALID );
+			$clean[ $index ] = array( $insertion, self::key( $post_id, $suggest, $target, $anchor, $insertion ), $target, $anchor );
+			$keys[]          = $clean[ $index ][1];
+		}
+
+		$existing = $this->changes->ids_for_origin_keys( $keys );
+		$active   = $this->changes->active_inserts_of_post( $post_id );
+		$anchors  = $blocks && null === $map ? null : $this->anchors( $content, $map );
+		$urls     = array();
+
+		foreach ( $clean as $index => [ $insertion, $key, $target, $anchor ] ) {
+			if ( isset( $existing[ $key ] ) ) {
+				$results[ $index ] = $this->result( $insertion, self::DUPLICATE, $existing[ $key ] );
 				continue;
 			}
 
-			if ( $blocks && null === $map ) {
-				$results[] = $this->result( $insertion, self::UNVERIFIED );
+			$urls[ $target ] ??= $this->target_url( $target, $post_id, $user_id );
+			if ( '' === $urls[ $target ] ) {
+				$results[ $index ] = $this->result( $insertion, self::INVALID );
 				continue;
 			}
 
-			$found = $this->matches( $content, $map, $url, $link['anchor'] );
+			if ( null === $anchors ) {
+				$results[ $index ] = $this->result( $insertion, self::UNVERIFIED );
+				continue;
+			}
+
+			$found = $this->matches( $anchors, $urls[ $target ], $anchor );
 			if ( array() === $found ) {
-				$results[] = $this->result( $insertion, self::NOT_FOUND );
+				$results[ $index ] = $this->result( $insertion, self::NOT_FOUND );
 				continue;
 			}
 			if ( count( $found ) > 1 ) {
-				$results[] = $this->result( $insertion, self::AMBIGUOUS );
+				$results[ $index ] = $this->result( $insertion, self::AMBIGUOUS );
 				continue;
 			}
 
 			$edit = $this->edit( $content, $found[0] );
 			if ( null === $edit ) {
 				PostWriter::log( sprintf( 'El enlace del editor en la entrada %d no se pudo verificar; no se registra.', $post_id ) );
-				$results[] = $this->result( $insertion, self::UNVERIFIED );
+				$results[ $index ] = $this->result( $insertion, self::UNVERIFIED );
 				continue;
 			}
 
-			if ( $this->changes->has_active_copy( $post_id, $edit['before'], $edit['after'] ) ) {
-				$results[] = $this->result( $insertion, self::DUPLICATE );
-				continue;
+			foreach ( $active as $row ) {
+				if ( $row['before_html'] === $edit['before'] && $row['after_html'] === $edit['after'] ) {
+					$results[ $index ] = $this->result( $insertion, self::DUPLICATE, $row['id'] );
+					continue 2;
+				}
 			}
 
 			$batch ??= BatchId::generate();
@@ -162,19 +186,46 @@ final class EditorLinks {
 				$key
 			);
 			if ( 0 === $id ) {
-				$results[] = $this->result( $insertion, self::UNVERIFIED );
+				$results[ $index ] = $this->result( $insertion, self::UNVERIFIED );
 				continue;
 			}
 
-			$results[] = $this->result( $insertion, self::RECORDED, $id );
+			$active[]          = $this->changes->get( $id ) ?? array();
+			$results[ $index ] = $this->result( $insertion, self::RECORDED, $id );
 		}//end foreach
 
+		$this->reconcile( $content, $active );
+		ksort( $results );
+		$results  = array_values( $results );
 		$recorded = array_filter( $results, static fn( array $result ): bool => self::RECORDED === $result['status'] );
 
 		return array(
 			'batch_id' => array() === $recorded ? null : $batch,
 			'results'  => $results,
 		);
+	}
+
+	/**
+	 * Marca como deshechos los enlaces del editor ya registrados que ya no están en el contenido guardado (el usuario
+	 * los quitó con el panel o a mano y guardó). No escribe en la entrada; es lo que haría Deshacer al encontrar el
+	 * enlace «ya quitado» y deja el Historial al día (D-58).
+	 *
+	 * @param string $content Contenido guardado.
+	 * @param array  $active  Inserciones puestas de la entrada.
+	 *
+	 * @phpstan-param list<array<string, mixed>> $active
+	 */
+	private function reconcile( string $content, array $active ): void {
+		foreach ( $active as $row ) {
+			if ( ! isset( $row['id'], $row['origin'] ) || ChangeRepository::ORIGIN_EDITOR !== $row['origin'] ) {
+				continue;
+			}
+
+			$link = Undo::inserted_link( (string) $row['before_html'], (string) $row['after_html'] );
+			if ( null !== $link && ! str_contains( $content, $link['open'] ) && ! str_contains( $content, $link['exact'] ) ) {
+				$this->changes->mark_undone( (int) $row['id'] );
+			}
+		}
 	}
 
 	/**
@@ -216,23 +267,20 @@ final class EditorLinks {
 	}
 
 	/**
-	 * Los `<a>` del documento que apuntan a `$url` con ese texto, con su posición.
+	 * Todos los `<a>` del documento, con su posición, su dirección y su texto normalizado (una sola pasada).
 	 *
 	 * En un documento de bloques solo se miran los tramos de HTML propio de cada bloque (nunca los comentarios
 	 * de bloque, cuyo JSON podría contener algo parecido a un enlace).
 	 *
 	 * @param string        $content Contenido guardado.
 	 * @param BlockMap|null $map     Mapa de bloques; null en el editor clásico.
-	 * @param string        $url     Dirección del destino.
-	 * @param string        $anchor  Texto del ancla.
 	 *
-	 * @return list<array{start: int, end: int, open: int, inner: string, path: string|null, from: int, to: int}> `start`/`end`: el `<a>` entero; `open`: longitud de la etiqueta de apertura; `path`/`from`/`to`: el tramo que se guarda (bloque o trozo clásico).
+	 * @return list<array{start: int, end: int, open: int, inner: string, path: string|null, from: int, to: int, href: string, text: string}> `start`/`end`: el `<a>` entero; `open`: longitud de la etiqueta de apertura; `path`/`from`/`to`: el tramo que se guarda (bloque o trozo clásico).
 	 */
-	private function matches( string $content, ?BlockMap $map, string $url, string $anchor ): array {
-		$wanted = self::normalize( $anchor );
+	private function anchors( string $content, ?BlockMap $map ): array {
 		$found  = array();
-
-		$spans = array();
+		$spans  = array();
+		$chunks = new ClassicEditor();
 		if ( null === $map ) {
 			$spans[] = array( 0, strlen( $content ), null, 0, 0 );
 		} else {
@@ -262,14 +310,9 @@ final class EditorLinks {
 					continue;
 				}
 
-				$href = self::href( $tag );
-				if ( ! self::same_url( $href, $url ) || self::normalize( wp_strip_all_tags( $inner ) ) !== $wanted ) {
-					continue;
-				}
-
 				$start                     = $from + $at;
 				$end                       = $from + $close + 4;
-				[ $chunk_from, $chunk_to ] = null === $map ? ( new ClassicEditor() )->chunk( $content, $start, $end ) : array( $node_start, $node_end );
+				[ $chunk_from, $chunk_to ] = null === $map ? $chunks->chunk( $content, $start, $end ) : array( $node_start, $node_end );
 
 				$found[] = array(
 					'start' => $start,
@@ -279,11 +322,30 @@ final class EditorLinks {
 					'path'  => null === $map ? '@' . $chunk_from : (string) $path,
 					'from'  => $chunk_from,
 					'to'    => $chunk_to,
+					'href'  => OpenTag::href( $tag ),
+					'text'  => self::normalize( wp_strip_all_tags( $inner ) ),
 				);
 			}//end foreach
 		}//end foreach
 
 		return $found;
+	}
+
+	/**
+	 * Los `<a>` que apuntan a `$url` con ese texto.
+	 *
+	 * @param array  $anchors Resultado de {@see self::anchors()}.
+	 * @param string $url     Dirección del destino.
+	 * @param string $anchor  Texto del ancla.
+	 *
+	 * @phpstan-param list<array{start: int, end: int, open: int, inner: string, path: string|null, from: int, to: int, href: string, text: string}> $anchors
+	 *
+	 * @return list<array{start: int, end: int, open: int, inner: string, path: string|null, from: int, to: int, href: string, text: string}>
+	 */
+	private function matches( array $anchors, string $url, string $anchor ): array {
+		$wanted = self::normalize( $anchor );
+
+		return array_values( array_filter( $anchors, static fn( array $found ): bool => $found['text'] === $wanted && self::same_url( $found['href'], $url ) ) );
 	}
 
 	/**
@@ -293,7 +355,7 @@ final class EditorLinks {
 	 * @param string $content Contenido guardado (con el enlace).
 	 * @param array  $found   Enlace encontrado.
 	 *
-	 * @phpstan-param array{start: int, end: int, open: int, inner: string, path: string|null, from: int, to: int} $found
+	 * @phpstan-param array{start: int, end: int, open: int, inner: string, path: string|null, from: int, to: int, href: string, text: string} $found
 	 *
 	 * @return array{path: string, before: string, after: string}|null Null si el verificador no lo da por bueno.
 	 */
@@ -320,22 +382,6 @@ final class EditorLinks {
 			'before' => $before,
 			'after'  => $after,
 		);
-	}
-
-	/**
-	 * Valor de `href` de una etiqueta de apertura.
-	 *
-	 * @param string $open Etiqueta `<a …>`.
-	 */
-	private static function href( string $open ): string {
-		$tags = new WP_HTML_Tag_Processor( $open );
-		if ( ! $tags->next_tag( array( 'tag_name' => 'a' ) ) ) {
-			return '';
-		}
-
-		$href = $tags->get_attribute( 'href' );
-
-		return is_string( $href ) ? $href : '';
 	}
 
 	/**

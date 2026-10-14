@@ -65,32 +65,9 @@ final class EditorHistoryController implements Module {
 					'links'   => array(
 						'type'     => 'array',
 						'required' => true,
-						'minItems' => 1,
 						'maxItems' => self::MAX_LINKS,
-						'items'    => array(
-							'type'                 => 'object',
-							'additionalProperties' => false,
-							'required'             => array( 'insertion_id', 'suggestion', 'target_id', 'anchor' ),
-							'properties'           => array(
-								'insertion_id' => array(
-									'type'    => 'string',
-									'pattern' => '^[A-Za-z0-9_-]{8,64}$',
-								),
-								'suggestion'   => array(
-									'type'      => 'string',
-									'maxLength' => 300,
-								),
-								'target_id'    => array(
-									'type'    => 'integer',
-									'minimum' => 1,
-								),
-								'anchor'       => array(
-									'type'      => 'string',
-									'minLength' => 1,
-									'maxLength' => 500,
-								),
-							),
-						),
+						// Cada elemento se valida en el servidor y se contesta por separado: uno mal formado no hunde el resto.
+						'items'    => array( 'type' => 'object' ),
 					),
 				),
 			)
@@ -119,16 +96,7 @@ final class EditorHistoryController implements Module {
 			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
 		}
 
-		$links = array();
-		foreach ( (array) $request['links'] as $link ) {
-			$link    = (array) $link;
-			$links[] = array(
-				'insertion_id' => (string) ( $link['insertion_id'] ?? '' ),
-				'suggestion'   => (string) ( $link['suggestion'] ?? '' ),
-				'target_id'    => (int) ( $link['target_id'] ?? 0 ),
-				'anchor'       => (string) ( $link['anchor'] ?? '' ),
-			);
-		}
+		$links = array_map( static fn( $link ): array => (array) $link, array_values( (array) $request['links'] ) );
 
 		try {
 			$outcome = $this->links->record( $post_id, get_current_user_id(), $links );

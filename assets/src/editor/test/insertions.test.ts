@@ -1,4 +1,4 @@
-import { createInsertionLog, newInsertionId } from '../insertions';
+import { createInsertionLog, newInsertionId, shortKey } from '../insertions';
 
 function memory() {
 	const data = new Map< string, string >();
@@ -92,5 +92,39 @@ describe( 'createInsertionLog', () => {
 		expect( log.list() ).toHaveLength( 1 );
 		log.remove( id );
 		expect( log.list() ).toHaveLength( 0 );
+	} );
+} );
+
+describe( 'sitios distintos', () => {
+	it( 'la misma entrada en otro sitio (multisitio por subdirectorio) no comparte la cuenta', () => {
+		const storage = memory();
+		const a = createInsertionLog(
+			7,
+			storage,
+			'/sitio-a/wp-admin/admin-ajax.php'
+		);
+		const b = createInsertionLog(
+			7,
+			storage,
+			'/sitio-b/wp-admin/admin-ajax.php'
+		);
+		a.add( link );
+		expect( b.list() ).toEqual( [] );
+		expect(
+			createInsertionLog(
+				7,
+				storage,
+				'/sitio-a/wp-admin/admin-ajax.php'
+			).list()
+		).toHaveLength( 1 );
+	} );
+} );
+
+describe( 'shortKey', () => {
+	it( 'es corta, estable y no lleva el ancla entera', () => {
+		const long = '1:2:10:' + 'palabra '.repeat( 50 );
+		expect( shortKey( long ) ).toMatch( /^[0-9a-f]{8,16}$/ );
+		expect( shortKey( long ) ).toBe( shortKey( long ) );
+		expect( shortKey( long ) ).not.toBe( shortKey( long + 'x' ) );
 	} );
 } );
