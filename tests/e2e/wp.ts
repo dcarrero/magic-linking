@@ -17,6 +17,25 @@ export function wp( ...args: string[] ): string {
 }
 
 /**
+ * Comprueba que WP-CLI y el navegador hablan con el mismo WordPress.
+ *
+ * Las pruebas siembran datos con WP-CLI (la carpeta de `WP_ENV_DIR` o la actual) y luego los miran con el
+ * navegador en `WP_BASE_URL`. Si dos copias de trabajo comparten el puerto (o `WP_BASE_URL` apunta al wp-env de
+ * otra), se siembra un sitio y se prueba otro y fallan pruebas al azar, según lo que haga la otra pasada.
+ * Mejor parar al empezar y decir por qué.
+ *
+ * @param baseURL Dirección base de Playwright.
+ */
+export function assertSameSite( baseURL: string ): void {
+	const siteurl = wp( 'option', 'get', 'siteurl' ).trim();
+	if ( new URL( siteurl ).origin !== new URL( baseURL ).origin ) {
+		throw new Error(
+			`WP-CLI trabaja con ${ siteurl } pero las pruebas navegan por ${ baseURL }. Ajusta WP_BASE_URL y WP_ENV_DIR al mismo wp-env.`
+		);
+	}
+}
+
+/**
  * Deja el sitio en un estado conocido: entradas de prueba con enlaces, sin índice y con un editor.
  */
 export function seed(): void {
