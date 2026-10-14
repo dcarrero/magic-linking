@@ -143,7 +143,7 @@
 }
 
 // Ajustes (F1-35): tarjetas por tema, título y explicación a la izquierda y controles a la derecha en pantallas anchas.
-.magiclinking-panel:has(.magiclinking-settings-page) {
+.magiclinking-panel--plain {
 	background: transparent;
 	border: 0;
 	padding: 0;
@@ -252,9 +252,10 @@
 		width: 8rem;
 	}
 
-	// WCAG 2.2 (2.5.8): las casillas (16 px) llevan separación suficiente entre sí.
-	.components-checkbox-control + .components-checkbox-control {
-		margin-top: 0;
+	.magiclinking-field-error {
+		color: #cc1818;
+		display: block;
+		margin-top: 4px;
 	}
 
 	.magiclinking-subsection {
@@ -326,11 +327,6 @@
 	.magiclinking-settings-page .magiclinking-section__layout {
 		gap: 40px;
 		grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr);
-	}
-
-	// Sin descripción (no ocurre hoy), los controles ocupan todo.
-	.magiclinking-settings-page .magiclinking-section__controls:only-child {
-		grid-column: 1 / -1;
 	}
 
 	.magiclinking-settings-page .magiclinking-section__controls {

@@ -205,8 +205,9 @@ test.describe( 'Internal links', () => {
 		await expect( root.getByText( 'Unsaved changes' ) ).toBeVisible();
 		await expect( save ).toBeEnabled();
 		await root
-			.getByRole( 'heading', { level: 2, name: 'Maintenance' } )
+			.getByRole( 'heading', { level: 2, name: 'Suggestions' } )
 			.scrollIntoViewIfNeeded();
+		// La barra está al final del formulario: solo se ve aquí si es fija.
 		await expect( save ).toBeInViewport();
 
 		// Volver al valor guardado quita el aviso.
@@ -227,6 +228,135 @@ test.describe( 'Internal links', () => {
 			.analyze();
 		expect( results.violations ).toEqual( [] );
 
+		wp( 'option', 'delete', 'magiclinking_settings' );
+	} );
+
+	test( 'number fields keep what is typed until they lose focus', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+
+		const words = root.getByLabel( 'Words per internal link' );
+		await words.fill( '' );
+		await expect( words ).toHaveValue( '' );
+		await words.pressSequentially( '50' );
+		await expect( words ).toHaveValue( '50' );
+		const inbound = root.getByLabel(
+			'Inbound suggestions per page in the editor'
+		);
+		await inbound.fill( '' );
+		await inbound.pressSequentially( '15' );
+		await expect( inbound ).toHaveValue( '15' );
+
+		// Fuera de rango o vacío: al salir del campo se corrige.
+		await words.fill( '3' );
+		await words.blur();
+		await expect( words ).toHaveValue( '20' );
+		await words.fill( '' );
+		await words.blur();
+		await expect( words ).toHaveValue( '100' );
+
+		await words.fill( '50' );
+		await root.getByRole( 'button', { name: 'Save settings' } ).click();
+		await expect( root.getByText( 'Settings saved.' ) ).toBeVisible();
+		const saved = JSON.parse(
+			wp( 'option', 'get', 'magiclinking_settings', '--format=json' ).trim()
+		);
+		expect( saved.words_per_link ).toBe( 50 );
+		expect( saved.inbound_per_page ).toBe( 15 );
+		wp( 'option', 'delete', 'magiclinking_settings' );
+	} );
+
+	test( 'edits made while saving are not lost', async ( { page } ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+		await page.route( /settings/, async ( route ) => {
+			if ( route.request().method() === 'POST' ) {
+				await new Promise( ( resolve ) => setTimeout( resolve, 1500 ) );
+			}
+			await route.continue();
+		} );
+
+		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await root.getByRole( 'button', { name: 'Save settings' } ).click();
+		await root.getByLabel( 'Ignored words' ).fill( 'durante' );
+		await expect( root.getByText( 'Settings saved.' ) ).toBeVisible();
+		await expect( root.getByLabel( 'Ignored words' ) ).toHaveValue(
+			'durante'
+		);
+		await expect( root.getByText( 'Unsaved changes' ) ).toBeVisible();
+		wp( 'option', 'delete', 'magiclinking_settings' );
+	} );
+
+	test( 'cancelling the leave warning does not reopen the assistant for good', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+		const dismissed = () =>
+			wp(
+				'eval',
+				'echo get_user_meta( 1, $GLOBALS["wpdb"]->get_blog_prefix() . "magiclinking_wizard_dismissed", true );'
+			);
+		expect( dismissed() ).toBe( '1' );
+
+		page.on( 'dialog', ( dialog ) => dialog.dismiss() );
+		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await root
+			.getByRole( 'button', { name: 'Open the setup assistant' } )
+			.click();
+		await page.waitForTimeout( 1000 );
+		expect( page.url() ).toContain( 'page=magic-linking-settings' );
+		expect( dismissed() ).toBe( '1' );
+	} );
+
+	test( 'settings look the same while loading, and keyboard order goes fields, save, maintenance', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.route( /rest_route=.*settings|wp-json.*settings/, async ( route ) => {
+			if ( route.request().method() === 'GET' ) {
+				await new Promise( ( resolve ) => setTimeout( resolve, 1500 ) );
+			}
+			await route.continue();
+		} );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+		await expect( root.getByText( 'Loading…' ) ).toBeVisible();
+		// Sin esperas: mientras carga ya no hay caja blanca.
+		expect(
+			await root
+				.locator( '.magiclinking-panel' )
+				.evaluate( ( el ) => getComputedStyle( el ).backgroundColor )
+		).toBe( 'rgba(0, 0, 0, 0)' );
+		await expect(
+			root.getByRole( 'heading', { level: 2, name: 'Maintenance' } )
+		).toBeVisible();
+
+		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await root
+			.getByLabel(
+				'Delete all Magic Linking data when the plugin is deleted'
+			)
+			.focus();
+		await page.keyboard.press( 'Tab' );
+		await expect(
+			root.getByRole( 'button', { name: 'Save settings' } )
+		).toBeFocused();
+		await page.keyboard.press( 'Tab' );
+		await expect(
+			root.getByRole( 'button', {
+				name: 'Analyze everything again from scratch',
+			} )
+		).toBeFocused();
 		wp( 'option', 'delete', 'magiclinking_settings' );
 	} );
 

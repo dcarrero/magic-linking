@@ -6,14 +6,14 @@ import {
 	TextControl,
 	TextareaControl,
 } from '@wordpress/components';
-import { useEffect, useMemo, useState } from '@wordpress/element';
+import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import { useLoad } from '../hooks';
 import type { SettingsValues, StatusResponse } from '../types';
 import { Maintenance } from './Maintenance';
-import { SettingsSection } from './SettingsSection';
+import { SettingsSection, settingsSections } from './SettingsSection';
 
 interface Props {
 	/** Se llama cuando guardar los ajustes ha lanzado un análisis nuevo. */
@@ -44,14 +44,79 @@ function whole(
 	return Math.min( max, Math.max( min, number ) );
 }
 
+type NumberKey =
+	| 'words_per_link'
+	| 'same_anchor_max'
+	| 'outbound_shown'
+	| 'inbound_per_page'
+	| 'low_inbound_threshold';
+
+/** Límites y valor de respaldo de cada campo numérico (los mismos que aplica el servidor). */
+const NUMBER_RULES: Record<
+	NumberKey,
+	{ fallback: number; min: number; max: number }
+> = {
+	words_per_link: { fallback: 100, min: 20, max: 1000 },
+	same_anchor_max: { fallback: 5, min: 1, max: 50 },
+	outbound_shown: { fallback: 15, min: 1, max: 50 },
+	inbound_per_page: { fallback: 10, min: 5, max: 50 },
+	low_inbound_threshold: { fallback: 2, min: 1, max: 20 },
+};
+const NUMBER_KEYS = Object.keys( NUMBER_RULES ) as NumberKey[];
+
+type NumberTexts = Record< NumberKey, string >;
+
+/** Lo que hay escrito en un formulario: ajustes, textos de las listas y textos de los campos numéricos. */
+interface Draft {
+	values: SettingsValues;
+	urls: string;
+	words: string;
+	numbers: NumberTexts;
+}
+
 /**
- * Huella de lo que hay en pantalla, para saber si hay cambios sin guardar.
- * @param values Ajustes.
- * @param urls   Texto de direcciones ignoradas.
- * @param words  Texto de palabras ignoradas.
+ * Borrador a partir de ajustes guardados.
+ * @param settings Ajustes.
  */
-function snapshot( values: SettingsValues, urls: string, words: string ) {
-	return JSON.stringify( [ values, urls, words ] );
+function draftOf( settings: SettingsValues ): Draft {
+	const numbers = {} as NumberTexts;
+	NUMBER_KEYS.forEach( ( key ) => {
+		numbers[ key ] = String( settings[ key ] );
+	} );
+	return {
+		values: settings,
+		urls: settings.ignored_urls.join( '\n' ),
+		words: settings.ignored_words.join( '\n' ),
+		numbers,
+	};
+}
+
+/**
+ * Los ajustes tal como se enviarían: los números se limitan a su rango (un campo vacío vuelve al valor por defecto).
+ * @param draft Borrador.
+ */
+function effective( draft: Draft ): SettingsValues {
+	const values = { ...draft.values };
+	NUMBER_KEYS.forEach( ( key ) => {
+		const { fallback, min, max } = NUMBER_RULES[ key ];
+		values[ key ] = whole( draft.numbers[ key ], fallback, min, max );
+	} );
+	const lines = ( text: string ) =>
+		text
+			.split( /\r?\n/ )
+			.map( ( line ) => line.trim() )
+			.filter( Boolean );
+	values.ignored_urls = lines( draft.urls );
+	values.ignored_words = lines( draft.words );
+	return values;
+}
+
+/**
+ * Huella de lo que se enviaría, para saber si hay cambios sin guardar.
+ * @param draft Borrador.
+ */
+function snapshot( draft: Draft ): string {
+	return JSON.stringify( effective( draft ) );
 }
 
 /**
@@ -67,35 +132,37 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		[],
 		__( 'Could not load the settings.', 'magic-linking' )
 	);
-	const [ values, setValues ] = useState< SettingsValues | null >( null );
+	const [ draft, setDraft ] = useState< Draft | null >( null );
 	const [ saving, setSaving ] = useState( false );
 	const [ message, setMessage ] = useState( '' );
 	const [ failure, setFailure ] = useState( '' );
-	const [ urlsText, setUrlsText ] = useState( '' );
-	const [ wordsText, setWordsText ] = useState( '' );
 	const [ baseline, setBaseline ] = useState( '' );
+	// Último borrador pintado: al volver la respuesta del servidor se compara con lo que se envió.
+	const latest = useRef< Draft | null >( null );
+	latest.current = draft;
+
+	/**
+	 * Deja el formulario y la referencia de «sin cambios» en unos ajustes guardados.
+	 * @param settings Ajustes.
+	 */
+	const reset = ( settings: SettingsValues ) => {
+		const next = draftOf( settings );
+		setDraft( next );
+		setBaseline( snapshot( next ) );
+	};
 
 	useEffect( () => {
 		if ( data ) {
-			setValues( data.settings );
-			setUrlsText( data.settings.ignored_urls.join( '\n' ) );
-			setWordsText( data.settings.ignored_words.join( '\n' ) );
-			setBaseline(
-				snapshot(
-					data.settings,
-					data.settings.ignored_urls.join( '\n' ),
-					data.settings.ignored_words.join( '\n' )
-				)
-			);
+			const next = draftOf( data.settings );
+			setDraft( next );
+			setBaseline( snapshot( next ) );
 		}
 	}, [ data ] );
 
 	const dirty = useMemo(
 		() =>
-			values !== null &&
-			baseline !== '' &&
-			snapshot( values, urlsText, wordsText ) !== baseline,
-		[ values, urlsText, wordsText, baseline ]
+			draft !== null && baseline !== '' && snapshot( draft ) !== baseline,
+		[ draft, baseline ]
 	);
 
 	// Aviso del navegador al salir solo si hay cambios sin guardar.
@@ -111,7 +178,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		return () => window.removeEventListener( 'beforeunload', warn );
 	}, [ dirty ] );
 
-	if ( ! values || ! data ) {
+	if ( ! draft || ! data ) {
 		return error ? (
 			<Notice status="error" isDismissible={ false }>
 				{ error }
@@ -121,11 +188,19 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		);
 	}
 
+	const { values } = draft;
+	const sections = settingsSections();
+
 	const set = < K extends keyof SettingsValues >(
 		key: K,
 		value: SettingsValues[ K ]
 	) => {
-		setValues( { ...values, [ key ]: value } );
+		setDraft( { ...draft, values: { ...values, [ key ]: value } } );
+		setMessage( '' );
+	};
+
+	const setText = ( key: 'urls' | 'words', value: string ) => {
+		setDraft( { ...draft, [ key ]: value } );
 		setMessage( '' );
 	};
 
@@ -141,26 +216,17 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		setSaving( true );
 		setFailure( '' );
 		try {
-			const lines = ( text: string ) =>
-				text
-					.split( /\r?\n/ )
-					.map( ( line ) => line.trim() )
-					.filter( Boolean );
-			const saved = await api.saveSettings( {
-				...values,
-				ignored_urls: lines( urlsText ),
-				ignored_words: lines( wordsText ),
-			} );
-			setValues( saved.settings );
-			setUrlsText( saved.settings.ignored_urls.join( '\n' ) );
-			setWordsText( saved.settings.ignored_words.join( '\n' ) );
-			setBaseline(
-				snapshot(
-					saved.settings,
-					saved.settings.ignored_urls.join( '\n' ),
-					saved.settings.ignored_words.join( '\n' )
-				)
-			);
+			const sent = snapshot( draft );
+			const saved = await api.saveSettings( effective( draft ) );
+			if (
+				latest.current !== null &&
+				snapshot( latest.current ) === sent
+			) {
+				reset( saved.settings );
+			} else {
+				// Se editó mientras se guardaba: se conservan esas ediciones y solo avanza lo guardado.
+				setBaseline( snapshot( draftOf( saved.settings ) ) );
+			}
 			const text = saved.job
 				? __(
 						'Settings saved. What Magic Linking reads has changed, so your site is being analyzed again.',
@@ -184,61 +250,65 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		}
 	};
 
-	const number = (
-		key:
-			| 'words_per_link'
-			| 'same_anchor_max'
-			| 'outbound_shown'
-			| 'inbound_per_page'
-			| 'low_inbound_threshold',
-		fallback: number,
-		min: number,
-		max: number,
-		label: string,
-		help: string
-	) => (
-		<TextControl
-			className="magiclinking-number"
-			__nextHasNoMarginBottom
-			__next40pxDefaultSize
-			type="number"
-			min={ min }
-			max={ max }
-			label={ label }
-			help={ help }
-			value={ String( values[ key ] ) }
-			onChange={ ( value ) =>
-				set( key, whole( value, fallback, min, max ) )
-			}
-		/>
-	);
-
-	const sections = [
-		{
-			id: 'magiclinking-s-content',
-			label: __( 'Content analyzed', 'magic-linking' ),
-		},
-		{
-			id: 'magiclinking-s-suggestions',
-			label: __( 'Suggestions', 'magic-linking' ),
-		},
-		{
-			id: 'magiclinking-s-insertion',
-			label: __( 'Link insertion', 'magic-linking' ),
-		},
-		{
-			id: 'magiclinking-s-exclusions',
-			label: __( 'Exclusions', 'magic-linking' ),
-		},
-		{
-			id: 'magiclinking-s-data',
-			label: __( 'History and data', 'magic-linking' ),
-		},
-		{
-			id: 'magiclinking-maintenance',
-			label: __( 'Maintenance', 'magic-linking' ),
-		},
-	];
+	const number = ( key: NumberKey, label: string, help: string ) => {
+		const { fallback, min, max } = NUMBER_RULES[ key ];
+		const text = draft.numbers[ key ];
+		const valid =
+			/^\d+$/.test( text ) &&
+			Number( text ) >= min &&
+			Number( text ) <= max;
+		return (
+			<TextControl
+				className="magiclinking-number"
+				__nextHasNoMarginBottom
+				__next40pxDefaultSize
+				type="number"
+				min={ min }
+				max={ max }
+				label={ label }
+				aria-invalid={ ! valid }
+				help={
+					valid ? (
+						help
+					) : (
+						<>
+							{ help }
+							<span className="magiclinking-field-error">
+								{ sprintf(
+									/* translators: 1: minimum, 2: maximum. */
+									__(
+										'Enter a whole number from %1$s to %2$s; otherwise it is adjusted when you leave the field.',
+										'magic-linking'
+									),
+									String( min ),
+									String( max )
+								) }
+							</span>
+						</>
+					)
+				}
+				value={ text }
+				onChange={ ( value ) => {
+					setDraft( {
+						...draft,
+						numbers: { ...draft.numbers, [ key ]: value },
+					} );
+					setMessage( '' );
+				} }
+				onBlur={ () =>
+					setDraft( {
+						...draft,
+						numbers: {
+							...draft.numbers,
+							[ key ]: String(
+								whole( text, fallback, min, max )
+							),
+						},
+					} )
+				}
+			/>
+		);
+	};
 
 	const noTypes = values.post_types.length === 0;
 	let statusText = '';
@@ -255,9 +325,9 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 				aria-label={ __( 'Settings sections', 'magic-linking' ) }
 			>
 				<ul>
-					{ sections.map( ( section ) => (
+					{ Object.values( sections ).map( ( section ) => (
 						<li key={ section.id }>
-							<a href={ `#${ section.id }` }>{ section.label }</a>
+							<a href={ `#${ section.id }` }>{ section.title }</a>
 						</li>
 					) ) }
 				</ul>
@@ -268,14 +338,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 				className="magiclinking-settings"
 				onSubmit={ save }
 			>
-				<SettingsSection
-					id="magiclinking-s-content"
-					title={ __( 'Content analyzed', 'magic-linking' ) }
-					description={ __(
-						'Magic Linking reads these content types to find links between them.',
-						'magic-linking'
-					) }
-				>
+				<SettingsSection section={ sections.content }>
 					<fieldset>
 						<legend>
 							{ __(
@@ -299,23 +362,13 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 					</fieldset>
 				</SettingsSection>
 
-				<SettingsSection
-					id="magiclinking-s-suggestions"
-					title={ __( 'Suggestions', 'magic-linking' ) }
-					description={ __(
-						'How many suggestions you see, and how entries are judged as linked too little or too much.',
-						'magic-linking'
-					) }
-				>
+				<SettingsSection section={ sections.suggestions }>
 					<fieldset>
 						<legend>
 							{ __( 'Suggestions shown', 'magic-linking' ) }
 						</legend>
 						{ number(
 							'outbound_shown',
-							15,
-							1,
-							50,
 							__(
 								'Outbound suggestions in the editor',
 								'magic-linking'
@@ -327,9 +380,6 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						) }
 						{ number(
 							'inbound_per_page',
-							10,
-							5,
-							50,
 							__(
 								'Inbound suggestions per page in the editor',
 								'magic-linking'
@@ -355,9 +405,6 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						</p>
 						{ number(
 							'words_per_link',
-							100,
-							20,
-							1000,
 							__( 'Words per internal link', 'magic-linking' ),
 							__(
 								'An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed).',
@@ -366,9 +413,6 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						) }
 						{ number(
 							'same_anchor_max',
-							5,
-							1,
-							50,
 							__(
 								'Entries that can use the same anchor text for the same target',
 								'magic-linking'
@@ -385,9 +429,6 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						</legend>
 						{ number(
 							'low_inbound_threshold',
-							2,
-							1,
-							20,
 							__(
 								'Under-linked below this many inbound links',
 								'magic-linking'
@@ -400,14 +441,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 					</fieldset>
 				</SettingsSection>
 
-				<SettingsSection
-					id="magiclinking-s-insertion"
-					title={ __( 'Link insertion', 'magic-linking' ) }
-					description={ __(
-						'Where in your content links can go, and what the links Magic Linking inserts look like.',
-						'magic-linking'
-					) }
-				>
+				<SettingsSection section={ sections.insertion }>
 					<fieldset>
 						<legend>
 							{ __(
@@ -488,14 +522,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 					</fieldset>
 				</SettingsSection>
 
-				<SettingsSection
-					id="magiclinking-s-exclusions"
-					title={ __( 'Exclusions', 'magic-linking' ) }
-					description={ __(
-						'Entries and words that Magic Linking should leave alone.',
-						'magic-linking'
-					) }
-				>
+				<SettingsSection section={ sections.exclusions }>
 					<TextareaControl
 						__nextHasNoMarginBottom
 						label={ __( 'Ignored addresses', 'magic-linking' ) }
@@ -504,11 +531,8 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 							'magic-linking'
 						) }
 						rows={ 4 }
-						value={ urlsText }
-						onChange={ ( value ) => {
-							setUrlsText( value );
-							setMessage( '' );
-						} }
+						value={ draft.urls }
+						onChange={ ( value ) => setText( 'urls', value ) }
 					/>
 					<TextareaControl
 						__nextHasNoMarginBottom
@@ -518,22 +542,12 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 							'magic-linking'
 						) }
 						rows={ 4 }
-						value={ wordsText }
-						onChange={ ( value ) => {
-							setWordsText( value );
-							setMessage( '' );
-						} }
+						value={ draft.words }
+						onChange={ ( value ) => setText( 'words', value ) }
 					/>
 				</SettingsSection>
 
-				<SettingsSection
-					id="magiclinking-s-data"
-					title={ __( 'History and data', 'magic-linking' ) }
-					description={ __(
-						'How long you can undo changes, and what happens to the data when the plugin is deleted.',
-						'magic-linking'
-					) }
-				>
+				<SettingsSection section={ sections.data }>
 					<SelectControl
 						__nextHasNoMarginBottom
 						__next40pxDefaultSize
@@ -590,49 +604,42 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						}
 					/>
 				</SettingsSection>
+
+				<div className="magiclinking-savebar">
+					{ failure && (
+						<Notice status="error" isDismissible={ false }>
+							{ failure }
+						</Notice>
+					) }
+					{ message && (
+						<Notice status="success" isDismissible={ false }>
+							{ message }
+						</Notice>
+					) }
+					<div className="magiclinking-savebar__row">
+						<Button
+							type="submit"
+							variant="primary"
+							disabled={ saving || ! dirty || noTypes }
+							accessibleWhenDisabled
+						>
+							{ __( 'Save settings', 'magic-linking' ) }
+						</Button>
+						<p
+							className="magiclinking-savebar__status"
+							role="status"
+						>
+							{ statusText }
+						</p>
+					</div>
+				</div>
 			</form>
 
-			<Maintenance status={ status } onStarted={ onReindex }>
-				<div className="magiclinking-subsection">
-					<h3>{ __( 'Setup assistant', 'magic-linking' ) }</h3>
-					<p className="description">
-						{ __(
-							'Go through the first steps again: content types, AI and the first analysis.',
-							'magic-linking'
-						) }
-					</p>
-					<Button variant="secondary" onClick={ onOpenWizard }>
-						{ __( 'Open the setup assistant', 'magic-linking' ) }
-					</Button>
-				</div>
-			</Maintenance>
-
-			<div className="magiclinking-savebar">
-				{ failure && (
-					<Notice status="error" isDismissible={ false }>
-						{ failure }
-					</Notice>
-				) }
-				{ message && (
-					<Notice status="success" isDismissible={ false }>
-						{ message }
-					</Notice>
-				) }
-				<div className="magiclinking-savebar__row">
-					<Button
-						type="submit"
-						form="magiclinking-settings-form"
-						variant="primary"
-						disabled={ saving || ! dirty || noTypes }
-						accessibleWhenDisabled
-					>
-						{ __( 'Save settings', 'magic-linking' ) }
-					</Button>
-					<p className="magiclinking-savebar__status" role="status">
-						{ statusText }
-					</p>
-				</div>
-			</div>
+			<Maintenance
+				status={ status }
+				onStarted={ onReindex }
+				onOpenWizard={ onOpenWizard }
+			/>
 		</div>
 	);
 }

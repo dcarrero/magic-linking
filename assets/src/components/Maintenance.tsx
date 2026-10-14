@@ -4,15 +4,14 @@ import { speak } from '@wordpress/a11y';
 import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { StatusResponse } from '../types';
-import { SettingsSection } from './SettingsSection';
-import type { ReactNode } from 'react';
+import { SettingsSection, settingsSections } from './SettingsSection';
 
 interface Props {
 	status: StatusResponse | null;
 	/** Se llama cuando se ha lanzado el análisis, para refrescar el estado. */
 	onStarted: () => void;
-	/** Contenido extra de la tarjeta (el asistente de arranque). */
-	children?: ReactNode;
+	/** Reabre el asistente de arranque. */
+	onOpenWizard: () => void;
 }
 
 /**
@@ -59,9 +58,9 @@ export function formatDuration( from: string, to: string ): string {
  * @param root0
  * @param root0.status
  * @param root0.onStarted
- * @param root0.children
+ * @param root0.onOpenWizard
  */
-export function Maintenance( { status, onStarted, children }: Props ) {
+export function Maintenance( { status, onStarted, onOpenWizard }: Props ) {
 	const [ confirming, setConfirming ] = useState( false );
 	const [ busy, setBusy ] = useState( false );
 	const [ failure, setFailure ] = useState( '' );
@@ -91,14 +90,7 @@ export function Maintenance( { status, onStarted, children }: Props ) {
 	};
 
 	return (
-		<SettingsSection
-			id="magiclinking-maintenance"
-			title={ __( 'Maintenance', 'magic-linking' ) }
-			description={ __(
-				'Run the analysis again and go back through the first steps.',
-				'magic-linking'
-			) }
-		>
+		<SettingsSection section={ settingsSections().maintenance }>
 			{ last ? (
 				<dl className="magiclinking-maintenance-facts">
 					<div>
@@ -163,7 +155,18 @@ export function Maintenance( { status, onStarted, children }: Props ) {
 					) }
 				</p>
 			) }
-			{ children }
+			<div className="magiclinking-subsection">
+				<h3>{ __( 'Setup assistant', 'magic-linking' ) }</h3>
+				<p className="description">
+					{ __(
+						'Go through the first steps again: content types, AI and the first analysis.',
+						'magic-linking'
+					) }
+				</p>
+				<Button variant="secondary" onClick={ onOpenWizard }>
+					{ __( 'Open the setup assistant', 'magic-linking' ) }
+				</Button>
+			</div>
 			{ confirming && (
 				<Modal
 					title={ __(
