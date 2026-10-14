@@ -8,6 +8,11 @@ import type {
 	FixResponse,
 	DismissalResponse,
 	EditorHistoryResponse,
+	EntryRunResponse,
+	HistoryEntriesResponse,
+	HistoryEntry,
+	HistoryEntryChangesResponse,
+	HistoryStatusFilter,
 	EditorLink,
 	HistoryChangesResponse,
 	HistoryGroup,
@@ -122,6 +127,68 @@ export const api = {
 		apiFetch< HistoryResponse >( {
 			path: path( '/history', { before, per_page: perPage } ),
 			signal,
+		} ),
+	/**
+	 * Historial agrupado por entrada, paginado (F1-36).
+	 *
+	 * @param query         Página y filtros.
+	 * @param query.page    Página (desde 1).
+	 * @param query.perPage Entradas por página.
+	 * @param query.status  Estado de los cambios.
+	 * @param query.origin  Origen (editor, plugin o vacío).
+	 * @param query.search  Texto del título de la entrada.
+	 * @param signal        Para cancelar.
+	 */
+	historyEntries: (
+		query: {
+			page: number;
+			perPage: number;
+			status: HistoryStatusFilter;
+			origin: string;
+			search: string;
+		},
+		signal?: AbortSignal
+	) =>
+		apiFetch< HistoryEntriesResponse >( {
+			path: path( '/history', {
+				group: 'post',
+				page: query.page,
+				per_page: query.perPage,
+				status: query.status === 'all' ? '' : query.status,
+				origin: query.origin,
+				search: query.search,
+			} ),
+			signal,
+		} ),
+	historyEntry: ( postId: number ) =>
+		apiFetch< { entry: HistoryEntry } >( {
+			path: path( `/history/posts/${ postId }` ),
+		} ),
+	historyEntryChanges: ( postId: number, page: number, perPage: number ) =>
+		apiFetch< HistoryEntryChangesResponse >( {
+			path: path( `/history/posts/${ postId }/changes`, {
+				page,
+				per_page: perPage,
+			} ),
+		} ),
+	/**
+	 * Deshace o rehace cambios de una entrada en una sola petición: los indicados o, sin lista, todos los que toquen.
+	 *
+	 * @param mode      undo o redo.
+	 * @param postId    Entrada.
+	 * @param changeIds Cambios concretos de esa entrada.
+	 */
+	runHistoryEntry: (
+		mode: 'undo' | 'redo',
+		postId: number,
+		changeIds?: number[]
+	) =>
+		apiFetch< EntryRunResponse >( {
+			path: path( `/${ mode }` ),
+			method: 'POST',
+			data: changeIds
+				? { post_id: postId, change_ids: changeIds }
+				: { post_id: postId },
 		} ),
 	historyGroup: ( batchId: string ) =>
 		apiFetch< { group: HistoryGroup } >( {

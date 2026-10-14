@@ -7,37 +7,22 @@ import type { HistoryGroup } from '../types';
 import { HistoryGroupCard } from './HistoryGroupCard';
 
 interface Props {
-	/** Dirección de Ajustes (solo para quien puede administrar). */
-	settingsUrl?: string;
+	/** Avisa de cuánto se conserva el historial (lo trae la lista). */
+	onRetention: ( days: number ) => void;
 }
 
 const PER_PAGE = 20;
 
 /**
- * Texto de cuánto se conserva el historial.
- * @param days Días (0 = sin caducidad).
- */
-function retentionText( days: number ): string {
-	return days > 0
-		? sprintf(
-				/* translators: %s: number of days. */
-				__( 'Changes are kept for %s days.', 'magic-linking' ),
-				days.toLocaleString()
-		  )
-		: __( 'Changes are kept with no expiry date.', 'magic-linking' );
-}
-
-/**
- * Pestaña *Historial*: cada enlace que Magic Linking ha escrito en el contenido, agrupado por acción, con
- * Deshacer y Rehacer para cualquier grupo conservado. Sin tope de número de acciones: se pagina con
- * «Mostrar anteriores».
+ * Vista por lote del Historial: una tarjeta por acción (lote), con Deshacer y Rehacer del lote entero. Es la vista
+ * para los lotes que tocan varias entradas (entrantes en bloque, procesos en segundo plano). Sin tope de número de
+ * acciones: se pagina con «Mostrar anteriores».
  * @param root0
- * @param root0.settingsUrl
+ * @param root0.onRetention
  */
-export function HistoryTab( { settingsUrl }: Props ) {
+export function HistoryBatches( { onRetention }: Props ) {
 	const [ groups, setGroups ] = useState< HistoryGroup[] >( [] );
 	const [ next, setNext ] = useState< string | null >( null );
-	const [ retention, setRetention ] = useState( 90 );
 	const [ loading, setLoading ] = useState( true );
 	const [ loadingMore, setLoadingMore ] = useState( false );
 	const [ error, setError ] = useState( '' );
@@ -49,7 +34,7 @@ export function HistoryTab( { settingsUrl }: Props ) {
 			.then( ( response ) => {
 				setGroups( response.items );
 				setNext( response.next );
-				setRetention( response.retention_days );
+				onRetention( response.retention_days );
 				setLoading( false );
 				speak(
 					response.items.length === 0
@@ -82,7 +67,7 @@ export function HistoryTab( { settingsUrl }: Props ) {
 				}
 			} );
 		return () => controller.abort();
-	}, [] );
+	}, [ onRetention ] );
 
 	// Tras «Mostrar anteriores» el foco pasa al primer grupo nuevo (el botón desaparece si no hay más).
 	useEffect( () => {
@@ -153,26 +138,6 @@ export function HistoryTab( { settingsUrl }: Props ) {
 
 	return (
 		<>
-			<p className="description">
-				{ __(
-					'Every link Magic Linking writes into your content is listed here, newest first, so you can undo it.',
-					'magic-linking'
-				) }{ ' ' }
-				{ __(
-					'Links you add from the editor panel are listed here too once you save the entry. Magic Linking only records them: it never rewrites the entry when you save.',
-					'magic-linking'
-				) }{ ' ' }
-				{ retentionText( retention ) }{ ' ' }
-				{ settingsUrl && (
-					<a href={ settingsUrl }>
-						{ __(
-							'Change how long they are kept',
-							'magic-linking'
-						) }
-					</a>
-				) }
-			</p>
-
 			{ error && (
 				<Notice status="error" isDismissible={ false }>
 					{ error }

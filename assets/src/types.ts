@@ -244,6 +244,61 @@ export interface HistoryChange {
 	undone_at: string | null;
 }
 
+/** Un cambio dentro de la vista por entrada (F1-36). */
+export interface HistoryEntryChange {
+	id: number;
+	post_id: number;
+	batch_id: string;
+	/** De cuántas entradas es el lote del cambio. */
+	batch_posts: number;
+	kind: ChangeKind;
+	origin: HistoryOrigin;
+	anchor: string;
+	/** Dirección a la que apunta ahora (vacía si se quitó el enlace). */
+	url: string;
+	previous_url: string | null;
+	/** Título de la entrada de destino si es del sitio y el usuario puede leerla. */
+	target_title: string | null;
+	user_id: number;
+	user_name: string;
+	state: 'active' | 'undone';
+	created_at: string;
+	undone_at: string | null;
+}
+
+/** Una entrada con sus cambios (vista por entrada). */
+export interface HistoryEntry {
+	post_id: number;
+	/** Null si la entrada ya no existe. */
+	post_title: string | null;
+	edit_url: string | null;
+	view_url: string | null;
+	total: number;
+	active: number;
+	undone: number;
+	last_at: string;
+	/** Los más recientes; el resto se pide aparte. */
+	changes: HistoryEntryChange[];
+}
+
+export interface HistoryEntriesResponse extends Paged {
+	items: HistoryEntry[];
+	retention_days: number;
+}
+
+export interface HistoryEntryChangesResponse extends Paged {
+	items: HistoryEntryChange[];
+}
+
+export interface EntryRunResponse {
+	results: ChangeResult[];
+	/** Cambios que quedan por tratar (se pide otra vez). */
+	remaining: number;
+	entry: HistoryEntry | null;
+}
+
+export type HistoryStatusFilter = 'all' | 'active' | 'undone';
+
 export interface HistoryChangesResponse extends Paged {
 	items: HistoryChange[];
 }
