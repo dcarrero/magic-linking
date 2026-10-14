@@ -198,6 +198,9 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 
 == Changelog ==
 
+= Unreleased =
+* New: bundled translations into Spanish (Spain), French, German, Italian and Portuguese (Brazil and Portugal). Translations approved on translate.wordpress.org take precedence when available.
+
 = 0.10.0 =
 * New: link suggestions in the block editor and in the classic editor. A Magic Linking panel proposes phrases of your text that can link to other entries, with the anchor highlighted and the reason.
 * New: add a link with one click. In the editor it is inserted in the editor itself, only on that phrase.

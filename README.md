@@ -175,6 +175,9 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 
 ## 📝 Changelog
 
+### Unreleased
+- Bundled translations: Spanish (Spain), French, German, Italian and Portuguese (Brazil and Portugal).
+
 ### 0.10.0
 - Link suggestions in the block editor and the classic editor, with one-click linking.
 - Inbound suggestions, written on the server after verifying that nothing else in the entry changes.
