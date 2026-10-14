@@ -1,4 +1,4 @@
-import { useEffect, useRef } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { __, _x, sprintf } from '@wordpress/i18n';
 import type { Suggestion } from '../types';
@@ -32,7 +32,10 @@ interface Props {
 	onDismiss: ( suggestion: Suggestion ) => void;
 	/** Deshace el descarte. */
 	onRestore: ( suggestion: Suggestion ) => void;
-	onUndo: ( suggestion: Suggestion ) => void;
+	onUndo: ( suggestion: Suggestion ) => void | Promise< void >;
+	/** Tras un Deshacer del usuario, la tarjeta que se despliega recibe el foco (un solo sitio: aquí). */
+	focusRequested?: boolean;
+	onFocusDone?: () => void;
 	/** Resalta la frase en el lienzo (solo salientes). */
 	onHighlight?: ( suggestion: Suggestion | null ) => void;
 }
@@ -49,6 +52,8 @@ interface Props {
  * @param root0.onRestore
  * @param root0.onUndo
  * @param root0.onHighlight
+ * @param root0.focusRequested
+ * @param root0.onFocusDone
  */
 export function SuggestionCard( {
 	suggestion,
@@ -60,27 +65,35 @@ export function SuggestionCard( {
 	onRestore,
 	onUndo,
 	onHighlight,
+	focusRequested,
+	onFocusDone,
 }: Props ) {
 	// Al plegarse (enlazada o descartada) el botón pulsado desaparece: el foco pasa a la fila, que se lee entera.
-	// Al deshacer, la fila desaparece y el foco vuelve a la tarjeta que se despliega.
+	// Solo en el cambio de estado, no al montarse ya plegada (volver de otra pestaña no roba el foco).
 	const cardRef = useRef< HTMLLIElement >( null );
 	const statusRef = useRef< HTMLParagraphElement >( null );
 	const previousKind = useRef< CardStatus[ 'kind' ] | undefined >(
-		undefined
+		status?.kind
 	);
+	const [ undoing, setUndoing ] = useState( false );
 	const kind = status?.kind;
 	useEffect( () => {
-		const before = previousKind.current;
+		setUndoing( false );
+		if ( previousKind.current === kind ) {
+			return;
+		}
 		previousKind.current = kind;
 		if ( kind === 'added' || kind === 'error' || kind === 'dismissed' ) {
 			statusRef.current?.focus();
-		} else if (
-			( before === 'added' || before === 'dismissed' ) &&
-			kind === undefined
-		) {
-			cardRef.current?.focus();
 		}
 	}, [ kind ] );
+	// Tras un Deshacer del usuario la fila se va y el foco vuelve a la tarjeta desplegada (solo aquí).
+	useEffect( () => {
+		if ( focusRequested && ! kind ) {
+			cardRef.current?.focus();
+			onFocusDone?.();
+		}
+	}, [ focusRequested, kind, onFocusDone ] );
 	const { source, target } = suggestion;
 	const title = ( post: { title?: string } ) =>
 		post.title || __( '(no title)', 'magic-linking' );
@@ -97,63 +110,93 @@ export function SuggestionCard( {
 					'magic-linking'
 			  );
 		const canUndo = isAdded ? !! status.undo : true;
-		const undoLabel = isAdded
-			? sprintf(
-					/* translators: %s: title of the destination. */
-					__( 'Undo the link to “%s”', 'magic-linking' ),
-					title( target )
-			  )
-			: sprintf(
-					/* translators: %s: title of the destination. */
-					__(
-						'Undo dismissing the suggestion for “%s”',
-						'magic-linking'
-					),
-					title( target )
-			  );
-		const busyUndo = ! isAdded && !! status.busy;
+		const inbound = direction === 'inbound';
+		// En las entrantes el destino es siempre la entrada que se edita: lo que distingue la fila es el origen.
+		const subject = inbound ? source : target;
+		let undoLabel: string;
+		if ( ! isAdded ) {
+			undoLabel = sprintf(
+				/* translators: %s: title of the entry the suggestion is about. */
+				__(
+					'Undo dismissing the suggestion for “%s”',
+					'magic-linking'
+				),
+				title( subject )
+			);
+		} else if ( inbound ) {
+			undoLabel = sprintf(
+				/* translators: %s: title of the entry that got the link. */
+				__( 'Undo the link in “%s”', 'magic-linking' ),
+				title( source )
+			);
+		} else {
+			undoLabel = sprintf(
+				/* translators: %s: title of the destination. */
+				__( 'Undo the link to “%s”', 'magic-linking' ),
+				title( target )
+			);
+		}
+		const busyUndo = isAdded ? undoing : !! status.busy;
 		return (
 			<li
 				className={ `magiclinking-card is-folded ${
 					isAdded ? 'is-added' : 'is-dismissed'
 				}` }
-				ref={ cardRef }
-				tabIndex={ -1 }
 			>
 				<p
 					className="magiclinking-fold__text"
 					ref={ statusRef }
 					tabIndex={ -1 }
 				>
-					<span
-						aria-hidden="true"
-						className="magiclinking-fold__icon"
-					>
-						{ isAdded ? '✓' : '✕' }
-					</span>
 					<span className="screen-reader-text">{ message } </span>
 					<span
-						className="magiclinking-fold__anchor"
-						title={ suggestion.anchor }
-					>
-						{ suggestion.anchor }
-					</span>
-					<span
 						aria-hidden="true"
-						className="magiclinking-fold__arrow"
+						className="magiclinking-fold__state"
+						title={ message }
 					>
-						{ '→' }
-					</span>
-					<span className="screen-reader-text">
-						{ ' ' }
-						{ __( 'Links to:', 'magic-linking' ) }{ ' ' }
-					</span>
-					<span
-						className="magiclinking-fold__target"
-						title={ title( target ) }
-					>
-						{ title( target ) }
-					</span>
+						{ isAdded ? '✓ ' : '✕ ' }
+						{ isAdded
+							? _x(
+									'Linked',
+									'state of a suggestion that has been linked',
+									'magic-linking'
+							  )
+							: _x(
+									'Dismissed',
+									'state of a suggestion that has been dismissed',
+									'magic-linking'
+							  ) }
+					</span>{ ' ' }
+					{ inbound ? (
+						<>
+							<span className="screen-reader-text">
+								{ __( 'In:', 'magic-linking' ) }{ ' ' }
+							</span>
+							<span aria-hidden="true">
+								{ sprintf(
+									/* translators: %s: title of the entry that would get the link. */
+									__( 'In: %s', 'magic-linking' ),
+									title( source )
+								) }
+							</span>
+							<span className="screen-reader-text">
+								{ ' ' }
+								{ title( source ) }, { suggestion.anchor }
+							</span>
+						</>
+					) : (
+						<>
+							<span className="magiclinking-fold__anchor">
+								{ suggestion.anchor }
+							</span>{ ' ' }
+							<span aria-hidden="true">{ '→' }</span>
+							<span className="screen-reader-text">
+								{ ' ' }
+								{ __( 'Links to:', 'magic-linking' ) }{ ' ' }
+							</span>{ ' ' }
+							<span>{ title( target ) }</span>
+						</>
+					) }
 				</p>
 				{ canUndo && (
 					<Button
@@ -161,17 +204,23 @@ export function SuggestionCard( {
 						className="magiclinking-fold__undo"
 						disabled={ busyUndo }
 						accessibleWhenDisabled
-						onClick={ () =>
-							isAdded
-								? onUndo( suggestion )
-								: onRestore( suggestion )
-						}
+						aria-busy={ busyUndo }
+						onClick={ () => {
+							if ( ! isAdded ) {
+								onRestore( suggestion );
+								return;
+							}
+							setUndoing( true );
+							Promise.resolve( onUndo( suggestion ) ).finally(
+								() => setUndoing( false )
+							);
+						} }
 						aria-label={ undoLabel }
 					>
 						{ __( 'Undo', 'magic-linking' ) }
 					</Button>
 				) }
-				{ isAdded && direction === 'inbound' && (
+				{ isAdded && inbound && (
 					<a
 						className="magiclinking-fold__history"
 						href={ historyUrl }
