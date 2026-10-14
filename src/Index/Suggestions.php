@@ -196,8 +196,9 @@ final class Suggestions {
 		$all = $this->settings->all();
 
 		$defaults = array( 'max_outgoing' => $this->candidates( $all ) );
+		// Las direcciones ignoradas se suman a los destinos descartados; ninguna lista pisa a la otra.
 		if ( array() !== $all['ignored_ids'] ) {
-			$defaults['never'] = $all['ignored_ids'];
+			$options['never'] = array_values( array_unique( array_merge( $options['never'] ?? array(), $all['ignored_ids'] ) ) );
 		}
 
 		return new Suggester(
