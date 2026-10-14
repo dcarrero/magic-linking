@@ -241,14 +241,29 @@ test.describe( 'Editor panel', () => {
 
 		// Enlazar: el enlace aparece en el editor, sin guardar; el servidor no se toca.
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
-		await expect( card.getByText( 'Link added.' ) ).toBeFocused();
+		await expect( card.locator( '.magiclinking-fold__text' ) ).toBeFocused();
+		await expect( card.locator( '.magiclinking-fold__text' ) ).toContainText( 'Link added.' );
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveText(
 			'bomba de calor'
 		);
 		expect( content( ids.origen ) ).toBe( before );
 
+		// La tarjeta enlazada es una fila corta (sin contexto ni motivo), con el destino y Deshacer, y sin fallos de axe.
+		await expect( card ).toHaveClass( /is-folded/ );
+		await expect( card ).toContainText( 'bomba de calor' );
+		await expect( card ).toContainText( 'Aislamiento de casas' );
+		await expect( card.locator( '.magiclinking-card__sentence, .magiclinking-card__reasons' ) ).toHaveCount( 0 );
+		expect( ( await card.boundingBox() )?.height ?? 999 ).toBeLessThan( 60 );
+		const folded = await new AxeBuilder( { page } )
+			.include( '.magiclinking-panel' )
+			.withTags( AXE_TAGS )
+			.analyze();
+		expect( folded.violations ).toEqual( [] );
+
 		// Deshacer desde la tarjeta quita el enlace del editor; se vuelve a enlazar.
 		await card.getByRole( 'button', { name: 'Undo' } ).click();
+		await expect( card ).not.toHaveClass( /is-folded/ );
+		await expect( card ).toBeFocused();
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveText(
@@ -481,7 +496,8 @@ test.describe( 'Editor panel', () => {
 		// Descartar: la tarjeta pasa a una fila con Deshacer (con el foco) y el contador baja.
 		await card.getByRole( 'button', { name: /^Dismiss/ } ).click();
 		const row = panel.locator( '.magiclinking-card.is-dismissed' ).first();
-		await expect( row.getByText( /^Suggestion dismissed/ ) ).toBeFocused();
+		await expect( row.locator( '.magiclinking-fold__text' ) ).toBeFocused();
+		await expect( row.locator( '.magiclinking-fold__text' ) ).toContainText( 'Suggestion dismissed' );
 		await expect( tab ).toHaveText( `Outbound (${ count - 1 })` );
 		const accessibility = await new AxeBuilder( { page } )
 			.include( '.magiclinking-panel' )
@@ -492,6 +508,7 @@ test.describe( 'Editor panel', () => {
 		// Deshacer el descarte: vuelve la tarjeta y el contador.
 		await row.getByRole( 'button', { name: /^Undo dismissing/ } ).click();
 		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 0 );
+		await expect( panel.locator( '.magiclinking-card' ).first() ).toBeFocused();
 		await expect( panel.locator( '.magiclinking-card' ).first() ).toContainText( 'Aislamiento de casas' );
 		await expect( tab ).toHaveText( `Outbound (${ count })` );
 
@@ -561,6 +578,61 @@ test.describe( 'Editor panel', () => {
 		await expect( card.getByRole( 'button', { name: /^Link to/ } ) ).toHaveCount( 0 );
 		// Descartar para siempre exige poder editar el origen (docs/04 §11): sin permiso, no hay botón.
 		await expect( card.getByRole( 'button', { name: /^Dismiss/ } ) ).toHaveCount( 0 );
+	} );
+
+	test( 'folded rows: Refresh and changing tab do not steal the focus, and the row says what happened in visible text', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		const text = card.locator( '.magiclinking-fold__text' );
+		await expect( text ).toBeFocused();
+		// Texto visible (no solo el glifo) y el destino completo en el DOM.
+		await expect( card.locator( '.magiclinking-fold__state' ) ).toHaveText( /Linked/ );
+		await expect( card.locator( '.magiclinking-fold__state' ) ).toBeVisible();
+
+		// Cambiar de pestaña y volver monta la fila ya plegada: no roba el foco.
+		await panel.getByRole( 'tab', { name: /^Inbound/ } ).click();
+		await panel.getByRole( 'tab', { name: /^Outbound/ } ).click();
+		await expect( panel.locator( '.magiclinking-fold__text' ).first() ).not.toBeFocused();
+		await expect( panel.getByRole( 'tab', { name: /^Outbound/ } ) ).toBeFocused();
+
+		// Actualizar vuelve a pedir la lista: el foco se queda en el botón.
+		const refresh = panel.getByRole( 'button', { name: 'Refresh' } ).first();
+		await refresh.focus();
+		await refresh.click();
+		await expect( refresh ).toBeFocused();
+
+	} );
+
+	test( 'inbound: the folded row shows the source entry and a double click on Undo sends a single request', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.aislamiento );
+		const panel = await openSidebar( page );
+		await panel.getByRole( 'tab', { name: /^Inbound/ } ).click();
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( card ).toHaveClass( /is-folded/ );
+		await expect( card ).toContainText( 'In: Guía de calefacción para casas' );
+		const undo = card.getByRole( 'button', { name: /^Undo the link in “Guía de calefacción/ } );
+		await expect( undo ).toBeVisible();
+		let calls = 0;
+		page.on( 'request', ( request ) => {
+			if ( request.method() === 'POST' && /undo/i.test( request.url() ) ) {
+				calls++;
+			}
+		} );
+		await undo.dblclick();
+		await expect( card.getByRole( 'button', { name: /^Link to/ } ) ).toBeVisible();
+		await expect( card ).toBeFocused();
+		expect( calls ).toBe( 1 );
 	} );
 
 	test( 'has no accessibility violations', async ( { page } ) => {
