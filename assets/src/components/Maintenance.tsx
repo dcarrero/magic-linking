@@ -4,11 +4,14 @@ import { speak } from '@wordpress/a11y';
 import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { StatusResponse } from '../types';
+import { SettingsSection, settingsSections } from './SettingsSection';
 
 interface Props {
 	status: StatusResponse | null;
 	/** Se llama cuando se ha lanzado el análisis, para refrescar el estado. */
 	onStarted: () => void;
+	/** Reabre el asistente de arranque. */
+	onOpenWizard: () => void;
 }
 
 /**
@@ -55,8 +58,9 @@ export function formatDuration( from: string, to: string ): string {
  * @param root0
  * @param root0.status
  * @param root0.onStarted
+ * @param root0.onOpenWizard
  */
-export function Maintenance( { status, onStarted }: Props ) {
+export function Maintenance( { status, onStarted, onOpenWizard }: Props ) {
 	const [ confirming, setConfirming ] = useState( false );
 	const [ busy, setBusy ] = useState( false );
 	const [ failure, setFailure ] = useState( '' );
@@ -86,13 +90,7 @@ export function Maintenance( { status, onStarted }: Props ) {
 	};
 
 	return (
-		<section
-			className="magiclinking-maintenance"
-			aria-labelledby="magiclinking-maintenance-title"
-		>
-			<h2 id="magiclinking-maintenance-title">
-				{ __( 'Maintenance', 'magic-linking' ) }
-			</h2>
+		<SettingsSection section={ settingsSections().maintenance }>
 			{ last ? (
 				<dl className="magiclinking-maintenance-facts">
 					<div>
@@ -157,6 +155,18 @@ export function Maintenance( { status, onStarted }: Props ) {
 					) }
 				</p>
 			) }
+			<div className="magiclinking-subsection">
+				<h3>{ __( 'Setup assistant', 'magic-linking' ) }</h3>
+				<p className="description">
+					{ __(
+						'Go through the first steps again: content types, AI and the first analysis.',
+						'magic-linking'
+					) }
+				</p>
+				<Button variant="secondary" onClick={ onOpenWizard }>
+					{ __( 'Open the setup assistant', 'magic-linking' ) }
+				</Button>
+			</div>
 			{ confirming && (
 				<Modal
 					title={ __(
@@ -190,6 +200,6 @@ export function Maintenance( { status, onStarted }: Props ) {
 					</div>
 				</Modal>
 			) }
-		</section>
+		</SettingsSection>
 	);
 }

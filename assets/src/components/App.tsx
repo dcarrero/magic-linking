@@ -7,7 +7,6 @@ import { IndexStatus } from './IndexStatus';
 import { ReportTab } from './ReportTab';
 import { SettingsTab } from './SettingsTab';
 import { Wizard } from './Wizard';
-import { api } from '../api';
 
 type Tab = 'report' | 'broken' | 'history' | 'settings';
 
@@ -111,12 +110,9 @@ export function App( {
 		setWizardOpen( asked || fresh );
 	}, [ status, canManage, tab ] );
 
-	const openWizard = async () => {
-		try {
-			await api.setWizardDismissed( false );
-		} catch {
-			// Se abre igualmente: lo que se guarda es solo el cierre.
-		}
+	const openWizard = () => {
+		// Solo se navega: el asistente se abre por `?wizard=1` sin escribir nada antes, así que cancelar el
+		// aviso de cambios sin guardar no deja ningún rastro en el servidor.
 		const url = new URL( tabUrls.report, window.location.href );
 		url.searchParams.set( 'wizard', '1' );
 		window.location.assign( url.toString() );
@@ -207,7 +203,13 @@ export function App( {
 
 			{ ( hasIndex || tab === 'settings' || tab === 'history' ) && (
 				<>
-					<div className="magiclinking-panel">
+					<div
+						className={
+							tab === 'settings'
+								? 'magiclinking-panel magiclinking-panel--plain'
+								: 'magiclinking-panel'
+						}
+					>
 						{ tab === 'report' && (
 							<>
 								<p className="description">
