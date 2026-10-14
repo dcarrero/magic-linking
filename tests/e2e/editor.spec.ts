@@ -25,9 +25,12 @@ function seedEditor( ): Ids {
 		'eval',
 		`
 		global $wpdb;
-		foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'pe-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
+		// También las entradas que dejan las demás specs (e2e-*, entrada-*), incluso en la papelera o en borrador:
+		// entran en el índice y compiten por las sugerencias, y su orden dependería de qué spec corrió antes.
+		foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'pe-%' OR post_name LIKE 'e2e-%' OR post_name LIKE 'entrada-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
 		foreach ( array( 'docs', 'links', 'jobs', 'changes', 'dismissed' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
 		delete_option( 'magiclinking_settings' );
+		as_unschedule_all_actions( 'magiclinking_run_undo' );
 		if ( ! get_user_by( 'login', 'e2e_author' ) ) { wp_insert_user( array( 'user_login' => 'e2e_author', 'user_pass' => 'password', 'role' => 'author', 'user_email' => 'e2e_author@example.org' ) ); }
 		$author = get_user_by( 'login', 'e2e_author' )->ID;
 		$block = static fn( $t ) => "<!-- wp:paragraph -->\\n<p>$t</p>\\n<!-- /wp:paragraph -->";
