@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { login, SCREEN_HISTORY, SCREEN_SETTINGS, wp } from './wp';
+import { login, openSettingsTab, SCREEN_HISTORY, SCREEN_SETTINGS, wp } from './wp';
 
 /**
  * Pestaña «History»: deshacer un cambio y un lote, rehacer, estado vacío, conservación y accesibilidad.
@@ -228,6 +228,7 @@ test.describe( 'History', () => {
 	} ) => {
 		await login( page );
 		await page.goto( SCREEN_SETTINGS );
+		await openSettingsTab( page, 'History and data' );
 
 		const select = page.getByLabel( 'Keep the history of changes for' );
 		await expect( select ).toHaveValue( '90' );
@@ -351,5 +352,22 @@ test.describe( 'History', () => {
 		await login( page, 'e2e_editor' );
 		await page.goto( SCREEN_HISTORY );
 		await expect( page.locator( '.magiclinking-batch' ) ).toHaveCount( 2 );
+	} );
+
+	test( 'the link to change the retention opens the history card in Settings', async ( {
+		page,
+	} ) => {
+		await login( page );
+		await page.goto( SCREEN_HISTORY );
+		await page
+			.getByRole( 'link', { name: 'Change how long they are kept' } )
+			.click();
+		await expect( page ).toHaveURL( /magic-linking-settings.*#tab=data$/ );
+		await expect(
+			page.locator( '[role="tab"][aria-selected="true"]' )
+		).toHaveText( 'History and data' );
+		await expect(
+			page.getByLabel( 'Keep the history of changes for' )
+		).toBeVisible();
 	} );
 } );

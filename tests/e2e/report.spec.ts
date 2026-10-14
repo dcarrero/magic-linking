@@ -1,8 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import {
 	ensureAnalyzed,
 	login,
+	openSettingsTab,
 	SCREEN,
 	SCREEN_BROKEN,
 	SCREEN_HISTORY,
@@ -154,7 +156,8 @@ test.describe( 'Internal links', () => {
 		await login( page );
 		await page.goto( SCREEN_SETTINGS );
 
-		// El umbral de poco enlazada está en la tarjeta «Suggestions».
+		// El umbral de poco enlazada está en la pestaña «Suggestions».
+		await openSettingsTab( page, 'Suggestions' );
 		const threshold = page.getByLabel(
 			'Under-linked below this many inbound links'
 		);
@@ -164,6 +167,7 @@ test.describe( 'Internal links', () => {
 			page.locator( '#magiclinking-root' ).getByText( 'Settings saved.' )
 		).toBeVisible();
 
+		// Recargar conserva la pestaña (va en la dirección).
 		await page.reload();
 		await expect( threshold ).toHaveValue( '3' );
 		await threshold.fill( '2' );
@@ -173,7 +177,7 @@ test.describe( 'Internal links', () => {
 		).toBeVisible();
 	} );
 
-	test( 'settings are grouped in cards and the sticky bar tracks unsaved changes', async ( {
+	test( 'settings are in tabs with grouped cards and one sticky bar that tracks unsaved changes', async ( {
 		page,
 	} ) => {
 		ensureAnalyzed();
@@ -181,54 +185,242 @@ test.describe( 'Internal links', () => {
 		await page.goto( SCREEN_SETTINGS );
 		const root = page.locator( '#magiclinking-root' );
 
-		// Una tarjeta por tema, cada una con su encabezado.
-		for ( const name of [
-			'Content analyzed',
+		// Cuatro pestañas reales, y no hay índice de anclas.
+		await expect( root.getByRole( 'tablist' ) ).toBeVisible();
+		await expect( root.getByRole( 'tab' ) ).toHaveText( [
+			'General',
 			'Suggestions',
-			'Link insertion',
-			'Exclusions',
+			'Links',
 			'History and data',
-			'Maintenance',
-		] ) {
-			await expect(
-				root.getByRole( 'heading', { level: 2, name } )
-			).toBeVisible();
+		] );
+		await expect( root.getByRole( 'tab', { name: 'General' } ) ).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
+		await expect( root.getByRole( 'navigation' ) ).toHaveCount( 0 );
+
+		// Cada pestaña, con sus tarjetas (h2).
+		const groups: [ 'General' | 'Suggestions' | 'Links' | 'History and data', string[] ][] = [
+			[ 'General', [ 'Content analyzed', 'Maintenance' ] ],
+			[
+				'Suggestions',
+				[
+					'Suggestions shown',
+					'To avoid overloading your texts',
+					'Under-linked entries',
+				],
+			],
+			[
+				'Links',
+				[
+					'Where links can be inserted',
+					'How links are inserted',
+					'Exclusions',
+				],
+			],
+			[
+				'History and data',
+				[ 'History of changes', 'When the plugin is deleted' ],
+			],
+		];
+		for ( const [ tab, headings ] of groups ) {
+			await openSettingsTab( page, tab );
+			await expect( root.getByRole( 'heading', { level: 2 } ) ).toHaveText(
+				headings
+			);
+			// Solo la pestaña General lleva Mantenimiento.
+			await expect( root.getByRole( 'tabpanel' ) ).toBeVisible();
 		}
+		await openSettingsTab( page, 'General' );
 
 		// Sin cambios: guardar está deshabilitado y no hay aviso.
 		const save = root.getByRole( 'button', { name: 'Save settings' } );
 		await expect( save ).toBeDisabled();
-		await expect( root.getByText( 'Unsaved changes' ) ).toHaveCount( 0 );
+		await expect( root.getByText( 'Unsaved changes', { exact: true } ) ).toHaveCount( 0 );
 
-		// Con cambios: aviso y botón activo; la barra queda visible aunque se baje.
+		// Con cambios (en otra pestaña): aviso y botón activo; la barra queda visible aunque se baje.
+		await openSettingsTab( page, 'Links' );
 		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
-		await expect( root.getByText( 'Unsaved changes' ) ).toBeVisible();
+		await expect( root.getByText( 'Unsaved changes', { exact: true } ) ).toBeVisible();
 		await expect( save ).toBeEnabled();
 		await root
-			.getByRole( 'heading', { level: 2, name: 'Suggestions' } )
+			.getByRole( 'heading', { level: 2, name: 'Where links can be inserted' } )
 			.scrollIntoViewIfNeeded();
-		// La barra está al final del formulario: solo se ve aquí si es fija.
+		// La barra está al final del contenido: solo se ve aquí si es fija.
 		await expect( save ).toBeInViewport();
 
 		// Volver al valor guardado quita el aviso.
 		await root.getByLabel( 'Additional rel values' ).fill( '' );
-		await expect( root.getByText( 'Unsaved changes' ) ).toHaveCount( 0 );
+		await expect( root.getByText( 'Unsaved changes', { exact: true } ) ).toHaveCount( 0 );
 		await expect( save ).toBeDisabled();
 
 		// Guardar deja el estado limpio.
 		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
 		await save.click();
 		await expect( root.getByText( 'Settings saved.' ) ).toBeVisible();
-		await expect( root.getByText( 'Unsaved changes' ) ).toHaveCount( 0 );
+		await expect( root.getByText( 'Unsaved changes', { exact: true } ) ).toHaveCount( 0 );
 		await expect( save ).toBeDisabled();
 
-		const results = await new AxeBuilder( { page } )
-			.include( '.magiclinking-wrap' )
-			.withTags( [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ] )
-			.analyze();
-		expect( results.violations ).toEqual( [] );
-
 		wp( 'option', 'delete', 'magiclinking_settings' );
+	} );
+
+	test( 'what is typed in one tab is kept when changing tabs, and the tab shows it', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+		const marked = ( name: string ) =>
+			root.getByRole( 'tab', { name: `${ name } (unsaved changes)` } );
+
+		await openSettingsTab( page, 'Suggestions' );
+		await root.getByLabel( 'Outbound suggestions in the editor' ).fill( '9' );
+		// La marca lleva texto para lectores de pantalla, y solo en la pestaña con cambios.
+		await expect( marked( 'Suggestions' ) ).toBeVisible();
+		await expect( root.getByText( '(unsaved changes)' ) ).toHaveCount( 1 );
+
+		await openSettingsTab( page, 'Links' );
+		await expect( marked( 'Suggestions' ) ).toBeVisible();
+		await expect( root.getByRole( 'tab', { name: 'Links' } ) ).toHaveAccessibleName(
+			'Links'
+		);
+		await openSettingsTab( page, 'Suggestions' );
+		await expect(
+			root.getByLabel( 'Outbound suggestions in the editor' )
+		).toHaveValue( '9' );
+
+		// Guardar desde otra pestaña guarda lo de todas.
+		await openSettingsTab( page, 'History and data' );
+		await root.getByRole( 'button', { name: 'Save settings' } ).click();
+		await expect( root.getByText( 'Settings saved.' ) ).toBeVisible();
+		await expect( root.getByText( '(unsaved changes)' ) ).toHaveCount( 0 );
+		expect(
+			JSON.parse(
+				wp( 'option', 'get', 'magiclinking_settings', '--format=json' ).trim()
+			).outbound_shown
+		).toBe( 9 );
+
+		// Desmarcar y volver a marcar un tipo no es un cambio (aunque cambie el orden interno).
+		await openSettingsTab( page, 'General' );
+		await root.getByLabel( 'Posts' ).uncheck();
+		await root.getByLabel( 'Posts' ).check();
+		await expect( root.getByText( '(unsaved changes)' ) ).toHaveCount( 0 );
+		await expect(
+			root.getByRole( 'button', { name: 'Save settings' } )
+		).toBeDisabled();
+
+		// Sin ningún tipo de contenido, General pide atención (y guardar queda deshabilitado).
+		await openSettingsTab( page, 'General' );
+		await root.getByLabel( 'Posts' ).uncheck();
+		await root.getByLabel( 'Pages' ).uncheck();
+		await openSettingsTab( page, 'Links' );
+		await expect(
+			root.getByRole( 'tab', { name: 'General (needs attention)' } )
+		).toBeVisible();
+		await expect(
+			root.getByRole( 'button', { name: 'Save settings' } )
+		).toBeDisabled();
+		wp( 'option', 'delete', 'magiclinking_settings' );
+	} );
+
+	test( 'the address opens a tab, follows the selection, and old anchors still work', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		const root = page.locator( '#magiclinking-root' );
+		const selected = () =>
+			root.locator( '[role="tab"][aria-selected="true"]' );
+
+		await page.goto( `${ SCREEN_SETTINGS }#tab=links` );
+		await expect( selected() ).toHaveText( 'Links' );
+		await expect( root.getByLabel( 'Additional rel values' ) ).toBeVisible();
+
+		// Elegir otra pestaña actualiza la dirección sin añadir historial; recargar la abre.
+		await openSettingsTab( page, 'History and data' );
+		expect( page.url() ).toContain( '#tab=data' );
+		await page.reload();
+		await expect( selected() ).toHaveText( 'History and data' );
+
+		// Un enlace con otra pestaña la abre sin recargar.
+		await page.evaluate( () => {
+			window.location.hash = 'tab=suggestions';
+		} );
+		await expect( selected() ).toHaveText( 'Suggestions' );
+
+		// Una dirección que no existe cae en General.
+		await page.goto( SCREEN );
+		await page.goto( `${ SCREEN_SETTINGS }#tab=nope` );
+		await expect( selected() ).toHaveText( 'General' );
+
+		// Otros fragmentos (ids de la pantalla) no sacan de la pestaña.
+		await openSettingsTab( page, 'Links' );
+		for ( const other of [
+			'magiclinking-root',
+			'magiclinking-settings-form',
+			'magiclinking-s-exclusions-title',
+		] ) {
+			await page.evaluate( ( hash ) => {
+				window.location.hash = hash;
+			}, other );
+			await page.waitForTimeout( 300 );
+			await expect( selected() ).toHaveText( 'Links' );
+		}
+
+		// Las anclas de la versión anterior llevan a su pestaña (y a su tarjeta).
+		const legacy: [ string, string, string ][] = [
+			[ 'magiclinking-s-suggestions', 'Suggestions', 'Suggestions shown' ],
+			[ 'magiclinking-s-insertion', 'Links', 'Where links can be inserted' ],
+			[ 'magiclinking-s-exclusions', 'Links', 'Exclusions' ],
+			[ 'magiclinking-s-data', 'History and data', 'History of changes' ],
+			[ 'magiclinking-maintenance', 'General', 'Maintenance' ],
+		];
+		for ( const [ anchor, tab, heading ] of legacy ) {
+			// Carga nueva (no solo un cambio de fragmento): primero otra pantalla, luego la dirección antigua.
+			await page.goto( SCREEN );
+			await page.goto( `${ SCREEN_SETTINGS }#${ anchor }` );
+			await expect( root.getByRole( 'tablist' ) ).toBeVisible();
+			await expect( selected() ).toHaveText( tab );
+			await expect(
+				root.getByRole( 'heading', { level: 2, name: heading } )
+			).toBeVisible();
+		}
+	} );
+
+	test( 'tabs work with the arrow keys and fit a narrow screen without scrolling the page', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+		const general = root.getByRole( 'tab', { name: 'General' } );
+		await general.focus();
+		await page.keyboard.press( 'ArrowRight' );
+		await expect(
+			root.getByRole( 'tab', { name: 'Suggestions' } )
+		).toBeFocused();
+		await expect(
+			root.getByRole( 'tab', { name: 'Suggestions' } )
+		).toHaveAttribute( 'aria-selected', 'true' );
+		await page.keyboard.press( 'End' );
+		await expect(
+			root.getByRole( 'tab', { name: 'History and data' } )
+		).toHaveAttribute( 'aria-selected', 'true' );
+		await page.keyboard.press( 'Home' );
+		await expect( general ).toHaveAttribute( 'aria-selected', 'true' );
+
+		await page.setViewportSize( { width: 360, height: 740 } );
+		for ( const tab of [ 'General', 'Suggestions', 'Links', 'History and data' ] as const ) {
+			await openSettingsTab( page, tab );
+			const overflow = await page.evaluate(
+				() =>
+					document.documentElement.scrollWidth -
+					document.documentElement.clientWidth
+			);
+			expect( overflow ).toBeLessThanOrEqual( 0 );
+		}
 	} );
 
 	test( 'number fields keep what is typed until they lose focus', async ( {
@@ -238,6 +430,7 @@ test.describe( 'Internal links', () => {
 		await login( page );
 		await page.goto( SCREEN_SETTINGS );
 		const root = page.locator( '#magiclinking-root' );
+		await openSettingsTab( page, 'Suggestions' );
 
 		const words = root.getByLabel( 'Words per internal link' );
 		await words.fill( '' );
@@ -282,6 +475,7 @@ test.describe( 'Internal links', () => {
 			await route.continue();
 		} );
 
+		await openSettingsTab( page, 'Links' );
 		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
 		await root.getByRole( 'button', { name: 'Save settings' } ).click();
 		await root.getByLabel( 'Ignored words' ).fill( 'durante' );
@@ -289,7 +483,7 @@ test.describe( 'Internal links', () => {
 		await expect( root.getByLabel( 'Ignored words' ) ).toHaveValue(
 			'durante'
 		);
-		await expect( root.getByText( 'Unsaved changes' ) ).toBeVisible();
+		await expect( root.getByText( 'Unsaved changes', { exact: true } ) ).toBeVisible();
 		wp( 'option', 'delete', 'magiclinking_settings' );
 	} );
 
@@ -308,7 +502,9 @@ test.describe( 'Internal links', () => {
 		expect( dismissed() ).toBe( '1' );
 
 		page.on( 'dialog', ( dialog ) => dialog.dismiss() );
+		await openSettingsTab( page, 'Links' );
 		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await openSettingsTab( page, 'General' );
 		await root
 			.getByRole( 'button', { name: 'Open the setup assistant' } )
 			.click();
@@ -341,12 +537,11 @@ test.describe( 'Internal links', () => {
 			root.getByRole( 'heading', { level: 2, name: 'Maintenance' } )
 		).toBeVisible();
 
+		// Un cambio en otra pestaña activa Guardar; en General el orden es campos, Guardar, Mantenimiento.
+		await openSettingsTab( page, 'Links' );
 		await root.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
-		await root
-			.getByLabel(
-				'Delete all Magic Linking data when the plugin is deleted'
-			)
-			.focus();
+		await openSettingsTab( page, 'General' );
+		await root.locator( 'fieldset input[type="checkbox"]' ).last().focus();
 		await page.keyboard.press( 'Tab' );
 		await expect(
 			root.getByRole( 'button', { name: 'Save settings' } )
@@ -366,18 +561,13 @@ test.describe( 'Internal links', () => {
 		ensureAnalyzed();
 		await login( page );
 		await page.goto( SCREEN_SETTINGS );
-
-		// Accesible con todas las tarjetas y campos a la vista.
 		await page.waitForLoadState( 'networkidle' );
-		const results = await new AxeBuilder( { page } )
-			.include( '.magiclinking-wrap' )
-			.withTags( [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ] )
-			.analyze();
-		expect( results.violations ).toEqual( [] );
 
+		await openSettingsTab( page, 'Links' );
 		await page.getByLabel( 'Open links in a new tab' ).check();
 		await page.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
 		await page.getByLabel( 'Quotes' ).check();
+		await openSettingsTab( page, 'Suggestions' );
 		await page
 			.getByLabel( 'Inbound suggestions per page in the editor' )
 			.fill( '7' );
@@ -389,6 +579,7 @@ test.describe( 'Internal links', () => {
 				'Entries that can use the same anchor text for the same target'
 			)
 			.fill( '3' );
+		await openSettingsTab( page, 'Links' );
 		await page.getByLabel( 'Ignored words' ).fill( 'gratis\nmuy barato' );
 		await page
 			.getByLabel( 'Ignored addresses' )
@@ -410,12 +601,13 @@ test.describe( 'Internal links', () => {
 		await expect( page.getByLabel( 'Quotes' ) ).toBeChecked();
 		await expect( page.getByLabel( 'Tables' ) ).not.toBeChecked();
 		await expect( page.getByLabel( 'Headings' ) ).not.toBeChecked();
-		await expect(
-			page.getByLabel( 'Inbound suggestions per page in the editor' )
-		).toHaveValue( '7' );
 		await expect( page.getByLabel( 'Ignored words' ) ).toHaveValue(
 			'gratis\nmuy barato'
 		);
+		await openSettingsTab( page, 'Suggestions' );
+		await expect(
+			page.getByLabel( 'Inbound suggestions per page in the editor' )
+		).toHaveValue( '7' );
 
 		// Solo hay una opción en autoload y el resto de valores son los por defecto.
 		const saved = JSON.parse(
@@ -432,6 +624,7 @@ test.describe( 'Internal links', () => {
 		expect( saved.ignored_words ).toEqual( [ 'gratis', 'muy barato' ] );
 
 		// Cambiar dónde se enlaza vuelve a leer las entradas.
+		await openSettingsTab( page, 'Links' );
 		await page.getByLabel( 'Tables' ).check();
 		await page.getByRole( 'button', { name: 'Save settings' } ).click();
 		await expect(
@@ -624,8 +817,18 @@ test.describe( 'Internal links', () => {
 		report: SCREEN,
 		broken: SCREEN_BROKEN,
 		history: SCREEN_HISTORY,
-		settings: SCREEN_SETTINGS,
 	};
+	const axe = async ( page: Page ) =>
+		new AxeBuilder( { page } )
+			.include( '.magiclinking-wrap' )
+			.withTags( [
+				'wcag2a',
+				'wcag2aa',
+				'wcag21a',
+				'wcag21aa',
+				'wcag22aa',
+			] )
+			.analyze();
 	for ( const [ tab, url ] of Object.entries( screens ) ) {
 		test( `axe finds no WCAG A/AA violations in the ${ tab } tab`, async ( {
 			page,
@@ -636,19 +839,112 @@ test.describe( 'Internal links', () => {
 			await expect( page.locator( '.magiclinking-panel' ) ).toBeVisible();
 			await page.waitForLoadState( 'networkidle' );
 
-			const results = await new AxeBuilder( { page } )
-				.include( '.magiclinking-wrap' )
-				.withTags( [
-					'wcag2a',
-					'wcag2aa',
-					'wcag21a',
-					'wcag21aa',
-					'wcag22aa',
-				] )
-				.analyze();
-			expect( results.violations ).toEqual( [] );
+			expect( ( await axe( page ) ).violations ).toEqual( [] );
 		} );
 	}
+	// Cada pestaña de Ajustes, abierta por su dirección, también con un cambio sin guardar y un campo inválido.
+	for ( const tab of [ 'general', 'suggestions', 'links', 'data' ] ) {
+		test( `axe finds no WCAG A/AA violations in the settings ${ tab } tab`, async ( {
+			page,
+		} ) => {
+			ensureAnalyzed();
+			await login( page );
+			await page.goto( `${ SCREEN_SETTINGS }#tab=${ tab }` );
+			await expect( page.getByRole( 'tabpanel' ) ).toBeVisible();
+			await page.waitForLoadState( 'networkidle' );
+			expect( ( await axe( page ) ).violations ).toEqual( [] );
+
+			// Con un cambio sin guardar y un estado no válido real (ningún tipo de contenido).
+			await openSettingsTab( page, 'Suggestions' );
+			await page.getByLabel( 'Outbound suggestions in the editor' ).fill( '8' );
+			await openSettingsTab( page, 'General' );
+			await page.getByLabel( 'Posts' ).uncheck();
+			await page.getByLabel( 'Pages' ).uncheck();
+			await expect(
+				page.getByRole( 'tab', { name: 'General (needs attention)' } )
+			).toBeVisible();
+			await openSettingsTab(
+				page,
+				( {
+					general: 'General',
+					suggestions: 'Suggestions',
+					links: 'Links',
+					data: 'History and data',
+				} as const )[ tab as 'general' ]
+			);
+			expect( ( await axe( page ) ).violations ).toEqual( [] );
+		} );
+	}
+
+	test( 'axe finds no violations with an invalid number still being edited', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( `${ SCREEN_SETTINGS }#tab=suggestions` );
+		const words = page.getByLabel( 'Words per internal link' );
+		await words.fill( '3' );
+		await expect( words ).toHaveAttribute( 'aria-invalid', 'true' );
+		await expect( words ).toBeFocused();
+		await expect(
+			page.getByText( /Enter a whole number from 20 to 1000/ )
+		).toBeVisible();
+		expect( ( await axe( page ) ).violations ).toEqual( [] );
+	} );
+
+	test( 'the unsaved and needs-attention marks differ by shape, not only by colour', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( `${ SCREEN_SETTINGS }#tab=links` );
+		await page.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await openSettingsTab( page, 'General' );
+		await page.getByLabel( 'Posts' ).uncheck();
+		await page.getByLabel( 'Pages' ).uncheck();
+		await openSettingsTab( page, 'Links' );
+		const shape = ( name: string ) =>
+			page
+				.getByRole( 'tab', { name: new RegExp( `^${ name }` ) } )
+				.locator( '.magiclinking-tab-mark' )
+				.evaluate( ( el ) => {
+					const style = getComputedStyle( el );
+					return style.clipPath + '|' + style.borderRadius;
+				} );
+		const unsaved = await shape( 'Links' );
+		const attention = await shape( 'General' );
+		expect( unsaved ).not.toBe( attention );
+	} );
+
+	test( 'a failure in Maintenance survives changing tabs', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+		await page.route( /rest_route=.*index|wp-json.*\/index/, async ( route ) => {
+			if ( route.request().method() === 'POST' ) {
+				await route.fulfill( {
+					status: 500,
+					contentType: 'application/json',
+					body: JSON.stringify( { code: 'boom', message: 'Boom.' } ),
+				} );
+				return;
+			}
+			await route.continue();
+		} );
+		await root
+			.getByRole( 'button', {
+				name: 'Analyze everything again from scratch',
+			} )
+			.click();
+		await page.getByRole( 'button', { name: 'Start analysis' } ).click();
+		await expect( root.getByText( 'Boom.' ) ).toBeVisible();
+		await openSettingsTab( page, 'Links' );
+		await openSettingsTab( page, 'General' );
+		await expect( root.getByText( 'Boom.' ) ).toBeVisible();
+	} );
 
 	test( 'the report can be used with the keyboard only', async ( {
 		page,

@@ -152,6 +152,8 @@
 .magiclinking-settings-page {
 	display: grid;
 	gap: 20px;
+	// Sin esto la pista ocupa el ancho de la barra de pestañas sin cortar y desborda la página.
+	grid-template-columns: minmax(0, 1fr);
 	max-width: 1100px;
 	padding-top: 4px;
 
@@ -160,14 +162,54 @@
 		gap: 20px;
 	}
 
-	// Índice de secciones con anclas.
-	.magiclinking-settings-nav ul {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px 20px;
-		list-style: none;
-		margin: 0;
-		padding: 0;
+	// Pestañas de Ajustes: la barra hace scroll horizontal dentro de sí misma en pantallas estrechas.
+	.magiclinking-settings-tabs > .components-tab-panel__tabs {
+		border-bottom: 1px solid #c3c4c7;
+		flex-wrap: nowrap;
+		gap: 0;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+	}
+
+	.magiclinking-settings-tabs .components-tab-panel__tabs-item {
+		color: #1d2327;
+		flex: 0 0 auto;
+		white-space: nowrap;
+
+		// WordPress 6.9 pinta la pestaña activa en azul con contraste de 4:1; la activa se distingue por la línea.
+		&.is-active {
+			color: #1d2327;
+		}
+	}
+
+	.magiclinking-settings-tabs .components-tab-panel__tab-content {
+		padding-top: 20px;
+	}
+
+	.magiclinking-settings-tabcontent {
+		display: grid;
+		gap: 20px;
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	// Marca discreta en la pestaña, con forma además de color (WCAG 1.4.1): un punto azul para «cambios sin
+	// guardar» y un triángulo rojo para «requiere atención». Ambas llevan texto para lectores de pantalla.
+	.magiclinking-tab-mark {
+		background: #2271b1;
+		border-radius: 50%;
+		display: inline-block;
+		flex: none;
+		height: 8px;
+		margin-inline-start: 6px;
+		width: 8px;
+
+		&.is-invalid {
+			background: #cc1818;
+			border-radius: 0;
+			clip-path: polygon(50% 0, 100% 100%, 0 100%);
+			height: 11px;
+			width: 12px;
+		}
 	}
 
 	.magiclinking-section {
@@ -236,6 +278,17 @@
 		font-weight: 500;
 		line-height: 1.4;
 		margin-bottom: 6px;
+		text-transform: none;
+	}
+
+	// La etiqueta del desplegable también; su estilo de emotion es más específico, de ahí el selector doble.
+	&.magiclinking-settings-page
+		.magiclinking-section__controls
+		.components-input-control__label {
+		font-size: 13px;
+		font-weight: 500;
+		letter-spacing: normal;
+		line-height: 1.4;
 		text-transform: none;
 	}
 
