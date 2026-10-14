@@ -4,6 +4,7 @@ import { speak } from '@wordpress/a11y';
 import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { StatusResponse } from '../types';
+import { parseServerDate } from './historyFormat';
 import { SettingsSection, settingsSections } from './SettingsSection';
 
 interface Props {
@@ -12,16 +13,6 @@ interface Props {
 	control: MaintenanceControl;
 	/** Reabre el asistente de arranque. */
 	onOpenWizard: () => void;
-}
-
-/**
- * Fecha del servidor (UTC, a veces sin zona) a un Date.
- * @param value Fecha RFC 3339.
- */
-export function parseServerDate( value: string ): Date {
-	return new Date(
-		/(Z|[+-]\d\d:?\d\d)$/.test( value ) ? value : value + 'Z'
-	);
 }
 
 /**

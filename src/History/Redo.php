@@ -32,6 +32,13 @@ use Throwable;
 final class Redo {
 
 	/**
+	 * Avisos de cambios rehechos que esperan al reindexado final de {@see self::redo_post()}.
+	 *
+	 * @var list<array{0: int, 1: int, 2: string, 3: string}>
+	 */
+	private array $deferred = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param PostWriter       $writer  Lectura y escritura del contenido.
@@ -50,8 +57,9 @@ final class Redo {
 	 *
 	 * @param int      $change_id Fila `insert` de magiclinking_changes con `undone_at`.
 	 * @param int|null $user_id   Quien lo pide (null = el usuario actual; 0 = el sistema).
+	 * @param bool     $reindex   Reindexar la entrada al terminar (quien rehace varios de la misma entrada lo hace una vez al final).
 	 */
-	public function redo( int $change_id, ?int $user_id = null ): UndoResult {
+	public function redo( int $change_id, ?int $user_id = null, bool $reindex = true ): UndoResult {
 		$change = $this->changes->get( $change_id );
 		if ( null === $change || ! in_array( $change['action'], ChangeRepository::PRIMARY, true ) ) {
 			return new UndoResult( $change_id, 0, UndoResult::FAILED, __( 'That change does not exist.', 'magic-linking' ), InsertionException::BAD_REQUEST );
@@ -89,23 +97,16 @@ final class Redo {
 			);
 		}
 
-		try {
-			$this->jobs->reindex_now( $post_id );
-		} catch ( Throwable $e ) {
-			PostWriter::log( sprintf( 'No se pudo actualizar el grafo de la entrada %d: %s', $post_id, $e->getMessage() ) );
+		if ( $reindex ) {
+			$this->reindex( $post_id );
 		}
 
-		// El cambio ya está escrito y anotado: un oyente que falla no puede ocultarlo.
-		try {
-			if ( ChangeRepository::INSERT === $change['action'] ) {
-				// Es el hook de \MagicLinking\Content\Inserter::insert(): rehacer es insertar otra vez.
-				do_action( 'magiclinking_link_inserted', $new_id, $post_id, (string) $change['batch_id'] );
-			} else {
-				// Es el hook de \MagicLinking\Content\Repairer::fix(): rehacer es arreglar otra vez.
-				do_action( 'magiclinking_link_fixed', $new_id, $post_id, (string) $change['batch_id'], (string) $change['action'] );
-			}
-		} catch ( Throwable $e ) {
-			PostWriter::log( sprintf( 'Un oyente de rehacer falló en la entrada %d: %s', $post_id, $e->getMessage() ) );
+		// Quien rehace varios de la misma entrada reindexa al final y avisa después, así que los avisos se aplazan.
+		$notices = array( $new_id, $post_id, (string) $change['batch_id'], (string) $change['action'] );
+		if ( $reindex ) {
+			$this->notify( $notices );
+		} else {
+			$this->deferred[] = $notices;
 		}
 
 		$done = array(
@@ -114,6 +115,105 @@ final class Redo {
 		);
 
 		return new UndoResult( $change_id, $post_id, UndoResult::REDONE, $done[ $change['action'] ] ?? __( 'Link added again.', 'magic-linking' ) );
+	}
+
+	/**
+	 * Devuelve y vacía los avisos aplazados.
+	 *
+	 * @return list<array{0: int, 1: int, 2: string, 3: string}>
+	 */
+	private function take_deferred(): array {
+		$notices        = $this->deferred;
+		$this->deferred = array();
+
+		return $notices;
+	}
+
+	/**
+	 * Avisa de un cambio rehecho. El cambio ya está escrito y anotado: un oyente que falla no puede ocultarlo.
+	 *
+	 * @param array $notice Fila nueva, entrada, lote y acción.
+	 *
+	 * @phpstan-param array{0: int, 1: int, 2: string, 3: string} $notice
+	 */
+	private function notify( array $notice ): void {
+		[ $new_id, $post_id, $batch, $action ] = $notice;
+
+		try {
+			if ( ChangeRepository::INSERT === $action ) {
+				// Es el hook de \MagicLinking\Content\Inserter::insert(): rehacer es insertar otra vez.
+				do_action( 'magiclinking_link_inserted', $new_id, $post_id, $batch );
+			} else {
+				// Es el hook de \MagicLinking\Content\Repairer::fix(): rehacer es arreglar otra vez.
+				do_action( 'magiclinking_link_fixed', $new_id, $post_id, $batch, $action );
+			}
+		} catch ( Throwable $e ) {
+			PostWriter::log( sprintf( 'Un oyente de rehacer falló en la entrada %d: %s', $post_id, $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * Reindexa una entrada; un fallo no oculta el cambio ya escrito.
+	 *
+	 * @param int $post_id Entrada.
+	 */
+	private function reindex( int $post_id ): void {
+		try {
+			$this->jobs->reindex_now( $post_id );
+		} catch ( Throwable $e ) {
+			PostWriter::log( sprintf( 'No se pudo actualizar el grafo de la entrada %d: %s', $post_id, $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * Rehace varios cambios de **una** entrada bajo un único candado, del más antiguo al más reciente (F1-36, D-59).
+	 *
+	 * @param int      $post_id Entrada.
+	 * @param array    $ids     Cambios de esa entrada.
+	 *
+	 * @phpstan-param list<int> $ids
+	 * @param int|null $user_id Quien lo pide (null = el usuario actual).
+	 *
+	 * @return list<UndoResult> Un resultado por cambio, en el orden en que se han tratado.
+	 */
+	public function redo_post( int $post_id, array $ids, ?int $user_id = null ): array {
+		sort( $ids );
+		$results = array();
+		$this->take_deferred();
+
+		try {
+			$this->writer->exclusive(
+				$post_id,
+				function () use ( $ids, $user_id, $post_id, &$results ): void {
+					foreach ( $ids as $id ) {
+						try {
+							$results[] = $this->redo( $id, $user_id, false );
+						} catch ( Throwable $e ) {
+							PostWriter::log( sprintf( 'Fallo al rehacer el cambio %d de la entrada %d: %s', $id, $post_id, $e->getMessage() ) );
+							$results[] = new UndoResult( $id, $post_id, UndoResult::FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) );
+						}
+					}
+				}
+			);
+		} catch ( InsertionException $e ) {
+			$done = array_map( static fn( UndoResult $result ): int => $result->change_id, $results );
+			foreach ( $ids as $id ) {
+				if ( ! in_array( $id, $done, true ) ) {
+					$results[] = new UndoResult( $id, $post_id, UndoResult::FAILED, $e->getMessage(), $e->reason() );
+				}
+			}
+		} finally {
+			// Primero se reindexa y después se avisa, con lo que se haya rehecho.
+			$notices = $this->take_deferred();
+			if ( array() !== $notices ) {
+				$this->reindex( $post_id );
+			}
+			foreach ( $notices as $notice ) {
+				$this->notify( $notice );
+			}
+		}//end try
+
+		return $results;
 	}
 
 	/**

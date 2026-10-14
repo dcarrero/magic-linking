@@ -594,11 +594,40 @@ final class Command {
 
 			case 'undo':
 			case 'redo':
+				if ( isset( $assoc_args['post'] ) ) {
+					$this->history_post( 'redo' === $action, absint( $assoc_args['post'] ), $user );
+					return;
+				}
 				$this->history_batch( 'redo' === $action, $args[1] ?? '', $user );
 				return;
 		}//end switch
 
 		WP_CLI::error( __( 'Unknown action. Use: list, undo, redo or purge.', 'magic-linking' ) );
+	}
+
+	/**
+	 * Deshace o rehace todos los cambios activos (o deshechos) de una entrada, bajo su candado y en orden (F1-36).
+	 *
+	 * @param bool $redo    Rehacer en vez de deshacer.
+	 * @param int  $post_id Entrada.
+	 * @param int  $user    Usuario (0 = sistema).
+	 */
+	private function history_post( bool $redo, int $post_id, int $user ): void {
+		if ( 0 === $post_id || ! $this->history->can_edit( $user, $post_id ) ) {
+			WP_CLI::error( __( 'You do not have permission to edit one of the entries involved.', 'magic-linking' ) );
+		}
+
+		$ids = $this->history->pending_of_post( $post_id, $redo );
+		if ( array() === $ids ) {
+			WP_CLI::error( __( 'That change does not exist.', 'magic-linking' ) );
+		}
+
+		if ( $this->batches->is_busy_for_post( $post_id, array_values( array_unique( array_column( $this->changes->light_of( $ids ), 'batch_id' ) ) ) ) ) {
+			WP_CLI::error( __( 'This batch is being processed in the background. Wait for it to finish or cancel it.', 'magic-linking' ) );
+		}
+
+		$results = $redo ? $this->redo->redo_post( $post_id, $ids, $user ) : $this->undo->revert_post( $post_id, $ids, $user );
+		$this->print_results( $results, $redo );
 	}
 
 	/**
@@ -623,8 +652,20 @@ final class Command {
 		}
 
 		$results = $redo ? $this->redo->redo_batch( $batch_id, $user ) : $this->undo->revert_batch( $batch_id, $user );
-		$rows    = array();
-		$failed  = 0;
+		$this->print_results( $results, $redo );
+	}
+
+	/**
+	 * Imprime un resultado por cambio y el resumen.
+	 *
+	 * @param array $results Resultados.
+	 * @param bool  $redo    Si se rehacía.
+	 *
+	 * @phpstan-param list<UndoResult> $results
+	 */
+	private function print_results( array $results, bool $redo ): void {
+		$rows   = array();
+		$failed = 0;
 		foreach ( $results as $result ) {
 			if ( in_array( $result->status, array( UndoResult::MANUAL, UndoResult::FAILED ), true ) ) {
 				++$failed;

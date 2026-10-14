@@ -4,7 +4,7 @@ import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { Job, StatusResponse } from '../types';
-import { parseServerDate } from './Maintenance';
+import { parseServerDate } from './historyFormat';
 
 interface Props {
 	canManage: boolean;

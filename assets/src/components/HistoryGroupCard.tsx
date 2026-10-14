@@ -10,7 +10,12 @@ import type {
 	HistoryJob,
 } from '../types';
 import { ConfirmModal } from './ConfirmModal';
-import { parseServerDate } from './Maintenance';
+import {
+	entryTitle,
+	formatDate,
+	formatFullDate,
+	parseServerDate,
+} from './historyFormat';
 import {
 	countStatuses,
 	needsAttention,
@@ -36,31 +41,6 @@ interface Outcome {
 
 const POLL_MS = 3000;
 const DETAILS_PER_PAGE = 50;
-
-/**
- * Fecha y hora de un grupo en el idioma del usuario.
- * @param value Fecha RFC 3339 del servidor.
- */
-function formatDate( value: string ): string {
-	return new Intl.DateTimeFormat(
-		document.documentElement.lang || undefined,
-		{
-			dateStyle: 'medium',
-			timeStyle: 'short',
-		}
-	).format( parseServerDate( value ) );
-}
-
-/**
- * Título de una entrada, con texto para las que no tienen o ya no existen.
- * @param title Título (null = la entrada ya no existe).
- */
-function entryTitle( title: string | null ): string {
-	if ( title === null ) {
-		return __( '(deleted entry)', 'magic-linking' );
-	}
-	return title === '' ? __( '(no title)', 'magic-linking' ) : title;
-}
 
 /**
  * Un grupo del historial: resumen, acciones con confirmación, lista de sus enlaces y resultado de la última operación.
@@ -314,10 +294,12 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 						: __( 'Added by Magic Linking', 'magic-linking' ) }
 				</span>
 			</p>
-			<p className="magiclinking-batch__entries">
-				{ group.titles.map( entryTitle ).join( ', ' ) }
-				{ more > 0 ? '…' : '' }
-			</p>
+			{ ! expanded && (
+				<p className="magiclinking-batch__entries">
+					{ group.titles.map( entryTitle ).join( ', ' ) }
+					{ more > 0 ? '…' : '' }
+				</p>
+			) }
 
 			{ job && jobActive && (
 				<div className="magiclinking-batch__progress">
@@ -483,6 +465,9 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 							<thead>
 								<tr>
 									<th scope="col">
+										{ __( 'Date', 'magic-linking' ) }
+									</th>
+									<th scope="col">
 										{ __( 'Entry', 'magic-linking' ) }
 									</th>
 									<th scope="col">
@@ -504,7 +489,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 							<tbody>
 								{ details.length === 0 && (
 									<tr className="no-items">
-										<td colSpan={ 5 }>
+										<td colSpan={ 6 }>
 											{ loadingDetails
 												? __(
 														'Loading…',
@@ -524,6 +509,20 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 									const undone = change.state === 'undone';
 									return (
 										<tr key={ change.id }>
+											<td>
+												<time
+													dateTime={ parseServerDate(
+														change.created_at
+													).toISOString() }
+													title={ formatFullDate(
+														change.created_at
+													) }
+												>
+													{ formatDate(
+														change.created_at
+													) }
+												</time>
+											</td>
 											<td>
 												{ change.edit_url ? (
 													<a href={ change.edit_url }>

@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 /**
@@ -76,6 +77,18 @@ export const SCREEN_SETTINGS =
  */
 export function ensureAnalyzed(): void {
 	wp( 'magic-linking', 'index' );
+}
+
+/**
+ * Abre el Historial en la vista por lote (la de por defecto es por entrada, F1-36).
+ *
+ * @param page Página.
+ */
+export async function openHistoryByBatch( page: Page ): Promise< void > {
+	await page.goto( SCREEN_HISTORY );
+	const batch = page.getByRole( 'button', { name: 'Batch', exact: true } );
+	await batch.click();
+	await expect( batch ).toHaveAttribute( 'aria-pressed', 'true' );
 }
 
 /**

@@ -94,6 +94,71 @@ final class HistoryController implements Module {
 						'maximum' => 50,
 					),
 					'before'   => $batch,
+					'group'    => array(
+						'type'    => 'string',
+						'enum'    => array( 'batch', 'post' ),
+						'default' => 'batch',
+					),
+					'page'     => array(
+						'type'    => 'integer',
+						'default' => 1,
+						'minimum' => 1,
+					),
+					'status'   => array(
+						'type' => 'string',
+						'enum' => array( 'active', 'undone', 'all' ),
+					),
+					'origin'   => array(
+						'type' => 'string',
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+					),
+					'search'   => array(
+						'type'      => 'string',
+						'maxLength' => 100,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/history/posts/(?P<post_id>\d+)',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_entry' ),
+				'permission_callback' => array( $this, 'can_read' ),
+				'args'                => array(
+					'origin' => array(
+						'type' => 'string',
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/history/posts/(?P<post_id>\d+)/changes',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_entry_changes' ),
+				'permission_callback' => array( $this, 'can_read' ),
+				'args'                => array(
+					'before'   => array(
+						'type'    => 'integer',
+						'default' => 0,
+						'minimum' => 0,
+					),
+					'per_page' => array(
+						'type'    => 'integer',
+						'default' => 10,
+						'minimum' => 1,
+						'maximum' => 100,
+					),
+					'origin'   => array(
+						'type' => 'string',
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+					),
 				),
 			)
 		);
@@ -163,15 +228,31 @@ final class HistoryController implements Module {
 					'callback'            => array( $this, $callback ),
 					'permission_callback' => array( $this, 'can_read' ),
 					'args'                => array(
-						'batch_id'  => $batch,
-						'change_id' => array(
+						'batch_id'   => $batch,
+						'change_id'  => array(
 							'type'    => 'integer',
 							'minimum' => 1,
+						),
+						'post_id'    => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+						),
+						'origin'     => array(
+							'type' => 'string',
+							'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+						),
+						'change_ids' => array(
+							'type'     => 'array',
+							'items'    => array(
+								'type'    => 'integer',
+								'minimum' => 1,
+							),
+							'maxItems' => 500,
 						),
 					),
 				)
 			);
-		}
+		}//end foreach
 	}
 
 	/**
@@ -187,6 +268,10 @@ final class HistoryController implements Module {
 	 * @param WP_REST_Request $request Petición.
 	 */
 	public function get_history( WP_REST_Request $request ): WP_REST_Response {
+		if ( 'post' === $request['group'] ) {
+			return $this->get_entries( $request );
+		}
+
 		$page   = $this->reader->groups( get_current_user_id(), $request['before'] ?: null, (int) $request['per_page'] ); // phpcs:ignore Universal.Operators.DisallowShortTernary.Found -- Cadena vacía o ausente.
 		$active = $this->batches->active();
 
@@ -203,6 +288,97 @@ final class HistoryController implements Module {
 				'retention_days' => $this->settings->history_retention_days(),
 			)
 		);
+	}
+
+	/**
+	 * GET /history?group=post: cambios agrupados por entrada, paginados con total (F1-36, D-59).
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	private function get_entries( WP_REST_Request $request ): WP_REST_Response {
+		$per_page = max( 1, min( 50, (int) $request['per_page'] ) );
+		$page     = max( 1, (int) $request['page'] );
+		$status   = (string) ( $request['status'] ?? '' );
+		$result   = $this->reader->post_groups(
+			get_current_user_id(),
+			array(
+				'status' => 'all' === $status ? '' : $status,
+				'origin' => (string) ( $request['origin'] ?? '' ),
+				'search' => (string) ( $request['search'] ?? '' ),
+			),
+			$page,
+			$per_page
+		);
+
+		$active = $this->batches->active();
+		$items  = array();
+		foreach ( $result['items'] as $entry ) {
+			$entry['job'] = null !== $active && (int) ( $active['params']['post_id'] ?? 0 ) === $entry['post_id'] ? $this->present_job( $active ) : null;
+			$items[]      = $entry;
+		}
+
+		return new WP_REST_Response(
+			array(
+				'items'          => $items,
+				'total'          => $result['total'],
+				'total_pages'    => max( 1, (int) ceil( $result['total'] / $per_page ) ),
+				'page'           => $page,
+				'retention_days' => $this->settings->history_retention_days(),
+			)
+		);
+	}
+
+	/**
+	 * GET /history/posts/{post_id}: una entrada con sus recuentos y sus cambios más recientes.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_entry( WP_REST_Request $request ) {
+		$post_id = (int) $request['post_id'];
+		if ( ! $this->reader->can_edit( get_current_user_id(), $post_id ) ) {
+			return $this->forbidden();
+		}
+
+		$group = $this->reader->post_group( get_current_user_id(), $post_id, (string) ( $request['origin'] ?? '' ) );
+
+		return null === $group ? $this->not_found() : new WP_REST_Response( array( 'entry' => $this->with_job( $group ) ) );
+	}
+
+	/**
+	 * GET /history/posts/{post_id}/changes: los cambios de una entrada, paginados.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_entry_changes( WP_REST_Request $request ) {
+		$result = $this->reader->post_changes( get_current_user_id(), (int) $request['post_id'], (int) $request['before'], (int) $request['per_page'], (string) ( $request['origin'] ?? '' ) );
+		if ( null === $result ) {
+			return $this->forbidden();
+		}
+
+		return new WP_REST_Response(
+			array(
+				'items' => $result['items'],
+				'total' => $result['total'],
+			)
+		);
+	}
+
+	/**
+	 * Añade a una entrada su proceso en segundo plano, si lo tiene.
+	 *
+	 * @param array<string, mixed> $entry Entrada de la lista.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function with_job( array $entry ): array {
+		$active       = $this->batches->active();
+		$entry['job'] = null !== $active && (int) ( $active['params']['post_id'] ?? 0 ) === $entry['post_id'] ? $this->present_job( $active ) : null;
+
+		return $entry;
 	}
 
 	/**
@@ -285,12 +461,14 @@ final class HistoryController implements Module {
 			return new WP_Error( 'magiclinking_job_state', __( 'That process cannot be changed in its current state.', 'magic-linking' ), array( 'status' => 409 ) );
 		}
 
-		$batch = (string) ( $job['params']['batch_id'] ?? '' );
+		$batch   = (string) ( $job['params']['batch_id'] ?? '' );
+		$post_id = (int) ( $job['params']['post_id'] ?? 0 );
 
 		return new WP_REST_Response(
 			array(
 				'job'   => $this->present_job( (array) $this->jobs->get( $job['id'] ) ),
 				'group' => '' === $batch ? null : $this->reader->group( $batch, get_current_user_id() ),
+				'entry' => $post_id > 0 ? $this->reader->post_group( get_current_user_id(), $post_id ) : null,
 			)
 		);
 	}
@@ -303,6 +481,11 @@ final class HistoryController implements Module {
 	private function can_follow( array $job ): bool {
 		if ( $this->can_control( $job ) ) {
 			return true;
+		}
+
+		$post_id = (int) ( $job['params']['post_id'] ?? 0 );
+		if ( $post_id > 0 ) {
+			return $this->reader->can_edit( get_current_user_id(), $post_id );
 		}
 
 		$batch = (string) ( $job['params']['batch_id'] ?? '' );
@@ -352,10 +535,18 @@ final class HistoryController implements Module {
 	private function run( WP_REST_Request $request, bool $redo ) {
 		$batch_id  = (string) ( $request['batch_id'] ?? '' );
 		$change_id = (int) ( $request['change_id'] ?? 0 );
+		$post_id   = (int) ( $request['post_id'] ?? 0 );
 		$user      = get_current_user_id();
 
+		if ( 0 !== $post_id ) {
+			if ( '' !== $batch_id || 0 !== $change_id ) {
+				return $this->bad_request();
+			}
+
+			return $this->run_entry( $request, $post_id, $redo );
+		}
 		if ( ( '' === $batch_id ) === ( 0 === $change_id ) ) {
-			return new WP_Error( 'magiclinking_bad_request', __( 'Send either a group or a single change.', 'magic-linking' ), array( 'status' => 400 ) );
+			return $this->bad_request();
 		}
 
 		if ( 0 !== $change_id ) {
@@ -366,7 +557,7 @@ final class HistoryController implements Module {
 			if ( ! $this->reader->can_edit( $user, $change['post_id'] ) ) {
 				return $this->forbidden();
 			}
-			if ( $this->batches->is_busy( $change['batch_id'] ) ) {
+			if ( $this->batches->is_busy_for_change( $change ) ) {
 				return $this->busy_batch();
 			}
 
@@ -429,6 +620,85 @@ final class HistoryController implements Module {
 	}
 
 	/**
+	 * Deshace o rehace varios cambios de **una** entrada en una sola petición y bajo el candado de esa entrada (F1-36, D-59):
+	 * los `change_ids` indicados o, sin ellos, todos los puestos (deshacer) o deshechos (rehacer) que cumplan el filtro de
+	 * `origin`. Hasta `magiclinking_undo_sync_limit` se hace en la petición; por encima, como proceso en segundo plano.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 * @param int             $post_id Entrada.
+	 * @param bool            $redo    Rehacer en vez de deshacer.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private function run_entry( WP_REST_Request $request, int $post_id, bool $redo ) {
+		$user   = get_current_user_id();
+		$origin = (string) ( $request['origin'] ?? '' );
+		if ( ! $this->reader->can_edit( $user, $post_id ) ) {
+			return $this->forbidden();
+		}
+
+		// Lo que se trata es exactamente lo que la pantalla contó: los de la lista o todos los del filtro de origen.
+		$pending = $this->reader->pending_of_post( $post_id, $redo, $origin );
+		if ( is_array( $request['change_ids'] ) ) {
+			$wanted = array_values( array_unique( array_map( 'intval', $request['change_ids'] ) ) );
+			$light  = $this->changes->light_of( $wanted );
+			// Todos tienen que existir y ser de esta entrada: una lista con cambios de otra no se toca.
+			foreach ( $wanted as $id ) {
+				if ( ! isset( $light[ $id ] ) || $light[ $id ]['post_id'] !== $post_id || ! in_array( $light[ $id ]['action'], ChangeRepository::PRIMARY, true ) ) {
+					return $this->bad_request();
+				}
+			}
+			$pending = array_values( array_intersect( $pending, $wanted ) );
+		}
+		if ( array() === $pending ) {
+			return $this->not_found();
+		}
+
+		// Un único guard: proceso propio de la entrada o de alguno de los lotes de los cambios (una consulta).
+		$active = $this->batches->active();
+		if ( $this->batches->is_busy_for_post( $post_id, array_values( array_unique( array_column( $this->changes->light_of( $pending ), 'batch_id' ) ) ) ) ) {
+			return $this->busy_batch();
+		}
+
+		$redo ? sort( $pending ) : rsort( $pending );
+
+		// Por encima del límite síncrono va en segundo plano, reanudable, como un lote grande (regla 10).
+		if ( count( $pending ) > BatchJob::sync_limit() ) {
+			if ( null !== $active ) {
+				return new WP_Error(
+					'magiclinking_job_running',
+					__( 'Another large undo is already running. Wait for it to finish.', 'magic-linking' ),
+					array(
+						'status' => 409,
+						'job'    => $this->present_job( $active ),
+					)
+				);
+			}
+
+			$job = $this->batches->start_for_post( $post_id, $pending, $redo, $user );
+
+			return new WP_REST_Response(
+				array(
+					'results' => array(),
+					'entry'   => $this->with_job( (array) $this->reader->post_group( $user, $post_id, $origin ) ),
+					'job'     => null === $job ? null : $this->present_job( $job ),
+				),
+				202
+			);
+		}//end if
+
+		$done = $redo ? $this->redo->redo_post( $post_id, $pending, $user ) : $this->undo->revert_post( $post_id, $pending, $user );
+
+		return new WP_REST_Response(
+			array(
+				'results' => array_map( array( $this, 'present_result' ), $done ),
+				'entry'   => $this->reader->post_group( $user, $post_id, $origin ),
+				'job'     => null,
+			)
+		);
+	}
+
+	/**
 	 * Resultado de un cambio listo para la API.
 	 *
 	 * @param UndoResult $result Resultado.
@@ -465,6 +735,7 @@ final class HistoryController implements Module {
 			'status'      => $base['status'],
 			'mode'        => 'redo' === ( $params['mode'] ?? '' ) ? 'redo' : 'undo',
 			'batch_id'    => (string) ( $params['batch_id'] ?? '' ),
+			'post_id'     => (int) ( $params['post_id'] ?? 0 ),
 			'total'       => $base['total'],
 			'done'        => $base['done'],
 			'percent'     => $base['percent'],
@@ -483,6 +754,13 @@ final class HistoryController implements Module {
 	 */
 	private function busy_batch(): WP_Error {
 		return new WP_Error( 'magiclinking_batch_busy', __( 'This batch is being processed in the background. Wait for it to finish or cancel it.', 'magic-linking' ), array( 'status' => 409 ) );
+	}
+
+	/**
+	 * Error 400: la petición mezcla destinos o no dice cuál.
+	 */
+	private function bad_request(): WP_Error {
+		return new WP_Error( 'magiclinking_bad_request', __( 'Send either a group or a single change.', 'magic-linking' ), array( 'status' => 400 ) );
 	}
 
 	/**

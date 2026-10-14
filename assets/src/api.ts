@@ -8,6 +8,11 @@ import type {
 	FixResponse,
 	DismissalResponse,
 	EditorHistoryResponse,
+	EntryRunResponse,
+	HistoryEntriesResponse,
+	HistoryEntry,
+	HistoryEntryChangesResponse,
+	HistoryStatusFilter,
 	EditorLink,
 	HistoryChangesResponse,
 	HistoryGroup,
@@ -123,6 +128,89 @@ export const api = {
 			path: path( '/history', { before, per_page: perPage } ),
 			signal,
 		} ),
+	/**
+	 * Historial agrupado por entrada, paginado (F1-36).
+	 *
+	 * @param query         Página y filtros.
+	 * @param query.page    Página (desde 1).
+	 * @param query.perPage Entradas por página.
+	 * @param query.status  Estado de los cambios.
+	 * @param query.origin  Origen (editor, plugin o vacío).
+	 * @param query.search  Texto del título de la entrada.
+	 * @param signal        Para cancelar.
+	 */
+	historyEntries: (
+		query: {
+			page: number;
+			perPage: number;
+			status: HistoryStatusFilter;
+			origin: string;
+			search: string;
+		},
+		signal?: AbortSignal
+	) =>
+		apiFetch< HistoryEntriesResponse >( {
+			path: path( '/history', {
+				group: 'post',
+				page: query.page,
+				per_page: query.perPage,
+				status: query.status === 'all' ? '' : query.status,
+				origin: query.origin,
+				search: query.search,
+			} ),
+			signal,
+		} ),
+	historyEntry: ( postId: number, origin = '' ) =>
+		apiFetch< { entry: HistoryEntry } >( {
+			path: path( `/history/posts/${ postId }`, { origin } ),
+		} ),
+	/**
+	 * Más cambios de una entrada, con cursor: solo los anteriores al último mostrado.
+	 *
+	 * @param postId  Entrada.
+	 * @param before  Id del último cambio mostrado.
+	 * @param perPage Cambios por petición.
+	 * @param origin  Filtro de origen (vacío = todos).
+	 */
+	historyEntryChanges: (
+		postId: number,
+		before: number,
+		perPage: number,
+		origin = ''
+	) =>
+		apiFetch< HistoryEntryChangesResponse >( {
+			path: path( `/history/posts/${ postId }/changes`, {
+				before,
+				per_page: perPage,
+				origin,
+			} ),
+		} ),
+	/**
+	 * Deshace o rehace cambios de una entrada en una sola petición: los indicados o, sin lista, todos los que
+	 * cumplan el filtro de origen (lo que la pantalla ha contado y confirmado).
+	 *
+	 * @param mode              undo o redo.
+	 * @param postId            Entrada.
+	 * @param options           Qué cambios.
+	 * @param options.changeIds Cambios concretos de esa entrada.
+	 * @param options.origin    Filtro de origen.
+	 */
+	runHistoryEntry: (
+		mode: 'undo' | 'redo',
+		postId: number,
+		options: { changeIds?: number[]; origin?: string } = {}
+	) =>
+		apiFetch< EntryRunResponse >( {
+			path: path( `/${ mode }` ),
+			method: 'POST',
+			data: {
+				post_id: postId,
+				...( options.changeIds
+					? { change_ids: options.changeIds }
+					: {} ),
+				...( options.origin ? { origin: options.origin } : {} ),
+			},
+		} ),
 	historyGroup: ( batchId: string ) =>
 		apiFetch< { group: HistoryGroup } >( {
 			path: path( `/history/${ batchId }` ),
@@ -139,7 +227,11 @@ export const api = {
 			path: path( `/history/jobs/${ id }` ),
 		} ),
 	controlHistoryJob: ( id: number, action: 'resume' | 'cancel' ) =>
-		apiFetch< { job: HistoryJob; group: HistoryGroup | null } >( {
+		apiFetch< {
+			job: HistoryJob;
+			group: HistoryGroup | null;
+			entry: HistoryEntry | null;
+		} >( {
 			path: path( `/history/jobs/${ id }/${ action }` ),
 			method: 'POST',
 		} ),

@@ -73,6 +73,316 @@ async function expectNoViolations(
 	expect( results.violations ).toEqual( [] );
 }
 
+/**
+ * Abre el Historial en la vista por lote (la de por defecto es por entrada).
+ * @param page Página.
+ */
+async function openBatches( page: Page ): Promise< void > {
+	await page.goto( SCREEN_HISTORY );
+	await page.getByRole( 'button', { name: 'Batch', exact: true } ).click();
+	await expect(
+		page.getByRole( 'button', { name: 'Batch', exact: true } )
+	).toHaveAttribute( 'aria-pressed', 'true' );
+}
+
+/**
+ * Historial para la vista por entrada: la entrada A tiene dos enlaces en dos guardados (dos lotes), A y B comparten un
+ * lote de dos entradas y C tiene el suyo.
+ */
+function seedEntries(): void {
+	wp(
+		'eval',
+		`
+		global $wpdb;
+		foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'e2e-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_changes" );
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_jobs WHERE type IN ( 'undo', 'purge' )" );
+		delete_option( 'magiclinking_settings' );
+		$block = "<!-- wp:paragraph -->\n<p>%s</p>\n<!-- /wp:paragraph -->";
+		$make = static fn( $slug, $title, $text ) => wp_insert_post( array( 'post_name' => $slug, 'post_title' => $title, 'post_content' => $text, 'post_status' => 'publish' ) );
+		$one = sprintf( $block, 'Compra aire acondicionado ya.' );
+		$target = $make( 'e2e-destino', 'E2E destino', sprintf( $block, 'Destino.' ) );
+		$a = $make( 'e2e-origen-a', 'E2E origen A', $one . "\n\n" . sprintf( $block, 'Mira el ventilador industrial hoy.' ) );
+		$b = $make( 'e2e-origen-b', 'E2E origen B', $one );
+		$c = $make( 'e2e-origen-c', 'E2E casa C', $one );
+		wp_set_current_user( 1 );
+		$inserter = MagicLinking\\Core\\Plugin::container()->get( MagicLinking\\Content\\Inserter::class );
+		$url = get_permalink( $target );
+		$batch = MagicLinking\\History\\BatchId::generate();
+		$inserter->insert( new MagicLinking\\Content\\InsertRequest( $a, $url, 'aire acondicionado', 'Compra ', ' ya.' ), $batch );
+		$inserter->insert( new MagicLinking\\Content\\InsertRequest( $b, $url, 'aire acondicionado', 'Compra ', ' ya.' ), $batch );
+		usleep( 20000 );
+		$inserter->insert( new MagicLinking\\Content\\InsertRequest( $c, $url, 'aire acondicionado', 'Compra ', ' ya.' ) );
+		usleep( 20000 );
+		$inserter->insert( new MagicLinking\\Content\\InsertRequest( $a, $url, 'ventilador industrial', 'Mira el ', ' hoy.' ) );
+		`
+	);
+}
+
+test.describe( 'History by entry', () => {
+	test.beforeEach( () => {
+		seedEntries();
+	} );
+
+	test( 'groups the saves of one entry together, with the date on every row', async ( {
+		page,
+	} ) => {
+		await login( page );
+		await page.goto( SCREEN_HISTORY );
+
+		const entries = page.locator( '.magiclinking-entry' );
+		await expect( entries ).toHaveCount( 3 );
+		await expect(
+			page.getByRole( 'heading', { level: 2, name: 'E2E origen A' } )
+		).toHaveCount( 1 );
+		await expect( page.getByText( 'Changes are kept for 90 days.' ) ).toBeVisible();
+
+		// La entrada A tiene sus dos guardados en un solo grupo, con su fecha y hora en cada fila y sin repetir el título.
+		const entry = entries.filter( { hasText: 'E2E origen A' } );
+		await expect( entry.getByText( '2 of 2 changes active' ) ).toBeVisible();
+		const table = entry.getByRole( 'table' );
+		await expect( table.getByRole( 'row' ) ).toHaveCount( 3 );
+		const times = table.locator( 'tbody time' );
+		await expect( times ).toHaveCount( 2 );
+		for ( const time of await times.all() ) {
+			await expect( time ).toHaveAttribute( 'datetime', /^\d{4}-\d\d-\d\dT/ );
+			await expect( time ).toHaveAttribute( 'title', /.+/ );
+			await expect( time ).toContainText( /\d/ );
+		}
+		await expect( table.locator( 'tbody' ) ).not.toContainText( 'E2E origen A' );
+		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'ventilador industrial' );
+		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'Magic Linking' );
+		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'E2E destino' );
+		await expect( table.getByRole( 'link', { name: 'E2E destino' } ).first() ).toHaveAttribute( 'href', /e2e-destino|[?&]p=\d+/ );
+
+		// Un cambio de un lote de varias entradas lo dice.
+		await expect( entry.getByText( 'Part of a batch of 2 entries' ) ).toBeVisible();
+		await expectNoViolations( page );
+	} );
+
+	test( 'undoes one change and then every change of the entry, in one request each', async ( {
+		page,
+	} ) => {
+		await login( page );
+		await page.goto( SCREEN_HISTORY );
+		const entry = page.locator( '.magiclinking-entry' ).filter( { hasText: 'E2E origen A' } );
+
+		const undo = entry.getByRole( 'button', {
+			name: 'Undo “ventilador industrial” in E2E origen A',
+		} );
+		await undo.click();
+
+		await expect( entry.getByText( '1 of 2 changes active' ) ).toBeVisible();
+		await expect( entry.getByText( '1 link undone.' ) ).toBeVisible();
+		// El foco se queda en el mismo botón, que ahora rehace.
+		const redo = entry.getByRole( 'button', {
+			name: 'Redo “ventilador industrial” in E2E origen A',
+		} );
+		await expect( redo ).toBeFocused();
+		expect( content( 'e2e-origen-a' ) ).not.toContain( 'ventilador industrial</a>' );
+		expect( content( 'e2e-origen-a' ) ).toContain( 'aire acondicionado</a>' );
+		await expectNoViolations( page );
+
+		// Rehacer todos (1) y luego deshacer todos (2) con confirmación.
+		await entry.getByRole( 'button', { name: 'Redo all (1) in E2E origen A' } ).click();
+		const dialog = page.getByRole( 'dialog', { name: 'Redo all changes in this entry?' } );
+		await expect( dialog ).toBeVisible();
+		await dialog.getByRole( 'button', { name: 'Redo all', exact: true } ).click();
+		await expect( entry.getByText( '2 of 2 changes active' ) ).toBeVisible();
+		expect( content( 'e2e-origen-a' ) ).toContain( 'ventilador industrial</a>' );
+
+		await entry.getByRole( 'button', { name: 'Undo all (2) in E2E origen A' } ).click();
+		const confirm = page.getByRole( 'dialog', { name: 'Undo all changes in this entry?' } );
+		await expectNoViolations( page, '.components-modal__frame' );
+		await confirm.getByRole( 'button', { name: 'Undo all', exact: true } ).click();
+		await expect( entry.getByText( '0 of 2 changes active' ) ).toBeVisible();
+		await expect( entry.getByText( '2 links undone.' ) ).toBeVisible();
+		await expect(
+			entry.getByRole( 'button', { name: 'Undo all (0) in E2E origen A' } )
+		).toBeDisabled();
+		expect( content( 'e2e-origen-a' ) ).toBe(
+			'<!-- wp:paragraph -->\n<p>Compra aire acondicionado ya.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>Mira el ventilador industrial hoy.</p>\n<!-- /wp:paragraph -->'
+		);
+		// La otra entrada del mismo lote no se toca.
+		expect( content( 'e2e-origen-b' ) ).toContain( '<a href=' );
+		await expectNoViolations( page );
+	} );
+
+	test( 'filters by state, source and title, and the batch view is still there', async ( {
+		page,
+	} ) => {
+		await login( page );
+		await page.goto( SCREEN_HISTORY );
+		const entry = page.locator( '.magiclinking-entry' ).filter( { hasText: 'E2E casa C' } );
+		await entry.getByRole( 'button', { name: /^Undo “aire acondicionado” in E2E casa C/ } ).click();
+		await expect( entry.getByText( '0 of 1 changes active' ) ).toBeVisible();
+
+		await page.getByLabel( 'Show entries with' ).selectOption( 'undone' );
+		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 1 );
+		await expect( page.locator( '.magiclinking-entry' ) ).toContainText( 'E2E casa C' );
+
+		await page.getByLabel( 'Show entries with' ).selectOption( 'all' );
+		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 3 );
+		await page.getByLabel( 'Search entries by title' ).fill( 'origen B' );
+		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 1 );
+		await page.getByLabel( 'Search entries by title' ).fill( 'nada de nada' );
+		await expect( page.getByText( 'No entries match these filters.' ) ).toBeVisible();
+		await expectNoViolations( page );
+
+		// La vista por lote sigue ahí para deshacer de una vez lo que tocó varias entradas.
+		await page.getByRole( 'button', { name: 'Batch', exact: true } ).click();
+		await expect( page.locator( '.magiclinking-batch' ) ).toHaveCount( 3 );
+		const batch = page.locator( '.magiclinking-batch' ).filter( { hasText: '2 entries' } );
+		await batch.getByRole( 'button', { name: 'Undo batch' } ).click();
+		await page.getByRole( 'dialog', { name: 'Undo this batch?' } ).getByRole( 'button', { name: 'Undo batch' } ).click();
+		await expect( batch.getByRole( 'status' ) ).toContainText( '2 links undone.' );
+		expect( content( 'e2e-origen-b' ) ).not.toContain( '<a href=' );
+		await batch.getByRole( 'button', { name: 'Show links' } ).click();
+		await expect( batch.getByRole( 'columnheader', { name: 'Date' } ) ).toBeVisible();
+		await expect( batch.locator( 'tbody time' ) ).toHaveCount( 2 );
+		await expectNoViolations( page );
+	} );
+
+	test( 'undoing every change of a big entry runs in the background with progress', async ( {
+		page,
+	} ) => {
+		wp(
+			'eval',
+			`
+			wp_mkdir_p( WPMU_PLUGIN_DIR );
+			file_put_contents( WPMU_PLUGIN_DIR . '/magiclinking-e2e.php', '<?php if ( ! defined( "DISABLE_WP_CRON" ) ) { define( "DISABLE_WP_CRON", true ); } add_filter( "magiclinking_undo_sync_limit", static fn() => 1 ); add_filter( "action_scheduler_allow_async_request_runner", "__return_false" );' );
+			`
+		);
+		try {
+			await login( page );
+			await page.goto( SCREEN_HISTORY );
+			const entry = page
+				.locator( '.magiclinking-entry' )
+				.filter( { hasText: 'E2E origen A' } );
+			await entry
+				.getByRole( 'button', { name: 'Undo all (2) in E2E origen A' } )
+				.click();
+			await page
+				.getByRole( 'dialog', { name: 'Undo all changes in this entry?' } )
+				.getByRole( 'button', { name: 'Undo all', exact: true } )
+				.click();
+
+			const progress = entry.getByRole( 'progressbar' );
+			await expect( progress ).toBeVisible();
+			await expect( progress ).toHaveAttribute( 'max', '2' );
+			expect( content( 'e2e-origen-a' ) ).toContain( '<a href=' );
+			await expectNoViolations( page );
+
+			wp( 'action-scheduler', 'run' );
+			await expect( entry.getByText( '0 of 2 changes active' ) ).toBeVisible( {
+				timeout: 15_000,
+			} );
+			await expect( entry.getByText( '2 links undone.' ) ).toBeVisible();
+			await expect( progress ).toBeHidden();
+			expect( content( 'e2e-origen-a' ) ).not.toContain( '<a href=' );
+			expect( content( 'e2e-origen-b' ) ).toContain( '<a href=' );
+			await expectNoViolations( page );
+		} finally {
+			wp( 'eval', '@unlink( WPMU_PLUGIN_DIR . "/magiclinking-e2e.php" );' );
+		}
+	} );
+
+	test( 'after undoing with a filter the page falls back to the last one that exists', async ( {
+		page,
+	} ) => {
+		wp(
+			'eval',
+			`
+			$block = "<!-- wp:paragraph -->\\n<p>%s</p>\\n<!-- /wp:paragraph -->";
+			wp_set_current_user( 1 );
+			$inserter = MagicLinking\\Core\\Plugin::container()->get( MagicLinking\\Content\\Inserter::class );
+			$target = get_page_by_path( 'e2e-destino', OBJECT, 'post' );
+			for ( $i = 1; $i <= 8; $i++ ) {
+				$id = wp_insert_post( array( 'post_name' => "e2e-extra-$i", 'post_title' => "E2E extra $i", 'post_content' => sprintf( $block, 'Compra aire acondicionado ya.' ), 'post_status' => 'publish' ) );
+				$inserter->insert( new MagicLinking\\Content\\InsertRequest( $id, get_permalink( $target ), 'aire acondicionado', 'Compra ', ' ya.' ) );
+			}
+			`
+		);
+		await login( page );
+		await page.goto( SCREEN_HISTORY );
+		await page.getByLabel( 'Show entries with' ).selectOption( 'active' );
+		// 11 entradas con 10 por página: la segunda página tiene una.
+		await page.getByRole( 'button', { name: 'Next page' } ).first().click();
+		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 1 );
+		const entry = page.locator( '.magiclinking-entry' ).first();
+		await entry.getByRole( 'button', { name: /^Undo all \(1\)/ } ).click();
+		await page
+			.getByRole( 'dialog', { name: 'Undo all changes in this entry?' } )
+			.getByRole( 'button', { name: 'Undo all', exact: true } )
+			.click();
+
+		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 10 );
+		await expect( page.getByLabel( 'Current page' ) ).toHaveValue( '1' );
+		await expectNoViolations( page );
+	} );
+
+	test( 'the progress of a background process keeps polling while the filters change', async ( {
+		page,
+	} ) => {
+		wp(
+			'eval',
+			`
+			wp_mkdir_p( WPMU_PLUGIN_DIR );
+			file_put_contents( WPMU_PLUGIN_DIR . '/magiclinking-e2e.php', '<?php if ( ! defined( "DISABLE_WP_CRON" ) ) { define( "DISABLE_WP_CRON", true ); } add_filter( "magiclinking_undo_sync_limit", static fn() => 1 ); add_filter( "action_scheduler_allow_async_request_runner", "__return_false" );' );
+			`
+		);
+		try {
+			await login( page );
+			await page.goto( SCREEN_HISTORY );
+			const entry = page
+				.locator( '.magiclinking-entry' )
+				.filter( { hasText: 'E2E origen A' } );
+			await entry
+				.getByRole( 'button', { name: 'Undo all (2) in E2E origen A' } )
+				.click();
+			await page
+				.getByRole( 'dialog', { name: 'Undo all changes in this entry?' } )
+				.getByRole( 'button', { name: 'Undo all', exact: true } )
+				.click();
+			await expect( entry.getByRole( 'progressbar' ) ).toBeVisible();
+
+			let polls = 0;
+			page.on( 'request', ( request ) => {
+				if ( /history(\/|%2F)jobs(\/|%2F)\d+/.test( request.url() ) ) {
+					polls++;
+				}
+			} );
+			// Escribir en el buscador vuelve a pintar la lista varias veces dentro del intervalo de sondeo.
+			const search = page.getByLabel( 'Search entries by title' );
+			for ( const char of 'E2E origen A' ) {
+				await search.pressSequentially( char );
+				await page.waitForTimeout( 550 );
+			}
+			expect( polls ).toBeGreaterThanOrEqual( 1 );
+		} finally {
+			wp( 'eval', '@unlink( WPMU_PLUGIN_DIR . "/magiclinking-e2e.php" );' );
+		}
+	} );
+
+	test( 'on a phone the rows become blocks, with no horizontal scroll', async ( {
+		page,
+	} ) => {
+		await page.setViewportSize( { width: 390, height: 844 } );
+		await login( page );
+		await page.goto( SCREEN_HISTORY );
+
+		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 3 );
+		const row = page.locator( '.magiclinking-entry' ).first().locator( 'tbody tr' ).first();
+		await expect( row ).toBeVisible();
+		await expect( row.locator( 'td[data-label="Anchor text"]' ) ).toBeVisible();
+		const overflow = await page.evaluate(
+			() => document.documentElement.scrollWidth - document.documentElement.clientWidth
+		);
+		expect( overflow ).toBeLessThanOrEqual( 0 );
+		await expectNoViolations( page );
+	} );
+} );
+
 test.describe( 'History', () => {
 	test.beforeEach( () => {
 		seedHistory();
@@ -82,7 +392,7 @@ test.describe( 'History', () => {
 		page,
 	} ) => {
 		await login( page );
-		await page.goto( SCREEN_HISTORY );
+		await openBatches( page );
 
 		await expect( page.getByRole( 'heading', { level: 1 } ) ).toContainText(
 			'Magic Linking · History'
@@ -171,7 +481,7 @@ test.describe( 'History', () => {
 		);
 
 		await login( page );
-		await page.goto( SCREEN_HISTORY );
+		await openBatches( page );
 		const batch = page.locator( '.magiclinking-batch' ).nth( 1 );
 		await batch.getByRole( 'button', { name: 'Undo batch' } ).click();
 
@@ -259,7 +569,7 @@ test.describe( 'History', () => {
 		);
 		try {
 			await login( page );
-			await page.goto( SCREEN_HISTORY );
+			await openBatches( page );
 			const batch = page.locator( '.magiclinking-batch' ).nth( 1 );
 			await batch.getByRole( 'button', { name: 'Undo batch' } ).click();
 			await page
@@ -311,7 +621,7 @@ test.describe( 'History', () => {
 		);
 		try {
 			await login( page );
-			await page.goto( SCREEN_HISTORY );
+			await openBatches( page );
 			const batch = page.locator( '.magiclinking-batch' ).nth( 1 );
 			await batch.getByRole( 'button', { name: 'Undo batch' } ).click();
 			await page
@@ -325,7 +635,7 @@ test.describe( 'History', () => {
 				'eval',
 				'global $wpdb; $wpdb->query( "UPDATE {$wpdb->prefix}magiclinking_jobs SET updated_at = DATE_SUB( NOW(), INTERVAL 1 HOUR ) WHERE type = \'undo\'" );'
 			);
-			await page.reload();
+			await openBatches( page );
 			const card = page.locator( '.magiclinking-batch' ).nth( 1 );
 			await expect( card.getByRole( 'progressbar' ) ).toBeVisible();
 			await expect(
@@ -350,7 +660,7 @@ test.describe( 'History', () => {
 
 	test( 'an editor can use the screen', async ( { page } ) => {
 		await login( page, 'e2e_editor' );
-		await page.goto( SCREEN_HISTORY );
+		await openBatches( page );
 		await expect( page.locator( '.magiclinking-batch' ) ).toHaveCount( 2 );
 	} );
 

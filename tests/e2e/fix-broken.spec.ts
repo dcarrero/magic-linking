@@ -1,7 +1,13 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { ensureAnalyzed, login, SCREEN_BROKEN, SCREEN_HISTORY, wp } from './wp';
+import {
+	ensureAnalyzed,
+	login,
+	openHistoryByBatch,
+	SCREEN_BROKEN,
+	wp,
+} from './wp';
 
 /**
  * Arreglar un enlace roto desde la lista: cambiar el destino, quitar el enlace, deshacer, permisos y contenido ya cambiado.
@@ -166,7 +172,7 @@ test.describe( 'Fix broken links', () => {
 			'Texto <strong>negrita</strong> final.'
 		);
 
-		await page.goto( SCREEN_HISTORY );
+		await openHistoryByBatch( page );
 		const batch = page.locator( '.magiclinking-batch' ).first();
 		await expect(
 			batch.getByRole( 'heading', { level: 2 } )
