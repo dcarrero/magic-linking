@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.11.0
+Stable tag: 0.12.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,14 +29,15 @@ It works entirely on your server, with no artificial intelligence, no account, n
 * Nothing is changed until you press *Link* on a suggestion. There are no automatic changes and no background rewriting.
 * For the entry you have open, the link is inserted in the editor; saving is up to you.
 * For inbound suggestions, the link is written into the other entry on the server. Before saving, Magic Linking checks that the rest of that entry stays exactly as it was: only the link is added. If the check fails, it writes nothing and tells you why. WordPress keeps a revision of the entry as usual.
-* Every change is recorded in **History**, where you can undo it and redo it. Undo removes only that link; if the text around it was edited since, it tells you instead of guessing.
+* Every change is recorded in **History**, where you can undo it and redo it. Links you add from the editor panel are listed there too once you save the entry; Magic Linking only records them. Undo removes only that link; if the text around it was edited since, it tells you instead of guessing.
 * An entry that is open in someone's editor is never modified from the server.
-* Links already written in your content are never removed or rewritten, except to undo a link Magic Linking added.
+* Links already written in your content are never removed or rewritten, except to undo a link Magic Linking added or when you fix a broken link from its list.
 
 **History**
 
-* Every link added from an inbound suggestion is listed with who added it, when, where and the anchor text.
-* Undo and redo from the screen or with WP-CLI. A large group is undone in the background.
+* Every link Magic Linking changes is listed with who did it, when, where and the anchor text: links added from an inbound suggestion, links you add from the editor panel (they appear once you save the entry; Magic Linking only records them, and marks them as undone if you remove them and save) and fixes made from the broken links list.
+* Changes are grouped by entry, newest first, with a date on each one. Filter by status, source or title, switch to a view by batch, and undo or redo one change, all the changes of an entry, or a whole batch.
+* Undo and redo from the screen or with WP-CLI (`wp magic-linking history undo --post=<id>`). A large group is undone in the background.
 * The history is kept 90 days by default; you can choose 30 days, a year or forever.
 
 **Report**
@@ -114,7 +115,7 @@ The suggestions come from the index of your site, which is built in the backgrou
 
 = Why can't I link from this phrase? =
 
-Links are only inserted in paragraphs and lists, and never inside an existing link. Headings, quotes and tables are off by default: turn them on in Magic Linking > Settings > Where links can be inserted. A developer can allow more block types with `magiclinking_insertable_blocks`.
+Links are only inserted in paragraphs and lists, and never inside an existing link. Headings, quotes and tables are off by default: turn them on in Magic Linking > Settings > Links > Where links can be inserted. A developer can allow more block types with `magiclinking_insertable_blocks`.
 
 = Does it work in the classic editor? =
 
@@ -146,7 +147,7 @@ Press "Analyze changes" in the report (or run `wp magic-linking index`). It goes
 
 = How do I analyze the whole site again from scratch? =
 
-Go to Magic Linking > Settings, open the "Maintenance" section and press "Analyze everything again from scratch" (or run `wp magic-linking index --force`). It asks you to confirm and then runs in the background, even for entries that have not changed. It never changes your content.
+Go to Magic Linking > Settings, open the General tab, find the "Maintenance" section and press "Analyze everything again from scratch" (or run `wp magic-linking index --force`). It asks you to confirm and then runs in the background, even for entries that have not changed. It never changes your content.
 
 = What happens when I delete the plugin? =
 
@@ -160,6 +161,7 @@ Each site of a network has its own report, history and settings.
 
 * `magiclinking_link_inserted`: action that runs after a link has been inserted from the server.
 * `magiclinking_batch_undone`: action that runs after a group of links has been undone.
+* `magiclinking_link_fixed`: action that runs after a broken link has been fixed (destination changed or link removed), or that fix has been redone.
 * `magiclinking_insertable_blocks`: filter for the block types where links can be inserted.
 * `magiclinking_post_lock_timeout`: filter for the seconds to wait when another insertion or undo is writing the same entry.
 * `magiclinking_undo_sync_limit`: filter for how many changes are undone at once before the rest goes to the background.
@@ -175,9 +177,9 @@ Each site of a network has its own report, history and settings.
 1. Outbound suggestions in the block editor: each card shows the destination and the reason, and the anchor text is highlighted in the text.
 2. A link added with one click, with the Undo button on the card.
 3. Inbound suggestions: other entries that could link to the one you are editing.
-4. History: every link added from the server, with undo and redo.
+4. History: changes grouped by entry, with date, filters, and undo and redo.
 5. The report: totals for analyzed entries, orphans, internal links and broken links, with filters, search and sorting.
-6. Settings: content types, where links can be inserted, suggestions shown, history retention and maintenance.
+6. Settings in tabs (General, Suggestions, Links, History and data) with a save bar that stays in view.
 
 == Support and documentation ==
 
@@ -191,13 +193,22 @@ Magic Linking does not connect to any external service.
 
 == Privacy ==
 
-Magic Linking does not collect, store or send personal data. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added (which user, when, which entry and the text of the paragraph that changed, so it can be undone). The pairs (entry, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies.
+Magic Linking does not collect, store or send personal data. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added or fixed, including those you add from the editor panel (which user, when, which entry and the text of the paragraph that changed, so it can be undone). The pairs (entry, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies.
 
 == Third-party libraries ==
 
 * Action Scheduler (WooCommerce) 4.2.x, GPL-3.0-or-later, bundled in `vendor/woocommerce/action-scheduler/`. Used to run the analysis and the index in the background.
 
 == Changelog ==
+
+= 0.12.0 =
+* New: fix a broken internal link from the list, one by one: change its destination to another published entry, or remove the link and keep its text. The rest of the entry is verified unchanged, and you can undo it from History.
+* New: History also records the links you add from the editor panel, once you save the entry, and marks them as undone if you remove them and save. This adds two columns to the history table; the update runs by itself.
+* Improved: History is more compact and grouped by entry, with the date of every change, filters, "Undo all" and "Redo all" per entry (in the background when there are many) and a view by batch.
+* New: WP-CLI `wp magic-linking history undo|redo --post=<id>`.
+* Improved: Settings are organized in tabs (General, Suggestions, Links, History and data) with a save bar that stays in view.
+* Improved: the editor panel is more compact after you link or dismiss a suggestion.
+* Improved: translations are up to date in all six bundled languages.
 
 = 0.11.0 =
 * New: dismiss a suggestion for good. A dismissed pair (entry, target) is not proposed again, in either direction, and you can undo it. A target dismissed from more than 10 published entries is ranked slightly lower across the site.
@@ -232,6 +243,9 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 0.12.0 =
+History now also records links added from the editor panel (two new columns in its table, updated automatically), and broken links can be fixed one by one. The update does not touch your content.
 
 = 0.10.0 =
 Adds link suggestions in the editor. After updating, the suggestions index is built in the background; it may take a few minutes on a big site. The plugin can now add links, always when you press Link and with Undo in History. The update does not touch your content.
