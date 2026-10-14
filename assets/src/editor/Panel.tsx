@@ -15,6 +15,8 @@ interface Props {
 	adapter: EditorAdapter;
 	boot: EditorBoot;
 	state: PanelState;
+	/** Si el panel anuncia por sí mismo las sugerencias nuevas (false cuando lo hace quien lo aloja). */
+	announce?: boolean;
 }
 
 function failureText( reason: ApplyFailure ): string {
@@ -104,8 +106,9 @@ function Pager( {
  * @param root0.adapter
  * @param root0.boot
  * @param root0.state
+ * @param root0.announce
  */
-export function Panel( { adapter, boot, state }: Props ) {
+export function Panel( { adapter, boot, state, announce = true }: Props ) {
 	const { outbound, inbound, statuses, setStatus } = state;
 
 	// Anuncia el resultado cuando llegan sugerencias nuevas después de las primeras (no la carga inicial, que en
@@ -115,7 +118,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 		if ( outbound.data && outbound.data !== announced.current ) {
 			const initial = announced.current === null;
 			announced.current = outbound.data;
-			if ( initial ) {
+			if ( initial || ! announce ) {
 				return;
 			}
 			speak(
@@ -132,7 +135,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 				'polite'
 			);
 		}
-	}, [ outbound.data ] );
+	}, [ outbound.data, announce ] );
 
 	// Tras un Deshacer del usuario (enlace o descarte) la fila desaparece: el foco lo recoge la tarjeta que vuelve,
 	// una sola vez y solo ella (Actualizar o cambiar de pestaña no mueven el foco). Caduca por si la tarjeta no vuelve.

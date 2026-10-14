@@ -3,9 +3,9 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Magic Linking 0.12.0\n"
+"Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-14T19:21:05+00:00\n"
+"POT-Creation-Date: 2026-10-14T20:49:54+00:00\n"
 "PO-Revision-Date: 2026-10-08 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Deutsch\n"
@@ -769,6 +769,7 @@ msgstr "Weiter"
 
 #. translators: %d: number of suggestions.
 #: assets/build/classic.js:10 assets/build/editor.js:10
+#: assets/build/editor.js:13
 msgid "%d outbound suggestion"
 msgid_plural "%d outbound suggestions"
 msgstr[0] "%d ausgehender Vorschlag"
@@ -856,13 +857,6 @@ msgstr "Sätze in anderen Beiträgen, in die ein Link auf diesen Beitrag passt."
 #: assets/build/classic.js:12 assets/build/editor.js:12
 msgid "The suggestions could not be loaded. Check your connection and try again."
 msgstr "Die Vorschläge konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
-
-#. translators: 1: panel title, 2: number of outbound suggestions.
-#: assets/build/editor.js:13
-msgid "%1$s, %2$d outbound suggestion"
-msgid_plural "%1$s, %2$d outbound suggestions"
-msgstr[0] "%1$s, %2$d ausgehender Vorschlag"
-msgstr[1] "%1$s, %2$d ausgehende Vorschläge"
 
 #. translators: %s: number of entries.
 #: assets/build/index.js:3 assets/build/index.js:18

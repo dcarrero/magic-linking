@@ -251,24 +251,51 @@ test.describe( 'Editor panel', () => {
 		).toBeVisible();
 	} );
 
-	test( 'the toolbar button keeps the outbound count in its accessible name, the panel title has none', async ( {
+	test( 'the toolbar button is named after the panel and the panel header has the native pin button', async ( {
 		page,
 	} ) => {
 		wp( 'magic-linking', 'index' );
 		await login( page );
 		await openBlockEditor( page, ids.origen );
-		const panel = await openSidebar( page );
+		await openSidebar( page );
+
+		const sidebar = page.locator( '.interface-complementary-area' );
 		await expect(
-			page
-				.getByRole( 'button', {
-					name: /^Internal links, \d+ outbound suggestions?$/,
-				} )
-				.first()
+			sidebar.getByRole( 'heading', {
+				level: 2,
+				name: 'Internal links',
+				exact: true,
+			} )
 		).toBeVisible();
-		await expect(
-			page.getByRole( 'heading', { level: 2, name: 'Internal links', exact: true } )
-		).toBeVisible();
-		await expect( panel ).toBeVisible();
+
+		const toolbarButton = page.getByRole( 'button', {
+			name: /^Internal links/,
+		} );
+		try {
+			const unpin = sidebar.getByRole( 'button', {
+				name: 'Unpin from toolbar',
+			} );
+			await expect( unpin ).toHaveAttribute( 'aria-pressed', 'true' );
+			await expect( toolbarButton ).toHaveCount( 1 );
+
+			await unpin.click();
+			const pin = sidebar.getByRole( 'button', {
+				name: 'Pin to toolbar',
+			} );
+			await expect( pin ).toHaveAttribute( 'aria-pressed', 'false' );
+			await expect( toolbarButton ).toHaveCount( 0 );
+
+			await pin.click();
+			await expect( toolbarButton ).toHaveCount( 1 );
+		} finally {
+			// Deja siempre la barra fijada, aunque la prueba falle, para no afectar a las demás.
+			await page.evaluate( () =>
+				// @ts-expect-error wp lo pone WordPress.
+				window.wp.data
+					.dispatch( 'core/interface' )
+					.pinItem( 'core', 'magic-linking/magiclinking-sidebar' )
+			);
+		}
 	} );
 
 	test( 'outbound: shows the card, highlights, links in the client and leaves the rest intact', async ( {
