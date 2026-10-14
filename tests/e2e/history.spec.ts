@@ -353,4 +353,21 @@ test.describe( 'History', () => {
 		await page.goto( SCREEN_HISTORY );
 		await expect( page.locator( '.magiclinking-batch' ) ).toHaveCount( 2 );
 	} );
+
+	test( 'the link to change the retention opens the history card in Settings', async ( {
+		page,
+	} ) => {
+		await login( page );
+		await page.goto( SCREEN_HISTORY );
+		await page
+			.getByRole( 'link', { name: 'Change how long they are kept' } )
+			.click();
+		await expect( page ).toHaveURL( /magic-linking-settings.*#tab=data$/ );
+		await expect(
+			page.locator( '[role="tab"][aria-selected="true"]' )
+		).toHaveText( 'History and data' );
+		await expect(
+			page.getByLabel( 'Keep the history of changes for' )
+		).toBeVisible();
+	} );
 } );

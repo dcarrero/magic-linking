@@ -164,7 +164,7 @@ export function HistoryTab( { settingsUrl }: Props ) {
 				) }{ ' ' }
 				{ retentionText( retention ) }{ ' ' }
 				{ settingsUrl && (
-					<a href={ settingsUrl }>
+					<a href={ `${ settingsUrl }#tab=data` }>
 						{ __(
 							'Change how long they are kept',
 							'magic-linking'

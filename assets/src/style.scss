@@ -192,7 +192,8 @@
 		grid-template-columns: minmax(0, 1fr);
 	}
 
-	// Marca discreta de «cambios sin guardar» (azul) o «necesita atención» (rojo) en la pestaña.
+	// Marca discreta en la pestaña, con forma además de color (WCAG 1.4.1): un punto azul para «cambios sin
+	// guardar» y un triángulo rojo para «requiere atención». Ambas llevan texto para lectores de pantalla.
 	.magiclinking-tab-mark {
 		background: #2271b1;
 		border-radius: 50%;
@@ -204,6 +205,10 @@
 
 		&.is-invalid {
 			background: #cc1818;
+			border-radius: 0;
+			clip-path: polygon(50% 0, 100% 100%, 0 100%);
+			height: 11px;
+			width: 12px;
 		}
 	}
 

@@ -13,9 +13,9 @@ import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import { useLoad } from '../hooks';
 import type { SettingsValues, StatusResponse } from '../types';
-import { Maintenance } from './Maintenance';
+import { Maintenance, useMaintenance } from './Maintenance';
 import { SettingsSection, settingsSections } from './SettingsSection';
-import { tabFromHash, type SettingsTabName } from './settingsTabs';
+import { parseHash, TAB_FIELDS, type SettingsTabName } from './settingsTabs';
 
 interface Props {
 	/** Se llama cuando guardar los ajustes ha lanzado un análisis nuevo. */
@@ -99,6 +99,8 @@ function draftOf( settings: SettingsValues ): Draft {
  */
 function effective( draft: Draft ): SettingsValues {
 	const values = { ...draft.values };
+	// Los tipos de contenido son un conjunto: el orden en que se marcaron no es un cambio.
+	values.post_types = [ ...values.post_types ].sort();
 	NUMBER_KEYS.forEach( ( key ) => {
 		const { fallback, min, max } = NUMBER_RULES[ key ];
 		values[ key ] = whole( draft.numbers[ key ], fallback, min, max );
@@ -121,27 +123,17 @@ function snapshot( draft: Draft ): string {
 	return JSON.stringify( effective( draft ) );
 }
 
-/** Qué ajustes (y listas) de cada pestaña: de aquí salen sus marcas de cambios sin guardar. */
-const TAB_FIELDS: Record< SettingsTabName, ( keyof SettingsValues )[] > = {
-	general: [ 'post_types' ],
-	suggestions: [
-		'outbound_shown',
-		'inbound_per_page',
-		'words_per_link',
-		'same_anchor_max',
-		'low_inbound_threshold',
-	],
-	links: [
-		'link_in_headings',
-		'link_in_quotes',
-		'link_in_tables',
-		'open_in_new_tab',
-		'extra_rel',
-		'ignored_urls',
-		'ignored_words',
-	],
-	data: [ 'history_retention_days', 'delete_data_on_uninstall' ],
-};
+/**
+ * ¿El texto del campo es un entero dentro de los límites de ese campo?
+ * @param key  Campo numérico.
+ * @param text Lo escrito.
+ */
+function isValidNumber( key: NumberKey, text: string ): boolean {
+	const { min, max } = NUMBER_RULES[ key ];
+	return (
+		/^\d+$/.test( text ) && Number( text ) >= min && Number( text ) <= max
+	);
+}
 
 /**
  * Ajustes (docs/07 §8): pocos y con valores por defecto sensatos.
@@ -165,10 +157,16 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 	const latest = useRef< Draft | null >( null );
 	latest.current = draft;
 	// Pestaña activa (va en la dirección). `rev` cambia solo cuando la pide la dirección desde fuera.
-	const [ location, setLocation ] = useState( () =>
-		tabFromHash( window.location.hash )
+	const [ location, setLocation ] = useState(
+		() =>
+			parseHash( window.location.hash ) ?? {
+				tab: 'general' as SettingsTabName,
+				anchor: '',
+			}
 	);
 	const [ rev, setRev ] = useState( 0 );
+	// El estado de Mantenimiento vive aquí para no perder un error o un análisis en curso al cambiar de pestaña.
+	const maintenance = useMaintenance( onReindex );
 	const [ anchor, setAnchor ] = useState( location.anchor );
 	const activeTab = useRef< SettingsTabName >( location.tab );
 
@@ -220,10 +218,11 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 	// Un enlace con otra pestaña (o atrás/adelante) cambia la pestaña sin perder lo escrito.
 	useEffect( () => {
 		const onHash = () => {
-			if ( ! /^#?(tab=|magiclinking-)/.test( window.location.hash ) ) {
+			// Solo `#tab=…` y las anclas antiguas piden una pestaña; cualquier otro fragmento se ignora.
+			const next = parseHash( window.location.hash );
+			if ( ! next ) {
 				return;
 			}
-			const next = tabFromHash( window.location.hash );
 			if ( next.tab !== activeTab.current ) {
 				activeTab.current = next.tab;
 				setLocation( next );
@@ -321,10 +320,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 	const number = ( key: NumberKey, label: string, help: string ) => {
 		const { fallback, min, max } = NUMBER_RULES[ key ];
 		const text = draft.numbers[ key ];
-		const valid =
-			/^\d+$/.test( text ) &&
-			Number( text ) >= min &&
-			Number( text ) <= max;
+		const valid = isValidNumber( key, text );
 		return (
 			<TextControl
 				className="magiclinking-number"
@@ -395,20 +391,11 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 				JSON.stringify( current[ key ] ) !==
 				JSON.stringify( baseValues[ key ] )
 		);
+	// Un número fuera de rango se corrige solo al salir del campo (y al guardar), así que nunca queda
+	// pendiente en otra pestaña: su error se ve junto al campo mientras se escribe. La marca de «requiere
+	// atención» es solo para lo que no se autocorrige: no haber elegido ningún tipo de contenido.
 	const tabInvalid = ( name: SettingsTabName ) =>
-		( name === 'general' && noTypes ) ||
-		NUMBER_KEYS.some( ( key ) => {
-			if ( ! ( TAB_FIELDS[ name ] as string[] ).includes( key ) ) {
-				return false;
-			}
-			const { min, max } = NUMBER_RULES[ key ];
-			const text = draft.numbers[ key ];
-			return ! (
-				/^\d+$/.test( text ) &&
-				Number( text ) >= min &&
-				Number( text ) <= max
-			);
-		} );
+		name === 'general' && noTypes;
 
 	const tabTitle = ( name: SettingsTabName, label: string ) => {
 		const invalid = tabInvalid( name );
@@ -782,7 +769,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						{ tab.name === 'general' && (
 							<Maintenance
 								status={ status }
-								onStarted={ onReindex }
+								control={ maintenance }
 								onOpenWizard={ onOpenWizard }
 							/>
 						) }

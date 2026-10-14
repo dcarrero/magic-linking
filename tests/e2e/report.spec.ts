@@ -301,6 +301,15 @@ test.describe( 'Internal links', () => {
 			).outbound_shown
 		).toBe( 9 );
 
+		// Desmarcar y volver a marcar un tipo no es un cambio (aunque cambie el orden interno).
+		await openSettingsTab( page, 'General' );
+		await root.getByLabel( 'Posts' ).uncheck();
+		await root.getByLabel( 'Posts' ).check();
+		await expect( root.getByText( '(unsaved changes)' ) ).toHaveCount( 0 );
+		await expect(
+			root.getByRole( 'button', { name: 'Save settings' } )
+		).toBeDisabled();
+
 		// Sin ningún tipo de contenido, General pide atención (y guardar queda deshabilitado).
 		await openSettingsTab( page, 'General' );
 		await root.getByLabel( 'Posts' ).uncheck();
@@ -341,8 +350,23 @@ test.describe( 'Internal links', () => {
 		await expect( selected() ).toHaveText( 'Suggestions' );
 
 		// Una dirección que no existe cae en General.
+		await page.goto( SCREEN );
 		await page.goto( `${ SCREEN_SETTINGS }#tab=nope` );
 		await expect( selected() ).toHaveText( 'General' );
+
+		// Otros fragmentos (ids de la pantalla) no sacan de la pestaña.
+		await openSettingsTab( page, 'Links' );
+		for ( const other of [
+			'magiclinking-root',
+			'magiclinking-settings-form',
+			'magiclinking-s-exclusions-title',
+		] ) {
+			await page.evaluate( ( hash ) => {
+				window.location.hash = hash;
+			}, other );
+			await page.waitForTimeout( 300 );
+			await expect( selected() ).toHaveText( 'Links' );
+		}
 
 		// Las anclas de la versión anterior llevan a su pestaña (y a su tarjeta).
 		const legacy: [ string, string, string ][] = [
@@ -353,7 +377,10 @@ test.describe( 'Internal links', () => {
 			[ 'magiclinking-maintenance', 'General', 'Maintenance' ],
 		];
 		for ( const [ anchor, tab, heading ] of legacy ) {
+			// Carga nueva (no solo un cambio de fragmento): primero otra pantalla, luego la dirección antigua.
+			await page.goto( SCREEN );
 			await page.goto( `${ SCREEN_SETTINGS }#${ anchor }` );
+			await expect( root.getByRole( 'tablist' ) ).toBeVisible();
 			await expect( selected() ).toHaveText( tab );
 			await expect(
 				root.getByRole( 'heading', { level: 2, name: heading } )
@@ -827,9 +854,15 @@ test.describe( 'Internal links', () => {
 			await page.waitForLoadState( 'networkidle' );
 			expect( ( await axe( page ) ).violations ).toEqual( [] );
 
+			// Con un cambio sin guardar y un estado no válido real (ningún tipo de contenido).
 			await openSettingsTab( page, 'Suggestions' );
-			await page.getByLabel( 'Words per internal link' ).fill( '3' );
 			await page.getByLabel( 'Outbound suggestions in the editor' ).fill( '8' );
+			await openSettingsTab( page, 'General' );
+			await page.getByLabel( 'Posts' ).uncheck();
+			await page.getByLabel( 'Pages' ).uncheck();
+			await expect(
+				page.getByRole( 'tab', { name: 'General (needs attention)' } )
+			).toBeVisible();
 			await openSettingsTab(
 				page,
 				( {
@@ -842,6 +875,76 @@ test.describe( 'Internal links', () => {
 			expect( ( await axe( page ) ).violations ).toEqual( [] );
 		} );
 	}
+
+	test( 'axe finds no violations with an invalid number still being edited', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( `${ SCREEN_SETTINGS }#tab=suggestions` );
+		const words = page.getByLabel( 'Words per internal link' );
+		await words.fill( '3' );
+		await expect( words ).toHaveAttribute( 'aria-invalid', 'true' );
+		await expect( words ).toBeFocused();
+		await expect(
+			page.getByText( /Enter a whole number from 20 to 1000/ )
+		).toBeVisible();
+		expect( ( await axe( page ) ).violations ).toEqual( [] );
+	} );
+
+	test( 'the unsaved and needs-attention marks differ by shape, not only by colour', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( `${ SCREEN_SETTINGS }#tab=links` );
+		await page.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await openSettingsTab( page, 'General' );
+		await page.getByLabel( 'Posts' ).uncheck();
+		await page.getByLabel( 'Pages' ).uncheck();
+		await openSettingsTab( page, 'Links' );
+		const shape = ( name: string ) =>
+			page
+				.getByRole( 'tab', { name: new RegExp( `^${ name }` ) } )
+				.locator( '.magiclinking-tab-mark' )
+				.evaluate( ( el ) => {
+					const style = getComputedStyle( el );
+					return style.clipPath + '|' + style.borderRadius;
+				} );
+		const unsaved = await shape( 'Links' );
+		const attention = await shape( 'General' );
+		expect( unsaved ).not.toBe( attention );
+	} );
+
+	test( 'a failure in Maintenance survives changing tabs', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		const root = page.locator( '#magiclinking-root' );
+		await page.route( /rest_route=.*index|wp-json.*\/index/, async ( route ) => {
+			if ( route.request().method() === 'POST' ) {
+				await route.fulfill( {
+					status: 500,
+					contentType: 'application/json',
+					body: JSON.stringify( { code: 'boom', message: 'Boom.' } ),
+				} );
+				return;
+			}
+			await route.continue();
+		} );
+		await root
+			.getByRole( 'button', {
+				name: 'Analyze everything again from scratch',
+			} )
+			.click();
+		await page.getByRole( 'button', { name: 'Start analysis' } ).click();
+		await expect( root.getByText( 'Boom.' ) ).toBeVisible();
+		await openSettingsTab( page, 'Links' );
+		await openSettingsTab( page, 'General' );
+		await expect( root.getByText( 'Boom.' ) ).toBeVisible();
+	} );
 
 	test( 'the report can be used with the keyboard only', async ( {
 		page,

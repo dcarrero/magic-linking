@@ -1,21 +1,16 @@
 import { Card, CardBody, CardHeader } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
-
-export type SectionKey =
-	| 'content'
-	| 'suggestions'
-	| 'overload'
-	| 'underlinked'
-	| 'insertion'
-	| 'manner'
-	| 'exclusions'
-	| 'history'
-	| 'uninstall'
-	| 'maintenance';
+import {
+	SECTION_META,
+	type SectionKey,
+	type SettingsTabName,
+} from './settingsTabs';
 
 export interface SectionInfo {
 	id: string;
+	/** Pestaña en la que está la tarjeta. */
+	tab: SettingsTabName;
 	title: string;
 	description: string;
 }
@@ -26,7 +21,7 @@ export interface SectionInfo {
 export function settingsSections(): Record< SectionKey, SectionInfo > {
 	return {
 		content: {
-			id: 'magiclinking-s-content',
+			...SECTION_META.content,
 			title: __( 'Content analyzed', 'magic-linking' ),
 			description: __(
 				'Magic Linking reads these content types to find links between them.',
@@ -34,7 +29,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		maintenance: {
-			id: 'magiclinking-maintenance',
+			...SECTION_META.maintenance,
 			title: __( 'Maintenance', 'magic-linking' ),
 			description: __(
 				'Run the analysis again and go back through the first steps.',
@@ -42,7 +37,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		suggestions: {
-			id: 'magiclinking-s-suggestions',
+			...SECTION_META.suggestions,
 			title: __( 'Suggestions shown', 'magic-linking' ),
 			description: __(
 				'How many suggestions you see in the editor.',
@@ -50,7 +45,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		overload: {
-			id: 'magiclinking-s-overload',
+			...SECTION_META.overload,
 			title: __( 'To avoid overloading your texts', 'magic-linking' ),
 			description: __(
 				'These are quality settings, not limits: you can always insert any link yourself.',
@@ -58,7 +53,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		underlinked: {
-			id: 'magiclinking-s-underlinked',
+			...SECTION_META.underlinked,
 			title: __( 'Under-linked entries', 'magic-linking' ),
 			description: __(
 				'When an entry is shown as linked too little.',
@@ -66,7 +61,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		insertion: {
-			id: 'magiclinking-s-insertion',
+			...SECTION_META.insertion,
 			title: __( 'Where links can be inserted', 'magic-linking' ),
 			description: __(
 				'Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too.',
@@ -74,7 +69,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		manner: {
-			id: 'magiclinking-s-manner',
+			...SECTION_META.manner,
 			title: __( 'How links are inserted', 'magic-linking' ),
 			description: __(
 				'What the links Magic Linking inserts look like.',
@@ -82,7 +77,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		exclusions: {
-			id: 'magiclinking-s-exclusions',
+			...SECTION_META.exclusions,
 			title: __( 'Exclusions', 'magic-linking' ),
 			description: __(
 				'Entries and words that Magic Linking should leave alone.',
@@ -90,7 +85,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		history: {
-			id: 'magiclinking-s-data',
+			...SECTION_META.history,
 			title: __( 'History of changes', 'magic-linking' ),
 			description: __(
 				'How long you can undo changes.',
@@ -98,7 +93,7 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			),
 		},
 		uninstall: {
-			id: 'magiclinking-s-uninstall',
+			...SECTION_META.uninstall,
 			title: __( 'When the plugin is deleted', 'magic-linking' ),
 			description: __(
 				'What happens to the data of Magic Linking.',
