@@ -764,7 +764,7 @@ test.describe( 'Editor panel', () => {
 		await expect( batch.getByRole( 'heading', { level: 2 } ) ).toContainText( '1 link added' );
 		await expect( batch ).toContainText( 'Added from the editor panel' );
 		await expect( page.locator( '.magiclinking-wrap' ) ).toContainText(
-			'Links you add from the editor panel appear once you save the entry; Magic Linking only records them.'
+			'Links you add in the editor panel appear here once you save the entry.'
 		);
 		await expectHistoryAccessible( page );
 
