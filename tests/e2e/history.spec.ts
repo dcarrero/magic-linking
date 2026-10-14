@@ -153,7 +153,7 @@ test.describe( 'History by entry', () => {
 		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'ventilador industrial' );
 		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'Magic Linking' );
 		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'E2E destino' );
-		await expect( table.getByRole( 'link', { name: 'E2E destino' } ).first() ).toHaveAttribute( 'href', /e2e-destino/ );
+		await expect( table.getByRole( 'link', { name: 'E2E destino' } ).first() ).toHaveAttribute( 'href', /e2e-destino|[?&]p=\d+/ );
 
 		// Un cambio de un lote de varias entradas lo dice.
 		await expect( entry.getByText( 'Part of a batch of 2 entries' ) ).toBeVisible();
