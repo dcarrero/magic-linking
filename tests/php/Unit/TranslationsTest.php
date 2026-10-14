@@ -78,7 +78,7 @@ final class TranslationsTest extends TestCase {
 		foreach ( preg_split( '/\n\n/', (string) file_get_contents( self::ROOT . 'languages/' . $file ) ) as $block ) {
 			if ( preg_match( '/^msgid "(.*)"$/m', $block, $id ) && '' !== $id[1] ) {
 				preg_match( '/^msgstr "(.*)"$/m', $block, $str );
-				$context = preg_match( '/^msgctxt "(.*)"$/m', $block, $ctx ) ? stripcslashes( $ctx[1] ) . "\x04" : '';
+				$context                                       = preg_match( '/^msgctxt "(.*)"$/m', $block, $ctx ) ? stripcslashes( $ctx[1] ) . "\x04" : '';
 				$entries[ $context . stripcslashes( $id[1] ) ] = stripcslashes( $str[1] ?? '' );
 			}
 		}
