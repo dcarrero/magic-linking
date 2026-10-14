@@ -61,12 +61,24 @@ export function SuggestionCard( {
 	onUndo,
 	onHighlight,
 }: Props ) {
-	// El botón que se pulsó desaparece: el foco pasa al texto del resultado, que se lee entero.
+	// Al plegarse (enlazada o descartada) el botón pulsado desaparece: el foco pasa a la fila, que se lee entera.
+	// Al deshacer, la fila desaparece y el foco vuelve a la tarjeta que se despliega.
+	const cardRef = useRef< HTMLLIElement >( null );
 	const statusRef = useRef< HTMLParagraphElement >( null );
+	const previousKind = useRef< CardStatus[ 'kind' ] | undefined >(
+		undefined
+	);
 	const kind = status?.kind;
 	useEffect( () => {
+		const before = previousKind.current;
+		previousKind.current = kind;
 		if ( kind === 'added' || kind === 'error' || kind === 'dismissed' ) {
 			statusRef.current?.focus();
+		} else if (
+			( before === 'added' || before === 'dismissed' ) &&
+			kind === undefined
+		) {
+			cardRef.current?.focus();
 		}
 	}, [ kind ] );
 	const { source, target } = suggestion;
@@ -74,39 +86,99 @@ export function SuggestionCard( {
 		post.title || __( '(no title)', 'magic-linking' );
 	const busy = status?.kind === 'busy';
 	const dismissing = status?.kind === 'dismissing';
-	const added = status?.kind === 'added';
 
-	if ( status?.kind === 'dismissed' ) {
+	// Enlazada o descartada: una fila corta con el ancla, el destino y Deshacer (F1-31).
+	if ( status?.kind === 'dismissed' || status?.kind === 'added' ) {
+		const isAdded = status.kind === 'added';
+		const message = isAdded
+			? status.message
+			: __(
+					'Suggestion dismissed. It will not be proposed again.',
+					'magic-linking'
+			  );
+		const canUndo = isAdded ? !! status.undo : true;
+		const undoLabel = isAdded
+			? sprintf(
+					/* translators: %s: title of the destination. */
+					__( 'Undo the link to “%s”', 'magic-linking' ),
+					title( target )
+			  )
+			: sprintf(
+					/* translators: %s: title of the destination. */
+					__(
+						'Undo dismissing the suggestion for “%s”',
+						'magic-linking'
+					),
+					title( target )
+			  );
+		const busyUndo = ! isAdded && !! status.busy;
 		return (
-			<li className="magiclinking-card is-dismissed">
-				<div className="magiclinking-card__actions">
-					<p
-						className="magiclinking-card__status"
-						ref={ statusRef }
-						tabIndex={ -1 }
+			<li
+				className={ `magiclinking-card is-folded ${
+					isAdded ? 'is-added' : 'is-dismissed'
+				}` }
+				ref={ cardRef }
+				tabIndex={ -1 }
+			>
+				<p
+					className="magiclinking-fold__text"
+					ref={ statusRef }
+					tabIndex={ -1 }
+				>
+					<span
+						aria-hidden="true"
+						className="magiclinking-fold__icon"
 					>
-						{ __(
-							'Suggestion dismissed. It will not be proposed again.',
-							'magic-linking'
-						) }
-					</p>
+						{ isAdded ? '✓' : '✕' }
+					</span>
+					<span className="screen-reader-text">{ message } </span>
+					<span
+						className="magiclinking-fold__anchor"
+						title={ suggestion.anchor }
+					>
+						{ suggestion.anchor }
+					</span>
+					<span
+						aria-hidden="true"
+						className="magiclinking-fold__arrow"
+					>
+						{ '→' }
+					</span>
+					<span className="screen-reader-text">
+						{ ' ' }
+						{ __( 'Links to:', 'magic-linking' ) }{ ' ' }
+					</span>
+					<span
+						className="magiclinking-fold__target"
+						title={ title( target ) }
+					>
+						{ title( target ) }
+					</span>
+				</p>
+				{ canUndo && (
 					<Button
 						variant="link"
-						disabled={ status.busy }
+						className="magiclinking-fold__undo"
+						disabled={ busyUndo }
 						accessibleWhenDisabled
-						onClick={ () => onRestore( suggestion ) }
-						aria-label={ sprintf(
-							/* translators: %s: title of the destination. */
-							__(
-								'Undo dismissing the suggestion for “%s”',
-								'magic-linking'
-							),
-							title( target )
-						) }
+						onClick={ () =>
+							isAdded
+								? onUndo( suggestion )
+								: onRestore( suggestion )
+						}
+						aria-label={ undoLabel }
 					>
 						{ __( 'Undo', 'magic-linking' ) }
 					</Button>
-				</div>
+				) }
+				{ isAdded && direction === 'inbound' && (
+					<a
+						className="magiclinking-fold__history"
+						href={ historyUrl }
+					>
+						{ __( 'See in History', 'magic-linking' ) }
+					</a>
+				) }
 			</li>
 		);
 	}
@@ -117,7 +189,9 @@ export function SuggestionCard( {
 
 	return (
 		<li
-			className={ `magiclinking-card${ added ? ' is-added' : '' }` }
+			className="magiclinking-card"
+			ref={ cardRef }
+			tabIndex={ -1 }
 			onMouseEnter={ () => onHighlight?.( suggestion ) }
 			onMouseLeave={ () => onHighlight?.( null ) }
 			onFocus={ () => onHighlight?.( suggestion ) }
@@ -193,75 +267,50 @@ export function SuggestionCard( {
 				</p>
 			) }
 
-			{ added && status.kind === 'added' ? (
-				<div className="magiclinking-card__actions">
-					<p
-						className="magiclinking-card__status"
-						ref={ statusRef }
-						tabIndex={ -1 }
+			<div className="magiclinking-card__actions">
+				{ suggestion.can_insert && (
+					<Button
+						variant="primary"
+						size="compact"
+						isBusy={ busy }
+						disabled={ busy || dismissing }
+						accessibleWhenDisabled
+						onClick={ () => onLink( suggestion ) }
+						aria-label={ sprintf(
+							/* translators: %s: title of the destination. */
+							__( 'Link to “%s”', 'magic-linking' ),
+							title( target )
+						) }
 					>
-						{ status.message }
-					</p>
-					{ status.undo && (
-						<Button
-							variant="link"
-							onClick={ () => onUndo( suggestion ) }
-						>
-							{ __( 'Undo', 'magic-linking' ) }
-						</Button>
-					) }
-					{ direction === 'inbound' && (
-						<a href={ historyUrl }>
-							{ __( 'See in History', 'magic-linking' ) }
-						</a>
-					) }
-				</div>
-			) : (
-				<div className="magiclinking-card__actions">
-					{ suggestion.can_insert && (
-						<Button
-							variant="primary"
-							size="compact"
-							isBusy={ busy }
-							disabled={ busy || dismissing }
-							accessibleWhenDisabled
-							onClick={ () => onLink( suggestion ) }
-							aria-label={ sprintf(
-								/* translators: %s: title of the destination. */
-								__( 'Link to “%s”', 'magic-linking' ),
-								title( target )
-							) }
-						>
-							{ _x(
-								'Link',
-								'button: add the link to the text',
+						{ _x(
+							'Link',
+							'button: add the link to the text',
+							'magic-linking'
+						) }
+					</Button>
+				) }
+				{ suggestion.can_insert && (
+					<Button
+						variant="tertiary"
+						size="compact"
+						isBusy={ dismissing }
+						aria-busy={ dismissing }
+						disabled={ busy || dismissing }
+						accessibleWhenDisabled
+						onClick={ () => onDismiss( suggestion ) }
+						aria-label={ sprintf(
+							/* translators: %s: title of the destination. */
+							__(
+								'Dismiss the suggestion for “%s”',
 								'magic-linking'
-							) }
-						</Button>
-					) }
-					{ suggestion.can_insert && (
-						<Button
-							variant="tertiary"
-							size="compact"
-							isBusy={ dismissing }
-							aria-busy={ dismissing }
-							disabled={ busy || dismissing }
-							accessibleWhenDisabled
-							onClick={ () => onDismiss( suggestion ) }
-							aria-label={ sprintf(
-								/* translators: %s: title of the destination. */
-								__(
-									'Dismiss the suggestion for “%s”',
-									'magic-linking'
-								),
-								title( target )
-							) }
-						>
-							{ __( 'Dismiss', 'magic-linking' ) }
-						</Button>
-					) }
-				</div>
-			) }
+							),
+							title( target )
+						) }
+					>
+						{ __( 'Dismiss', 'magic-linking' ) }
+					</Button>
+				) }
+			</div>
 		</li>
 	);
 }

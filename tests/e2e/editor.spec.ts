@@ -241,14 +241,29 @@ test.describe( 'Editor panel', () => {
 
 		// Enlazar: el enlace aparece en el editor, sin guardar; el servidor no se toca.
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
-		await expect( card.getByText( 'Link added.' ) ).toBeFocused();
+		await expect( card.locator( '.magiclinking-fold__text' ) ).toBeFocused();
+		await expect( card.locator( '.magiclinking-fold__text' ) ).toContainText( 'Link added.' );
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveText(
 			'bomba de calor'
 		);
 		expect( content( ids.origen ) ).toBe( before );
 
+		// La tarjeta enlazada es una fila corta (sin contexto ni motivo), con el destino y Deshacer, y sin fallos de axe.
+		await expect( card ).toHaveClass( /is-folded/ );
+		await expect( card ).toContainText( 'bomba de calor' );
+		await expect( card ).toContainText( 'Aislamiento de casas' );
+		await expect( card.locator( '.magiclinking-card__sentence, .magiclinking-card__reasons' ) ).toHaveCount( 0 );
+		expect( ( await card.boundingBox() )?.height ?? 999 ).toBeLessThan( 60 );
+		const folded = await new AxeBuilder( { page } )
+			.include( '.magiclinking-panel' )
+			.withTags( AXE_TAGS )
+			.analyze();
+		expect( folded.violations ).toEqual( [] );
+
 		// Deshacer desde la tarjeta quita el enlace del editor; se vuelve a enlazar.
 		await card.getByRole( 'button', { name: 'Undo' } ).click();
+		await expect( card ).not.toHaveClass( /is-folded/ );
+		await expect( card ).toBeFocused();
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveText(
@@ -481,7 +496,8 @@ test.describe( 'Editor panel', () => {
 		// Descartar: la tarjeta pasa a una fila con Deshacer (con el foco) y el contador baja.
 		await card.getByRole( 'button', { name: /^Dismiss/ } ).click();
 		const row = panel.locator( '.magiclinking-card.is-dismissed' ).first();
-		await expect( row.getByText( /^Suggestion dismissed/ ) ).toBeFocused();
+		await expect( row.locator( '.magiclinking-fold__text' ) ).toBeFocused();
+		await expect( row.locator( '.magiclinking-fold__text' ) ).toContainText( 'Suggestion dismissed' );
 		await expect( tab ).toHaveText( `Outbound (${ count - 1 })` );
 		const accessibility = await new AxeBuilder( { page } )
 			.include( '.magiclinking-panel' )
