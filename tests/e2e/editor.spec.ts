@@ -271,6 +271,48 @@ test.describe( 'Editor panel', () => {
 		await expect( panel ).toBeVisible();
 	} );
 
+	test( 'the panel header keeps the pin star: unpinning removes the toolbar button and pinning brings it back', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		await openSidebar( page );
+
+		const toolbarButton = page.getByRole( 'button', {
+			name: /^Internal links, \d+ outbound suggestions?$/,
+		} );
+		const sidebar = page.locator( '.interface-complementary-area' );
+		await expect(
+			sidebar.getByRole( 'heading', {
+				level: 2,
+				name: 'Internal links',
+				exact: true,
+			} )
+		).toBeVisible();
+
+		const unpin = sidebar.getByRole( 'button', {
+			name: 'Unpin from toolbar',
+		} );
+		await expect( unpin ).toHaveAttribute( 'aria-pressed', 'true' );
+		await expect( toolbarButton ).toHaveCount( 1 );
+
+		await unpin.click();
+		const pin = sidebar.getByRole( 'button', { name: 'Pin to toolbar' } );
+		await expect( pin ).toHaveAttribute( 'aria-pressed', 'false' );
+		await expect( toolbarButton ).toHaveCount( 0 );
+		// El panel sigue abierto y con su botón de cerrar.
+		await expect(
+			sidebar.getByRole( 'button', { name: 'Close plugin' } )
+		).toBeVisible();
+
+		await pin.click();
+		await expect(
+			sidebar.getByRole( 'button', { name: 'Unpin from toolbar' } )
+		).toHaveAttribute( 'aria-pressed', 'true' );
+		await expect( toolbarButton ).toHaveCount( 1 );
+	} );
+
 	test( 'outbound: shows the card, highlights, links in the client and leaves the rest intact', async ( {
 		page,
 	} ) => {

@@ -1,7 +1,10 @@
+import { Button } from '@wordpress/components';
+import { useViewportMatch } from '@wordpress/compose';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { useMemo } from '@wordpress/element';
 import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
-import { Icon, link } from '@wordpress/icons';
+import { Icon, link, starEmpty, starFilled } from '@wordpress/icons';
 import { gutenbergAdapter } from './adapters/gutenberg';
 import type { EditorBoot } from './boot';
 import { buttonName } from './buttonName';
@@ -9,6 +12,70 @@ import { Panel } from './Panel';
 import { usePanelState } from './usePanelState';
 
 export const SIDEBAR = 'magiclinking-sidebar';
+
+/** Ámbito y identificador con los que PluginSidebar registra la barra en el store `core/interface`. */
+const SCOPE = 'core';
+const IDENTIFIER = `magic-linking/${ SIDEBAR }`;
+
+interface InterfaceSelectors {
+	isItemPinned: ( scope: string, identifier: string ) => boolean;
+}
+
+interface InterfaceActions {
+	pinItem: ( scope: string, identifier: string ) => void;
+	unpinItem: ( scope: string, identifier: string ) => void;
+}
+
+/**
+ * Cabecera del panel: el título visible sin número y la estrella de fijar. Pasar `header` a
+ * ComplementaryArea sustituye la cabecera por defecto entera (h2 y estrella), así que se reconstruye la
+ * estrella igual que la del núcleo (mismas clases, iconos, cadenas del dominio del núcleo y acciones del
+ * store `core/interface`; también se oculta en móvil). El botón de cerrar lo añade ComplementaryArea.
+ *
+ * @param root0
+ * @param root0.title
+ */
+function SidebarHeader( { title }: { title: string } ) {
+	const isMobile = useViewportMatch( 'medium', '<' );
+	const isPinned = useSelect(
+		( select ) =>
+			(
+				select( 'core/interface' ) as unknown as InterfaceSelectors
+			 ).isItemPinned( SCOPE, IDENTIFIER ),
+		[]
+	);
+	const { pinItem, unpinItem } = useDispatch(
+		'core/interface'
+	) as unknown as InterfaceActions;
+
+	return (
+		<>
+			<h2 className="interface-complementary-area-header__title">
+				{ title }
+			</h2>
+			{ ! isMobile && (
+				<Button
+					className="interface-complementary-area__pin-unpin-item"
+					icon={ isPinned ? starFilled : starEmpty }
+					// Cadenas del núcleo (dominio por defecto) para que salgan traducidas como la estrella nativa.
+					/* eslint-disable @wordpress/i18n-text-domain */
+					label={
+						isPinned
+							? __( 'Unpin from toolbar' )
+							: __( 'Pin to toolbar' )
+					}
+					/* eslint-enable @wordpress/i18n-text-domain */
+					onClick={ () =>
+						( isPinned ? unpinItem : pinItem )( SCOPE, IDENTIFIER )
+					}
+					isPressed={ isPinned }
+					aria-expanded={ isPinned }
+					size="compact"
+				/>
+			) }
+		</>
+	);
+}
 
 /**
  * Icono del botón de la barra superior con el número de salientes (docs/07 §3). El número va solo como
@@ -51,14 +118,8 @@ export function Sidebar( { boot }: { boot: EditorBoot } ) {
 	const title = __( 'Internal links', 'magic-linking' );
 	const buttonLabel = buttonName( title, count );
 
-	// `header` llega a ComplementaryArea (sustituye al h2 del título) pero no está en los tipos de PluginSidebar.
-	const headerProp = {
-		header: (
-			<h2 className="interface-complementary-area-header__title">
-				{ title }
-			</h2>
-		),
-	};
+	// `header` llega a ComplementaryArea (sustituye la cabecera por defecto) pero no está en los tipos de PluginSidebar.
+	const headerProp = { header: <SidebarHeader title={ title } /> };
 
 	return (
 		<>
