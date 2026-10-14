@@ -70,4 +70,17 @@ describe( 'classicTextElements', () => {
 			'Fuera',
 		] );
 	} );
+
+	it( 'lee tablas y citas envueltas en figure solo si el ámbito está activo', () => {
+		const root = html(
+			'<figure><table><tr><td>Celda</td></tr></table></figure><figure><blockquote>Cita</blockquote></figure><figure><img alt="x"><figcaption>Pie</figcaption></figure>'
+		);
+		const off = { headings: false, quotes: false, tables: false };
+		const texts = ( scope: typeof off ) =>
+			classicTextElements( root, scope ).map( ( e ) => e.textContent );
+
+		expect( texts( off ) ).toEqual( [] );
+		expect( texts( { ...off, tables: true } ) ).toEqual( [ 'Celda' ] );
+		expect( texts( { ...off, quotes: true } ) ).toEqual( [ 'Cita' ] );
+	} );
 } );

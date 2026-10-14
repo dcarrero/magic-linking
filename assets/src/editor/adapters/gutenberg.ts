@@ -205,17 +205,10 @@ export function gutenbergAdapter(
 
 		apply: ( suggestion: Suggestion ): ApplyResult => {
 			const targets = linkable( options.linkIn );
-			const blocks = new Map(
-				(
-					select( blockEditorStore ).getBlocks() as unknown as Block[]
-				 ).map( ( block ) => [ block.clientId, block ] )
-			);
 			const current = ( target: Target ): Block | null =>
-				( select( blockEditorStore ).getBlock(
+				select( blockEditorStore ).getBlock(
 					target.clientId
-				) as Block | null ) ??
-				blocks.get( target.clientId ) ??
-				null;
+				) as Block | null;
 			const values = new Map< string, ReturnType< typeof create > >();
 			for ( const target of targets ) {
 				const block = current( target );

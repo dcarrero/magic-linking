@@ -11,7 +11,7 @@ const AXE_TAGS = [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ];
 /** Sitio recién instalado: sin análisis y con el asistente sin cerrar para el administrador. */
 function freshSite(): void {
 	seed();
-	wp( 'eval', `delete_user_meta( 1, 'magiclinking_wizard_dismissed' );` );
+	wp( 'eval', `delete_user_meta( 1, $GLOBALS['wpdb']->get_blog_prefix() . 'magiclinking_wizard_dismissed' );` );
 }
 
 const wizard = ( page: import('@playwright/test').Page ) =>
@@ -25,7 +25,7 @@ test.describe( 'Setup assistant', () => {
 	test.afterAll( () => {
 		wp(
 			'eval',
-			`update_user_meta( 1, 'magiclinking_wizard_dismissed', '1' );`
+			`update_user_meta( 1, $GLOBALS['wpdb']->get_blog_prefix() . 'magiclinking_wizard_dismissed', '1' );`
 		);
 	} );
 
@@ -155,6 +155,14 @@ test.describe( 'Setup assistant', () => {
 		await expect(
 			wizard( page ).getByRole( 'heading', { name: 'What do we link?' } )
 		).toBeVisible();
+
+		// La petición no se queda en la dirección: cerrado el asistente, al recargar no vuelve.
+		expect( page.url() ).not.toContain( 'wizard=1' );
+		await wizard( page ).getByRole( 'button', { name: 'Skip setup' } ).click();
+		await expect( wizard( page ) ).toHaveCount( 0 );
+		await page.reload();
+		await expect( page.getByRole( 'button', { name: 'Analyze my site' } ) ).toBeVisible();
+		await expect( wizard( page ) ).toHaveCount( 0 );
 	} );
 
 	test( 'does not appear on a site that already has an analysis, nor for editors', async ( {

@@ -27,10 +27,20 @@ interface Props {
  * Un entero dentro de sus límites; si el campo está vacío o no es válido, el valor de respaldo.
  * @param value    Texto del campo.
  * @param fallback Valor si no es un número.
+ * @param min      Mínimo del campo.
+ * @param max      Máximo del campo.
  */
-function whole( value: string, fallback: number ): number {
+function whole(
+	value: string,
+	fallback: number,
+	min: number,
+	max: number
+): number {
 	const number = Math.round( Number( value ) );
-	return Number.isFinite( number ) && value !== '' ? number : fallback;
+	if ( ! Number.isFinite( number ) || value === '' ) {
+		return fallback;
+	}
+	return Math.min( max, Math.max( min, number ) );
 }
 
 /**
@@ -291,7 +301,10 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						) }
 						value={ String( values.words_per_link ) }
 						onChange={ ( value ) =>
-							set( 'words_per_link', whole( value, 100 ) )
+							set(
+								'words_per_link',
+								whole( value, 100, 20, 1000 )
+							)
 						}
 					/>
 					<TextControl
@@ -310,7 +323,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						) }
 						value={ String( values.same_anchor_max ) }
 						onChange={ ( value ) =>
-							set( 'same_anchor_max', whole( value, 5 ) )
+							set( 'same_anchor_max', whole( value, 5, 1, 50 ) )
 						}
 					/>
 				</fieldset>
@@ -335,7 +348,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						) }
 						value={ String( values.outbound_shown ) }
 						onChange={ ( value ) =>
-							set( 'outbound_shown', whole( value, 15 ) )
+							set( 'outbound_shown', whole( value, 15, 1, 50 ) )
 						}
 					/>
 					<TextControl
@@ -354,7 +367,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						) }
 						value={ String( values.inbound_per_page ) }
 						onChange={ ( value ) =>
-							set( 'inbound_per_page', whole( value, 10 ) )
+							set( 'inbound_per_page', whole( value, 10, 5, 50 ) )
 						}
 					/>
 				</fieldset>
@@ -409,7 +422,10 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 						) }
 						value={ String( values.low_inbound_threshold ) }
 						onChange={ ( value ) =>
-							set( 'low_inbound_threshold', whole( value, 2 ) )
+							set(
+								'low_inbound_threshold',
+								whole( value, 2, 1, 20 )
+							)
 						}
 					/>
 					<CheckboxControl

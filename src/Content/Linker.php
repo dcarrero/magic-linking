@@ -99,6 +99,9 @@ final class Linker {
 			return new InsertionException( InsertionException::BLOCK_NOT_ALLOWED, __( 'This text is a heading and links in headings are not allowed.', 'magic-linking' ) );
 		}
 
+		if ( 'element:cite' === $reason ) {
+			return new InsertionException( InsertionException::BLOCK_NOT_ALLOWED, __( 'This text is the citation of a quote and is not linked.', 'magic-linking' ) );
+		}
 		if ( 'element:blockquote' === $reason ) {
 			return new InsertionException( InsertionException::BLOCK_NOT_ALLOWED, __( 'This text is in a quote and links in quotes are not allowed.', 'magic-linking' ) );
 		}

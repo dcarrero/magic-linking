@@ -24,8 +24,8 @@ final class BlockEditor {
 	public const ALLOWED = array( 'core/paragraph', 'core/list-item' );
 
 	/**
-	 * Bloque de cita: se suma cuando el usuario permite enlaces en citas, y sus párrafos hijos solo se tocan en
-	 * ese caso. La cita destacada (`core/pullquote`) no se lee ni se toca nunca.
+	 * Bloque de cita: sus párrafos hijos solo se tocan si el usuario permite enlaces en citas; el bloque en sí
+	 * (su `<cite>`) no se toca nunca. La cita destacada (`core/pullquote`) tampoco se lee ni se toca.
 	 */
 	public const QUOTES = array( 'core/quote' );
 
@@ -213,9 +213,6 @@ final class BlockEditor {
 		$names = self::ALLOWED;
 		if ( $request->headings ) {
 			$names[] = 'core/heading';
-		}
-		if ( $request->quotes ) {
-			$names = array_merge( $names, self::QUOTES );
 		}
 		if ( $request->tables ) {
 			$names = array_merge( $names, self::TABLES );

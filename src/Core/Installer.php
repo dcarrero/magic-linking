@@ -296,10 +296,12 @@ final class Installer implements Module {
 		);
 		wp_cache_flush_group( 'post_meta' );
 
-		// Metadatos de usuario (el asistente cerrado, las opciones de pantalla), con y sin el prefijo de la red.
-		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Limpieza única al desinstalar.
-			$wpdb->prepare( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s OR meta_key LIKE %s", $like, $wpdb->esc_like( $wpdb->prefix . Schema::PREFIX ) . '%' )
-		);
+		// Metadatos de usuario: solo las claves propias exactas de este sitio (el prefijo de sus tablas), con la
+		// caché de WordPress al día. Nada de LIKE: las claves de Magic Linking Pro (`magiclinking_pro_*`) y las de
+		// otros sitios de una red no se tocan. Con varios sitios, `uninstall_everywhere()` pasa por cada uno.
+		foreach ( array( 'magiclinking_wizard_dismissed', 'magiclinking_per_page' ) as $key ) {
+			delete_metadata( 'user', 0, $wpdb->get_blog_prefix() . $key, '', true );
+		}
 
 		return true;
 	}

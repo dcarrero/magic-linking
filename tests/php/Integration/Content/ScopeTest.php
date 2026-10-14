@@ -180,4 +180,18 @@ final class ScopeTest extends GraphTestCase {
 		$this->assertNull( $this->try_insert( $id, 'aire acondicionado', 'Hablamos del ' ) );
 		$this->assertStringContainsString( '<a href="' . self::URL . '" rel="nofollow">aire acondicionado</a>', $this->stored( $id ) );
 	}
+
+	public function test_citations_inside_quotes_are_never_linked(): void {
+		$this->settings( array( 'link_in_quotes' => true ) );
+
+		$modern = "<!-- wp:quote -->\n<blockquote class=\"wp-block-quote\"><!-- wp:paragraph -->\n<p>Texto de la cita.</p>\n<!-- /wp:paragraph --><cite>Manual del aire acondicionado</cite></blockquote>\n<!-- /wp:quote -->";
+		$id     = $this->post( $modern );
+		$this->assertNotNull( $this->try_insert( $id, 'aire acondicionado', 'Manual del ' ) );
+		$this->assertSame( $modern, $this->stored( $id ) );
+
+		$classic = '<blockquote>Texto de la cita.<cite>Manual del aire acondicionado</cite></blockquote>';
+		$id      = $this->post( $classic );
+		$this->assertSame( InsertionException::BLOCK_NOT_ALLOWED, $this->try_insert( $id, 'aire acondicionado', 'Manual del ' ) );
+		$this->assertSame( $classic, $this->stored( $id ) );
+	}
 }

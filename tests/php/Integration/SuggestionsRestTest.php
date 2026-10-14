@@ -1105,7 +1105,8 @@ final class SuggestionsRestTest extends GraphTestCase {
 	// ------------------------------------------------------------------ Ajustes del usuario (F1-16).
 
 	private function save_settings( array $values ): void {
-		update_option( Installer::SETTINGS_OPTION, $values );
+		delete_option( Installer::SETTINGS_OPTION );
+		Plugin::container()->get( \MagicLinking\Core\Settings::class )->update( $values );
 	}
 
 	public function test_the_inbound_page_size_comes_from_the_settings_unless_asked(): void {
@@ -1184,5 +1185,15 @@ final class SuggestionsRestTest extends GraphTestCase {
 
 		$this->save_settings( array( 'outbound_shown' => 1 ) );
 		$this->assertSame( 1, $count() );
+
+		// Las palabras ignoradas se quitan antes de contar: siguen saliendo las que se configuraron.
+		$first = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $source ) )->get_data()['items'][0]['anchor'];
+		$this->save_settings(
+			array(
+				'outbound_shown' => 1,
+				'ignored_words'  => array( explode( ' ', (string) $first )[0] ),
+			)
+		);
+		$this->assertSame( 1, $count(), 'Ignorar la mejor no deja la lista vacía si hay otras.' );
 	}
 }

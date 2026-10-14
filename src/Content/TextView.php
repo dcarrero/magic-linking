@@ -218,7 +218,12 @@ final class TextView {
 			if ( 2 === $this->kind[ $i ] ) {
 				return 'break';
 			}
-			foreach ( $this->ancestors[ $this->run[ $i ] ] as $name ) {
+			$names = $this->ancestors[ $this->run[ $i ] ];
+			// La cita de una cita (`<blockquote>…<cite>`) no es texto enlazable, igual que en el motor.
+			if ( in_array( 'cite', $names, true ) && in_array( 'blockquote', $names, true ) && ! in_array( 'a', $names, true ) ) {
+				return 'element:cite';
+			}
+			foreach ( $names as $name ) {
 				if ( 'a' === $name ) {
 					return 'link';
 				}
@@ -226,7 +231,7 @@ final class TextView {
 					return 'element:' . $name;
 				}
 			}
-		}
+		}//end for
 
 		return null;
 	}

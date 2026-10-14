@@ -38,6 +38,7 @@ final class Settings {
 		'same_anchor_max'              => 5,
 		'ignored_urls'                 => array(),
 		'ignored_words'                => array(),
+		'ignored_ids'                  => array(),
 	);
 
 	/**
@@ -70,9 +71,9 @@ final class Settings {
 	);
 
 	/**
-	 * Ajustes que, al cambiar, obligan a leer de nuevo el texto de las entradas (qué se considera texto enlazable).
+	 * Ajustes de sí o no.
 	 */
-	public const TEXT_SCOPE = array( 'link_in_headings', 'link_in_quotes', 'link_in_tables' );
+	public const BOOLEANS = array( Installer::DELETE_DATA_SETTING, 'link_in_headings', 'link_in_quotes', 'link_in_tables', 'open_in_new_tab' );
 
 	/**
 	 * Todos los ajustes, con los valores por defecto donde falten.
@@ -161,7 +162,22 @@ final class Settings {
 	 * @return array<string, mixed>
 	 */
 	public function update( array $input ): array {
-		$settings = $this->sanitize( $input, $this->all() );
+		$before   = $this->all();
+		$settings = $this->sanitize( $input, $before );
+
+		// Las direcciones ignoradas se resuelven a entradas una sola vez, aquí, y no en cada petición (docs/09 §4).
+		// Si una entrada cambia de dirección después, basta con volver a guardar los ajustes.
+		$settings['ignored_ids'] = $before['ignored_ids'];
+		if ( $settings['ignored_urls'] !== $before['ignored_urls'] ) {
+			$ids = array();
+			foreach ( $settings['ignored_urls'] as $url ) {
+				$id = url_to_postid( $url );
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+			$settings['ignored_ids'] = array_values( array_unique( $ids ) );
+		}
 
 		update_option( Installer::SETTINGS_OPTION, $settings, true );
 
@@ -195,7 +211,7 @@ final class Settings {
 
 		$out[ self::RETENTION_SETTING ] = is_numeric( $keep ) && in_array( (int) $keep, self::RETENTION_CHOICES, true ) ? (int) $keep : (int) ( $base[ self::RETENTION_SETTING ] ?? self::DEFAULTS[ self::RETENTION_SETTING ] );
 
-		foreach ( array( Installer::DELETE_DATA_SETTING, 'link_in_headings', 'link_in_quotes', 'link_in_tables', 'open_in_new_tab' ) as $key ) {
+		foreach ( self::BOOLEANS as $key ) {
 			$out[ $key ] = filter_var( $input[ $key ] ?? $base[ $key ] ?? false, FILTER_VALIDATE_BOOLEAN );
 		}
 
@@ -204,6 +220,9 @@ final class Settings {
 		foreach ( self::LIST_LIMITS as $key => $limit ) {
 			$out[ $key ] = self::clean_list( $input[ $key ] ?? $base[ $key ] ?? array(), $limit, 'ignored_urls' === $key );
 		}
+
+		// Se calculan al guardar las direcciones (`update()`); lo que llegue de fuera se descarta allí.
+		$out['ignored_ids'] = array_values( array_map( 'intval', (array) ( $input['ignored_ids'] ?? $base['ignored_ids'] ?? array() ) ) );
 
 		return $out;
 	}

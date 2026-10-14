@@ -23,7 +23,7 @@ final class DomExtractor implements ContentExtractor {
 	/**
 	 * Elementos cuyo contenido no cuenta.
 	 */
-	private const SKIP_TAGS = array( 'script', 'style', 'pre', 'table', 'blockquote', 'figure', 'figcaption', 'nav', 'button', 'form', 'iframe', 'noscript', 'svg', 'select', 'textarea', 'object', 'video', 'audio', 'template' );
+	private const SKIP_TAGS = array( 'script', 'style', 'pre', 'table', 'blockquote', 'figure', 'figcaption', 'caption', 'nav', 'button', 'form', 'iframe', 'noscript', 'svg', 'select', 'textarea', 'object', 'video', 'audio', 'template' );
 
 	/**
 	 * Elementos en línea cuyo texto no cuenta pero que cortan los n-gramas.
@@ -189,7 +189,30 @@ final class DomExtractor implements ContentExtractor {
 			return ! ( ( $this->link_tables && $child->getElementsByTagName( 'table' )->length > 0 ) || ( $this->link_quotes && $child->getElementsByTagName( 'blockquote' )->length > 0 ) );
 		}
 
+		// La cita de un `blockquote` no es texto del artículo (y no se enlaza).
+		if ( 'cite' === $tag ) {
+			return null !== $this->inside( $child, 'blockquote' );
+		}
+
 		return in_array( $tag, self::SKIP_TAGS, true );
+	}
+
+	/**
+	 * El ascendiente con ese nombre, si lo hay.
+	 *
+	 * @param \DOMNode $node Nodo.
+	 * @param string   $name Nombre del elemento.
+	 */
+	private function inside( \DOMNode $node, string $name ): ?\DOMElement {
+		// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- API de DOM.
+		for ( $parent = $node->parentNode; $parent instanceof \DOMElement; $parent = $parent->parentNode ) {
+			if ( strtolower( $parent->tagName ) === $name ) {
+				return $parent;
+			}
+		}
+		// phpcs:enable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+		return null;
 	}
 
 	/**

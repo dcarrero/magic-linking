@@ -90,9 +90,20 @@ export function App( {
 			return;
 		}
 		decided.current = true;
-		const asked =
-			new URLSearchParams( window.location.search ).get( 'wizard' ) ===
-			'1';
+		const params = new URLSearchParams( window.location.search );
+		const asked = params.get( 'wizard' ) === '1';
+		if ( asked ) {
+			// Se pide una vez: al recargar después de cerrarlo no vuelve a abrirse.
+			params.delete( 'wizard' );
+			const query = params.toString();
+			window.history.replaceState(
+				null,
+				'',
+				window.location.pathname +
+					( query ? `?${ query }` : '' ) +
+					window.location.hash
+			);
+		}
 		const fresh =
 			( window.magiclinking?.wizard ?? false ) &&
 			status.indexed === 0 &&

@@ -29,7 +29,7 @@ export function seed(): void {
 		foreach ( array( 'docs', 'links', 'jobs' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
 		delete_option( 'magiclinking_settings' );
 		// El asistente de arranque tiene su propio fichero de pruebas: aquí está cerrado, como para quien ya lo vio.
-		update_user_meta( 1, 'magiclinking_wizard_dismissed', '1' );
+		update_user_meta( 1, $GLOBALS['wpdb']->get_blog_prefix() . 'magiclinking_wizard_dismissed', '1' );
 		$link = static fn( $slug ) => '<a href="' . home_url( "/$slug/" ) . '">' . $slug . '</a>';
 		$make = static fn( $slug, $content ) => wp_insert_post( array( 'post_name' => $slug, 'post_title' => 'E2E ' . $slug, 'post_content' => $content, 'post_status' => 'publish' ) );
 		$make( 'e2e-huerfana', 'Nadie me enlaza.' );

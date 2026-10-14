@@ -14,6 +14,8 @@ use MagicLinking\Core\Installer;
 use MagicLinking\Core\Plugin;
 use MagicLinking\Core\Settings;
 use MagicLinking\Index\PostSource;
+use MagicLinking\Jobs\Jobs;
+use MagicLinking\Rest\SettingsController;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -170,9 +172,6 @@ final class SettingsTest extends GraphTestCase {
 		$this->assertSame( array( 'gratis' ), $data['settings']['ignored_words'] );
 
 		foreach ( array(
-			array( 'inbound_per_page' => 4 ),
-			array( 'outbound_shown' => 0 ),
-			array( 'same_anchor_max' => 51 ),
 			array( 'link_in_quotes' => 'tal vez' ),
 		) as $bad ) {
 			$this->assertSame( 400, $this->request( 'POST', '/settings', $bad )->get_status(), wp_json_encode( $bad ) );
@@ -229,14 +228,14 @@ final class SettingsTest extends GraphTestCase {
 		$this->assertIsBool( $first['multilingual'] );
 
 		$this->assertTrue( $this->request( 'POST', '/wizard', array( 'dismissed' => true ) )->get_data()['dismissed'] );
-		$this->assertSame( '1', get_user_meta( $this->admin, 'magiclinking_wizard_dismissed', true ) );
+		$this->assertSame( '1', get_user_meta( $this->admin, SettingsController::wizard_meta_key(), true ) );
 		$this->assertTrue( $this->request( 'GET', '/wizard' )->get_data()['dismissed'] );
 
 		$other = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		$this->assertFalse( $this->request( 'GET', '/wizard', array(), $other )->get_data()['dismissed'], 'Cada usuario cierra el suyo.' );
 
 		$this->assertFalse( $this->request( 'POST', '/wizard', array( 'dismissed' => false ) )->get_data()['dismissed'] );
-		$this->assertSame( '', get_user_meta( $this->admin, 'magiclinking_wizard_dismissed', true ) );
+		$this->assertSame( '', get_user_meta( $this->admin, SettingsController::wizard_meta_key(), true ) );
 
 		$this->assertSame( 400, $this->request( 'POST', '/wizard' )->get_status(), 'Hay que decir qué se quiere.' );
 	}
@@ -247,5 +246,116 @@ final class SettingsTest extends GraphTestCase {
 
 		$this->assertSame( $before, get_option( Installer::SETTINGS_OPTION ) );
 		$this->assertSame( array( 'dismissed', 'language', 'multilingual', 'ai' ), array_keys( $this->request( 'GET', '/wizard' )->get_data() ) );
+	}
+
+	/**
+	 * Parámetros de un proceso.
+	 *
+	 * @param array<string, mixed> $job Proceso presentado por la API.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function params( array $job ): array {
+		return Plugin::container()->get( Jobs::class )->repository()->get( (int) $job['id'] )['params'];
+	}
+
+	public function test_out_of_range_numbers_are_limited_not_refused(): void {
+		$response = $this->request(
+			'POST',
+			'/settings',
+			array(
+				'inbound_per_page' => 4,
+				'outbound_shown'   => 0,
+				'same_anchor_max'  => 51,
+				'link_in_tables'   => true,
+			)
+		);
+
+		$this->assertSame( 200, $response->get_status(), 'Un número fuera de rango no tira el guardado entero.' );
+		$data = $response->get_data()['settings'];
+		$this->assertSame( 5, $data['inbound_per_page'] );
+		$this->assertSame( 1, $data['outbound_shown'] );
+		$this->assertSame( 50, $data['same_anchor_max'] );
+		$this->assertTrue( $data['link_in_tables'], 'Los demás cambios se guardan.' );
+	}
+
+	public function test_changing_scope_and_types_together_runs_one_job_that_also_reads_the_graph(): void {
+		$data = $this->request(
+			'POST',
+			'/settings',
+			array(
+				'post_types'     => array( 'post' ),
+				'link_in_tables' => true,
+			)
+		)->get_data();
+		$this->assertNotNull( $data['job'] );
+		$this->assertTrue( $this->params( $data['job'] )['graph'], 'Los tipos nuevos pasan por el grafo.' );
+		$this->assertTrue( $this->params( $data['job'] )['force'] );
+	}
+
+	public function test_a_scope_change_during_an_index_is_not_lost(): void {
+		$jobs = Plugin::container()->get( Jobs::class );
+		$old  = $jobs->start_index( 0, false, false, false, false );
+
+		$data = $this->request( 'POST', '/settings', array( 'link_in_quotes' => true ) )->get_data();
+
+		$this->assertNotSame( $old['id'], $data['job']['id'], 'Arranca una reconstrucción nueva con el ámbito nuevo.' );
+		$this->assertSame( 'cancelled', $jobs->repository()->get( $old['id'] )['status'] );
+		$params = $this->params( $data['job'] );
+		$this->assertTrue( $params['force'] );
+		$this->assertTrue( $params['build'] );
+	}
+
+	public function test_ignored_addresses_are_resolved_to_ids_when_saved_and_never_when_read(): void {
+		$page = self::factory()->post->create( array( 'post_name' => 'ignorada' ) );
+		$this->settings()->update( array( 'ignored_urls' => array( get_permalink( $page ), 'https://example.org/no-existe/' ) ) );
+
+		$this->assertSame( array( $page ), $this->settings()->all()['ignored_ids'] );
+
+		$calls = 0;
+		add_filter(
+			'url_to_postid',
+			static function ( $id ) use ( &$calls ) {
+				++$calls;
+				return $id;
+			}
+		);
+		$this->settings()->all();
+		$this->assertSame( 0, $calls );
+
+		// Un cliente no puede fijar los IDs a mano.
+		$this->settings()->update( array( 'ignored_ids' => array( 999 ) ) );
+		$this->assertSame( array( $page ), $this->settings()->all()['ignored_ids'] );
+	}
+
+	public function test_the_engine_gives_the_same_with_default_settings_as_without_them(): void {
+		$posts = array();
+		foreach ( array( 'aerotermia', 'bomba de calor', 'suelo radiante' ) as $topic ) {
+			$posts[] = self::factory()->post->create(
+				array(
+					'post_title'   => ucfirst( $topic ),
+					'post_content' => "<!-- wp:paragraph -->\n<p>Una guía larga sobre {$topic} y otros temas de climatización para viviendas de tamaño medio con buen aislamiento.</p>\n<!-- /wp:paragraph -->",
+				)
+			);
+		}
+		$jobs = Plugin::container()->get( Jobs::class );
+		$jobs->run_to_completion( $jobs->start_index( 0, false, true, true, true )['id'] );
+
+		$service = Plugin::container()->get( \MagicLinking\Index\Suggestions::class );
+		$bare    = new \MagicLinking\Engine\Suggester(
+			Plugin::container()->get( \MagicLinking\Index\TableRepository::class ),
+			Plugin::container()->get( \MagicLinking\Index\TableDocuments::class ),
+			new \MagicLinking\Engine\Indexer(),
+			new \MagicLinking\Engine\PhraseFinder(),
+			new \MagicLinking\Engine\Scorer(),
+			new \MagicLinking\Engine\Retriever( Plugin::container()->get( \MagicLinking\Index\TableRepository::class ) ),
+			array( 'now' => 1790000000 )
+		);
+		foreach ( $posts as $id ) {
+			$documents = Plugin::container()->get( \MagicLinking\Index\TableDocuments::class );
+			$expected  = $bare->outgoing( $documents->from_post( get_post( $id ) ) );
+			$actual    = $service->outgoing( $id, array( 'now' => 1790000000 ) );
+			$this->assertEquals( $expected, $actual, "Entrada $id" );
+		}
 	}
 }

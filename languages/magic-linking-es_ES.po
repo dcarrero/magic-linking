@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.10.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-14T06:00:53+00:00\n"
+"POT-Creation-Date: 2026-10-14T06:35:12+00:00\n"
 "PO-Revision-Date: 2026-10-07 12:30+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -288,11 +288,11 @@ msgstr "El texto ha cambiado."
 msgid "The text of this block comes from another source (data binding) and cannot be edited here."
 msgstr "El texto de este bloque viene de otro origen (enlace de datos) y no se puede editar aquí."
 
-#: src/Content/BlockEditor.php:286
+#: src/Content/BlockEditor.php:283
 msgid "This text belongs to a reusable block: edit the original pattern."
 msgstr "Este texto es de un bloque reutilizable: edita el patrón original."
 
-#: src/Content/BlockEditor.php:289
+#: src/Content/BlockEditor.php:286
 msgid "This text is in a block where links are not inserted automatically."
 msgstr "Este texto está en un bloque en el que no se insertan enlaces automáticamente."
 
@@ -334,22 +334,26 @@ msgid "This text is a heading and links in headings are not allowed."
 msgstr "Este texto es un encabezado y los enlaces en encabezados no están permitidos."
 
 #: src/Content/Linker.php:103
+msgid "This text is the citation of a quote and is not linked."
+msgstr "Este texto es la cita de una cita y no se enlaza."
+
+#: src/Content/Linker.php:106
 msgid "This text is in a quote and links in quotes are not allowed."
 msgstr "Este texto está en una cita y no se permiten enlaces en citas."
 
-#: src/Content/Linker.php:106
+#: src/Content/Linker.php:109
 msgid "This text is in a table and links in tables are not allowed."
 msgstr "Este texto está en una tabla y no se permiten enlaces en tablas."
 
-#: src/Content/Linker.php:109
+#: src/Content/Linker.php:112
 msgid "The anchor includes a shortcode, code or a line break and cannot be linked safely."
 msgstr "El ancla incluye un shortcode, código o un salto de línea y no se puede enlazar con seguridad."
 
-#: src/Content/Linker.php:130
+#: src/Content/Linker.php:133
 msgid "The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it."
 msgstr "El ancla cruza el formato del texto (negrita, cursiva…) y no se puede enlazar sin romperlo."
 
-#: src/Content/Linker.php:152
+#: src/Content/Linker.php:155
 msgid "The link address is not valid."
 msgstr "La dirección del enlace no es válida."
 

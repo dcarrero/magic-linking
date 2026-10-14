@@ -246,7 +246,7 @@ final class Screen implements Module {
 					'exportUrl'   => ExportHandler::url(),
 					'canManage'   => current_user_can( 'manage_options' ),
 					'perPage'     => self::per_page(),
-					'wizard'      => current_user_can( 'manage_options' ) ? ! get_user_meta( get_current_user_id(), SettingsController::WIZARD_META, true ) : false,
+					'wizard'      => current_user_can( 'manage_options' ) ? ! get_user_meta( get_current_user_id(), SettingsController::wizard_meta_key(), true ) : false,
 					'settingsUrl' => self::page_url( 'settings' ),
 					'initialTab'  => $this->screens[ $hook_suffix ],
 					'tabUrls'     => array(

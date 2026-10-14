@@ -198,6 +198,10 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 
 == Changelog ==
 
+= Unreleased =
+* New: setup assistant for new sites, and new settings: where links can go (headings, quotes, tables), open links in a new tab, extra rel values, suggestions shown, ignored addresses and words.
+* Changed: links in quotes are now off by default, as in the new settings. Before, a paragraph inside a quote block could receive an automatic link; now it only does if you turn on "Quotes" in Settings.
+
 = 0.10.0 =
 * New: link suggestions in the block editor and in the classic editor. A Magic Linking panel proposes phrases of your text that can link to other entries, with the anchor highlighted and the reason.
 * New: add a link with one click. In the editor it is inserted in the editor itself, only on that phrase.

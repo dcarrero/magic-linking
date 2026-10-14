@@ -175,6 +175,10 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 
 ## 📝 Changelog
 
+### Unreleased
+- Setup assistant for new sites, and new settings: where links can go (headings, quotes, tables), open in a new tab, extra `rel`, suggestions shown, ignored addresses and words.
+- Changed: links in quotes are now off by default. Before, a paragraph inside a quote block could receive an automatic link; now it only does if you turn on "Quotes" in Settings.
+
 ### 0.10.0
 - Link suggestions in the block editor and the classic editor, with one-click linking.
 - Inbound suggestions, written on the server after verifying that nothing else in the entry changes.

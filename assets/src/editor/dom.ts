@@ -42,11 +42,11 @@ export function classicTextElements(
 		CLASSIC_TEXT_BLOCKS,
 		scope.headings ? 'h1, h2, h3, h4, h5, h6' : '',
 		scope.tables ? 'td, th' : '',
+		scope.quotes ? 'blockquote' : '',
 	]
 		.filter( Boolean )
 		.join( ', ' );
 	const excluded = [
-		'figure',
 		'pre',
 		scope.quotes ? '' : 'blockquote',
 		scope.tables ? '' : 'table',
@@ -54,8 +54,20 @@ export function classicTextElements(
 		.filter( Boolean )
 		.join( ', ' );
 
+	// Como el servidor, un `figure` solo se lee si envuelve una tabla o una cita que el usuario permite.
+	const readable = ( figure: Element ) =>
+		( scope.tables && figure.querySelector( 'table' ) !== null ) ||
+		( scope.quotes && figure.querySelector( 'blockquote' ) !== null );
+
 	return Array.from( body.querySelectorAll( selector ) ).filter(
-		( element ) =>
-			! element.closest( excluded ) && ! element.querySelector( selector )
+		( element ) => {
+			const figure = element.closest( 'figure' );
+			return (
+				( ! figure || readable( figure ) ) &&
+				! element.closest( excluded ) &&
+				! element.querySelector( selector ) &&
+				! element.closest( 'cite' )
+			);
+		}
 	);
 }

@@ -116,7 +116,9 @@ final class Suggestions {
 		}
 
 		try {
-			return $this->without_ignored( $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) ) );
+			$found = $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) );
+
+			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
 		} finally {
 			$this->documents->release();
 		}
@@ -159,7 +161,22 @@ final class Suggestions {
 	}
 
 	/**
-	 * Motor con la configuración congelada.
+	 * Cuántas sugerencias salientes se piden al motor: las que se muestran y, si hay palabras ignoradas que se
+	 * quitarán después, otras tantas de reserva para que no se vean menos de las configuradas.
+	 *
+	 * @param array $all Ajustes.
+	 *
+	 * @phpstan-param array<string, mixed> $all
+	 */
+	private function candidates( array $all ): int {
+		$shown = (int) $all['outbound_shown'];
+
+		return array() === $all['ignored_words'] ? $shown : min( 4 * $shown, 200 );
+	}
+
+	/**
+	 * Motor con la configuración congelada y los ajustes de calidad del usuario (docs/07 §8); lo que pida
+	 * quien llama manda sobre ellos.
 	 *
 	 * @param array $options Opciones del motor.
 	 *
@@ -168,11 +185,9 @@ final class Suggestions {
 	private function suggester( array $options ): Suggester {
 		$all = $this->settings->all();
 
-		// Los ajustes de calidad del usuario (docs/07 §8); lo que pida quien llama manda sobre ellos.
-		$defaults = array( 'max_outgoing' => $all['outbound_shown'] );
-		$never    = $this->ignored_ids( $all['ignored_urls'] );
-		if ( array() !== $never ) {
-			$defaults['never'] = $never;
+		$defaults = array( 'max_outgoing' => $this->candidates( $all ) );
+		if ( array() !== $all['ignored_ids'] ) {
+			$defaults['never'] = $all['ignored_ids'];
 		}
 
 		return new Suggester(
@@ -180,7 +195,7 @@ final class Suggestions {
 			$this->documents,
 			new Indexer(),
 			new PhraseFinder(),
-			new Scorer( array(), Scorer::THRESHOLD, 100 / max( 1, (int) $all['words_per_link'] ), Scorer::MIN_RELEVANCE, array(), (int) $all['same_anchor_max'] ),
+			new Scorer( array(), Scorer::THRESHOLD, Scorer::DENSITY, Scorer::MIN_RELEVANCE, array(), (int) $all['same_anchor_max'] ),
 			new Retriever( $this->repository ),
 			array_merge( $defaults, $options )
 		);
@@ -190,27 +205,25 @@ final class Suggestions {
 	 * Quita las sugerencias cuya ancla contiene una de las palabras o frases ignoradas (palabra completa, sin
 	 * distinguir mayúsculas) o cuyo origen está en la lista de direcciones ignoradas.
 	 *
-	 * @param array $found Sugerencias del motor.
+	 * @param array $found Sugerencias del motor, ya ordenadas.
 	 *
 	 * @phpstan-param list<Suggestion> $found
 	 *
 	 * @return list<Suggestion>
 	 */
 	private function without_ignored( array $found ): array {
-		$all     = $this->settings->all();
-		$words   = $all['ignored_words'];
-		$sources = $this->ignored_ids( $all['ignored_urls'] );
-		if ( array() === $words && array() === $sources ) {
+		$all = $this->settings->all();
+		if ( array() === $all['ignored_words'] && array() === $all['ignored_ids'] ) {
 			return $found;
 		}
 
-		$patterns = array_map( static fn( string $word ): string => '/(?<![\p{L}\p{N}])' . preg_quote( $word, '/' ) . '(?![\p{L}\p{N}])/iu', $words );
+		$patterns = array_map( static fn( string $word ): string => '/(?<![\p{L}\p{N}])' . preg_quote( $word, '/' ) . '(?![\p{L}\p{N}])/iu', $all['ignored_words'] );
 
 		return array_values(
 			array_filter(
 				$found,
-				static function ( Suggestion $suggestion ) use ( $patterns, $sources ): bool {
-					if ( in_array( $suggestion->source, $sources, true ) ) {
+				static function ( Suggestion $suggestion ) use ( $patterns, $all ): bool {
+					if ( in_array( $suggestion->source, $all['ignored_ids'], true ) ) {
 						return false;
 					}
 					foreach ( $patterns as $pattern ) {
@@ -223,26 +236,5 @@ final class Suggestions {
 				}
 			)
 		);
-	}
-
-	/**
-	 * Entradas de la lista de direcciones ignoradas: nunca se sugieren como destino ni como origen.
-	 *
-	 * @param array $urls Direcciones guardadas en los ajustes.
-	 *
-	 * @phpstan-param list<string> $urls
-	 *
-	 * @return list<int>
-	 */
-	private function ignored_ids( array $urls ): array {
-		$ids = array();
-		foreach ( $urls as $url ) {
-			$id = url_to_postid( $url );
-			if ( $id > 0 ) {
-				$ids[] = $id;
-			}
-		}
-
-		return array_values( array_unique( $ids ) );
 	}
 }

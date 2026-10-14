@@ -96,4 +96,13 @@ final class DomExtractorTest extends TestCase {
 		$this->assertSame( array( 'Intro.', 'Celda clásica' ), $this->texts( new DomExtractor( false, false, true ), $html ) );
 		$this->assertSame( array( 'Intro.', 'Encabezado clásico' ), $this->texts( new DomExtractor( true ), $html ) );
 	}
+
+	public function test_table_captions_and_quote_citations_are_never_sentences(): void {
+		$html = '<table><caption>Pie de la tabla</caption><tr><td>Celda</td></tr></table><blockquote>Cita larga.<cite>Autor de la cita</cite></blockquote><p>Un <cite>Libro</cite> en un párrafo.</p>';
+
+		$this->assertSame(
+			array( 'Celda', 'Cita larga.', 'Un Libro en un párrafo.' ),
+			$this->texts( new DomExtractor( false, true, true ), $html )
+		);
+	}
 }

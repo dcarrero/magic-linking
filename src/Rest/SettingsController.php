@@ -50,6 +50,16 @@ final class SettingsController implements Module {
 	public const WIZARD_META = 'magiclinking_wizard_dismissed';
 
 	/**
+	 * Clave del metadato en este sitio. Lleva el prefijo de las tablas del sitio (como las opciones de usuario de
+	 * WordPress): en una red cada sitio cierra su asistente y al desinstalar se borra solo la clave de ese sitio.
+	 */
+	public static function wizard_meta_key(): string {
+		global $wpdb;
+
+		return $wpdb->get_blog_prefix() . self::WIZARD_META;
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Settings      $settings Ajustes.
@@ -115,14 +125,10 @@ final class SettingsController implements Module {
 							'items' => array( 'type' => 'string' ),
 						),
 						'low_inbound_threshold'        => array(
-							'type'    => 'integer',
-							'minimum' => 1,
-							'maximum' => 20,
+							'type' => 'integer',
 						),
 						'words_per_link'               => array(
-							'type'    => 'integer',
-							'minimum' => 20,
-							'maximum' => 1000,
+							'type' => 'integer',
 						),
 						Settings::RETENTION_SETTING    => array(
 							'type' => 'integer',
@@ -135,19 +141,13 @@ final class SettingsController implements Module {
 						'open_in_new_tab'              => array( 'type' => 'boolean' ),
 						'extra_rel'                    => array( 'type' => 'string' ),
 						'outbound_shown'               => array(
-							'type'    => 'integer',
-							'minimum' => 1,
-							'maximum' => 50,
+							'type' => 'integer',
 						),
 						'inbound_per_page'             => array(
-							'type'    => 'integer',
-							'minimum' => 5,
-							'maximum' => 50,
+							'type' => 'integer',
 						),
 						'same_anchor_max'              => array(
-							'type'    => 'integer',
-							'minimum' => 1,
-							'maximum' => 50,
+							'type' => 'integer',
 						),
 						'ignored_urls'                 => array(
 							'type'  => 'array',
@@ -177,9 +177,9 @@ final class SettingsController implements Module {
 	 */
 	public function update_wizard( WP_REST_Request $request ): WP_REST_Response {
 		if ( filter_var( $request['dismissed'], FILTER_VALIDATE_BOOLEAN ) ) {
-			update_user_meta( get_current_user_id(), self::WIZARD_META, '1' );
+			update_user_meta( get_current_user_id(), self::wizard_meta_key(), '1' );
 		} else {
-			delete_user_meta( get_current_user_id(), self::WIZARD_META );
+			delete_user_meta( get_current_user_id(), self::wizard_meta_key() );
 		}
 
 		return new WP_REST_Response( $this->wizard() );
@@ -201,7 +201,7 @@ final class SettingsController implements Module {
 		}
 
 		return array(
-			'dismissed'    => (bool) get_user_meta( get_current_user_id(), self::WIZARD_META, true ),
+			'dismissed'    => (bool) get_user_meta( get_current_user_id(), self::wizard_meta_key(), true ),
 			'language'     => $label,
 			'multilingual' => null !== $this->language && $this->language->plugin_active(),
 			'ai'           => self::ai_state(),
@@ -247,20 +247,40 @@ final class SettingsController implements Module {
 	 * @param WP_REST_Request $request Petición.
 	 */
 	public function update_settings( WP_REST_Request $request ): WP_REST_Response {
-		$before = $this->settings->post_types();
-		$scope  = $this->settings->link_scope();
-		$input  = array_intersect_key( $request->get_json_params() ?: $request->get_body_params(), $this->settings->all() ); // phpcs:ignore Universal.Operators.DisallowShortTernary.Found -- JSON o formulario.
-		$after  = $this->settings->update( $input );
+		$types         = $this->settings->post_types();
+		$scope         = $this->settings->link_scope();
+		$input         = array_intersect_key( $request->get_json_params() ?: $request->get_body_params(), $this->settings->all() ); // phpcs:ignore Universal.Operators.DisallowShortTernary.Found -- JSON o formulario.
+		$after         = $this->settings->update( $input );
+		$types_changed = $types !== $after['post_types'];
+		$scope_changed = $scope !== $this->settings->link_scope();
 
 		$job = null;
-		if ( $scope !== $this->settings->link_scope() ) {
-			// Cambia lo que se lee de cada entrada, no su contenido: hay que volver a leerlas todas y recalcular el índice.
-			$job = JobsController::present( $this->jobs->start_index( get_current_user_id(), true, true, false, true ) );
-		} elseif ( $before !== $after['post_types'] ) {
-			$job = JobsController::present( $this->jobs->start_index( get_current_user_id() ) );
+		if ( $types_changed || $scope_changed ) {
+			$job = JobsController::present( $this->restart_index( $types_changed, $scope_changed ) );
 		}
 
 		return new WP_REST_Response( $this->payload() + array( 'job' => $job ) );
+	}
+
+	/**
+	 * Lanza el indexado que pide un cambio de ajustes. Si ya hay uno en marcha se cancela y se rehace, porque
+	 * habría leído las entradas con el ajuste anterior y el índice quedaría con dos criterios mezclados.
+	 *
+	 * @param bool $types Han cambiado los tipos de contenido (hay que pasar también por el grafo).
+	 * @param bool $scope Ha cambiado qué texto se lee (hay que releer todas y reconstruir el índice léxico).
+	 *
+	 * @return array{id: int, type: string, status: string, total: int, done: int, params: array<string, mixed>, error: string, created_by: int, created_at: string, updated_at: string}
+	 */
+	private function restart_index( bool $types, bool $scope ): array {
+		$graph  = $types;
+		$active = $this->jobs->repository()->active( Jobs::TYPE_INDEX );
+		if ( null !== $active ) {
+			// Lo que el proceso cancelado no llegó a hacer del grafo lo hace el nuevo.
+			$graph = $graph || ! empty( $active['params']['graph'] );
+			$this->jobs->cancel( $active['id'] );
+		}
+
+		return $this->jobs->start_index( get_current_user_id(), true, $scope, $graph, $scope );
 	}
 
 	/**
