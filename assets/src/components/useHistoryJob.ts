@@ -19,15 +19,15 @@ export interface Outcome {
 const POLL_MS = 3000;
 
 interface Options {
-	/** Proceso que ya estaba en marcha al cargar la vista. */
+	/** Proceso que ya estaba en marcha al cargar la vista; si llega otro con distinto id, se pasa a seguir ese. */
 	initial: HistoryJob | null;
-	/** Vuelve a leer lo que muestra la vista; se llama al terminar el proceso. Debe ser estable. */
+	/** Vuelve a leer lo que muestra la vista; se llama al terminar el proceso. */
 	refresh: () => Promise< void >;
-	/** Anuncia con `speak` el resumen cuando el proceso termina (la vista por entrada lo hace; la de lote usa una región viva). */
-	announce?: boolean;
 	/** Aviso de error de la vista (lo comparte con sus otras operaciones). */
 	setFailure: ( message: string ) => void;
-	/** Qué hacer tras cancelar; por defecto, releer la vista. */
+	/** Anuncia con `speak` el resumen cuando el proceso termina (la vista por entrada lo hace; la de lote usa una región viva). */
+	announce?: boolean;
+	/** Lo específico de cada vista tras cancelar (el resultado parcial ya está fijado); por defecto, releer la vista. */
 	onCancelled?: ( response: {
 		job: HistoryJob;
 		group?: HistoryGroup | null;
@@ -46,30 +46,59 @@ export function outcomeOfJob( job: HistoryJob ): Outcome {
 	};
 }
 
+const isActive = ( job: HistoryJob | null ): boolean =>
+	job?.status === 'queued' || job?.status === 'running';
+
 /**
- * Seguimiento de un proceso de deshacer o rehacer en segundo plano: sondeo cada 3 s mientras esté en cola o en marcha,
- * reanudar y cancelar, y el resultado final. Lo comparten la vista por lote y la vista por entrada del historial.
- * @param options
+ * Seguimiento de un proceso de deshacer o rehacer en segundo plano: sondeo cada 3 s mientras esté en cola o en marcha
+ * (una petición cada vez, sin solaparse), reanudar y cancelar, y el resultado final. Lo comparten la vista por lote y la
+ * vista por entrada del historial. Los callbacks se leen siempre de la última llamada, así que no reinician el sondeo.
+ * @param options Opciones.
  */
 export function useHistoryJob( options: Options ) {
-	const { initial, refresh, setFailure } = options;
-	const [ job, setJob ] = useState< HistoryJob | null >( initial );
+	const [ job, setJob ] = useState< HistoryJob | null >( options.initial );
 	const [ outcome, setOutcome ] = useState< Outcome | null >( null );
 	const [ busy, setBusy ] = useState( false );
 	const latest = useRef( options );
 	latest.current = options;
+	const mounted = useRef( true );
+	useEffect( () => {
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+		};
+	}, [] );
+
+	// Un proceso nuevo en las propiedades (otro id) sustituye al que se seguía.
+	const initialId = options.initial?.id ?? 0;
+	useEffect( () => {
+		const next = latest.current.initial;
+		if ( next ) {
+			setJob( ( current ) =>
+				current?.id === next.id ? current : next
+			);
+		}
+	}, [ initialId ] );
 
 	const jobId = job?.id ?? 0;
-	const jobActive = job?.status === 'queued' || job?.status === 'running';
+	const jobActive = isActive( job );
 	useEffect( () => {
 		if ( ! jobActive ) {
 			return undefined;
 		}
-		const timer = setInterval( async () => {
+		let cancelled = false;
+		let timer: ReturnType< typeof setTimeout > | undefined;
+
+		const tick = async () => {
+			let finished = false;
 			try {
 				const { job: next } = await api.historyJob( jobId );
+				if ( cancelled ) {
+					return;
+				}
 				setJob( next );
-				if ( next.status !== 'queued' && next.status !== 'running' ) {
+				if ( ! isActive( next ) ) {
+					finished = true;
 					setOutcome( outcomeOfJob( next ) );
 					if ( latest.current.announce ) {
 						speak(
@@ -77,15 +106,19 @@ export function useHistoryJob( options: Options ) {
 							'polite'
 						);
 					}
-					await refresh();
+					await latest.current.refresh();
 				}
 			} catch ( e ) {
+				if ( cancelled ) {
+					return;
+				}
 				const status = errorStatus( e );
 				if ( status === 403 || status === 404 ) {
 					// Ya no se puede seguir (permiso o proceso desaparecido): se deja de sondear.
+					finished = true;
 					setJob( null );
 				}
-				setFailure(
+				latest.current.setFailure(
 					errorMessage(
 						e,
 						__(
@@ -95,46 +128,85 @@ export function useHistoryJob( options: Options ) {
 					)
 				);
 			}
-		}, POLL_MS );
-		return () => clearInterval( timer );
-	}, [ jobActive, jobId, refresh, setFailure ] );
+			// La siguiente petición sale 3 s después de que acabe la anterior: nunca hay dos en vuelo.
+			if ( ! cancelled && ! finished ) {
+				timer = setTimeout( tick, POLL_MS );
+			}
+		};
+
+		timer = setTimeout( tick, POLL_MS );
+		return () => {
+			cancelled = true;
+			if ( timer ) {
+				clearTimeout( timer );
+			}
+		};
+	}, [ jobActive, jobId ] );
+
+	/**
+	 * Empieza a seguir un proceso recién creado y borra el resultado anterior.
+	 * @param next Proceso.
+	 */
+	const start = ( next: HistoryJob ) => {
+		setJob( next );
+		setOutcome( null );
+	};
+
+	/**
+	 * Fija el resultado visible de una operación hecha en la petición.
+	 * @param next Resultado.
+	 */
+	const showResult = ( next: Outcome | null ) => setOutcome( next );
 
 	const control = async ( action: 'resume' | 'cancel' ) => {
 		if ( ! job ) {
 			return;
 		}
 		setBusy( true );
-		setFailure( '' );
+		latest.current.setFailure( '' );
 		try {
 			const response = await api.controlHistoryJob( job.id, action );
+			if ( ! mounted.current ) {
+				return;
+			}
 			setJob( response.job );
 			if ( action === 'cancel' ) {
+				// Lo ya tratado (deshechos y avisos) se enseña también al cancelar.
+				setOutcome(
+					Object.keys( response.job.counts ).length === 0
+						? null
+						: outcomeOfJob( response.job )
+				);
 				if ( latest.current.onCancelled ) {
 					await latest.current.onCancelled( response );
 				} else {
-					await refresh();
+					await latest.current.refresh();
 				}
 			}
 		} catch ( e ) {
-			setFailure(
-				errorMessage(
-					e,
-					__( 'That did not work. Try again.', 'magic-linking' )
-				)
-			);
+			if ( mounted.current ) {
+				latest.current.setFailure(
+					errorMessage(
+						e,
+						__( 'That did not work. Try again.', 'magic-linking' )
+					)
+				);
+			}
 		} finally {
-			setBusy( false );
+			if ( mounted.current ) {
+				setBusy( false );
+			}
 		}
 	};
 
 	return {
 		job,
-		setJob,
 		jobActive,
 		outcome,
-		setOutcome,
 		busy,
 		setBusy,
+		start,
+		showResult,
 		control,
 	};
 }

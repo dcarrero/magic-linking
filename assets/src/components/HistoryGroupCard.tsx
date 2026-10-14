@@ -12,7 +12,7 @@ import {
 } from './historyFormat';
 import { JobProgress, OutcomeSummary } from './HistoryJobParts';
 import { countStatuses } from './historyText';
-import { outcomeOfJob, useHistoryJob } from './useHistoryJob';
+import { useHistoryJob } from './useHistoryJob';
 
 interface Props {
 	group: HistoryGroup;
@@ -101,10 +101,10 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 
 	const {
 		job,
-		setJob,
 		jobActive,
 		outcome,
-		setOutcome,
+		start,
+		showResult,
 		busy,
 		setBusy,
 		control,
@@ -113,11 +113,6 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 		refresh,
 		setFailure,
 		onCancelled: ( response ) => {
-			setOutcome(
-				Object.keys( response.job.counts ).length === 0
-					? null
-					: outcomeOfJob( response.job )
-			);
 			if ( response.group ) {
 				onChange( response.group );
 			}
@@ -145,10 +140,9 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 			);
 			setPending( null );
 			if ( response.job ) {
-				setJob( response.job );
-				setOutcome( null );
+				start( response.job );
 			} else {
-				setOutcome( {
+				showResult( {
 					redo: pending.mode === 'redo',
 					counts: countStatuses( response.results ),
 					lines: response.results,

@@ -15,13 +15,14 @@ interface ProgressProps {
 
 /**
  * Barra de progreso de un proceso en segundo plano, con el aviso de atasco y los botones de reanudar y cancelar.
- * @param root0
- * @param root0.job
- * @param root0.labels
- * @param root0.busy
- * @param root0.onControl
+ * @param props          Propiedades.
+ * @param props.job      Proceso que se sigue.
+ * @param props.labels   Etiquetas accesibles de la barra, una por modo.
+ * @param props.busy     Hay una orden de reanudar o cancelar en curso.
+ * @param props.onControl Reanudar o cancelar.
  */
-export function JobProgress( { job, labels, busy, onControl }: ProgressProps ) {
+export function JobProgress( props: ProgressProps ) {
+	const { job, labels, busy, onControl } = props;
 	return (
 		<div className="magiclinking-batch__progress">
 			<progress
@@ -81,11 +82,12 @@ interface OutcomeProps {
 
 /**
  * Resumen del resultado de una operación y la lista de lo que no se pudo tratar o requiere atención.
- * @param root0
- * @param root0.outcome
- * @param root0.showEntry
+ * @param props           Propiedades.
+ * @param props.outcome   Resultado que se enseña.
+ * @param props.showEntry Nombrar la entrada en cada línea.
  */
-export function OutcomeSummary( { outcome, showEntry = false }: OutcomeProps ) {
+export function OutcomeSummary( props: OutcomeProps ) {
+	const { outcome, showEntry = false } = props;
 	return (
 		<>
 			<p>

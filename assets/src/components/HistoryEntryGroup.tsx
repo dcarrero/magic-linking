@@ -90,10 +90,10 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 
 	const {
 		job,
-		setJob,
 		jobActive,
 		outcome,
-		setOutcome,
+		start,
+		showResult,
 		busy,
 		setBusy,
 		control,
@@ -119,8 +119,7 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 			results = response.results;
 			latest = response.entry;
 			if ( response.job ) {
-				setJob( response.job );
-				setOutcome( null );
+				start( response.job );
 			}
 		} catch ( e ) {
 			setFailure(
@@ -136,7 +135,7 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 
 		if ( results.length > 0 ) {
 			const counts = countStatuses( results );
-			setOutcome( {
+			showResult( {
 				redo: mode === 'redo',
 				counts,
 				lines: results.filter(
