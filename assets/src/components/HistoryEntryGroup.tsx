@@ -2,14 +2,8 @@ import { Button, Notice } from '@wordpress/components';
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { api, errorMessage, errorStatus } from '../api';
-import type {
-	ChangeResult,
-	HistoryEntry,
-	HistoryEntryChange,
-	HistoryIssue,
-	HistoryJob,
-} from '../types';
+import { api, errorMessage } from '../api';
+import type { ChangeResult, HistoryEntry, HistoryEntryChange } from '../types';
 import { ConfirmModal } from './ConfirmModal';
 import {
 	actionLabel,
@@ -19,12 +13,9 @@ import {
 	parseServerDate,
 	sourceLabel,
 } from './historyFormat';
-import {
-	countStatuses,
-	needsAttention,
-	statusLabel,
-	summaryText,
-} from './historyText';
+import { JobProgress, OutcomeSummary } from './HistoryJobParts';
+import { countStatuses, needsAttention, summaryText } from './historyText';
+import { useHistoryJob } from './useHistoryJob';
 
 interface Props {
 	entry: HistoryEntry;
@@ -38,15 +29,8 @@ interface Pending {
 	mode: 'undo' | 'redo';
 }
 
-interface Outcome {
-	redo: boolean;
-	counts: ReturnType< typeof countStatuses >;
-	lines: ReadonlyArray< ChangeResult | HistoryIssue >;
-}
-
 /** Cambios que se piden de golpe al pulsar «Mostrar más»: tantos como trae el listado la primera vez. */
 const MORE_PER_PAGE = 10;
-const POLL_MS = 3000;
 
 /**
  * Una entrada del historial: cabecera con sus acciones y una tabla densa con un cambio por fila.
@@ -60,11 +44,8 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 		entry.changes
 	);
 	const [ pending, setPending ] = useState< Pending | null >( null );
-	const [ busy, setBusy ] = useState( false );
 	const [ loadingMore, setLoadingMore ] = useState( false );
 	const [ failure, setFailure ] = useState( '' );
-	const [ outcome, setOutcome ] = useState< Outcome | null >( null );
-	const [ job, setJob ] = useState< HistoryJob | null >( entry.job ?? null );
 	const heading = useRef< HTMLHeadingElement >( null );
 	const section = useRef< HTMLElement >( null );
 	const restoreFocus = useRef( false );
@@ -107,72 +88,21 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 		}
 	}, [ entry.post_id, origin, onChange ] );
 
-	// Seguimiento de un proceso en segundo plano: cada 3 s mientras esté en cola o en marcha.
-	const jobId = job?.id ?? 0;
-	const jobActive = job?.status === 'queued' || job?.status === 'running';
-	useEffect( () => {
-		if ( ! jobActive ) {
-			return undefined;
-		}
-		const timer = setInterval( async () => {
-			try {
-				const { job: next } = await api.historyJob( jobId );
-				setJob( next );
-				if ( next.status !== 'queued' && next.status !== 'running' ) {
-					const counts = next.counts;
-					setOutcome( {
-						redo: next.mode === 'redo',
-						counts,
-						lines: next.issues,
-					} );
-					speak(
-						summaryText( counts, next.mode === 'redo' ),
-						'polite'
-					);
-					await refresh();
-				}
-			} catch ( e ) {
-				const status = errorStatus( e );
-				if ( status === 403 || status === 404 ) {
-					setJob( null );
-				}
-				setFailure(
-					errorMessage(
-						e,
-						__(
-							'Could not read the progress of the process.',
-							'magic-linking'
-						)
-					)
-				);
-			}
-		}, POLL_MS );
-		return () => clearInterval( timer );
-	}, [ jobActive, jobId, refresh ] );
-
-	const control = async ( action: 'resume' | 'cancel' ) => {
-		if ( ! job ) {
-			return;
-		}
-		setBusy( true );
-		setFailure( '' );
-		try {
-			const response = await api.controlHistoryJob( job.id, action );
-			setJob( response.job );
-			if ( action === 'cancel' ) {
-				await refresh();
-			}
-		} catch ( e ) {
-			setFailure(
-				errorMessage(
-					e,
-					__( 'That did not work. Try again.', 'magic-linking' )
-				)
-			);
-		} finally {
-			setBusy( false );
-		}
-	};
+	const {
+		job,
+		setJob,
+		jobActive,
+		outcome,
+		setOutcome,
+		busy,
+		setBusy,
+		control,
+	} = useHistoryJob( {
+		initial: entry.job ?? null,
+		refresh,
+		setFailure,
+		announce: true,
+	} );
 
 	const run = async ( mode: 'undo' | 'redo', ids?: number[] ) => {
 		setBusy( true );
@@ -379,103 +309,26 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 			</header>
 
 			{ job && jobActive && (
-				<div className="magiclinking-batch__progress">
-					<progress
-						max={ Math.max( 1, job.total ) }
-						value={ job.done }
-						aria-label={
-							job.mode === 'redo'
-								? __(
-										'Progress of redoing the changes',
-										'magic-linking'
-								  )
-								: __(
-										'Progress of undoing the changes',
-										'magic-linking'
-								  )
-						}
-					/>
-					<p>
-						{ sprintf(
-							/* translators: 1: changes done, 2: total changes. */
-							__(
-								'Working in the background: %1$s of %2$s.',
-								'magic-linking'
-							),
-							job.done.toLocaleString(),
-							job.total.toLocaleString()
-						) }
-					</p>
-					{ job.stalled && (
-						<Notice status="warning" isDismissible={ false }>
-							{ __(
-								'This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running.',
-								'magic-linking'
-							) }
-						</Notice>
-					) }
-					{ job.stalled && job.can_control && (
-						<div className="magiclinking-actions">
-							<Button
-								variant="secondary"
-								onClick={ () => control( 'resume' ) }
-								disabled={ busy }
-								accessibleWhenDisabled
-							>
-								{ __( 'Resume', 'magic-linking' ) }
-							</Button>
-							<Button
-								variant="secondary"
-								isDestructive
-								onClick={ () => control( 'cancel' ) }
-								disabled={ busy }
-								accessibleWhenDisabled
-							>
-								{ __( 'Cancel process', 'magic-linking' ) }
-							</Button>
-						</div>
-					) }
-				</div>
+				<JobProgress
+					job={ job }
+					labels={ {
+						undo: __(
+							'Progress of undoing the changes',
+							'magic-linking'
+						),
+						redo: __(
+							'Progress of redoing the changes',
+							'magic-linking'
+						),
+					} }
+					busy={ busy }
+					onControl={ control }
+				/>
 			) }
 
 			{ outcome && (
 				<div className="magiclinking-outcome">
-					<p>
-						<strong>
-							{ summaryText( outcome.counts, outcome.redo ) }
-						</strong>
-					</p>
-					{ outcome.lines.length > 0 && (
-						<ul>
-							{ outcome.lines.map( ( line ) => (
-								<li key={ line.change_id }>
-									<span
-										className={
-											needsAttention( line.status )
-												? 'magiclinking-warn'
-												: undefined
-										}
-									>
-										{ statusLabel( line.status ) }
-									</span>
-									{ line.message
-										? `: ${ line.message }`
-										: '' }
-									{ line.edit_url && (
-										<>
-											{ ' ' }
-											<a href={ line.edit_url }>
-												{ __(
-													'Edit entry',
-													'magic-linking'
-												) }
-											</a>
-										</>
-									) }
-								</li>
-							) ) }
-						</ul>
-					) }
+					<OutcomeSummary outcome={ outcome } />
 				</div>
 			) }
 

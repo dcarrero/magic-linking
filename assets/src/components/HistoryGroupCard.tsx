@@ -1,14 +1,8 @@
 import { Button, Notice } from '@wordpress/components';
-import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
+import { useCallback, useRef, useState } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { api, errorMessage, errorStatus } from '../api';
-import type {
-	ChangeResult,
-	HistoryChange,
-	HistoryGroup,
-	HistoryIssue,
-	HistoryJob,
-} from '../types';
+import type { HistoryChange, HistoryGroup } from '../types';
 import { ConfirmModal } from './ConfirmModal';
 import {
 	entryTitle,
@@ -16,12 +10,9 @@ import {
 	formatFullDate,
 	parseServerDate,
 } from './historyFormat';
-import {
-	countStatuses,
-	needsAttention,
-	statusLabel,
-	summaryText,
-} from './historyText';
+import { JobProgress, OutcomeSummary } from './HistoryJobParts';
+import { countStatuses } from './historyText';
+import { outcomeOfJob, useHistoryJob } from './useHistoryJob';
 
 interface Props {
 	group: HistoryGroup;
@@ -33,13 +24,6 @@ type Pending =
 	| { mode: 'undo' | 'redo'; batch: true }
 	| { mode: 'undo' | 'redo'; batch: false; change: HistoryChange };
 
-interface Outcome {
-	redo: boolean;
-	counts: ReturnType< typeof countStatuses >;
-	lines: ReadonlyArray< ChangeResult | HistoryIssue >;
-}
-
-const POLL_MS = 3000;
 const DETAILS_PER_PAGE = 50;
 
 /**
@@ -54,10 +38,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 	const [ total, setTotal ] = useState( 0 );
 	const [ loadingDetails, setLoadingDetails ] = useState( false );
 	const [ pending, setPending ] = useState< Pending | null >( null );
-	const [ busy, setBusy ] = useState( false );
 	const [ failure, setFailure ] = useState( '' );
-	const [ outcome, setOutcome ] = useState< Outcome | null >( null );
-	const [ job, setJob ] = useState< HistoryJob | null >( group.job ?? null );
 	const detailsLoaded = useRef( 0 );
 	const batchId = group.batch_id;
 	const detailsId = `magiclinking-details-${ batchId }`;
@@ -118,44 +99,30 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 		}
 	}, [ batchId, loadDetails, onChange ] );
 
-	// Seguimiento de un proceso en segundo plano: cada 3 s mientras esté en cola o en marcha.
-	const jobId = job?.id ?? 0;
-	const jobActive = job?.status === 'queued' || job?.status === 'running';
-	useEffect( () => {
-		if ( ! jobActive ) {
-			return undefined;
-		}
-		const timer = setInterval( async () => {
-			try {
-				const { job: next } = await api.historyJob( jobId );
-				setJob( next );
-				if ( next.status !== 'queued' && next.status !== 'running' ) {
-					setOutcome( {
-						redo: next.mode === 'redo',
-						counts: next.counts,
-						lines: next.issues,
-					} );
-					await refresh();
-				}
-			} catch ( e ) {
-				const status = errorStatus( e );
-				if ( status === 403 || status === 404 ) {
-					// Ya no se puede seguir (permiso o proceso desaparecido): se deja de sondear.
-					setJob( null );
-				}
-				setFailure(
-					errorMessage(
-						e,
-						__(
-							'Could not read the progress of the process.',
-							'magic-linking'
-						)
-					)
-				);
+	const {
+		job,
+		setJob,
+		jobActive,
+		outcome,
+		setOutcome,
+		busy,
+		setBusy,
+		control,
+	} = useHistoryJob( {
+		initial: group.job ?? null,
+		refresh,
+		setFailure,
+		onCancelled: ( response ) => {
+			setOutcome(
+				Object.keys( response.job.counts ).length === 0
+					? null
+					: outcomeOfJob( response.job )
+			);
+			if ( response.group ) {
+				onChange( response.group );
 			}
-		}, POLL_MS );
-		return () => clearInterval( timer );
-	}, [ jobActive, jobId, refresh ] );
+		},
+	} );
 
 	const toggle = () => {
 		const next = ! expanded;
@@ -193,41 +160,6 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 			}
 		} catch ( e ) {
 			setPending( null );
-			setFailure(
-				errorMessage(
-					e,
-					__( 'That did not work. Try again.', 'magic-linking' )
-				)
-			);
-		} finally {
-			setBusy( false );
-		}
-	};
-
-	const control = async ( action: 'resume' | 'cancel' ) => {
-		if ( ! job ) {
-			return;
-		}
-		setBusy( true );
-		setFailure( '' );
-		try {
-			const response = await api.controlHistoryJob( job.id, action );
-			setJob( response.job );
-			if ( action === 'cancel' ) {
-				setOutcome(
-					Object.keys( response.job.counts ).length === 0
-						? null
-						: {
-								redo: response.job.mode === 'redo',
-								counts: response.job.counts,
-								lines: response.job.issues,
-						  }
-				);
-				if ( response.group ) {
-					onChange( response.group );
-				}
-			}
-		} catch ( e ) {
 			setFailure(
 				errorMessage(
 					e,
@@ -302,63 +234,21 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 			) }
 
 			{ job && jobActive && (
-				<div className="magiclinking-batch__progress">
-					<progress
-						max={ Math.max( 1, job.total ) }
-						value={ job.done }
-						aria-label={
-							job.mode === 'redo'
-								? __(
-										'Progress of redoing the batch',
-										'magic-linking'
-								  )
-								: __(
-										'Progress of undoing the batch',
-										'magic-linking'
-								  )
-						}
-					/>
-					<p>
-						{ sprintf(
-							/* translators: 1: changes done, 2: total changes. */
-							__(
-								'Working in the background: %1$s of %2$s.',
-								'magic-linking'
-							),
-							job.done.toLocaleString(),
-							job.total.toLocaleString()
-						) }
-					</p>
-					{ job.stalled && (
-						<Notice status="warning" isDismissible={ false }>
-							{ __(
-								'This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running.',
-								'magic-linking'
-							) }
-						</Notice>
-					) }
-					{ job.stalled && job.can_control && (
-						<div className="magiclinking-actions">
-							<Button
-								variant="secondary"
-								onClick={ () => control( 'resume' ) }
-								disabled={ busy }
-								accessibleWhenDisabled
-							>
-								{ __( 'Resume', 'magic-linking' ) }
-							</Button>
-							<Button
-								variant="secondary"
-								isDestructive
-								onClick={ () => control( 'cancel' ) }
-								disabled={ busy }
-								accessibleWhenDisabled
-							>
-								{ __( 'Cancel process', 'magic-linking' ) }
-							</Button>
-						</div>
-					) }
-				</div>
+				<JobProgress
+					job={ job }
+					labels={ {
+						undo: __(
+							'Progress of undoing the batch',
+							'magic-linking'
+						),
+						redo: __(
+							'Progress of redoing the batch',
+							'magic-linking'
+						),
+					} }
+					busy={ busy }
+					onControl={ control }
+				/>
 			) }
 
 			<div className="magiclinking-actions">
@@ -402,48 +292,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 				aria-atomic="false"
 				className="magiclinking-outcome"
 			>
-				{ outcome && (
-					<>
-						<p>
-							<strong>
-								{ summaryText( outcome.counts, outcome.redo ) }
-							</strong>
-						</p>
-						{ outcome.lines.length > 0 && (
-							<ul>
-								{ outcome.lines.map( ( line ) => (
-									<li key={ line.change_id }>
-										<span
-											className={
-												needsAttention( line.status )
-													? 'magiclinking-warn'
-													: undefined
-											}
-										>
-											{ statusLabel( line.status ) }
-										</span>
-										{ ' · ' }
-										{ entryTitle( line.post_title ) }
-										{ line.message
-											? `: ${ line.message }`
-											: '' }
-										{ line.edit_url && (
-											<>
-												{ ' ' }
-												<a href={ line.edit_url }>
-													{ __(
-														'Edit entry',
-														'magic-linking'
-													) }
-												</a>
-											</>
-										) }
-									</li>
-								) ) }
-							</ul>
-						) }
-					</>
-				) }
+				{ outcome && <OutcomeSummary outcome={ outcome } showEntry /> }
 			</div>
 
 			{ failure && (
