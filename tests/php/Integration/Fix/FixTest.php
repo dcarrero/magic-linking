@@ -293,4 +293,80 @@ final class FixTest extends FixTestCase {
 		$this->assertSame( UndoResult::MANUAL, $manual->status );
 		$this->assertSame( $this->p( 'Hola roto editado.' ), $this->stored( $other ) );
 	}
+
+	public function test_undo_after_edits_does_not_rewrite_another_link_with_the_same_tag(): void {
+		$other = '<a href="' . get_permalink( $this->target ) . '">otro enlace</a>';
+		$post  = $this->post( $this->p( 'Uno ' . $this->a( 'roto' ) . ' y ' . $other . '.' ) . "\n\n" . $this->p( 'Fin.' ) );
+
+		$result = $this->fix( $this->broken_ids( $post )[0] );
+		// Alguien quita a mano el enlace arreglado (queda su texto); el otro enlace sigue igual.
+		$edited = $this->p( 'Uno roto y ' . $other . '.' ) . "\n\n" . $this->p( 'Fin editado.' );
+		$this->raw_update( $post, $edited );
+
+		$undone = $this->undo()->revert( $result->change_id );
+
+		$this->assertSame( UndoResult::GONE, $undone->status, 'El enlace arreglado ya no está: no hay nada que deshacer.' );
+		$this->assertSame( $edited, $this->stored( $post ), 'No se reescribe otro enlace.' );
+	}
+
+	public function test_undo_after_attributes_were_added_puts_back_only_the_href(): void {
+		$post   = $this->post( $this->p( 'Uno ' . $this->a( 'roto' ) . '.' ) . "\n\n" . $this->p( 'Fin.' ) );
+		$result = $this->fix( $this->broken_ids( $post )[0] );
+		$url    = (string) get_permalink( $this->target );
+		$this->raw_update( $post, str_replace( '<a href="' . $url . '">', '<a href="' . $url . '" target="_blank" rel="noopener">', str_replace( 'Fin.', 'Fin editado.', $this->stored( $post ) ) ) );
+
+		$undone = $this->undo()->revert( $result->change_id );
+
+		$this->assertSame( UndoResult::FIX_REVERTED, $undone->status );
+		$this->assertSame( $this->p( 'Uno <a href="' . home_url( '/no-existe/' ) . '" target="_blank" rel="noopener">roto</a>.' ) . "\n\n" . $this->p( 'Fin editado.' ), $this->stored( $post ) );
+	}
+
+	public function test_undoing_a_fix_after_edits_fires_the_batch_undone_action(): void {
+		$post   = $this->post( $this->p( 'Uno ' . $this->a( 'roto' ) . '.' ) . "\n\n" . $this->p( 'Fin.' ) );
+		$result = $this->fix( $this->broken_ids( $post )[0] );
+		$this->raw_update( $post, str_replace( 'Fin.', 'Fin editado.', $this->stored( $post ) ) );
+		$seen = 0;
+		add_action(
+			'magiclinking_batch_undone',
+			static function () use ( &$seen ): void {
+				++$seen;
+			}
+		);
+
+		$results = $this->undo()->revert_batch( $result->batch_id );
+
+		$this->assertSame( UndoResult::FIX_REVERTED, $results[0]->status );
+		$this->assertSame( 1, $seen );
+		remove_all_actions( 'magiclinking_batch_undone' );
+	}
+
+	public function test_a_failing_listener_does_not_break_redo_and_messages_talk_about_the_fix(): void {
+		$post   = $this->post( $this->p( 'Uno ' . $this->a( 'roto' ) . '.' ) );
+		$result = $this->fix( $this->broken_ids( $post )[0] );
+
+		$undone = $this->undo()->revert( $result->change_id );
+		$this->assertSame( 'Destination restored.', $undone->message );
+
+		add_action(
+			'magiclinking_link_fixed',
+			static function (): void {
+				throw new \RuntimeException( 'oyente roto' );
+			}
+		);
+		$redone = $this->redo()->redo( $result->change_id );
+		$this->assertSame( UndoResult::REDONE, $redone->status );
+		$this->assertSame( 'Destination changed again.', $redone->message );
+
+		$unlinked = $this->fix( $this->broken_ids( $this->post( $this->p( 'Dos ' . $this->a( 'otro' ) . '.' ) ) )[0], FixRequest::UNLINK );
+		$this->assertSame( 'Link put back.', $this->undo()->revert( $unlinked->change_id )->message );
+		$this->assertSame( 'Link removed again.', $this->redo()->redo( $unlinked->change_id )->message );
+	}
+
+	public function test_manual_messages_for_a_fix_do_not_talk_about_removing_a_link(): void {
+		$post  = $this->post( $this->p( 'Hola ' . $this->a( 'roto' ) . '.' ) );
+		$fixed = $this->fix( $this->broken_ids( $post )[0], FixRequest::UNLINK );
+		$this->raw_update( $post, $this->p( 'Hola roto editado.' ) );
+
+		$this->assertSame( 'This post was edited afterwards; put the link back by hand.', $this->undo()->revert( $fixed->change_id )->message );
+	}
 }

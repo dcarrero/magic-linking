@@ -19,7 +19,6 @@ use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Suggestion;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\Reader;
-use MagicLinking\I18n\Language;
 use MagicLinking\Index\SuggestionCache;
 use MagicLinking\Index\Suggestions;
 use Throwable;
@@ -61,16 +60,16 @@ final class SuggestionsController implements Module {
 	 * @param Inserter            $inserter    Inserción segura.
 	 * @param Reader              $reader      Historial (para devolver el grupo).
 	 * @param Settings            $settings    Ajustes.
-	 * @param Language            $language    Idioma por entrada.
 	 * @param SuggestionPresenter $presenter   Forma de la respuesta.
+	 * @param Destination         $destination Comprobación del destino.
 	 */
 	public function __construct(
 		private Suggestions $suggestions,
 		private Inserter $inserter,
 		private Reader $reader,
 		private Settings $settings,
-		private Language $language,
-		private SuggestionPresenter $presenter
+		private SuggestionPresenter $presenter,
+		private Destination $destination
 	) {
 	}
 
@@ -532,7 +531,7 @@ final class SuggestionsController implements Module {
 	 * @return string|InsertionException La dirección, o el motivo por el que no se puede enlazar a ese destino.
 	 */
 	private function destination( int $post_id, int $target_id ): string|InsertionException {
-		return ( new Destination( $this->settings, $this->language ) )->resolve( $post_id, $target_id );
+		return $this->destination->resolve( $post_id, $target_id );
 	}
 
 	/**

@@ -225,8 +225,8 @@ final class Plugin {
 				$c->get( Inserter::class ),
 				$c->get( Reader::class ),
 				$c->get( Settings::class ),
-				$c->get( Language::class ),
-				$c->get( SuggestionPresenter::class )
+				$c->get( SuggestionPresenter::class ),
+				$c->get( Destination::class )
 			),
 			PostWriter::class            => static function (): PostWriter {
 				global $wpdb;

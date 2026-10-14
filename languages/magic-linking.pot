@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-14T10:05:21+00:00\n"
+"POT-Creation-Date: 2026-10-14T10:30:13+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -215,7 +215,7 @@ msgstr ""
 
 #: src/Cli/Command.php:622
 #: src/Rest/HistoryController.php:499
-#: src/Rest/SuggestionsController.php:418
+#: src/Rest/SuggestionsController.php:417
 msgid "You do not have permission to edit one of the entries involved."
 msgstr ""
 
@@ -261,7 +261,7 @@ msgstr[1] ""
 
 #: src/Cli/Command.php:706
 #: src/Rest/DismissalsController.php:141
-#: src/Rest/SuggestionsController.php:574
+#: src/Rest/SuggestionsController.php:573
 msgid "That entry does not exist."
 msgstr ""
 
@@ -320,7 +320,7 @@ msgstr ""
 
 #: src/Content/Destination.php:43
 #: src/Content/Destination.php:51
-#: src/Rest/FixController.php:228
+#: src/Rest/FixController.php:251
 msgid "The destination is not a published entry that can be linked."
 msgstr ""
 
@@ -338,15 +338,15 @@ msgid "This content type is not one that Magic Linking analyzes."
 msgstr ""
 
 #: src/Content/Inserter.php:202
-#: src/Content/Repairer.php:112
-#: src/History/Redo.php:159
+#: src/Content/Repairer.php:110
+#: src/History/Redo.php:167
 msgid "The change could not be confirmed as only the link; nothing was written."
 msgstr ""
 
 #: src/Content/Inserter.php:226
-#: src/Content/Repairer.php:119
-#: src/History/Redo.php:165
-#: src/History/Undo.php:179
+#: src/Content/Repairer.php:117
+#: src/History/Redo.php:173
+#: src/History/Undo.php:180
 msgid "The change history could not be saved; nothing was written."
 msgstr ""
 
@@ -472,9 +472,9 @@ msgstr ""
 msgid "The destination entry is private."
 msgstr ""
 
-#: src/Graph/BrokenRepository.php:154
+#: src/Graph/BrokenRepository.php:145
 #: src/Graph/ReportRepository.php:294
-#: src/Rest/FixController.php:186
+#: src/Rest/FixController.php:206
 #: assets/build/classic.js:1
 #: assets/build/editor.js:1
 #: assets/build/index.js:18
@@ -525,20 +525,28 @@ msgstr ""
 msgid "This link was already added again."
 msgstr ""
 
-#: src/History/Redo.php:84
+#: src/History/Redo.php:85
 msgid "This post was edited afterwards; add the link again by hand."
 msgstr ""
 
-#: src/History/Redo.php:104
+#: src/History/Redo.php:86
+msgid "This post was edited afterwards; fix the link again by hand."
+msgstr ""
+
+#: src/History/Redo.php:112
+msgid "Destination changed again."
+msgstr ""
+
+#: src/History/Redo.php:113
+msgid "Link removed again."
+msgstr ""
+
+#: src/History/Redo.php:116
 msgid "Link added again."
 msgstr ""
 
 #: src/History/Undo.php:96
 msgid "This change was already undone."
-msgstr ""
-
-#: src/History/Undo.php:115
-msgid "Link undone."
 msgstr ""
 
 #: src/History/Undo.php:116
@@ -553,11 +561,35 @@ msgstr ""
 msgid "The link is no longer in the post."
 msgstr ""
 
-#: src/History/Undo.php:164
+#: src/History/Undo.php:163
 msgid "The change could not be confirmed as only removing the link; nothing was written."
 msgstr ""
 
-#: src/History/Undo.php:452
+#: src/History/Undo.php:164
+msgid "The change could not be confirmed as only restoring the link; nothing was written."
+msgstr ""
+
+#: src/History/Undo.php:321
+msgid "Destination restored."
+msgstr ""
+
+#: src/History/Undo.php:323
+msgid "Link put back."
+msgstr ""
+
+#: src/History/Undo.php:325
+msgid "Link undone."
+msgstr ""
+
+#: src/History/Undo.php:337
+msgid "This post was edited afterwards; restore the link address by hand."
+msgstr ""
+
+#: src/History/Undo.php:339
+msgid "This post was edited afterwards; put the link back by hand."
+msgstr ""
+
+#: src/History/Undo.php:341
 msgid "This post was edited afterwards; remove the link by hand."
 msgstr ""
 
@@ -573,16 +605,16 @@ msgstr ""
 msgid "The change could not be saved. Try again."
 msgstr ""
 
-#: src/Rest/FixController.php:217
+#: src/Rest/FixController.php:240
 msgid "This link is no longer broken. Reload the list."
 msgstr ""
 
-#: src/Rest/FixController.php:241
+#: src/Rest/FixController.php:264
 #: assets/build/index.js:6
 msgid "The link could not be fixed; nothing was changed."
 msgstr ""
 
-#: src/Rest/FixController.php:286
+#: src/Rest/FixController.php:328
 msgid "That link does not exist."
 msgstr ""
 
@@ -620,15 +652,15 @@ msgstr ""
 msgid "Very similar in meaning"
 msgstr ""
 
-#: src/Rest/SuggestionsController.php:243
+#: src/Rest/SuggestionsController.php:242
 msgid "The content is too long to analyze."
 msgstr ""
 
-#: src/Rest/SuggestionsController.php:410
+#: src/Rest/SuggestionsController.php:409
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr ""
 
-#: src/Rest/SuggestionsController.php:465
+#: src/Rest/SuggestionsController.php:464
 msgid "The link could not be saved; nothing was changed."
 msgstr ""
 

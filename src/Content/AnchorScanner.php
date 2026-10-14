@@ -154,10 +154,22 @@ final class AnchorScanner {
 			return null;
 		}
 
+		return self::read_attributes( $tags );
+	}
+
+	/**
+	 * Atributos de la etiqueta en la que está el procesador, por nombre y ordenados. Es el único lector de atributos
+	 * del plugin para comparar enlaces ({@see Verifier} lo usa también).
+	 *
+	 * @param WP_HTML_Tag_Processor $tags Procesador colocado en una etiqueta.
+	 *
+	 * @return array<string, string|true>
+	 */
+	public static function read_attributes( WP_HTML_Tag_Processor $tags ): array {
 		$out = array();
 		foreach ( (array) $tags->get_attribute_names_with_prefix( '' ) as $name ) {
-			$value        = $tags->get_attribute( (string) $name );
-			$out[ $name ] = is_string( $value ) ? $value : true;
+			$value                 = $tags->get_attribute( (string) $name );
+			$out[ (string) $name ] = is_string( $value ) ? $value : true;
 		}
 		ksort( $out );
 

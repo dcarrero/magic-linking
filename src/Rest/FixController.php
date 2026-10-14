@@ -26,6 +26,7 @@ use WP_Query;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use WeakMap;
 
 /**
  * `GET /broken/{id}/targets` (buscar el nuevo destino) y `POST /broken/{id}/fix` (cambiar el destino o quitar el
@@ -44,6 +45,18 @@ final class FixController implements Module {
 	 * Destinos que devuelve la búsqueda como máximo.
 	 */
 	private const MAX_TARGETS = 20;
+
+	/**
+	 * Páginas de 40 entradas que se recorren como máximo buscando destinos del mismo idioma.
+	 */
+	private const MAX_PAGES = 25;
+
+	/**
+	 * Fila leída en cada petición (el permiso y la ruta preguntan por la misma).
+	 *
+	 * @var WeakMap<WP_REST_Request, array<int, mixed>>|null
+	 */
+	private ?WeakMap $rows = null;
 
 	/**
 	 * Constructor.
@@ -134,7 +147,7 @@ final class FixController implements Module {
 			return false;
 		}
 
-		$row = $this->broken->occurrence( (int) $request['id'] );
+		$row = $this->occurrence( $request );
 
 		return null === $row || current_user_can( 'edit_post', $row['source_id'] );
 	}
@@ -147,7 +160,7 @@ final class FixController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_targets( WP_REST_Request $request ) {
-		$row = $this->broken->occurrence( (int) $request['id'] );
+		$row = $this->occurrence( $request );
 		if ( null === $row ) {
 			return $this->not_found();
 		}
@@ -155,42 +168,52 @@ final class FixController implements Module {
 		$types = $this->settings->post_types();
 		$items = array();
 		if ( array() !== $types ) {
-			$query = new WP_Query(
-				array(
-					'post_type'              => $types,
-					'post_status'            => 'publish',
-					'has_password'           => false,
-					'post__not_in'           => array( $row['source_id'] ),
-					's'                      => (string) $request['search'],
-					'search_columns'         => array( 'post_title' ),
-					'posts_per_page'         => self::MAX_TARGETS * 2,
-					'orderby'                => '' === (string) $request['search'] ? 'date' : 'relevance',
-					'order'                  => 'DESC',
-					'no_found_rows'          => true,
-					'ignore_sticky_posts'    => true,
-					'update_post_term_cache' => false,
-					'update_post_meta_cache' => false,
-				)
-			);
+			$lang   = $this->language->for_post( $row['source_id'] );
+			$search = (string) $request['search'];
+			$paged  = 1;
+			$pages  = 1;
 
-			$lang = $this->language->for_post( $row['source_id'] );
-			foreach ( $query->posts as $post ) {
-				if ( ! $post instanceof WP_Post || ! current_user_can( 'read_post', $post->ID ) || $this->language->for_post( $post->ID ) !== $lang ) {
-					continue;
-				}
-
-				$type    = get_post_type_object( $post->post_type );
-				$title   = html_entity_decode( wp_strip_all_tags( get_the_title( $post ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-				$items[] = array(
-					'id'         => $post->ID,
-					'title'      => '' !== trim( $title ) ? $title : __( '(no title)', 'magic-linking' ),
-					'url'        => (string) get_permalink( $post ),
-					'type_label' => null === $type ? $post->post_type : (string) $type->labels->singular_name,
+			// El idioma sale de WPML, Polylang o un filtro, por entrada: se sigue pasando de página hasta llenar la lista.
+			do {
+				$query = new WP_Query(
+					array(
+						'post_type'              => $types,
+						'post_status'            => 'publish',
+						'has_password'           => false,
+						'post__not_in'           => array( $row['source_id'] ),
+						's'                      => $search,
+						'search_columns'         => array( 'post_title' ),
+						'posts_per_page'         => self::MAX_TARGETS * 2,
+						'paged'                  => $paged,
+						'orderby'                => '' === $search ? 'date' : 'relevance',
+						'order'                  => 'DESC',
+						'ignore_sticky_posts'    => true,
+						'update_post_term_cache' => false,
+						'update_post_meta_cache' => false,
+					)
 				);
-				if ( count( $items ) >= self::MAX_TARGETS ) {
-					break;
+				$pages = (int) $query->max_num_pages;
+
+				foreach ( $query->posts as $post ) {
+					if ( ! $post instanceof WP_Post || ! current_user_can( 'read_post', $post->ID ) || $this->language->for_post( $post->ID ) !== $lang ) {
+						continue;
+					}
+
+					$type    = get_post_type_object( $post->post_type );
+					$title   = html_entity_decode( wp_strip_all_tags( get_the_title( $post ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+					$items[] = array(
+						'id'         => $post->ID,
+						'title'      => '' !== trim( $title ) ? $title : __( '(no title)', 'magic-linking' ),
+						'url'        => (string) get_permalink( $post ),
+						'type_label' => null === $type ? $post->post_type : (string) $type->labels->singular_name,
+					);
+					if ( count( $items ) >= self::MAX_TARGETS ) {
+						break 2;
+					}
 				}
-			}
+
+				++$paged;
+			} while ( $paged <= $pages && $paged <= self::MAX_PAGES );
 		}//end if
 
 		return new WP_REST_Response( array( 'items' => $items ) );
@@ -209,7 +232,7 @@ final class FixController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function post_fix( WP_REST_Request $request ) {
-		$row = $this->broken->occurrence( (int) $request['id'] );
+		$row = $this->occurrence( $request );
 		if ( null === $row ) {
 			return $this->not_found();
 		}
@@ -277,6 +300,30 @@ final class FixController implements Module {
 			default:
 				return 422;
 		}
+	}
+
+	/**
+	 * El enlace de la petición, leído una sola vez por petición.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return array{id: int, source_id: int, url: string, anchor: string, broken: int, ordinal: int, count: int}|null
+	 */
+	private function occurrence( WP_REST_Request $request ): ?array {
+		$this->rows ??= new WeakMap();
+		if ( ! isset( $this->rows[ $request ] ) ) {
+			$this->rows[ $request ] = array( $this->broken->occurrence( (int) $request['id'] ) );
+		}
+
+		// Forma de la fila: la de BrokenRepository::occurrence().
+		/**
+		 * Fila guardada.
+		 *
+		 * @var array{id: int, source_id: int, url: string, anchor: string, broken: int, ordinal: int, count: int}|null $row
+		 */
+		$row = $this->rows[ $request ][0];
+
+		return $row;
 	}
 
 	/**

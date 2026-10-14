@@ -103,9 +103,7 @@ final class Repairer {
 
 		$fixer = new LinkFixer( $this->jobs->indexer()->parser() );
 		$edit  = $fixer->fix( $original, $request );
-		$check = FixRequest::RETARGET === $request->mode
-			? Verifier::check_retarget( $original, $edit->content, array( $edit->start, $edit->end ) )
-			: Verifier::check( $original, $edit->content, array( $edit->start, $edit->end ), -1 );
+		$check = Verifier::for_action( $request->action(), $original, $edit->content, array( $edit->start, $edit->end ) );
 
 		if ( ! $check->ok ) {
 			PostWriter::log( sprintf( 'Verificación fallida al arreglar un enlace de la entrada %d: %s.', $post_id, $check->reason ) );

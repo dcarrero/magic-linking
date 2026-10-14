@@ -66,7 +66,7 @@ final class BrokenRepository {
 	 * Un enlace roto y cuál de las apariciones de su dirección es en su entrada (para arreglarlo, F1-33).
 	 *
 	 * La posición se cuenta entre las filas del grafo con la misma dirección, que se guardan en el orden del documento;
-	 * la comparación es exacta (la de MySQL no distingue mayúsculas).
+	 * la comparación es exacta.
 	 *
 	 * @param int $id Fila de magiclinking_links.
 	 *
@@ -83,22 +83,13 @@ final class BrokenRepository {
 			return null;
 		}
 
-		$siblings = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Consulta propia.
-			$wpdb->prepare( 'SELECT id, target_url FROM %i WHERE source_id = %d AND is_internal = 1 ORDER BY id ASC', $links, (int) $row['source_id'] ),
+		// La comparación es binaria (exacta); MySQL no distingue mayúsculas en target_url.
+		$counts  = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Consulta propia.
+			$wpdb->prepare( 'SELECT COUNT(*) AS total, COALESCE( SUM( id < %d ), 0 ) AS before_it FROM %i WHERE source_id = %d AND is_internal = 1 AND BINARY target_url = %s', $id, $links, (int) $row['source_id'], (string) $row['target_url'] ),
 			ARRAY_A
 		);
-
-		$ordinal = 0;
-		$count   = 0;
-		foreach ( (array) $siblings as $sibling ) {
-			if ( (string) $sibling['target_url'] !== (string) $row['target_url'] ) {
-				continue;
-			}
-			if ( (int) $sibling['id'] < $id ) {
-				++$ordinal;
-			}
-			++$count;
-		}
+		$ordinal = (int) ( $counts['before_it'] ?? 0 );
+		$count   = (int) ( $counts['total'] ?? 0 );
 
 		return array(
 			'id'        => (int) $row['id'],

@@ -224,4 +224,44 @@ final class FixRestTest extends FixTestCase {
 
 		$this->assertSame( array(), $this->call( 'GET', "/broken/{$link}/targets", array( 'search' => 'aire inexistente' ) )->get_data()['items'] );
 	}
+
+	public function test_search_fills_the_page_with_same_language_entries_even_if_newer_ones_are_in_other_languages(): void {
+		[ $post, $link ] = $this->broken();
+		wp_update_post(
+			array(
+				'ID'            => $this->target,
+				'post_date'     => '2020-01-01 00:00:00',
+				'post_date_gmt' => '2020-01-01 00:00:00',
+			)
+		);
+		for ( $i = 0; $i < 45; $i++ ) {
+			self::factory()->post->create( array( 'post_title' => "Francés {$i}" ) );
+		}
+		$french = static fn( $lang, $id ) => $id > 0 && get_post( $id )->post_title !== '' && str_starts_with( get_post( $id )->post_title, 'Francés' ) ? 'fr' : $lang;
+		add_filter( 'magiclinking_post_language', $french, 10, 2 );
+
+		$items = $this->call( 'GET', "/broken/{$link}/targets" )->get_data()['items'];
+		remove_filter( 'magiclinking_post_language', $french, 10 );
+
+		$this->assertContains( 'Aire acondicionado', array_column( $items, 'title' ) );
+	}
+
+	public function test_one_fix_request_reads_the_occurrence_once(): void {
+		[ , $link ] = $this->broken();
+		global $wpdb;
+		$wpdb->queries = array();
+		$count         = 0;
+		$counter       = static function ( $query ) use ( &$count ) {
+			if ( str_contains( $query, 'is_internal = 1' ) ) {
+				++$count;
+			}
+
+			return $query;
+		};
+		add_filter( 'query', $counter );
+		$this->call( 'POST', "/broken/{$link}/fix", array( 'mode' => 'unlink' ) );
+		remove_filter( 'query', $counter );
+
+		$this->assertSame( 1, $count );
+	}
 }

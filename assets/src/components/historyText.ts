@@ -48,6 +48,7 @@ export function summaryText(
 		? counts.redone ?? 0
 		: ( counts.restored ?? 0 ) +
 		  ( counts.link_removed ?? 0 ) +
+		  ( counts.fix_reverted ?? 0 ) +
 		  ( counts.already_gone ?? 0 ) +
 		  ( counts.already_undone ?? 0 );
 

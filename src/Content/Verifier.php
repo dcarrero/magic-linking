@@ -95,6 +95,27 @@ final class Verifier {
 	}
 
 	/**
+	 * La comprobación que corresponde a una acción del historial: la única tabla acción → verificación.
+	 *
+	 * @param string $action  `insert`, `retarget` o `unlink`.
+	 * @param string $before  Contenido antes.
+	 * @param string $after   Contenido después.
+	 * @param array  $range   Bytes [inicio, fin) del tramo modificado en $before.
+	 * @param bool   $reverse Se comprueba el deshacer de la acción (el enlace se pone donde se quitó y al revés).
+	 *
+	 * @phpstan-param array{0: int, 1: int} $range
+	 */
+	public static function for_action( string $action, string $before, string $after, array $range, bool $reverse = false ): VerifyResult {
+		if ( 'retarget' === $action ) {
+			return self::check_retarget( $before, $after, $range );
+		}
+
+		$adds = 'unlink' === $action ? $reverse : ! $reverse;
+
+		return self::check( $before, $after, $range, $adds ? 1 : -1 );
+	}
+
+	/**
 	 * Comprueba que un cambio de destino ha tocado solo el `href` de un enlace.
 	 *
 	 * @param string $before Contenido antes.
@@ -212,13 +233,7 @@ final class Verifier {
 				$sequence[] = $name;
 				$open[]     = $name;
 				if ( 'A' === $name ) {
-					$attributes = array();
-					foreach ( (array) $processor->get_attribute_names_with_prefix( '' ) as $attribute ) {
-						$value                             = $processor->get_attribute( (string) $attribute );
-						$attributes[ (string) $attribute ] = is_string( $value ) ? $value : true;
-					}
-					ksort( $attributes );
-					$attrs[] = $attributes;
+					$attrs[] = AnchorScanner::read_attributes( $processor );
 					++$links;
 					++$depth;
 					$nested = $nested || $depth > 1;
