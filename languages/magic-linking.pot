@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-14T14:20:35+00:00\n"
+"POT-Creation-Date: 2026-10-14T14:43:08+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -2043,19 +2043,51 @@ msgid "Magic Linking reads these content types to find links between them."
 msgstr ""
 
 #: assets/build/index.js:60
-msgid "Suggestions"
+msgid "Maintenance"
 msgstr ""
 
 #: assets/build/index.js:60
-msgid "How many suggestions you see, and how entries are judged as linked too little or too much."
+msgid "Run the analysis again and go back through the first steps."
 msgstr ""
 
 #: assets/build/index.js:60
-msgid "Link insertion"
+msgid "Suggestions shown"
 msgstr ""
 
 #: assets/build/index.js:60
-msgid "Where in your content links can go, and what the links Magic Linking inserts look like."
+msgid "How many suggestions you see in the editor."
+msgstr ""
+
+#: assets/build/index.js:60
+msgid "To avoid overloading your texts"
+msgstr ""
+
+#: assets/build/index.js:60
+msgid "These are quality settings, not limits: you can always insert any link yourself."
+msgstr ""
+
+#: assets/build/index.js:60
+msgid "Under-linked entries"
+msgstr ""
+
+#: assets/build/index.js:60
+msgid "When an entry is shown as linked too little."
+msgstr ""
+
+#: assets/build/index.js:60
+msgid "Where links can be inserted"
+msgstr ""
+
+#: assets/build/index.js:60
+msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
+msgstr ""
+
+#: assets/build/index.js:60
+msgid "How links are inserted"
+msgstr ""
+
+#: assets/build/index.js:60
+msgid "What the links Magic Linking inserts look like."
 msgstr ""
 
 #: assets/build/index.js:60
@@ -2067,19 +2099,19 @@ msgid "Entries and words that Magic Linking should leave alone."
 msgstr ""
 
 #: assets/build/index.js:60
-msgid "History and data"
+msgid "History of changes"
 msgstr ""
 
 #: assets/build/index.js:60
-msgid "How long you can undo changes, and what happens to the data when the plugin is deleted."
+msgid "How long you can undo changes."
 msgstr ""
 
 #: assets/build/index.js:60
-msgid "Maintenance"
+msgid "When the plugin is deleted"
 msgstr ""
 
 #: assets/build/index.js:60
-msgid "Run the analysis again and go back through the first steps."
+msgid "What happens to the data of Magic Linking."
 msgstr ""
 
 #. translators: %s: number of seconds.
@@ -2152,6 +2184,19 @@ msgstr ""
 msgid "Could not load the settings."
 msgstr ""
 
+#: assets/build/index.js:62
+msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
+msgstr ""
+
+#: assets/build/index.js:62
+msgid "Settings saved."
+msgstr ""
+
+#: assets/build/index.js:62
+#: assets/build/index.js:66
+msgid "The settings could not be saved."
+msgstr ""
+
 #. translators: 1: minimum, 2: maximum.
 #: assets/build/index.js:63
 #, js-format
@@ -2168,29 +2213,27 @@ msgid "Unsaved changes"
 msgstr ""
 
 #: assets/build/index.js:63
-msgid "Settings sections"
+msgid "(needs attention)"
 msgstr ""
 
 #: assets/build/index.js:63
-msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
+msgid "(unsaved changes)"
 msgstr ""
 
 #: assets/build/index.js:63
-msgid "Settings saved."
+msgid "General"
 msgstr ""
 
 #: assets/build/index.js:63
-#: assets/build/index.js:66
-msgid "The settings could not be saved."
+msgid "Suggestions"
 msgstr ""
 
 #: assets/build/index.js:63
-#: assets/build/index.js:65
-msgid "Content types to analyze"
+msgid "Links"
 msgstr ""
 
 #: assets/build/index.js:63
-msgid "Suggestions shown"
+msgid "History and data"
 msgstr ""
 
 #: assets/build/index.js:63
@@ -2210,14 +2253,6 @@ msgid "Entries that could link to the one you are editing, shown this many at a 
 msgstr ""
 
 #: assets/build/index.js:63
-msgid "To avoid overloading your texts"
-msgstr ""
-
-#: assets/build/index.js:63
-msgid "These are quality settings, not limits: you can always insert any link yourself."
-msgstr ""
-
-#: assets/build/index.js:63
 msgid "Words per internal link"
 msgstr ""
 
@@ -2234,23 +2269,11 @@ msgid "Beyond this many entries, the same anchor text towards the same target is
 msgstr ""
 
 #: assets/build/index.js:63
-msgid "Under-linked entries"
-msgstr ""
-
-#: assets/build/index.js:63
 msgid "Under-linked below this many inbound links"
 msgstr ""
 
 #: assets/build/index.js:63
 msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
-msgstr ""
-
-#: assets/build/index.js:63
-msgid "Where links can be inserted"
-msgstr ""
-
-#: assets/build/index.js:63
-msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
 msgstr ""
 
 #: assets/build/index.js:63
@@ -2267,10 +2290,6 @@ msgstr ""
 
 #: assets/build/index.js:63
 msgid "Changing these makes Magic Linking read your entries again."
-msgstr ""
-
-#: assets/build/index.js:63
-msgid "Links you insert"
 msgstr ""
 
 #: assets/build/index.js:63
@@ -2335,6 +2354,11 @@ msgstr ""
 
 #: assets/build/index.js:63
 msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
+msgstr ""
+
+#: assets/build/index.js:63
+#: assets/build/index.js:65
+msgid "Content types to analyze"
 msgstr ""
 
 #: assets/build/index.js:63

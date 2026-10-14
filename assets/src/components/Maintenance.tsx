@@ -9,8 +9,8 @@ import { SettingsSection, settingsSections } from './SettingsSection';
 
 interface Props {
 	status: StatusResponse | null;
-	/** Se llama cuando se ha lanzado el análisis, para refrescar el estado. */
-	onStarted: () => void;
+	/** Estado y acción del análisis completo (viven en `SettingsTab`, ver `useMaintenance`). */
+	control: MaintenanceControl;
 	/** Reabre el asistente de arranque. */
 	onOpenWizard: () => void;
 }
@@ -45,19 +45,14 @@ export function formatDuration( from: string, to: string ): string {
 }
 
 /**
- * Sección «Mantenimiento» de Ajustes: datos del último análisis y botón para repetirlo.
- * @param root0
- * @param root0.status
- * @param root0.onStarted
- * @param root0.onOpenWizard
+ * Estado y acción de «Analizar todo desde cero». Se usa en `SettingsTab` para que un error o un análisis en
+ * marcha no se pierdan al cambiar de pestaña (el contenido de la pestaña General se desmonta).
+ * @param onStarted Se llama cuando se ha lanzado el análisis, para refrescar el estado.
  */
-export function Maintenance( { status, onStarted, onOpenWizard }: Props ) {
+export function useMaintenance( onStarted: () => void ) {
 	const [ confirming, setConfirming ] = useState( false );
 	const [ busy, setBusy ] = useState( false );
 	const [ failure, setFailure ] = useState( '' );
-
-	const last = status?.last_done ?? null;
-	const active = status?.job ?? null;
 
 	const start = async () => {
 		setBusy( true );
@@ -79,6 +74,23 @@ export function Maintenance( { status, onStarted, onOpenWizard }: Props ) {
 			setBusy( false );
 		}
 	};
+
+	return { confirming, setConfirming, busy, failure, start };
+}
+
+export type MaintenanceControl = ReturnType< typeof useMaintenance >;
+
+/**
+ * Sección «Mantenimiento» de Ajustes: datos del último análisis y botón para repetirlo.
+ * @param root0
+ * @param root0.status
+ * @param root0.control
+ * @param root0.onOpenWizard
+ */
+export function Maintenance( { status, control, onOpenWizard }: Props ) {
+	const { confirming, setConfirming, busy, failure, start } = control;
+	const last = status?.last_done ?? null;
+	const active = status?.job ?? null;
 
 	return (
 		<SettingsSection section={ settingsSections().maintenance }>

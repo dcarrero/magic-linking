@@ -90,3 +90,27 @@ export async function openHistoryByBatch( page: Page ): Promise< void > {
 	await batch.click();
 	await expect( batch ).toHaveAttribute( 'aria-pressed', 'true' );
 }
+
+/**
+ * Abre una pestaña de Ajustes por su nombre visible (la pestaña puede llevar la marca «(unsaved changes)»).
+ *
+ * @param page Página.
+ * @param name Nombre de la pestaña: General, Suggestions, Links o History and data.
+ */
+export async function openSettingsTab(
+	page: Page,
+	name: 'General' | 'Suggestions' | 'Links' | 'History and data'
+): Promise< void > {
+	const tab = page.getByRole( 'tab', { name: new RegExp( `^${ name }` ) } );
+	await tab.click();
+	await tab.waitFor( { state: 'visible' } );
+	await page.waitForFunction(
+		( label ) =>
+			Array.from( document.querySelectorAll( '[role="tab"]' ) ).some(
+				( el ) =>
+					el.getAttribute( 'aria-selected' ) === 'true' &&
+					( el.textContent ?? '' ).startsWith( label )
+			),
+		name
+	);
+}
