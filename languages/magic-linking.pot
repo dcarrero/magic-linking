@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-14T10:06:21+00:00\n"
+"POT-Creation-Date: 2026-10-14T10:27:46+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -72,7 +72,7 @@ msgstr ""
 #: src/Admin/EditorPanel.php:83
 #: src/Admin/Screen.php:285
 #: assets/build/editor.js:13
-#: assets/build/index.js:42
+#: assets/build/index.js:43
 msgid "Internal links"
 msgstr ""
 
@@ -82,7 +82,7 @@ msgstr ""
 #: assets/build/index.js:17
 #: assets/build/index.js:25
 #: assets/build/index.js:37
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Loading…"
 msgstr ""
 
@@ -99,23 +99,23 @@ msgid "Magic Linking"
 msgstr ""
 
 #: src/Admin/Screen.php:142
-#: assets/build/index.js:41
+#: assets/build/index.js:42
 msgid "Report"
 msgstr ""
 
 #: src/Admin/Screen.php:148
-#: assets/build/index.js:41
 #: assets/build/index.js:42
+#: assets/build/index.js:43
 msgid "Broken links"
 msgstr ""
 
 #: src/Admin/Screen.php:152
-#: assets/build/index.js:41
+#: assets/build/index.js:42
 msgid "History"
 msgstr ""
 
 #: src/Admin/Screen.php:156
-#: assets/build/index.js:41
+#: assets/build/index.js:42
 msgid "Settings"
 msgstr ""
 
@@ -757,7 +757,7 @@ msgstr ""
 
 #: assets/build/classic.js:9
 #: assets/build/editor.js:9
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Next"
 msgstr ""
 
@@ -1027,6 +1027,54 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
+#: assets/build/index.js:8
+msgid "Content analyzed"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Magic Linking reads these content types to find links between them."
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Suggestions"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "How many suggestions you see, and how entries are judged as linked too little or too much."
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Link insertion"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Where in your content links can go, and what the links Magic Linking inserts look like."
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Exclusions"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Entries and words that Magic Linking should leave alone."
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "History and data"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "How long you can undo changes, and what happens to the data when the plugin is deleted."
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Maintenance"
+msgstr ""
+
+#: assets/build/index.js:8
+msgid "Run the analysis again and go back through the first steps."
+msgstr ""
+
 #. translators: %s: number of seconds.
 #: assets/build/index.js:9
 #, js-format
@@ -1040,10 +1088,6 @@ msgid "%1$s min %2$s s"
 msgstr ""
 
 #: assets/build/index.js:10
-msgid "Maintenance"
-msgstr ""
-
-#: assets/build/index.js:10
 msgid "Last full analysis"
 msgstr ""
 
@@ -1052,7 +1096,7 @@ msgid "Duration"
 msgstr ""
 
 #: assets/build/index.js:10
-#: assets/build/index.js:42
+#: assets/build/index.js:43
 msgid "Entries analyzed"
 msgstr ""
 
@@ -1073,6 +1117,18 @@ msgid "An analysis is already running; its progress is shown above."
 msgstr ""
 
 #: assets/build/index.js:10
+msgid "Setup assistant"
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Go through the first steps again: content types, AI and the first analysis."
+msgstr ""
+
+#: assets/build/index.js:10
+msgid "Open the setup assistant"
+msgstr ""
+
+#: assets/build/index.js:10
 msgid "Analyze everything again from scratch?"
 msgstr ""
 
@@ -1082,7 +1138,7 @@ msgstr ""
 
 #: assets/build/index.js:10
 #: assets/build/index.js:30
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Analysis started."
 msgstr ""
 
@@ -1090,8 +1146,8 @@ msgstr ""
 #: assets/build/index.js:14
 #: assets/build/index.js:20
 #: assets/build/index.js:30
-#: assets/build/index.js:38
-#: assets/build/index.js:40
+#: assets/build/index.js:39
+#: assets/build/index.js:41
 msgid "That did not work. Try again."
 msgstr ""
 
@@ -1454,7 +1510,7 @@ msgid "Analysis cancelled."
 msgstr ""
 
 #: assets/build/index.js:32
-#: assets/build/index.js:38
+#: assets/build/index.js:39
 msgid "Analyze your site"
 msgstr ""
 
@@ -1500,7 +1556,7 @@ msgid "Last analysis: %s"
 msgstr ""
 
 #: assets/build/index.js:35
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Could not load the report."
 msgstr ""
 
@@ -1603,308 +1659,307 @@ msgid "All languages"
 msgstr ""
 
 #: assets/build/index.js:37
+#: assets/build/index.js:38
 msgid "Could not load the settings."
 msgstr ""
 
-#: assets/build/index.js:37
-msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
+#. translators: 1: minimum, 2: maximum.
+#: assets/build/index.js:38
+#, js-format
+msgid "Enter a whole number from %1$s to %2$s; otherwise it is adjusted when you leave the field."
 msgstr ""
 
-#: assets/build/index.js:37
-msgid "Settings saved."
-msgstr ""
-
-#: assets/build/index.js:37
-#: assets/build/index.js:40
-msgid "The settings could not be saved."
-msgstr ""
-
-#: assets/build/index.js:37
-#: assets/build/index.js:39
-msgid "Content types to analyze"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Links you insert"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Open links in a new tab"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Additional rel values"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Keep the history of changes for"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "30 days"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "90 days"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "365 days"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "No expiry date"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Where links can be inserted"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Headings"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Quotes"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Tables"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Changing these makes Magic Linking read your entries again."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "To avoid overloading your texts"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "These are quality settings, not limits: you can always insert any link yourself."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Words per internal link"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed)."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Entries that can use the same anchor text for the same target"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Beyond this many entries, the same anchor text towards the same target is suggested less."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Suggestions shown"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Outbound suggestions in the editor"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "The most useful links to add from the entry you are editing."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Inbound suggestions per page in the editor"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Entries that could link to the one you are editing, shown this many at a time."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Ignored"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Ignored addresses"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "One address per line. These entries are never suggested as a target, and never suggested to link to others."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Ignored words"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "One word or phrase per line. Suggestions whose anchor text contains one of them are not shown."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Advanced"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Under-linked below this many inbound links"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Delete all Magic Linking data when the plugin is deleted"
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
-msgstr ""
-
-#: assets/build/index.js:37
-msgid "Save settings"
-msgstr ""
-
-#: assets/build/index.js:37
-#: assets/build/index.js:40
+#: assets/build/index.js:38
+#: assets/build/index.js:41
 msgid "Choose at least one content type."
 msgstr ""
 
-#: assets/build/index.js:37
-msgid "Setup assistant"
+#: assets/build/index.js:38
+msgid "Unsaved changes"
 msgstr ""
 
-#: assets/build/index.js:37
-msgid "Go through the first steps again: content types, AI and the first analysis."
+#: assets/build/index.js:38
+msgid "Settings sections"
 msgstr ""
 
-#: assets/build/index.js:37
-msgid "Open the setup assistant"
+#: assets/build/index.js:38
+msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
 msgstr ""
 
-#: assets/build/index.js:37
+#: assets/build/index.js:38
+msgid "Settings saved."
+msgstr ""
+
+#: assets/build/index.js:38
+#: assets/build/index.js:41
+msgid "The settings could not be saved."
+msgstr ""
+
+#: assets/build/index.js:38
+#: assets/build/index.js:40
+msgid "Content types to analyze"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Suggestions shown"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Outbound suggestions in the editor"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "The most useful links to add from the entry you are editing."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Inbound suggestions per page in the editor"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Entries that could link to the one you are editing, shown this many at a time."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "To avoid overloading your texts"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "These are quality settings, not limits: you can always insert any link yourself."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Words per internal link"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed)."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Entries that can use the same anchor text for the same target"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Beyond this many entries, the same anchor text towards the same target is suggested less."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Under-linked entries"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Under-linked below this many inbound links"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Where links can be inserted"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Headings"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Quotes"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Tables"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Changing these makes Magic Linking read your entries again."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Links you insert"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Open links in a new tab"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Additional rel values"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Ignored addresses"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "One address per line. These entries are never suggested as a target, and never suggested to link to others."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Ignored words"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "One word or phrase per line. Suggestions whose anchor text contains one of them are not shown."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Keep the history of changes for"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "30 days"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "90 days"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "365 days"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "No expiry date"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Delete all Magic Linking data when the plugin is deleted"
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
+msgstr ""
+
+#: assets/build/index.js:38
+msgid "Save settings"
+msgstr ""
+
+#: assets/build/index.js:38
 msgid "Could not load the setup information."
 msgstr ""
 
 #. translators: 1: current step, 2: number of steps.
-#: assets/build/index.js:38
+#: assets/build/index.js:39
 #, js-format
 msgid "Step %1$s of %2$s"
 msgstr ""
 
-#: assets/build/index.js:38
+#: assets/build/index.js:39
 msgid "What do we link?"
 msgstr ""
 
-#: assets/build/index.js:38
+#: assets/build/index.js:39
 msgid "Artificial intelligence"
 msgstr ""
 
-#: assets/build/index.js:38
+#: assets/build/index.js:39
 msgid "All set"
 msgstr ""
 
 #. translators: 1: current step, 2: number of steps.
-#: assets/build/index.js:39
+#: assets/build/index.js:40
 #, js-format
 msgid "Setup · step %1$s of %2$s"
 msgstr ""
 
 #. translators: %s: language name.
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 #, js-format
 msgid "Language detected: %s."
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Your site is multilingual: we will link each language separately."
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Entries are only linked to others in the same language."
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Your WordPress has an AI connector. This version of Magic Linking does not use it yet: suggestions come from its own engine, which needs no AI. When AI features arrive they will use that connector, and nothing will be spent without showing you an estimate first."
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "No AI connected: Magic Linking works with its own engine, which needs no AI. You can connect one whenever you like in Settings → Connectors."
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Analyzing only reads your content; it never changes it. Links are only added when you press Link."
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "The analysis is running. You can close this screen: it continues in the background."
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Start"
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Back"
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Close"
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "Skip setup"
 msgstr ""
 
-#: assets/build/index.js:40
+#: assets/build/index.js:41
 msgid "You can open this assistant again from Settings."
 msgstr ""
 
 #. translators: 1: entries analyzed, 2: orphan entries, 3: internal links.
-#: assets/build/index.js:41
+#: assets/build/index.js:42
 #, js-format
 msgid "%1$s entries analyzed · %2$s orphans · %3$s internal links"
 msgstr ""
 
-#: assets/build/index.js:41
+#: assets/build/index.js:42
 msgid "See orphans"
 msgstr ""
 
-#: assets/build/index.js:41
+#: assets/build/index.js:42
 msgid "Open an entry"
 msgstr ""
 
 #. translators: %s: section name (Report, Broken links, Settings).
-#: assets/build/index.js:42
+#: assets/build/index.js:43
 #, js-format
 msgid "Magic Linking · %s"
 msgstr ""
 
-#: assets/build/index.js:42
+#: assets/build/index.js:43
 msgid "Orphan entries"
 msgstr ""
 
-#: assets/build/index.js:42
+#: assets/build/index.js:43
 msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
 msgstr ""
 
 #. translators: %s: WP-CLI command.
-#: assets/build/index.js:43
+#: assets/build/index.js:44
 #, js-format
 msgid "You can also run the analysis from the terminal: %s"
 msgstr ""
