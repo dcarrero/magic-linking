@@ -13,6 +13,8 @@ interface Props {
 	exportUrl: string;
 	onBroken: ( postId: number, title: string ) => void;
 	onSummary: ( summary: Summary ) => void;
+	/** Filtro con el que se abre la lista. */
+	initialFilter?: ReportFilter;
 }
 
 const PER_PAGE = window.magiclinking?.perPage ?? 20;
@@ -31,14 +33,16 @@ const STATUS_LABEL: Record< ReportItem[ 'status' ], () => string > = {
  * @param root0.exportUrl
  * @param root0.onBroken
  * @param root0.onSummary
+ * @param root0.initialFilter
  */
 export function ReportTab( {
 	refreshKey,
 	exportUrl,
 	onBroken,
 	onSummary,
+	initialFilter = 'all',
 }: Props ) {
-	const [ filter, setFilter ] = useState< ReportFilter >( 'all' );
+	const [ filter, setFilter ] = useState< ReportFilter >( initialFilter );
 	const [ search, setSearch ] = useState( '' );
 	const [ postType, setPostType ] = useState( '' );
 	const [ lang, setLang ] = useState( '' );

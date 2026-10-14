@@ -44,7 +44,7 @@ final class ClassicEditor {
 			if ( null !== $view->unsafe() ) {
 				throw new InsertionException( InsertionException::UNSUPPORTED, __( 'The post contains markup (script, styles…) that cannot be scanned safely.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 			}
-			$problem = Linker::blocked( $view, $a, $b, $request->headings );
+			$problem = Linker::blocked( $view, $a, $b, $request->headings, $request->quotes, $request->tables );
 			if ( null !== $problem ) {
 				$blocked ??= $problem;
 				continue;
@@ -86,7 +86,7 @@ final class ClassicEditor {
 			if ( null !== $view->unsafe() ) {
 				return false;
 			}
-			if ( null === Linker::blocked( $view, $a, $b, $request->headings ) ) {
+			if ( null === Linker::blocked( $view, $a, $b, $request->headings, $request->quotes, $request->tables ) ) {
 				++$found;
 			}
 		}

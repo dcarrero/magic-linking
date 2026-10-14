@@ -134,7 +134,6 @@ final class SuggestionsController implements Module {
 					),
 					'per_page' => array(
 						'type'    => 'integer',
-						'default' => 10,
 						'minimum' => 1,
 						'maximum' => 50,
 					),
@@ -333,9 +332,10 @@ final class SuggestionsController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_inbound( WP_REST_Request $request ) {
-		$post_id  = (int) $request['post_id'];
-		$page     = (int) $request['page'];
-		$per_page = (int) $request['per_page'];
+		$post_id = (int) $request['post_id'];
+		$page    = (int) $request['page'];
+		// Sin `per_page` manda el ajuste del usuario (entrantes por página).
+		$per_page = $request->has_param( 'per_page' ) ? (int) $request['per_page'] : (int) $this->settings->all()['inbound_per_page'];
 		$post     = get_post( $post_id );
 		if ( ! $post instanceof WP_Post ) {
 			return $this->not_found();

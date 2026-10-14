@@ -28,6 +28,8 @@ export function seed(): void {
 		foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'e2e-%' OR post_name LIKE 'entrada-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
 		foreach ( array( 'docs', 'links', 'jobs' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
 		delete_option( 'magiclinking_settings' );
+		// El asistente de arranque tiene su propio fichero de pruebas: aquí está cerrado, como para quien ya lo vio.
+		update_user_meta( 1, 'magiclinking_wizard_dismissed', '1' );
 		$link = static fn( $slug ) => '<a href="' . home_url( "/$slug/" ) . '">' . $slug . '</a>';
 		$make = static fn( $slug, $content ) => wp_insert_post( array( 'post_name' => $slug, 'post_title' => 'E2E ' . $slug, 'post_content' => $content, 'post_status' => 'publish' ) );
 		$make( 'e2e-huerfana', 'Nadie me enlaza.' );
@@ -63,8 +65,7 @@ export async function login( page: Page, user = 'admin' ): Promise< void > {
 
 export const SCREEN = '/wp-admin/admin.php?page=magic-linking';
 export const SCREEN_BROKEN = '/wp-admin/admin.php?page=magic-linking-broken';
-export const SCREEN_HISTORY =
-	'/wp-admin/admin.php?page=magic-linking-history';
+export const SCREEN_HISTORY = '/wp-admin/admin.php?page=magic-linking-history';
 export const SCREEN_SETTINGS =
 	'/wp-admin/admin.php?page=magic-linking-settings';
 

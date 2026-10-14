@@ -1,4 +1,11 @@
 import type { Suggestion } from '../../types';
+import type { LinkAttributes, LinkScope } from '../boot';
+
+/** Ajustes del usuario que cambian dónde y cómo se enlaza. */
+export interface AdapterOptions {
+	linkIn: LinkScope;
+	linkAttrs: LinkAttributes;
+}
 
 export type ApplyFailure =
 	/** El texto ya no está donde estaba (el usuario lo cambió). */

@@ -334,10 +334,15 @@ final class InstallerTest extends WP_UnitTestCase {
 		update_post_meta( $post_id, 'other_plugin_meta', 'keep' );
 		set_transient( 'magiclinking_suggestions_1', array( 'x' ) );
 		update_option( 'other_plugin_option', 'keep' );
+		$user = self::factory()->user->create();
+		update_user_meta( $user, 'magiclinking_wizard_dismissed', '1' );
+		update_user_meta( $user, 'other_plugin_user_meta', 'keep' );
 		update_option( Installer::SETTINGS_OPTION, array( Installer::DELETE_DATA_SETTING => true ) );
 
 		Installer::uninstall_everywhere();
 
+		$this->assertSame( '', get_user_meta( $user, 'magiclinking_wizard_dismissed', true ), 'El asistente cerrado se borra con los datos.' );
+		$this->assertSame( 'keep', get_user_meta( $user, 'other_plugin_user_meta', true ) );
 		$this->assertCount( 7, $installer->missing_tables() );
 		$this->assertFalse( get_option( Installer::DB_VERSION_OPTION ) );
 		$this->assertFalse( get_option( Installer::SETTINGS_OPTION ) );

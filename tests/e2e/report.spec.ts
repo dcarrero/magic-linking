@@ -154,6 +154,9 @@ test.describe( 'Internal links', () => {
 		await login( page );
 		await page.goto( SCREEN_SETTINGS );
 
+		// Los umbrales del informe están en «Advanced», plegado.
+		const advanced = page.locator( 'summary', { hasText: 'Advanced' } );
+		await advanced.click();
 		const threshold = page.getByLabel(
 			'Under-linked below this many inbound links'
 		);
@@ -164,12 +167,104 @@ test.describe( 'Internal links', () => {
 		).toBeVisible();
 
 		await page.reload();
+		await advanced.click();
 		await expect( threshold ).toHaveValue( '3' );
 		await threshold.fill( '2' );
 		await page.getByRole( 'button', { name: 'Save settings' } ).click();
 		await expect(
 			page.locator( '#magiclinking-root' ).getByText( 'Settings saved.' )
 		).toBeVisible();
+	} );
+
+	test( 'the new settings are saved and kept', async ( {
+		page,
+	} ) => {
+		ensureAnalyzed();
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+
+		// Accesible también con «Advanced» desplegado y todos los campos nuevos a la vista.
+		await page.locator( 'summary', { hasText: 'Advanced' } ).click();
+		await page.waitForLoadState( 'networkidle' );
+		const results = await new AxeBuilder( { page } )
+			.include( '.magiclinking-wrap' )
+			.withTags( [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ] )
+			.analyze();
+		expect( results.violations ).toEqual( [] );
+
+		await page.getByLabel( 'Open links in a new tab' ).check();
+		await page.getByLabel( 'Additional rel values' ).fill( 'nofollow' );
+		await page.getByLabel( 'Quotes' ).check();
+		await page
+			.getByLabel( 'Inbound suggestions per page in the editor' )
+			.fill( '7' );
+		await page
+			.getByLabel( 'Outbound suggestions in the editor' )
+			.fill( '4' );
+		await page
+			.getByLabel(
+				'Entries that can use the same anchor text for the same target'
+			)
+			.fill( '3' );
+		await page.getByLabel( 'Ignored words' ).fill( 'gratis\nmuy barato' );
+		await page
+			.getByLabel( 'Ignored addresses' )
+			.fill( 'https://example.org/a/' );
+		await page.getByRole( 'button', { name: 'Save settings' } ).click();
+		await expect(
+			page
+				.locator( '#magiclinking-root' )
+				.getByText( /^Settings saved\./ )
+		).toBeVisible();
+
+		await page.reload();
+		await expect(
+			page.getByLabel( 'Open links in a new tab' )
+		).toBeChecked();
+		await expect( page.getByLabel( 'Additional rel values' ) ).toHaveValue(
+			'nofollow'
+		);
+		await expect( page.getByLabel( 'Quotes' ) ).toBeChecked();
+		await expect( page.getByLabel( 'Tables' ) ).not.toBeChecked();
+		await expect( page.getByLabel( 'Headings' ) ).not.toBeChecked();
+		await expect(
+			page.getByLabel( 'Inbound suggestions per page in the editor' )
+		).toHaveValue( '7' );
+		await expect( page.getByLabel( 'Ignored words' ) ).toHaveValue(
+			'gratis\nmuy barato'
+		);
+
+		// Solo hay una opción en autoload y el resto de valores son los por defecto.
+		const saved = JSON.parse(
+			wp(
+				'option',
+				'get',
+				'magiclinking_settings',
+				'--format=json'
+			).trim()
+		);
+		expect( saved.open_in_new_tab ).toBe( true );
+		expect( saved.link_in_quotes ).toBe( true );
+		expect( saved.link_in_tables ).toBe( false );
+		expect( saved.ignored_words ).toEqual( [ 'gratis', 'muy barato' ] );
+
+		// Cambiar dónde se enlaza vuelve a leer las entradas.
+		await page.getByLabel( 'Tables' ).check();
+		await page.getByRole( 'button', { name: 'Save settings' } ).click();
+		await expect(
+			page
+				.locator( '#magiclinking-root' )
+				.getByText( /read.*again|analyzed again/ )
+				.first()
+		).toBeVisible();
+		try {
+			wp( 'action-scheduler', 'run' );
+		} catch ( e ) {
+			// Si otro proceso ya lo ejecutó no hay nada que correr.
+		}
+
+		// Los demás ajustes de prueba no deben afectar a las siguientes.
+		wp( 'option', 'delete', 'magiclinking_settings' );
 	} );
 
 	test( 'the report has no language column or filter on a single-language site', async ( {

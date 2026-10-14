@@ -296,6 +296,11 @@ final class Installer implements Module {
 		);
 		wp_cache_flush_group( 'post_meta' );
 
+		// Metadatos de usuario (el asistente cerrado, las opciones de pantalla), con y sin el prefijo de la red.
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Limpieza única al desinstalar.
+			$wpdb->prepare( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s OR meta_key LIKE %s", $like, $wpdb->esc_like( $wpdb->prefix . Schema::PREFIX ) . '%' )
+		);
+
 		return true;
 	}
 

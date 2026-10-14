@@ -12,6 +12,7 @@ namespace MagicLinking\Admin;
 use MagicLinking\Core\Module;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
+use MagicLinking\Rest\SettingsController;
 
 /**
  * Menú propio «Magic Linking» con cuatro páginas (Informe, Enlaces rotos, Historial, Ajustes) que pintan la misma aplicación.
@@ -245,6 +246,7 @@ final class Screen implements Module {
 					'exportUrl'   => ExportHandler::url(),
 					'canManage'   => current_user_can( 'manage_options' ),
 					'perPage'     => self::per_page(),
+					'wizard'      => current_user_can( 'manage_options' ) ? ! get_user_meta( get_current_user_id(), SettingsController::WIZARD_META, true ) : false,
 					'settingsUrl' => self::page_url( 'settings' ),
 					'initialTab'  => $this->screens[ $hook_suffix ],
 					'tabUrls'     => array(

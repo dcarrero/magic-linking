@@ -59,11 +59,12 @@ final class Inserter {
 	 */
 	public function can_insert_many( string $content, int $post_id, array $requests ): array {
 		$answers = array();
+		$scope   = $this->settings->link_scope();
 		if ( BlockEditor::handles( $content ) ) {
 			$editor = new BlockEditor();
-			$views  = $editor->prepare( $content, $post_id );
+			$views  = $editor->prepare( $content, $post_id, $scope['headings'], $scope['quotes'], $scope['tables'] );
 			foreach ( $requests as $key => $request ) {
-				$answers[ $key ] = null !== $views && $editor->fits( $views, $request );
+				$answers[ $key ] = null !== $views && $editor->fits( $views, $request->scoped( $scope, array() ) );
 			}
 
 			return $answers;
@@ -72,7 +73,7 @@ final class Inserter {
 		$editor = new ClassicEditor();
 		$view   = new TextView( $content, true );
 		foreach ( $requests as $key => $request ) {
-			$answers[ $key ] = $editor->fits( $view, $request );
+			$answers[ $key ] = $editor->fits( $view, $request->scoped( $scope, array() ) );
 		}
 
 		return $answers;
@@ -127,6 +128,11 @@ final class Inserter {
 		}
 
 		$batch_id = $batch_id ?? BatchId::generate();
+
+		// Los ajustes del usuario: dónde se puede enlazar y con qué `target` y `rel`.
+		$scope      = $this->settings->link_scope();
+		$attributes = $this->settings->link_attributes();
+		$requests   = array_map( static fn( InsertRequest $request ): InsertRequest => $request->scoped( $scope, $attributes ), $requests );
 
 		try {
 			$post = $this->writer->assert_editable( $post_id, $requests[0]->user_id );

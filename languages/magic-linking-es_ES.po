@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.10.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-07T13:47:59+00:00\n"
+"POT-Creation-Date: 2026-10-14T06:00:53+00:00\n"
 "PO-Revision-Date: 2026-10-07 12:30+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -18,9 +18,9 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. Plugin Name of the plugin
-#: magic-linking.php src/Admin/Screen.php:136
-msgid "Magic Linking"
-msgstr "Magic Linking"
+#: magic-linking.php
+msgid "Magic Linking – Internal Links"
+msgstr "Magic Linking – Internal Links"
 
 #. Plugin URI of the plugin
 #: magic-linking.php
@@ -72,50 +72,54 @@ msgstr "Plugin no activado"
 msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
 msgstr "A Magic Linking le faltan sus bibliotecas incluidas (la carpeta vendor). Vuelve a instalar el plugin desde wordpress.org. No se ha cargado."
 
-#: src/Admin/EditorPanel.php:88 src/Admin/Screen.php:283
-#: assets/build/editor.js:9 assets/build/index.js:38
+#: src/Admin/EditorPanel.php:83 src/Admin/Screen.php:285
+#: assets/build/editor.js:9 assets/build/index.js:42
 msgid "Internal links"
 msgstr "Enlaces internos"
 
-#: src/Admin/EditorPanel.php:101 src/Admin/Screen.php:284
+#: src/Admin/EditorPanel.php:96 src/Admin/Screen.php:286
 #: assets/build/index.js:6 assets/build/index.js:17 assets/build/index.js:25
-#: assets/build/index.js:37
+#: assets/build/index.js:37 assets/build/index.js:40
 msgid "Loading…"
 msgstr "Cargando…"
 
-#: src/Admin/EditorPanel.php:102
+#: src/Admin/EditorPanel.php:97
 msgid "This box needs JavaScript to show the link suggestions."
 msgstr "Esta caja necesita JavaScript para mostrar las sugerencias de enlaces."
 
-#: src/Admin/Screen.php:92
+#: src/Admin/Screen.php:93
 msgid "Open report"
 msgstr "Abrir informe"
 
-#: src/Admin/Screen.php:141 assets/build/index.js:37
+#: src/Admin/Screen.php:137
+msgid "Magic Linking"
+msgstr "Magic Linking"
+
+#: src/Admin/Screen.php:142 assets/build/index.js:41
 msgid "Report"
 msgstr "Informe"
 
-#: src/Admin/Screen.php:147 assets/build/index.js:37 assets/build/index.js:38
+#: src/Admin/Screen.php:148 assets/build/index.js:41 assets/build/index.js:42
 msgid "Broken links"
 msgstr "Enlaces rotos"
 
-#: src/Admin/Screen.php:151 assets/build/index.js:37
+#: src/Admin/Screen.php:152 assets/build/index.js:41
 msgid "History"
 msgstr "Historial"
 
-#: src/Admin/Screen.php:155 assets/build/index.js:37
+#: src/Admin/Screen.php:156 assets/build/index.js:41
 msgid "Settings"
 msgstr "Ajustes"
 
-#: src/Admin/Screen.php:202
+#: src/Admin/Screen.php:203
 msgid "Items per page"
 msgstr "Elementos por página"
 
-#: src/Admin/Screen.php:278
+#: src/Admin/Screen.php:280
 msgid "You do not have permission to see this page."
 msgstr "No tienes permiso para ver esta página."
 
-#: src/Admin/Screen.php:285
+#: src/Admin/Screen.php:287
 msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
 msgstr "Esta pantalla necesita JavaScript. Puedes obtener el mismo informe con WP-CLI: wp magic-linking report"
 
@@ -199,7 +203,7 @@ msgid "This batch is being processed in the background. Wait for it to finish or
 msgstr "Este lote lo está tratando un proceso en segundo plano. Espera a que termine o cancélalo."
 
 #: src/Cli/Command.php:622 src/Rest/HistoryController.php:499
-#: src/Rest/SuggestionsController.php:383
+#: src/Rest/SuggestionsController.php:417
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "No tienes permiso para editar una de las entradas afectadas."
 
@@ -243,7 +247,7 @@ msgid_plural "%d history rows deleted."
 msgstr[0] "Se ha borrado %d fila del historial."
 msgstr[1] "Se han borrado %d filas del historial."
 
-#: src/Cli/Command.php:706 src/Rest/SuggestionsController.php:552
+#: src/Cli/Command.php:706 src/Rest/SuggestionsController.php:586
 msgid "That entry does not exist."
 msgstr "Esa entrada no existe."
 
@@ -267,28 +271,28 @@ msgstr "La entrada no está publicada o no es de un tipo de contenido elegido, a
 msgid "Could not open the output."
 msgstr "No se pudo abrir la salida."
 
-#: src/Content/BlockEditor.php:46
+#: src/Content/BlockEditor.php:57
 msgid "The block structure of this post could not be read, so it was left untouched."
 msgstr "No se ha podido interpretar la estructura de bloques de esta entrada; no se ha tocado."
 
-#: src/Content/BlockEditor.php:70
+#: src/Content/BlockEditor.php:82
 msgid "The block contains markup (script, styles…) that cannot be scanned safely."
 msgstr "El bloque tiene marcas (script, estilos…) que no se pueden recorrer con seguridad."
 
-#: src/Content/BlockEditor.php:90 src/Content/BlockEditor.php:129
+#: src/Content/BlockEditor.php:102 src/Content/BlockEditor.php:199
 #: src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:181
 msgid "The text has changed."
 msgstr "El texto ha cambiado."
 
-#: src/Content/BlockEditor.php:96
+#: src/Content/BlockEditor.php:108
 msgid "The text of this block comes from another source (data binding) and cannot be edited here."
 msgstr "El texto de este bloque viene de otro origen (enlace de datos) y no se puede editar aquí."
 
-#: src/Content/BlockEditor.php:172
+#: src/Content/BlockEditor.php:286
 msgid "This text belongs to a reusable block: edit the original pattern."
 msgstr "Este texto es de un bloque reutilizable: edita el patrón original."
 
-#: src/Content/BlockEditor.php:175
+#: src/Content/BlockEditor.php:289
 msgid "This text is in a block where links are not inserted automatically."
 msgstr "Este texto está en un bloque en el que no se insertan enlaces automáticamente."
 
@@ -296,48 +300,56 @@ msgstr "Este texto está en un bloque en el que no se insertan enlaces automáti
 msgid "The post contains markup (script, styles…) that cannot be scanned safely."
 msgstr "La entrada tiene marcas (script, estilos…) que no se pueden recorrer con seguridad."
 
-#: src/Content/Inserter.php:88
+#: src/Content/Inserter.php:126
 msgid "All the links of one write must be for the same post and the same user."
 msgstr "Todos los enlaces de una escritura deben ser de la misma entrada y del mismo usuario."
 
-#: src/Content/Inserter.php:97
+#: src/Content/Inserter.php:140
 msgid "This content type is not one that Magic Linking analyzes."
 msgstr "Este tipo de contenido no está entre los que analiza Magic Linking."
 
-#: src/Content/Inserter.php:159 src/History/Redo.php:150
+#: src/Content/Inserter.php:202 src/History/Redo.php:150
 msgid "The change could not be confirmed as only the link; nothing was written."
 msgstr "No se ha podido comprobar que el cambio sea solo el enlace; no se ha escrito nada."
 
-#: src/Content/Inserter.php:183 src/History/Redo.php:156
+#: src/Content/Inserter.php:226 src/History/Redo.php:156
 #: src/History/Undo.php:184
 msgid "The change history could not be saved; nothing was written."
 msgstr "No se ha podido guardar el historial del cambio; no se ha escrito nada."
 
-#: src/Content/InsertRequest.php:75
+#: src/Content/InsertRequest.php:102
 msgid "The anchor is not part of the sentence."
 msgstr "El ancla no es un tramo de la frase."
 
-#: src/Content/Linker.php:46
+#: src/Content/Linker.php:56
 msgid "The anchor cannot be empty or start or end with a space."
 msgstr "El ancla no puede estar vacía ni empezar o acabar con un espacio."
 
-#: src/Content/Linker.php:75
+#: src/Content/Linker.php:96
 msgid "That text is already linked."
 msgstr "Ese texto ya está enlazado."
 
-#: src/Content/Linker.php:78
+#: src/Content/Linker.php:99
 msgid "This text is a heading and links in headings are not allowed."
 msgstr "Este texto es un encabezado y los enlaces en encabezados no están permitidos."
 
-#: src/Content/Linker.php:81
+#: src/Content/Linker.php:103
+msgid "This text is in a quote and links in quotes are not allowed."
+msgstr "Este texto está en una cita y no se permiten enlaces en citas."
+
+#: src/Content/Linker.php:106
+msgid "This text is in a table and links in tables are not allowed."
+msgstr "Este texto está en una tabla y no se permiten enlaces en tablas."
+
+#: src/Content/Linker.php:109
 msgid "The anchor includes a shortcode, code or a line break and cannot be linked safely."
 msgstr "El ancla incluye un shortcode, código o un salto de línea y no se puede enlazar con seguridad."
 
-#: src/Content/Linker.php:102
+#: src/Content/Linker.php:130
 msgid "The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it."
 msgstr "El ancla cruza el formato del texto (negrita, cursiva…) y no se puede enlazar sin romperlo."
 
-#: src/Content/Linker.php:124
+#: src/Content/Linker.php:152
 msgid "The link address is not valid."
 msgstr "La dirección del enlace no es válida."
 
@@ -515,24 +527,24 @@ msgstr "El destino es huérfano (0 enlaces entrantes)"
 msgid "Very similar in meaning"
 msgstr "Muy parecidas por significado"
 
-#: src/Rest/SuggestionsController.php:243
+#: src/Rest/SuggestionsController.php:242
 msgid "The content is too long to analyze."
 msgstr "El contenido es demasiado largo para analizarlo."
 
-#: src/Rest/SuggestionsController.php:375
+#: src/Rest/SuggestionsController.php:409
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Cada enlace necesita la entrada, el destino, la frase, el desplazamiento y el ancla."
 
-#: src/Rest/SuggestionsController.php:430
+#: src/Rest/SuggestionsController.php:464
 msgid "The link could not be saved; nothing was changed."
 msgstr "No se ha podido guardar el enlace; no se ha cambiado nada."
 
-#: src/Rest/SuggestionsController.php:502
-#: src/Rest/SuggestionsController.php:510
+#: src/Rest/SuggestionsController.php:536
+#: src/Rest/SuggestionsController.php:544
 msgid "The destination is not a published entry that can be linked."
 msgstr "El destino no es una entrada publicada a la que se pueda enlazar."
 
-#: src/Rest/SuggestionsController.php:505
+#: src/Rest/SuggestionsController.php:539
 msgid "The destination is in a different language, so no link is added."
 msgstr "El destino está en otro idioma, así que no se añade el enlace."
 
@@ -634,7 +646,7 @@ msgstr "Anterior"
 msgid "Page %1$s of %2$s"
 msgstr "Página %1$s de %2$s"
 
-#: assets/build/classic.js:5 assets/build/editor.js:5
+#: assets/build/classic.js:5 assets/build/editor.js:5 assets/build/index.js:40
 msgid "Next"
 msgstr "Siguiente"
 
@@ -878,7 +890,7 @@ msgstr "Último análisis completo"
 msgid "Duration"
 msgstr "Duración"
 
-#: assets/build/index.js:10 assets/build/index.js:38
+#: assets/build/index.js:10 assets/build/index.js:42
 msgid "Entries analyzed"
 msgstr "Entradas analizadas"
 
@@ -906,12 +918,12 @@ msgstr "¿Volver a analizar todo desde cero?"
 msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it."
 msgstr "Magic Linking leerá de nuevo todas las entradas. Se hace en segundo plano, así que puedes seguir trabajando. Analizar solo lee tu contenido; nunca lo cambia."
 
-#: assets/build/index.js:10 assets/build/index.js:30
+#: assets/build/index.js:10 assets/build/index.js:30 assets/build/index.js:40
 msgid "Analysis started."
 msgstr "Análisis iniciado."
 
 #: assets/build/index.js:10 assets/build/index.js:14 assets/build/index.js:20
-#: assets/build/index.js:30
+#: assets/build/index.js:30 assets/build/index.js:38 assets/build/index.js:40
 msgid "That did not work. Try again."
 msgstr "No ha funcionado. Inténtalo de nuevo."
 
@@ -1242,7 +1254,7 @@ msgstr "Pausar"
 msgid "Analysis cancelled."
 msgstr "Análisis cancelado."
 
-#: assets/build/index.js:32
+#: assets/build/index.js:32 assets/build/index.js:38
 msgid "Analyze your site"
 msgstr "Analiza tu sitio"
 
@@ -1283,7 +1295,7 @@ msgstr "error desconocido"
 msgid "Last analysis: %s"
 msgstr "Último análisis: %s"
 
-#: assets/build/index.js:35
+#: assets/build/index.js:35 assets/build/index.js:40
 msgid "Could not load the report."
 msgstr "No se pudo cargar el informe."
 
@@ -1388,36 +1400,40 @@ msgid "Could not load the settings."
 msgstr "No se pudieron cargar los ajustes."
 
 #: assets/build/index.js:37
-msgid "Settings saved. The content types changed, so your site is being analyzed again."
-msgstr "Ajustes guardados. Han cambiado los tipos de contenido, así que se está analizando tu sitio de nuevo."
+msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
+msgstr "Ajustes guardados. Ha cambiado lo que lee Magic Linking, así que se está analizando tu sitio de nuevo."
 
 #: assets/build/index.js:37
 msgid "Settings saved."
 msgstr "Ajustes guardados."
 
-#: assets/build/index.js:37
+#: assets/build/index.js:37 assets/build/index.js:40
 msgid "The settings could not be saved."
 msgstr "No se pudieron guardar los ajustes."
 
-#: assets/build/index.js:37
+#: assets/build/index.js:37 assets/build/index.js:39
 msgid "Content types to analyze"
 msgstr "Tipos de contenido que se analizan"
 
 #: assets/build/index.js:37
-msgid "Under-linked below this many inbound links"
-msgstr "Poco enlazada por debajo de este número de enlaces entrantes"
+msgid "Links you insert"
+msgstr "Enlaces que insertas"
 
 #: assets/build/index.js:37
-msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
-msgstr "Una entrada con al menos un enlace entrante pero menos que este número se muestra como poco enlazada."
+msgid "Open links in a new tab"
+msgstr "Abrir los enlaces en una pestaña nueva"
 
 #: assets/build/index.js:37
-msgid "Words per internal link"
-msgstr "Palabras por enlace interno"
+msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
+msgstr "Desactivado por defecto. Añade target=\"_blank\" y rel=\"noopener\" a los enlaces que inserta Magic Linking; los que ya están en tu contenido no cambian."
 
 #: assets/build/index.js:37
-msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed)."
-msgstr "Una entrada con más enlaces internos que uno por cada tantas palabras se muestra como sobrecargada (siempre se admite al menos un enlace)."
+msgid "Additional rel values"
+msgstr "Valores de rel adicionales"
+
+#: assets/build/index.js:37
+msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
+msgstr "Opcional, separados por espacios (por ejemplo: nofollow). Se añaden a los enlaces que inserta Magic Linking."
 
 #: assets/build/index.js:37
 msgid "Keep the history of changes for"
@@ -1444,6 +1460,106 @@ msgid "No expiry date"
 msgstr "Sin fecha de caducidad"
 
 #: assets/build/index.js:37
+msgid "Where links can be inserted"
+msgstr "Dónde se pueden insertar enlaces"
+
+#: assets/build/index.js:37
+msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
+msgstr "Los párrafos y las listas se usan siempre. Estos están desactivados por defecto; actívalos si quieres sugerencias y enlaces también ahí."
+
+#: assets/build/index.js:37
+msgid "Headings"
+msgstr "Encabezados"
+
+#: assets/build/index.js:37
+msgid "Quotes"
+msgstr "Citas"
+
+#: assets/build/index.js:37
+msgid "Tables"
+msgstr "Tablas"
+
+#: assets/build/index.js:37
+msgid "Changing these makes Magic Linking read your entries again."
+msgstr "Si los cambias, Magic Linking vuelve a leer tus entradas."
+
+#: assets/build/index.js:37
+msgid "To avoid overloading your texts"
+msgstr "Para no sobrecargar tus textos"
+
+#: assets/build/index.js:37
+msgid "These are quality settings, not limits: you can always insert any link yourself."
+msgstr "Son ajustes de calidad, no límites: siempre puedes insertar tú cualquier enlace."
+
+#: assets/build/index.js:37
+msgid "Words per internal link"
+msgstr "Palabras por enlace interno"
+
+#: assets/build/index.js:37
+msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed)."
+msgstr "Una entrada con más enlaces internos que uno por cada tantas palabras se muestra como sobrecargada (siempre se admite al menos un enlace)."
+
+#: assets/build/index.js:37
+msgid "Entries that can use the same anchor text for the same target"
+msgstr "Entradas que pueden usar la misma ancla hacia el mismo destino"
+
+#: assets/build/index.js:37
+msgid "Beyond this many entries, the same anchor text towards the same target is suggested less."
+msgstr "A partir de este número de entradas, se sugiere menos la misma ancla hacia el mismo destino."
+
+#: assets/build/index.js:37
+msgid "Suggestions shown"
+msgstr "Sugerencias mostradas"
+
+#: assets/build/index.js:37
+msgid "Outbound suggestions in the editor"
+msgstr "Sugerencias salientes en el editor"
+
+#: assets/build/index.js:37
+msgid "The most useful links to add from the entry you are editing."
+msgstr "Los enlaces más útiles que añadir desde la entrada que estás editando."
+
+#: assets/build/index.js:37
+msgid "Inbound suggestions per page in the editor"
+msgstr "Sugerencias entrantes por página en el editor"
+
+#: assets/build/index.js:37
+msgid "Entries that could link to the one you are editing, shown this many at a time."
+msgstr "Entradas que podrían enlazar a la que estás editando, mostradas de tantas en tantas."
+
+#: assets/build/index.js:37
+msgid "Ignored"
+msgstr "Ignorado"
+
+#: assets/build/index.js:37
+msgid "Ignored addresses"
+msgstr "Direcciones ignoradas"
+
+#: assets/build/index.js:37
+msgid "One address per line. These entries are never suggested as a target, and never suggested to link to others."
+msgstr "Una dirección por línea. Estas entradas no se sugieren nunca como destino ni se sugiere que enlacen a otras."
+
+#: assets/build/index.js:37
+msgid "Ignored words"
+msgstr "Palabras ignoradas"
+
+#: assets/build/index.js:37
+msgid "One word or phrase per line. Suggestions whose anchor text contains one of them are not shown."
+msgstr "Una palabra o frase por línea. No se muestran las sugerencias cuya ancla contiene alguna de ellas."
+
+#: assets/build/index.js:37
+msgid "Advanced"
+msgstr "Avanzado"
+
+#: assets/build/index.js:37
+msgid "Under-linked below this many inbound links"
+msgstr "Poco enlazada por debajo de este número de enlaces entrantes"
+
+#: assets/build/index.js:37
+msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
+msgstr "Una entrada con al menos un enlace entrante pero menos que este número se muestra como poco enlazada."
+
+#: assets/build/index.js:37
 msgid "Delete all Magic Linking data when the plugin is deleted"
 msgstr "Borrar todos los datos de Magic Linking al eliminar el plugin"
 
@@ -1455,24 +1571,127 @@ msgstr "Elimina sus tablas, el historial y los ajustes. Los enlaces que ya hay e
 msgid "Save settings"
 msgstr "Guardar ajustes"
 
-#: assets/build/index.js:37
+#: assets/build/index.js:37 assets/build/index.js:40
 msgid "Choose at least one content type."
 msgstr "Elige al menos un tipo de contenido."
 
-#. translators: %s: section name (Report, Broken links, Settings).
+#: assets/build/index.js:37
+msgid "Setup assistant"
+msgstr "Asistente de arranque"
+
+#: assets/build/index.js:37
+msgid "Go through the first steps again: content types, AI and the first analysis."
+msgstr "Repasa los primeros pasos: tipos de contenido, IA y el primer análisis."
+
+#: assets/build/index.js:37
+msgid "Open the setup assistant"
+msgstr "Abrir el asistente de arranque"
+
+#: assets/build/index.js:37
+msgid "Could not load the setup information."
+msgstr "No se pudo cargar la información del asistente."
+
+#. translators: 1: current step, 2: number of steps.
 #: assets/build/index.js:38
+msgid "Step %1$s of %2$s"
+msgstr "Paso %1$s de %2$s"
+
+#: assets/build/index.js:38
+msgid "What do we link?"
+msgstr "¿Qué enlazamos?"
+
+#: assets/build/index.js:38
+msgid "Artificial intelligence"
+msgstr "Inteligencia artificial"
+
+#: assets/build/index.js:38
+msgid "All set"
+msgstr "Todo listo"
+
+#. translators: 1: current step, 2: number of steps.
+#: assets/build/index.js:39
+msgid "Setup · step %1$s of %2$s"
+msgstr "Arranque · paso %1$s de %2$s"
+
+#. translators: %s: language name.
+#: assets/build/index.js:40
+msgid "Language detected: %s."
+msgstr "Idioma detectado: %s."
+
+#: assets/build/index.js:40
+msgid "Your site is multilingual: we will link each language separately."
+msgstr "Tu sitio es multilingüe: enlazaremos cada idioma por separado."
+
+#: assets/build/index.js:40
+msgid "Entries are only linked to others in the same language."
+msgstr "Las entradas solo se enlazan con otras del mismo idioma."
+
+#: assets/build/index.js:40
+msgid "Your WordPress has an AI connector. This version of Magic Linking does not use it yet: suggestions come from its own engine, which needs no AI. When AI features arrive they will use that connector, and nothing will be spent without showing you an estimate first."
+msgstr "Tu WordPress tiene un conector de IA. Esta versión de Magic Linking todavía no lo usa: las sugerencias salen de su propio motor, que no necesita IA. Cuando lleguen las funciones de IA usarán ese conector, y no se gastará nada sin enseñarte antes una estimación."
+
+#: assets/build/index.js:40
+msgid "No AI connected: Magic Linking works with its own engine, which needs no AI. You can connect one whenever you like in Settings → Connectors."
+msgstr "Sin IA conectada: Magic Linking funciona con su propio motor, que no necesita IA. Puedes conectar una cuando quieras en Ajustes → Conectores."
+
+#: assets/build/index.js:40
+msgid "Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "Analizar solo lee tu contenido; nunca lo cambia. Los enlaces solo se añaden cuando pulsas Enlazar."
+
+#: assets/build/index.js:40
+msgid "The analysis is running. You can close this screen: it continues in the background."
+msgstr "El análisis está en marcha. Puedes cerrar esta pantalla: sigue en segundo plano."
+
+#: assets/build/index.js:40
+msgid "Start"
+msgstr "Empezar"
+
+#: assets/build/index.js:40
+msgid "Back"
+msgstr "Atrás"
+
+#: assets/build/index.js:40
+msgid "Close"
+msgstr "Cerrar"
+
+#: assets/build/index.js:40
+msgid "Skip setup"
+msgstr "Saltar el asistente"
+
+#: assets/build/index.js:40
+msgid "You can open this assistant again from Settings."
+msgstr "Puedes volver a abrir este asistente desde Ajustes."
+
+#. translators: 1: entries analyzed, 2: orphan entries, 3: internal links.
+#: assets/build/index.js:41
+msgid "%1$s entries analyzed · %2$s orphans · %3$s internal links"
+msgstr "%1$s entradas analizadas · %2$s huérfanas · %3$s enlaces internos"
+
+#: assets/build/index.js:41
+msgid "See orphans"
+msgstr "Ver huérfanas"
+
+#: assets/build/index.js:41
+msgid "Open an entry"
+msgstr "Abrir una entrada"
+
+#. translators: %s: section name (Report, Broken links, Settings).
+#: assets/build/index.js:42
 msgid "Magic Linking · %s"
 msgstr "Magic Linking · %s"
 
-#: assets/build/index.js:38
+#: assets/build/index.js:42
 msgid "Orphan entries"
 msgstr "Entradas huérfanas"
 
-#: assets/build/index.js:38
+#: assets/build/index.js:42
 msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
 msgstr "Solo se cuentan los enlaces escritos dentro del contenido de cada entrada. Los de menús, widgets y plantillas del tema no se cuentan."
 
 #. translators: %s: WP-CLI command.
-#: assets/build/index.js:39
+#: assets/build/index.js:43
 msgid "You can also run the analysis from the terminal: %s"
 msgstr "También puedes ejecutar el análisis desde el terminal: %s"
+
+#~ msgid "Settings saved. The content types changed, so your site is being analyzed again."
+#~ msgstr "Ajustes guardados. Han cambiado los tipos de contenido, así que se está analizando tu sitio de nuevo."

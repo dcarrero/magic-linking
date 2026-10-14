@@ -37,6 +37,8 @@ final class InsertRequest {
 	 * @param array       $attributes Atributos extra del enlace, solo `target` y `rel`.
 	 * @param int|null    $user_id    Quien lo pide (null = el usuario actual; 0 = el sistema, sin comprobar capacidades).
 	 * @param bool        $headings   Permitir enlaces en encabezados (ajuste del usuario).
+	 * @param bool        $quotes     Permitir enlaces en citas (ajuste del usuario).
+	 * @param bool        $tables     Permitir enlaces en tablas (ajuste del usuario).
 	 *
 	 * @phpstan-param array<string, string> $attributes
 	 */
@@ -49,8 +51,33 @@ final class InsertRequest {
 		public readonly ?string $block_path = null,
 		public readonly array $attributes = array(),
 		public readonly ?int $user_id = null,
-		public readonly bool $headings = false
+		public readonly bool $headings = false,
+		public readonly bool $quotes = false,
+		public readonly bool $tables = false
 	) {
+	}
+
+	/**
+	 * La misma petición con los ajustes del usuario aplicados: donde se puede enlazar (basta con que lo permita la
+	 * petición o el ajuste) y los atributos del enlace (los de la petición mandan sobre los del ajuste).
+	 *
+	 * @param array<string, bool>   $scope      Ajuste `headings`, `quotes` y `tables`.
+	 * @param array<string, string> $attributes Atributos `target` y `rel` configurados.
+	 */
+	public function scoped( array $scope, array $attributes ): self {
+		return new self(
+			$this->post_id,
+			$this->url,
+			$this->anchor,
+			$this->before,
+			$this->after,
+			$this->block_path,
+			array_merge( $attributes, $this->attributes ),
+			$this->user_id,
+			$this->headings || ! empty( $scope['headings'] ),
+			$this->quotes || ! empty( $scope['quotes'] ),
+			$this->tables || ! empty( $scope['tables'] )
+		);
 	}
 
 	/**

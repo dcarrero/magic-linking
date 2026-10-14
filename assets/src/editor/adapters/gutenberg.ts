@@ -19,38 +19,147 @@ import type { TextUnit } from '../locate';
 import { ownEditable } from '../dom';
 import { clearHighlight, showHighlight } from '../highlight';
 import { findOwnLink } from '../richLink';
-import type { ApplyResult, EditorAdapter } from './types';
+import type { AdapterOptions, ApplyResult, EditorAdapter } from './types';
 
-/** Bloques de texto donde se pone el enlace: los mismos que admite el servidor por defecto (docs/06 §3). */
+/** Bloques de texto donde se pone el enlace: los mismos que admite el servidor (docs/06 §3). */
 const LINKABLE = [ 'core/paragraph', 'core/list-item' ];
-/** Dentro de estos bloques el servidor no escribe sin que el usuario lo active en Ajustes. */
-const SKIPPED_PARENTS = [ 'core/quote', 'core/pullquote', 'core/table' ];
+/** Secciones de una tabla y su elemento HTML. */
+const SECTIONS = { head: 'thead', body: 'tbody', foot: 'tfoot' } as const;
+type Section = keyof typeof SECTIONS;
 
 interface Block {
 	clientId: string;
 	name: string;
-	attributes: { content?: unknown };
+	attributes: Record< string, unknown > & { content?: unknown };
 	innerBlocks: Block[];
 }
 
-function collect( blocks: Block[], out: Block[] = [], skip = false ): Block[] {
+interface TableCell {
+	content?: unknown;
+}
+
+interface TableRow {
+	cells?: TableCell[];
+}
+
+/** Un tramo de texto editable: el contenido de un bloque o de una celda de tabla. */
+interface Target {
+	/** Identifica el tramo (el bloque, o el bloque con sección, fila y celda). */
+	key: string;
+	clientId: string;
+	/** HTML del tramo en el bloque tal como está ahora. */
+	read: ( block: Block ) => string;
+	/** Atributos del bloque con el HTML nuevo del tramo. */
+	write: ( block: Block, html: string ) => Record< string, unknown >;
+	/** Elemento editable del tramo en el lienzo. */
+	element: ( doc: Document ) => Element | null;
+}
+
+function collect(
+	blocks: Block[],
+	scope: AdapterOptions[ 'linkIn' ],
+	out: Target[] = [],
+	skip = false
+): Target[] {
+	const names = scope.headings ? [ ...LINKABLE, 'core/heading' ] : LINKABLE;
 	for ( const block of blocks ) {
-		const skipChildren = skip || SKIPPED_PARENTS.includes( block.name );
+		// Dentro de una cita o una tabla el servidor no escribe sin que el usuario lo active en Ajustes.
+		const skipChildren =
+			skip ||
+			( ! scope.quotes && block.name === 'core/quote' ) ||
+			( ! scope.quotes && block.name === 'core/pullquote' ) ||
+			block.name === 'core/table';
 		if (
 			! skip &&
-			LINKABLE.includes( block.name ) &&
+			names.includes( block.name ) &&
 			block.attributes.content !== undefined
 		) {
-			out.push( block );
+			out.push( {
+				key: block.clientId,
+				clientId: block.clientId,
+				read: ( current ) => String( current.attributes.content ?? '' ),
+				write: ( _current, html ) => ( { content: html } ),
+				element: ( doc ) => {
+					const element = doc.querySelector(
+						`[data-block="${ block.clientId }"]`
+					);
+					return element ? ownEditable( element ) : null;
+				},
+			} );
 		}
-		collect( block.innerBlocks, out, skipChildren );
+		if ( ! skip && scope.tables && block.name === 'core/table' ) {
+			tableTargets( block, out );
+		}
+		collect( block.innerBlocks, scope, out, skipChildren );
 	}
 	return out;
 }
 
-function linkable(): Block[] {
+/**
+ * Las celdas de una tabla como tramos de texto.
+ * @param block Bloque `core/table`.
+ * @param out   Dónde se añaden.
+ */
+function tableTargets( block: Block, out: Target[] ): void {
+	( Object.keys( SECTIONS ) as Section[] ).forEach( ( section ) => {
+		const rows = block.attributes[ section ] as TableRow[] | undefined;
+		( rows ?? [] ).forEach( ( row, r ) => {
+			( row.cells ?? [] ).forEach( ( _cell, c ) => {
+				out.push( {
+					key: `${ block.clientId }:${ section }:${ r }:${ c }`,
+					clientId: block.clientId,
+					read: ( current ) =>
+						String(
+							(
+								current.attributes[ section ] as
+									| TableRow[]
+									| undefined
+							 )?.[ r ]?.cells?.[ c ]?.content ?? ''
+						),
+					write: ( current, html ) => ( {
+						[ section ]: (
+							( current.attributes[ section ] as
+								| TableRow[]
+								| undefined ) ?? []
+						).map( ( currentRow, i ) =>
+							i === r
+								? {
+										...currentRow,
+										cells: ( currentRow.cells ?? [] ).map(
+											( cell, j ) =>
+												j === c
+													? {
+															...cell,
+															content: html,
+													  }
+													: cell
+										),
+								  }
+								: currentRow
+						),
+					} ),
+					element: ( doc ) => {
+						const cell = doc
+							.querySelector(
+								`[data-block="${ block.clientId }"]`
+							)
+							?.querySelector(
+								`${ SECTIONS[ section ] } > tr:nth-child(${
+									r + 1
+								}) > :nth-child(${ c + 1 })`
+							);
+						return cell ? ownEditable( cell ) : null;
+					},
+				} );
+			} );
+		} );
+	} );
+}
+
+function linkable( scope: AdapterOptions[ 'linkIn' ] ): Target[] {
 	return collect(
-		select( blockEditorStore ).getBlocks() as unknown as Block[]
+		select( blockEditorStore ).getBlocks() as unknown as Block[],
+		scope
 	);
 }
 
@@ -63,19 +172,15 @@ function canvas(): Document {
 }
 
 /**
- * Contenido de un bloque como cadena HTML (en WordPress 7 es un `RichTextData`).
- * @param block
- */
-function html( block: Block ): string {
-	return String( block.attributes.content ?? '' );
-}
-
-/**
  * Adaptador del editor de bloques.
  *
- * @param postId Entrada que se edita.
+ * @param postId  Entrada que se edita.
+ * @param options Ajustes del usuario: dónde se enlaza y con qué atributos.
  */
-export function gutenbergAdapter( postId: number ): EditorAdapter {
+export function gutenbergAdapter(
+	postId: number,
+	options: AdapterOptions
+): EditorAdapter {
 	return {
 		postId,
 
@@ -99,16 +204,31 @@ export function gutenbergAdapter( postId: number ): EditorAdapter {
 		},
 
 		apply: ( suggestion: Suggestion ): ApplyResult => {
-			const blocks = linkable();
-			const values = new Map(
-				blocks.map( ( block ) => [
-					block.clientId,
-					create( { html: html( block ) } ),
-				] )
+			const targets = linkable( options.linkIn );
+			const blocks = new Map(
+				(
+					select( blockEditorStore ).getBlocks() as unknown as Block[]
+				 ).map( ( block ) => [ block.clientId, block ] )
 			);
-			const units: TextUnit[] = blocks.map( ( block ) => ( {
-				key: block.clientId,
-				text: values.get( block.clientId )?.text ?? '',
+			const current = ( target: Target ): Block | null =>
+				( select( blockEditorStore ).getBlock(
+					target.clientId
+				) as Block | null ) ??
+				blocks.get( target.clientId ) ??
+				null;
+			const values = new Map< string, ReturnType< typeof create > >();
+			for ( const target of targets ) {
+				const block = current( target );
+				if ( block ) {
+					values.set(
+						target.key,
+						create( { html: target.read( block ) } )
+					);
+				}
+			}
+			const units: TextUnit[] = targets.map( ( target ) => ( {
+				key: target.key,
+				text: values.get( target.key )?.text ?? '',
 			} ) );
 
 			const found = locate( units, suggestion );
@@ -116,7 +236,9 @@ export function gutenbergAdapter( postId: number ): EditorAdapter {
 				return { ok: false, reason: found.status };
 			}
 			const value = values.get( found.key );
-			if ( ! value ) {
+			const target = targets.find( ( t ) => t.key === found.key );
+			const block = target ? current( target ) : null;
+			if ( ! value || ! target || ! block ) {
 				return { ok: false, reason: 'not_found' };
 			}
 
@@ -136,34 +258,37 @@ export function gutenbergAdapter( postId: number ): EditorAdapter {
 			const applied = value.text.slice( found.start, found.end );
 			const next = applyFormat(
 				value,
-				{ type: 'core/link', attributes: { url } },
+				{
+					type: 'core/link',
+					attributes: { url, ...options.linkAttrs },
+				},
 				found.start,
 				found.end
 			);
 			// El enlace es un nivel de deshacer propio: lo escrito antes y después no se mezcla con él.
 			markPersistent();
-			dispatch( blockEditorStore ).updateBlockAttributes( found.key, {
-				content: toHTMLString( { value: next } ),
-			} );
+			dispatch( blockEditorStore ).updateBlockAttributes(
+				target.clientId,
+				target.write( block, toHTMLString( { value: next } ) )
+			);
 			markPersistent();
 			clearHighlight();
 
-			const clientId = found.key;
 			return {
 				ok: true,
 				// Quita solo este enlace, si sigue tal como se puso, como una edición nueva: no usa el
 				// `undo()` global, que podría deshacer otro cambio (título, categorías, texto escrito).
 				undo: () => {
-					const block = select( blockEditorStore ).getBlock(
-						clientId
+					const latest = select( blockEditorStore ).getBlock(
+						target.clientId
 					) as Block | null;
-					if ( ! block ) {
+					if ( ! latest ) {
 						return false;
 					}
-					const current = create( { html: html( block ) } );
+					const now = create( { html: target.read( latest ) } );
 					const run = findOwnLink(
-						current.text,
-						current.formats,
+						now.text,
+						now.formats,
 						url,
 						applied
 					);
@@ -172,17 +297,18 @@ export function gutenbergAdapter( postId: number ): EditorAdapter {
 					}
 					markPersistent();
 					dispatch( blockEditorStore ).updateBlockAttributes(
-						clientId,
-						{
-							content: toHTMLString( {
+						target.clientId,
+						target.write(
+							latest,
+							toHTMLString( {
 								value: removeFormat(
-									current,
+									now,
 									'core/link',
 									run.start,
 									run.end
 								),
-							} ),
-						}
+							} )
+						)
 					);
 					markPersistent();
 					return true;
@@ -198,16 +324,13 @@ export function gutenbergAdapter( postId: number ): EditorAdapter {
 			const doc = canvas();
 			const units: TextUnit[] = [];
 			const elements = new Map< string, Element >();
-			for ( const block of linkable() ) {
-				const element = doc.querySelector(
-					`[data-block="${ block.clientId }"]`
-				);
-				if ( element ) {
-					// Solo el texto propio del bloque: un `li` padre incluiría el de sus listas anidadas.
-					const editable = ownEditable( element );
-					elements.set( block.clientId, editable );
+			for ( const target of linkable( options.linkIn ) ) {
+				// Solo el texto propio del tramo: un `li` padre incluiría el de sus listas anidadas.
+				const editable = target.element( doc );
+				if ( editable ) {
+					elements.set( target.key, editable );
 					units.push( {
-						key: block.clientId,
+						key: target.key,
 						text: editable.textContent ?? '',
 					} );
 				}

@@ -116,7 +116,7 @@ final class Suggestions {
 		}
 
 		try {
-			return $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) );
+			return $this->without_ignored( $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) ) );
 		} finally {
 			$this->documents->release();
 		}
@@ -140,7 +140,7 @@ final class Suggestions {
 		}
 
 		try {
-			return $this->suggester( $options )->incoming( $post_id );
+			return $this->without_ignored( $this->suggester( $options )->incoming( $post_id ) );
 		} finally {
 			$this->documents->release();
 		}
@@ -166,14 +166,83 @@ final class Suggestions {
 	 * @phpstan-param array<string, mixed> $options
 	 */
 	private function suggester( array $options ): Suggester {
+		$all = $this->settings->all();
+
+		// Los ajustes de calidad del usuario (docs/07 §8); lo que pida quien llama manda sobre ellos.
+		$defaults = array( 'max_outgoing' => $all['outbound_shown'] );
+		$never    = $this->ignored_ids( $all['ignored_urls'] );
+		if ( array() !== $never ) {
+			$defaults['never'] = $never;
+		}
+
 		return new Suggester(
 			$this->repository,
 			$this->documents,
 			new Indexer(),
 			new PhraseFinder(),
-			new Scorer(),
+			new Scorer( array(), Scorer::THRESHOLD, 100 / max( 1, (int) $all['words_per_link'] ), Scorer::MIN_RELEVANCE, array(), (int) $all['same_anchor_max'] ),
 			new Retriever( $this->repository ),
-			$options
+			array_merge( $defaults, $options )
 		);
+	}
+
+	/**
+	 * Quita las sugerencias cuya ancla contiene una de las palabras o frases ignoradas (palabra completa, sin
+	 * distinguir mayúsculas) o cuyo origen está en la lista de direcciones ignoradas.
+	 *
+	 * @param array $found Sugerencias del motor.
+	 *
+	 * @phpstan-param list<Suggestion> $found
+	 *
+	 * @return list<Suggestion>
+	 */
+	private function without_ignored( array $found ): array {
+		$all     = $this->settings->all();
+		$words   = $all['ignored_words'];
+		$sources = $this->ignored_ids( $all['ignored_urls'] );
+		if ( array() === $words && array() === $sources ) {
+			return $found;
+		}
+
+		$patterns = array_map( static fn( string $word ): string => '/(?<![\p{L}\p{N}])' . preg_quote( $word, '/' ) . '(?![\p{L}\p{N}])/iu', $words );
+
+		return array_values(
+			array_filter(
+				$found,
+				static function ( Suggestion $suggestion ) use ( $patterns, $sources ): bool {
+					if ( in_array( $suggestion->source, $sources, true ) ) {
+						return false;
+					}
+					foreach ( $patterns as $pattern ) {
+						if ( 1 === preg_match( $pattern, $suggestion->anchor ) ) {
+							return false;
+						}
+					}
+
+					return true;
+				}
+			)
+		);
+	}
+
+	/**
+	 * Entradas de la lista de direcciones ignoradas: nunca se sugieren como destino ni como origen.
+	 *
+	 * @param array $urls Direcciones guardadas en los ajustes.
+	 *
+	 * @phpstan-param list<string> $urls
+	 *
+	 * @return list<int>
+	 */
+	private function ignored_ids( array $urls ): array {
+		$ids = array();
+		foreach ( $urls as $url ) {
+			$id = url_to_postid( $url );
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+
+		return array_values( array_unique( $ids ) );
 	}
 }

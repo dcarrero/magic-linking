@@ -47,4 +47,53 @@ final class DomExtractorTest extends TestCase {
 		$this->assertSame( array(), $result->headings );
 		$this->assertSame( array(), $result->paragraphs );
 	}
+
+	private const RICH = "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">Título con aerotermia</h2>\n<!-- /wp:heading -->\n\n<!-- wp:quote -->\n<blockquote class=\"wp-block-quote\"><!-- wp:paragraph -->\n<p>Dentro de la cita.</p>\n<!-- /wp:paragraph --></blockquote>\n<!-- /wp:quote -->\n\n<!-- wp:table -->\n<figure class=\"wp-block-table\"><table><thead><tr><th>Cabecera</th></tr></thead><tbody><tr><td>Celda uno</td><td>Celda dos</td></tr></tbody></table><figcaption class=\"wp-element-caption\">Pie de tabla</figcaption></figure>\n<!-- /wp:table -->\n\n<!-- wp:paragraph -->\n<p>Texto normal.</p>\n<!-- /wp:paragraph -->";
+
+	/**
+	 * Textos de los párrafos que lee el extractor.
+	 *
+	 * @param DomExtractor $extractor Extractor.
+	 * @param string       $content   Contenido.
+	 *
+	 * @return list<string>
+	 */
+	private function texts( DomExtractor $extractor, string $content ): array {
+		return array_map( static fn( $p ): string => $p->text, $extractor->extract( $content )->paragraphs );
+	}
+
+	public function test_by_default_headings_quotes_and_tables_are_not_sentences(): void {
+		$result = ( new DomExtractor() )->extract( self::RICH );
+
+		$this->assertSame( array( 'Texto normal.' ), array_map( static fn( $p ): string => $p->text, $result->paragraphs ) );
+		$this->assertSame( array( 'Título con aerotermia' ), $result->headings, 'Los encabezados siguen contando como señal.' );
+	}
+
+	public function test_headings_become_sentences_when_allowed(): void {
+		$extractor = new DomExtractor( true );
+
+		$this->assertSame( array( 'Título con aerotermia', 'Texto normal.' ), $this->texts( $extractor, self::RICH ) );
+		$this->assertSame( array( 'Título con aerotermia' ), $extractor->extract( self::RICH )->headings );
+	}
+
+	public function test_quotes_become_sentences_when_allowed(): void {
+		$this->assertSame( array( 'Dentro de la cita.', 'Texto normal.' ), $this->texts( new DomExtractor( false, true ), self::RICH ) );
+	}
+
+	public function test_table_cells_become_separate_sentences_when_allowed(): void {
+		$this->assertSame(
+			array( 'Cabecera', 'Celda uno', 'Celda dos', 'Texto normal.' ),
+			$this->texts( new DomExtractor( false, false, true ), self::RICH ),
+			'Cada celda es un texto aparte y el pie de la tabla no cuenta.'
+		);
+	}
+
+	public function test_classic_content_follows_the_same_options(): void {
+		$html = '<p>Intro.</p><blockquote>Cita clásica.</blockquote><table><tr><td>Celda clásica</td></tr></table><h3>Encabezado clásico</h3>';
+
+		$this->assertSame( array( 'Intro.' ), $this->texts( new DomExtractor(), $html ) );
+		$this->assertSame( array( 'Intro.', 'Cita clásica.' ), $this->texts( new DomExtractor( false, true ), $html ) );
+		$this->assertSame( array( 'Intro.', 'Celda clásica' ), $this->texts( new DomExtractor( false, false, true ), $html ) );
+		$this->assertSame( array( 'Intro.', 'Encabezado clásico' ), $this->texts( new DomExtractor( true ), $html ) );
+	}
 }
