@@ -383,23 +383,7 @@ final class BatchJob implements Module {
 					$result = new UndoResult( $change_id, 0, UndoResult::FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) );
 				}
 
-				$counts[ $result->status ] = (int) ( $counts[ $result->status ] ?? 0 ) + 1;
-				if ( in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::FIX_REVERTED, UndoResult::GONE ), true ) ) {
-					++$undone;
-				}
-				if ( in_array( $result->status, array( UndoResult::MANUAL, UndoResult::FAILED ), true ) ) {
-					if ( count( $issues ) < self::MAX_ISSUES ) {
-						$issues[] = array(
-							'change_id'  => $result->change_id,
-							'post_id'    => $result->post_id,
-							'post_title' => get_post( $result->post_id ) instanceof WP_Post ? get_the_title( $result->post_id ) : null,
-							'status'     => $result->status,
-							'message'    => $result->message,
-							'edit_url'   => $result->edit_url,
-						);
-					}
-				}
-
+				$this->tally( $result, $counts, $issues, $undone );
 				++$done;
 				$cursor = $change_id;
 				$last   = $change_id;
@@ -470,21 +454,9 @@ final class BatchJob implements Module {
 				}
 
 				foreach ( $results as $result ) {
-					$counts[ $result->status ] = (int) ( $counts[ $result->status ] ?? 0 ) + 1;
-					if ( in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::FIX_REVERTED, UndoResult::GONE ), true ) ) {
-						++$undone;
+					if ( $this->tally( $result, $counts, $issues, $undone ) ) {
 						$batch             = $light[ $result->change_id ]['batch_id'] ?? '';
 						$batches[ $batch ] = ( $batches[ $batch ] ?? 0 ) + 1;
-					}
-					if ( in_array( $result->status, array( UndoResult::MANUAL, UndoResult::FAILED ), true ) && count( $issues ) < self::MAX_ISSUES ) {
-						$issues[] = array(
-							'change_id'  => $result->change_id,
-							'post_id'    => $result->post_id,
-							'post_title' => get_post( $result->post_id ) instanceof WP_Post ? get_the_title( $result->post_id ) : null,
-							'status'     => $result->status,
-							'message'    => $result->message,
-							'edit_url'   => $result->edit_url,
-						);
 					}
 					++$done;
 				}
@@ -520,5 +492,37 @@ final class BatchJob implements Module {
 		}
 
 		return ! $finished;
+	}
+
+	/**
+	 * Contabilidad de un resultado: recuento por estado, avisos que requieren una mano (con tope) y cambios deshechos.
+	 *
+	 * @param UndoResult         $result Resultado de un cambio.
+	 * @param array<string, int> $counts Recuento por estado (se actualiza).
+	 * @param array<int, mixed>  $issues Avisos acumulados (se actualiza, hasta {@see self::MAX_ISSUES}).
+	 * @param int                $undone Cambios realmente deshechos (se actualiza).
+	 *
+	 * @return bool Si el cambio quedó deshecho (restaurado, enlace quitado, arreglo revertido o ya no estaba).
+	 */
+	private function tally( UndoResult $result, array &$counts, array &$issues, int &$undone ): bool {
+		$counts[ $result->status ] = (int) ( $counts[ $result->status ] ?? 0 ) + 1;
+
+		$was_undone = in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::FIX_REVERTED, UndoResult::GONE ), true );
+		if ( $was_undone ) {
+			++$undone;
+		}
+
+		if ( in_array( $result->status, array( UndoResult::MANUAL, UndoResult::FAILED ), true ) && count( $issues ) < self::MAX_ISSUES ) {
+			$issues[] = array(
+				'change_id'  => $result->change_id,
+				'post_id'    => $result->post_id,
+				'post_title' => get_post( $result->post_id ) instanceof WP_Post ? get_the_title( $result->post_id ) : null,
+				'status'     => $result->status,
+				'message'    => $result->message,
+				'edit_url'   => $result->edit_url,
+			);
+		}
+
+		return $was_undone;
 	}
 }
