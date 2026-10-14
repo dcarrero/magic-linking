@@ -11,21 +11,16 @@ export interface PanelState {
 	inbound: Fetched< InboundResponse >;
 	page: number;
 	setPage: ( page: number ) => void;
+	/** Estado de cada tarjeta por clave; es la única fuente de verdad de lo enlazado y lo descartado. */
 	statuses: Record< string, CardStatus >;
 	setStatus: ( suggestion: Suggestion, status: CardStatus | null ) => void;
-	/** Descartadas en esta sesión, por dirección. */
-	dismissed: Record< 'outbound' | 'inbound', ReadonlySet< string > >;
-	dismiss: (
-		suggestion: Suggestion,
-		direction: 'outbound' | 'inbound'
-	) => void;
-	/** Salientes que se enseñan (sin las descartadas). */
+	/** Salientes que cuentan (sin las descartadas, que siguen en la lista con su *Deshacer*). */
 	visibleOutbound: Suggestion[];
-	/** Entrantes de la página que se enseñan (sin las descartadas). */
-	visibleInbound: Suggestion[];
-	/** Entrantes sin las descartadas (de todas las páginas). */
+	/** Entrantes de la página, con las descartadas aquí en su sitio (el servidor ya no las devuelve). */
+	inboundItems: Suggestion[];
+	/** Entrantes que cuentan, de todas las páginas. */
 	inboundCount: number;
-	/** Vuelve a pedir las salientes y recupera las descartadas. */
+	/** Vuelve a pedir las salientes (el servidor ya no propone las descartadas). */
 	refreshOutbound: () => void;
 }
 
@@ -46,10 +41,19 @@ export function usePanelState(
 	const [ statuses, setStatuses ] = useState< Record< string, CardStatus > >(
 		{}
 	);
-	const [ dismissed, setDismissed ] = useState< {
-		outbound: ReadonlySet< string >;
-		inbound: ReadonlySet< string >;
-	} >( { outbound: new Set(), inbound: new Set() } );
+
+	// Las filas de «descartada» son de la página que se dejó: al cambiar de página se olvidan.
+	const changePage = useCallback( ( next: number ) => {
+		setStatuses( ( previous ) =>
+			Object.fromEntries(
+				Object.entries( previous ).filter(
+					( [ , status ] ) =>
+						! ( status.kind === 'dismissed' && status.ghost )
+				)
+			)
+		);
+		setPage( next );
+	}, [] );
 
 	const setStatus = useCallback(
 		( suggestion: Suggestion, status: CardStatus | null ) => {
@@ -67,47 +71,55 @@ export function usePanelState(
 		[]
 	);
 
-	const dismiss = useCallback(
-		( suggestion: Suggestion, direction: 'outbound' | 'inbound' ) => {
-			setDismissed( ( previous ) => ( {
-				...previous,
-				[ direction ]: new Set( previous[ direction ] ).add(
-					suggestionKey( suggestion )
-				),
-			} ) );
-		},
-		[]
-	);
-
 	const { refresh } = outbound;
 	const refreshOutbound = useCallback( () => {
-		setDismissed( ( previous ) => ( {
-			...previous,
-			outbound: new Set(),
-		} ) );
 		setStatuses( {} );
 		refresh();
 	}, [ refresh ] );
 
+	const isDismissed = ( item: Suggestion ) =>
+		statuses[ suggestionKey( item ) ]?.kind === 'dismissed';
+
 	const visibleOutbound = useMemo(
 		() =>
 			( outbound.data?.items ?? [] ).filter(
-				( item ) => ! dismissed.outbound.has( suggestionKey( item ) )
+				( item ) =>
+					statuses[ suggestionKey( item ) ]?.kind !== 'dismissed'
 			),
-		[ outbound.data, dismissed.outbound ]
+		[ outbound.data, statuses ]
 	);
 
-	const visibleInbound = useMemo(
-		() =>
-			( inbound.data?.items ?? [] ).filter(
-				( item ) => ! dismissed.inbound.has( suggestionKey( item ) )
-			),
-		[ inbound.data, dismissed.inbound ]
-	);
+	// Al descartar una entrante se vuelve a pedir la página (los demás elementos suben y no se salta ninguno);
+	// la descartada ya no viene del servidor y se pone aquí donde estaba, con su *Deshacer*.
+	const inboundItems = useMemo( () => {
+		const items = [ ...( inbound.data?.items ?? [] ) ];
+		const keys = new Set( items.map( suggestionKey ) );
+		Object.values( statuses )
+			.flatMap( ( status ) =>
+				status.kind === 'dismissed' && status.ghost
+					? [ status.ghost ]
+					: []
+			)
+			.filter(
+				( ghost ) => ! keys.has( suggestionKey( ghost.suggestion ) )
+			)
+			.sort( ( a, b ) => a.index - b.index )
+			.forEach( ( ghost ) =>
+				items.splice(
+					Math.min( ghost.index, items.length ),
+					0,
+					ghost.suggestion
+				)
+			);
+		return items;
+	}, [ inbound.data, statuses ] );
 
+	// El total del servidor ya no cuenta lo descartado antes de pedirlo; solo hay que restar lo descartado
+	// ahora mismo que sigue en la lista que se tiene.
 	const inboundCount = Math.max(
 		0,
-		( inbound.data?.total ?? 0 ) - dismissed.inbound.size
+		( inbound.data?.total ?? 0 ) -
+			( inbound.data?.items ?? [] ).filter( isDismissed ).length
 	);
 
 	// Tras enlazar la última de una página (o al cambiar el total), la página pedida puede no existir ya:
@@ -128,13 +140,11 @@ export function usePanelState(
 		outbound,
 		inbound,
 		page,
-		setPage,
+		setPage: changePage,
 		statuses,
 		setStatus,
-		dismissed,
-		dismiss,
 		visibleOutbound,
-		visibleInbound,
+		inboundItems,
 		inboundCount,
 		refreshOutbound,
 	};

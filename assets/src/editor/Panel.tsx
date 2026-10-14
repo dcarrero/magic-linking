@@ -134,7 +134,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 		}
 	}, [ outbound.data ] );
 
-	// Al descartar, el botón pulsado desaparece con la tarjeta: el foco vuelve a la lista.
+	// Al deshacer un descarte, la fila con el botón desaparece: el foco vuelve a la lista.
 	const listRef = useRef< HTMLDivElement >( null );
 
 	const linkOutbound = ( suggestion: Suggestion ) => {
@@ -241,12 +241,87 @@ export function Panel( { adapter, boot, state }: Props ) {
 		}
 	};
 
-	const dismiss = (
+	const dismiss = async (
 		suggestion: Suggestion,
 		direction: 'outbound' | 'inbound'
 	) => {
-		state.dismiss( suggestion, direction );
-		speak( __( 'Suggestion dismissed.', 'magic-linking' ), 'polite' );
+		setStatus( suggestion, { kind: 'dismissing' } );
+		try {
+			await api.dismissSuggestion(
+				suggestion.source.id,
+				suggestion.target.id
+			);
+		} catch ( error ) {
+			const message = errorMessage(
+				error,
+				__(
+					'The suggestion could not be dismissed. Check your connection and try again.',
+					'magic-linking'
+				)
+			);
+			setStatus( suggestion, { kind: 'error', message } );
+			speak( message, 'assertive' );
+			return;
+		}
+		adapter.highlight( null );
+		if ( direction === 'inbound' ) {
+			// Los elementos de las páginas siguientes suben: se vuelve a pedir la página para no saltarse ninguno.
+			const index = state.inboundItems.findIndex(
+				( item ) =>
+					suggestionKey( item ) === suggestionKey( suggestion )
+			);
+			setStatus( suggestion, {
+				kind: 'dismissed',
+				ghost: { suggestion, index: Math.max( 0, index ) },
+			} );
+			inbound.refresh();
+		} else {
+			setStatus( suggestion, { kind: 'dismissed' } );
+		}
+		speak(
+			__(
+				'Suggestion dismissed. It will not be proposed again.',
+				'magic-linking'
+			),
+			'polite'
+		);
+	};
+
+	const restore = async (
+		suggestion: Suggestion,
+		direction: 'outbound' | 'inbound'
+	) => {
+		const previous = statuses[ suggestionKey( suggestion ) ];
+		setStatus( suggestion, {
+			kind: 'dismissed',
+			busy: true,
+			ghost: previous?.kind === 'dismissed' ? previous.ghost : undefined,
+		} );
+		try {
+			await api.restoreSuggestion(
+				suggestion.source.id,
+				suggestion.target.id
+			);
+		} catch ( error ) {
+			setStatus( suggestion, previous ?? { kind: 'dismissed' } );
+			speak(
+				errorMessage(
+					error,
+					__(
+						'The dismissal could not be undone. Check your connection and try again.',
+						'magic-linking'
+					)
+				),
+				'assertive'
+			);
+			return;
+		}
+		setStatus( suggestion, null );
+		if ( direction === 'inbound' ) {
+			inbound.refresh();
+		}
+		speak( __( 'Suggestion restored.', 'magic-linking' ), 'polite' );
+		// El botón pulsado desaparece con la fila: el foco vuelve a la lista.
 		listRef.current?.focus();
 	};
 
@@ -308,15 +383,12 @@ export function Panel( { adapter, boot, state }: Props ) {
 								<Loading />
 							) }
 							{ outbound.data &&
-								( outboundCount === 0 ? (
+								( outbound.data.items.length === 0 ? (
 									! outbound.loading && (
 										<EmptyState
 											state={ outbound.data.state }
 											direction="outbound"
 											reportUrl={ boot.reportUrl }
-											dismissedAll={
-												outbound.data.items.length > 0
-											}
 										/>
 									)
 								) : (
@@ -324,38 +396,30 @@ export function Panel( { adapter, boot, state }: Props ) {
 										className="magiclinking-panel__cards"
 										aria-busy={ outbound.loading }
 									>
-										{ state.visibleOutbound.map(
-											( item ) => (
-												<SuggestionCard
-													key={ suggestionKey(
-														item
-													) }
-													suggestion={ item }
-													direction="outbound"
-													status={
-														statuses[
-															suggestionKey(
-																item
-															)
-														]
-													}
-													historyUrl={
-														boot.historyUrl
-													}
-													onLink={ linkOutbound }
-													onDismiss={ ( card ) =>
-														dismiss(
-															card,
-															'outbound'
-														)
-													}
-													onUndo={ undo }
-													onHighlight={
-														adapter.highlight
-													}
-												/>
-											)
-										) }
+										{ outbound.data.items.map( ( item ) => (
+											<SuggestionCard
+												key={ suggestionKey( item ) }
+												suggestion={ item }
+												direction="outbound"
+												status={
+													statuses[
+														suggestionKey( item )
+													]
+												}
+												historyUrl={ boot.historyUrl }
+												onLink={ linkOutbound }
+												onDismiss={ ( card ) =>
+													dismiss( card, 'outbound' )
+												}
+												onRestore={ ( card ) =>
+													restore( card, 'outbound' )
+												}
+												onUndo={ undo }
+												onHighlight={
+													adapter.highlight
+												}
+											/>
+										) ) }
 									</ul>
 								) ) }
 						</div>
@@ -390,10 +454,9 @@ export function Panel( { adapter, boot, state }: Props ) {
 							) }
 							{ inbound.loading && ! inbound.data && <Loading /> }
 							{ inbound.data &&
-								( state.visibleInbound.length === 0 ? (
+								( state.inboundItems.length === 0 ? (
 									! inbound.loading &&
-									( inbound.data.total > 0 &&
-									inbound.data.items.length === 0 ? (
+									( inbound.data.total > 0 ? (
 										// La página pedida ya no existe (se enlazó la última de ella): se vuelve a pedir la última.
 										<Loading />
 									) : (
@@ -401,9 +464,6 @@ export function Panel( { adapter, boot, state }: Props ) {
 											state={ inbound.data.state }
 											direction="inbound"
 											reportUrl={ boot.reportUrl }
-											dismissedAll={
-												inbound.data.items.length > 0
-											}
 										/>
 									) )
 								) : (
@@ -412,7 +472,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 											className="magiclinking-panel__cards"
 											aria-busy={ inbound.loading }
 										>
-											{ state.visibleInbound.map(
+											{ state.inboundItems.map(
 												( item ) => (
 													<SuggestionCard
 														key={ suggestionKey(
@@ -433,6 +493,12 @@ export function Panel( { adapter, boot, state }: Props ) {
 														onLink={ linkInbound }
 														onDismiss={ ( card ) =>
 															dismiss(
+																card,
+																'inbound'
+															)
+														}
+														onRestore={ ( card ) =>
+															restore(
 																card,
 																'inbound'
 															)

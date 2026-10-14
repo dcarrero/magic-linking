@@ -6,8 +6,6 @@ interface Props {
 	state: SuggestionState;
 	direction: 'outbound' | 'inbound';
 	reportUrl: string;
-	/** Hay sugerencias descartadas en esta sesión que ocultan las demás. */
-	dismissedAll?: boolean;
 }
 
 /**
@@ -16,14 +14,8 @@ interface Props {
  * @param root0.state
  * @param root0.direction
  * @param root0.reportUrl
- * @param root0.dismissedAll
  */
-export function EmptyState( {
-	state,
-	direction,
-	reportUrl,
-	dismissedAll = false,
-}: Props ) {
+export function EmptyState( { state, direction, reportUrl }: Props ) {
 	if ( state === 'index_not_ready' ) {
 		return (
 			<p className="magiclinking-panel__empty">
@@ -52,16 +44,6 @@ export function EmptyState( {
 			<p className="magiclinking-panel__empty">
 				{ __(
 					'Other entries can only link to this one once it is published.',
-					'magic-linking'
-				) }
-			</p>
-		);
-	}
-	if ( dismissedAll ) {
-		return (
-			<p className="magiclinking-panel__empty">
-				{ __(
-					'You have dismissed all the suggestions. They come back when you refresh.',
 					'magic-linking'
 				) }
 			</p>

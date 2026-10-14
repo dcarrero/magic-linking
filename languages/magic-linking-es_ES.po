@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.10.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-07T13:47:59+00:00\n"
+"POT-Creation-Date: 2026-10-14T05:59:26+00:00\n"
 "PO-Revision-Date: 2026-10-07 12:30+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -18,10 +18,6 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. Plugin Name of the plugin
-#: magic-linking.php src/Admin/Screen.php:136
-msgid "Magic Linking"
-msgstr "Magic Linking"
-
 #. Plugin URI of the plugin
 #: magic-linking.php
 msgid "https://magiclinking.com"
@@ -73,7 +69,7 @@ msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reins
 msgstr "A Magic Linking le faltan sus bibliotecas incluidas (la carpeta vendor). Vuelve a instalar el plugin desde wordpress.org. No se ha cargado."
 
 #: src/Admin/EditorPanel.php:88 src/Admin/Screen.php:283
-#: assets/build/editor.js:9 assets/build/index.js:38
+#: assets/build/editor.js:10 assets/build/index.js:38
 msgid "Internal links"
 msgstr "Enlaces internos"
 
@@ -90,6 +86,10 @@ msgstr "Esta caja necesita JavaScript para mostrar las sugerencias de enlaces."
 #: src/Admin/Screen.php:92
 msgid "Open report"
 msgstr "Abrir informe"
+
+#: src/Admin/Screen.php:136
+msgid "Magic Linking"
+msgstr "Magic Linking"
 
 #: src/Admin/Screen.php:141 assets/build/index.js:37
 msgid "Report"
@@ -199,7 +199,7 @@ msgid "This batch is being processed in the background. Wait for it to finish or
 msgstr "Este lote lo está tratando un proceso en segundo plano. Espera a que termine o cancélalo."
 
 #: src/Cli/Command.php:622 src/Rest/HistoryController.php:499
-#: src/Rest/SuggestionsController.php:383
+#: src/Rest/SuggestionsController.php:417
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "No tienes permiso para editar una de las entradas afectadas."
 
@@ -243,7 +243,8 @@ msgid_plural "%d history rows deleted."
 msgstr[0] "Se ha borrado %d fila del historial."
 msgstr[1] "Se han borrado %d filas del historial."
 
-#: src/Cli/Command.php:706 src/Rest/SuggestionsController.php:552
+#: src/Cli/Command.php:706 src/Rest/DismissalsController.php:112
+#: src/Rest/SuggestionsController.php:586
 msgid "That entry does not exist."
 msgstr "Esa entrada no existe."
 
@@ -275,7 +276,7 @@ msgstr "No se ha podido interpretar la estructura de bloques de esta entrada; no
 msgid "The block contains markup (script, styles…) that cannot be scanned safely."
 msgstr "El bloque tiene marcas (script, estilos…) que no se pueden recorrer con seguridad."
 
-#: src/Content/BlockEditor.php:90 src/Content/BlockEditor.php:129
+#: src/Content/BlockEditor.php:90 src/Content/BlockEditor.php:184
 #: src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:181
 msgid "The text has changed."
 msgstr "El texto ha cambiado."
@@ -284,11 +285,11 @@ msgstr "El texto ha cambiado."
 msgid "The text of this block comes from another source (data binding) and cannot be edited here."
 msgstr "El texto de este bloque viene de otro origen (enlace de datos) y no se puede editar aquí."
 
-#: src/Content/BlockEditor.php:172
+#: src/Content/BlockEditor.php:227
 msgid "This text belongs to a reusable block: edit the original pattern."
 msgstr "Este texto es de un bloque reutilizable: edita el patrón original."
 
-#: src/Content/BlockEditor.php:175
+#: src/Content/BlockEditor.php:230
 msgid "This text is in a block where links are not inserted automatically."
 msgstr "Este texto está en un bloque en el que no se insertan enlaces automáticamente."
 
@@ -296,19 +297,19 @@ msgstr "Este texto está en un bloque en el que no se insertan enlaces automáti
 msgid "The post contains markup (script, styles…) that cannot be scanned safely."
 msgstr "La entrada tiene marcas (script, estilos…) que no se pueden recorrer con seguridad."
 
-#: src/Content/Inserter.php:88
+#: src/Content/Inserter.php:125
 msgid "All the links of one write must be for the same post and the same user."
 msgstr "Todos los enlaces de una escritura deben ser de la misma entrada y del mismo usuario."
 
-#: src/Content/Inserter.php:97
+#: src/Content/Inserter.php:134
 msgid "This content type is not one that Magic Linking analyzes."
 msgstr "Este tipo de contenido no está entre los que analiza Magic Linking."
 
-#: src/Content/Inserter.php:159 src/History/Redo.php:150
+#: src/Content/Inserter.php:196 src/History/Redo.php:150
 msgid "The change could not be confirmed as only the link; nothing was written."
 msgstr "No se ha podido comprobar que el cambio sea solo el enlace; no se ha escrito nada."
 
-#: src/Content/Inserter.php:183 src/History/Redo.php:156
+#: src/Content/Inserter.php:220 src/History/Redo.php:156
 #: src/History/Undo.php:184
 msgid "The change history could not be saved; nothing was written."
 msgstr "No se ha podido guardar el historial del cambio; no se ha escrito nada."
@@ -481,6 +482,14 @@ msgstr "Esta entrada se editó después; quita el enlace a mano."
 msgid "You are not allowed to export this data."
 msgstr "No tienes permiso para exportar estos datos."
 
+#: src/Rest/DismissalsController.php:115
+msgid "An entry cannot link to itself."
+msgstr "Una entrada no puede enlazar consigo misma."
+
+#: src/Rest/DismissalsController.php:163
+msgid "The change could not be saved. Try again."
+msgstr "No se ha podido guardar el cambio. Inténtalo de nuevo."
+
 #: src/Rest/HistoryController.php:358
 msgid "Send either a group or a single change."
 msgstr "Envía un lote entero o un solo cambio, no los dos."
@@ -519,208 +528,223 @@ msgstr "Muy parecidas por significado"
 msgid "The content is too long to analyze."
 msgstr "El contenido es demasiado largo para analizarlo."
 
-#: src/Rest/SuggestionsController.php:375
+#: src/Rest/SuggestionsController.php:409
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Cada enlace necesita la entrada, el destino, la frase, el desplazamiento y el ancla."
 
-#: src/Rest/SuggestionsController.php:430
+#: src/Rest/SuggestionsController.php:464
 msgid "The link could not be saved; nothing was changed."
 msgstr "No se ha podido guardar el enlace; no se ha cambiado nada."
 
-#: src/Rest/SuggestionsController.php:502
-#: src/Rest/SuggestionsController.php:510
+#: src/Rest/SuggestionsController.php:536
+#: src/Rest/SuggestionsController.php:544
 msgid "The destination is not a published entry that can be linked."
 msgstr "El destino no es una entrada publicada a la que se pueda enlazar."
 
-#: src/Rest/SuggestionsController.php:505
+#: src/Rest/SuggestionsController.php:539
 msgid "The destination is in a different language, so no link is added."
 msgstr "El destino está en otro idioma, así que no se añade el enlace."
 
-#: assets/build/classic.js:1 assets/build/editor.js:1
-msgid "In:"
-msgstr "En:"
+#: assets/build/classic.js:1 assets/build/classic.js:8 assets/build/editor.js:1
+#: assets/build/editor.js:8
+msgid "Suggestion dismissed. It will not be proposed again."
+msgstr "Sugerencia descartada. No se volverá a proponer."
 
-#. translators: %s: title of the entry that would get the link.
+#. translators: %s: title of the destination.
 #: assets/build/classic.js:2 assets/build/editor.js:2
-msgid "In: %s"
-msgstr "En: %s"
+msgid "Undo dismissing the suggestion for “%s”"
+msgstr "Deshacer el descarte de la sugerencia para «%s»"
 
-#: assets/build/classic.js:2 assets/build/editor.js:2
-msgid "Links to:"
-msgstr "Enlaza a:"
-
-#: assets/build/classic.js:2 assets/build/editor.js:2
-msgid "(opens in a new tab)"
-msgstr "(se abre en una pestaña nueva)"
-
-#: assets/build/classic.js:2 assets/build/editor.js:2
-msgid "You cannot edit this entry, so the link cannot be added from here."
-msgstr "No puedes editar esta entrada, así que el enlace no se puede añadir desde aquí."
-
-#: assets/build/classic.js:2 assets/build/editor.js:2
+#: assets/build/classic.js:2 assets/build/classic.js:3 assets/build/editor.js:2
+#: assets/build/editor.js:3
 msgid "Undo"
 msgstr "Deshacer"
 
 #: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "In:"
+msgstr "En:"
+
+#. translators: %s: title of the entry that would get the link.
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgid "In: %s"
+msgstr "En: %s"
+
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgid "Links to:"
+msgstr "Enlaza a:"
+
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgid "(opens in a new tab)"
+msgstr "(se abre en una pestaña nueva)"
+
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgid "You cannot edit this entry, so the link cannot be added from here."
+msgstr "No puedes editar esta entrada, así que el enlace no se puede añadir desde aquí."
+
+#: assets/build/classic.js:3 assets/build/editor.js:3
 msgid "See in History"
 msgstr "Ver en el historial"
 
 #. translators: %s: title of the destination.
-#: assets/build/classic.js:3 assets/build/editor.js:3
+#: assets/build/classic.js:4 assets/build/editor.js:4
 msgid "Link to “%s”"
 msgstr "Enlazar con «%s»"
 
-#: assets/build/classic.js:3 assets/build/editor.js:3
+#: assets/build/classic.js:4 assets/build/editor.js:4
 msgctxt "button: add the link to the text"
 msgid "Link"
 msgstr "Enlazar"
 
 #. translators: %s: title of the destination.
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "Dismiss the suggestion for “%s”"
 msgstr "Descartar la sugerencia para «%s»"
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "Dismiss"
 msgstr "Descartar"
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "The site has not been analyzed yet, so there are no suggestions. Analyze it from the report and come back."
 msgstr "El sitio aún no se ha analizado, así que no hay sugerencias. Analízalo desde el informe y vuelve."
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "Open the report"
 msgstr "Abrir el informe"
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "This entry is not analyzed yet. Save it and refresh in a moment, or check that its content type is analyzed in Settings."
 msgstr "Esta entrada aún no está analizada. Guárdala y actualiza dentro de un momento, o comprueba en Ajustes que su tipo de contenido se analiza."
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "Other entries can only link to this one once it is published."
 msgstr "Las demás entradas solo pueden enlazar a esta cuando esté publicada."
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
-msgid "You have dismissed all the suggestions. They come back when you refresh."
-msgstr "Has descartado todas las sugerencias. Vuelven al actualizar."
-
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "There are no suggestions with enough confidence. This usually happens with very short entries or on a topic that has no other content on the site yet."
 msgstr "No hay sugerencias con suficiente confianza. Suele pasar con entradas muy cortas o de un tema que aún no tiene más contenido en el sitio."
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "No other entry has a sentence that fits a link to this one yet."
 msgstr "Ninguna otra entrada tiene todavía una frase donde encaje un enlace a esta."
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "Try again"
 msgstr "Reintentar"
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "Looking for suggestions…"
 msgstr "Buscando sugerencias…"
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "Inbound suggestions pages"
 msgstr "Páginas de sugerencias entrantes"
 
-#: assets/build/classic.js:4 assets/build/editor.js:4
+#: assets/build/classic.js:5 assets/build/editor.js:5
 msgid "Previous"
 msgstr "Anterior"
 
 #. translators: 1: current page, 2: total pages.
-#: assets/build/classic.js:5 assets/build/classic.js:8 assets/build/editor.js:5
-#: assets/build/editor.js:8 assets/build/index.js:2
+#: assets/build/classic.js:6 assets/build/classic.js:9 assets/build/editor.js:6
+#: assets/build/editor.js:9 assets/build/index.js:2
 msgid "Page %1$s of %2$s"
 msgstr "Página %1$s de %2$s"
 
-#: assets/build/classic.js:5 assets/build/editor.js:5
+#: assets/build/classic.js:6 assets/build/editor.js:6
 msgid "Next"
 msgstr "Siguiente"
 
 #. translators: %d: number of suggestions.
-#: assets/build/classic.js:6 assets/build/editor.js:6
+#: assets/build/classic.js:7 assets/build/editor.js:7
 msgid "%d outbound suggestion"
 msgid_plural "%d outbound suggestions"
 msgstr[0] "%d sugerencia saliente"
 msgstr[1] "%d sugerencias salientes"
 
-#: assets/build/classic.js:6 assets/build/editor.js:6
+#: assets/build/classic.js:7 assets/build/editor.js:7
 msgid "Link added."
 msgstr "Enlace añadido."
 
-#: assets/build/classic.js:6 assets/build/classic.js:7 assets/build/editor.js:6
-#: assets/build/editor.js:7
+#: assets/build/classic.js:7 assets/build/classic.js:8 assets/build/editor.js:7
+#: assets/build/editor.js:8
 msgid "Link removed."
 msgstr "Enlace quitado."
 
-#: assets/build/classic.js:6 assets/build/editor.js:6
+#: assets/build/classic.js:7 assets/build/editor.js:7
 msgid "The text has changed since the suggestion was made. Refresh the suggestions and try again."
 msgstr "El texto ha cambiado desde que se hizo la sugerencia. Actualiza las sugerencias e inténtalo de nuevo."
 
-#: assets/build/classic.js:6 assets/build/editor.js:6
+#: assets/build/classic.js:7 assets/build/editor.js:7
 msgid "This sentence appears more than once, so the right place is unclear. Add the link by hand."
 msgstr "Esta frase aparece más de una vez y no se sabe cuál es el sitio. Añade el enlace a mano."
 
-#: assets/build/classic.js:6 assets/build/editor.js:6
+#: assets/build/classic.js:7 assets/build/editor.js:7
 msgid "This text is already a link."
 msgstr "Este texto ya es un enlace."
 
-#: assets/build/classic.js:6 assets/build/editor.js:6
+#: assets/build/classic.js:7 assets/build/editor.js:7
 msgid "Switch to the Visual tab to add the link, or add it by hand."
 msgstr "Cambia a la pestaña Visual para añadir el enlace, o añádelo a mano."
 
 #. translators: %s: title of the entry that got the link.
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "Link added in “%s”."
 msgstr "Enlace añadido en «%s»."
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "The link could not be added."
 msgstr "No se ha podido añadir el enlace."
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "The link could not be added. Check your connection and try again."
 msgstr "No se ha podido añadir el enlace. Comprueba la conexión e inténtalo de nuevo."
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "The text has changed since the link was added. Use Undo in the editor or remove the link by hand."
 msgstr "El texto ha cambiado desde que se añadió el enlace. Usa Deshacer del editor o quita el enlace a mano."
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "The link could not be removed."
 msgstr "No se ha podido quitar el enlace."
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
-msgid "Suggestion dismissed."
-msgstr "Sugerencia descartada."
+#: assets/build/classic.js:8 assets/build/editor.js:8
+msgid "The suggestion could not be dismissed. Check your connection and try again."
+msgstr "No se ha podido descartar la sugerencia. Comprueba tu conexión e inténtalo de nuevo."
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
+msgid "The dismissal could not be undone. Check your connection and try again."
+msgstr "No se ha podido deshacer el descarte. Comprueba tu conexión e inténtalo de nuevo."
+
+#: assets/build/classic.js:8 assets/build/editor.js:8
+msgid "Suggestion restored."
+msgstr "Sugerencia recuperada."
+
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "Outbound"
 msgstr "Salientes"
 
-#: assets/build/classic.js:7 assets/build/editor.js:7 assets/build/index.js:36
+#: assets/build/classic.js:8 assets/build/editor.js:8 assets/build/index.js:36
 msgid "Inbound"
 msgstr "Entrantes"
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "Refresh"
 msgstr "Actualizar"
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "Analyzes what you have in the editor now, saved or not."
 msgstr "Analiza lo que tienes ahora en el editor, guardado o no."
 
-#: assets/build/classic.js:7 assets/build/editor.js:7
+#: assets/build/classic.js:8 assets/build/editor.js:8
 msgid "Sentences in other entries where a link to this one fits."
 msgstr "Frases de otras entradas donde encaja un enlace a esta."
 
-#: assets/build/classic.js:8 assets/build/editor.js:8
+#: assets/build/classic.js:9 assets/build/editor.js:9
 msgid "The suggestions could not be loaded. Check your connection and try again."
 msgstr "No se han podido cargar las sugerencias. Comprueba la conexión e inténtalo de nuevo."
 
 #. translators: %d: number of outbound suggestions.
-#: assets/build/editor.js:9
+#: assets/build/editor.js:10
 msgid "Internal links (%d)"
 msgstr "Enlaces internos (%d)"
 

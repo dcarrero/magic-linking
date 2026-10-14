@@ -33,9 +33,10 @@ final class Scorer {
 	 * Cantidad que resta cada penalización.
 	 */
 	public const PENALTIES = array(
-		'overload'        => 0.2,
-		'anchor_overused' => 0.1,
-		'unlike_target'   => 0.3,
+		'overload'         => 0.2,
+		'anchor_overused'  => 0.1,
+		'unlike_target'    => 0.3,
+		'dismissed_target' => 0.1,
 	);
 
 	/**
@@ -173,6 +174,10 @@ final class Scorer {
 		}
 		if ( $candidate->unlike ) {
 			$penalties['unlike_target'] = self::PENALTIES['unlike_target'];
+		}
+		// Destino descartado desde muchos orígenes: baja su prior en todo el sitio (docs/04 §11).
+		if ( $candidate->dismissed ) {
+			$penalties['dismissed_target'] = self::PENALTIES['dismissed_target'];
 		}
 
 		$bonuses = array();
