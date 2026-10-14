@@ -39,11 +39,6 @@ final class EditorPanel implements Module {
 	public const META_BOX = 'magiclinking-editor-panel';
 
 	/**
-	 * Sugerencias entrantes por página en el panel (docs/07 §3); el ajuste llega con F1-16.
-	 */
-	public const PER_PAGE = 10;
-
-	/**
 	 * Constructor.
 	 *
 	 * @param Settings $settings Ajustes.
@@ -185,7 +180,9 @@ final class EditorPanel implements Module {
 				array(
 					'mode'       => $mode,
 					'postId'     => $post->ID,
-					'perPage'    => self::PER_PAGE,
+					'perPage'    => (int) $this->settings->all()['inbound_per_page'],
+					'linkIn'     => $this->settings->link_scope(),
+					'linkAttrs'  => (object) $this->settings->link_attributes(),
 					'historyUrl' => Screen::page_url( 'history' ),
 					'reportUrl'  => Screen::page_url( 'report' ),
 				)

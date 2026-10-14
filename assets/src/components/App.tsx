@@ -1,11 +1,13 @@
-import { useCallback, useState } from '@wordpress/element';
+import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-import type { StatusResponse, Summary } from '../types';
+import type { ReportFilter, StatusResponse, Summary } from '../types';
 import { BrokenTab } from './BrokenTab';
 import { HistoryTab } from './HistoryTab';
 import { IndexStatus } from './IndexStatus';
 import { ReportTab } from './ReportTab';
 import { SettingsTab } from './SettingsTab';
+import { Wizard } from './Wizard';
+import { api } from '../api';
 
 type Tab = 'report' | 'broken' | 'history' | 'settings';
 
@@ -77,6 +79,49 @@ export function App( {
 		tab === 'broken' ? onlyFromLocation() : null
 	);
 
+	const [ wizardOpen, setWizardOpen ] = useState( false );
+	const [ reportFilter, setReportFilter ] = useState< ReportFilter >( 'all' );
+	const decided = useRef( false );
+
+	// El asistente se abre solo una vez, en un sitio recién instalado (sin análisis) y mientras el usuario no
+	// lo haya cerrado; también cuando se pide a propósito desde Ajustes (?wizard=1).
+	useEffect( () => {
+		if ( decided.current || ! status || ! canManage || tab !== 'report' ) {
+			return;
+		}
+		decided.current = true;
+		const params = new URLSearchParams( window.location.search );
+		const asked = params.get( 'wizard' ) === '1';
+		if ( asked ) {
+			// Se pide una vez: al recargar después de cerrarlo no vuelve a abrirse.
+			params.delete( 'wizard' );
+			const query = params.toString();
+			window.history.replaceState(
+				null,
+				'',
+				window.location.pathname +
+					( query ? `?${ query }` : '' ) +
+					window.location.hash
+			);
+		}
+		const fresh =
+			( window.magiclinking?.wizard ?? false ) &&
+			status.indexed === 0 &&
+			status.job === null;
+		setWizardOpen( asked || fresh );
+	}, [ status, canManage, tab ] );
+
+	const openWizard = async () => {
+		try {
+			await api.setWizardDismissed( false );
+		} catch {
+			// Se abre igualmente: lo que se guarda es solo el cierre.
+		}
+		const url = new URL( tabUrls.report, window.location.href );
+		url.searchParams.set( 'wizard', '1' );
+		window.location.assign( url.toString() );
+	};
+
 	const onFinished = useCallback(
 		() => setRefreshKey( ( key ) => key + 1 ),
 		[]
@@ -111,7 +156,20 @@ export function App( {
 			</h1>
 			<hr className="wp-header-end" />
 
+			{ wizardOpen && tab === 'report' && (
+				<Wizard
+					status={ status }
+					onStarted={ () => setStatusKey( ( key ) => key + 1 ) }
+					onClose={ () => setWizardOpen( false ) }
+					onSeeOrphans={ () => {
+						setReportFilter( 'orphans' );
+						setWizardOpen( false );
+					} }
+				/>
+			) }
+
 			<IndexStatus
+				hideIntro={ wizardOpen && tab === 'report' }
 				canManage={ canManage }
 				onFinished={ onFinished }
 				onStatus={ onStatus }
@@ -159,6 +217,8 @@ export function App( {
 									) }
 								</p>
 								<ReportTab
+									key={ reportFilter }
+									initialFilter={ reportFilter }
 									refreshKey={ refreshKey }
 									exportUrl={ exportUrl }
 									onSummary={ onSummary }
@@ -193,6 +253,7 @@ export function App( {
 						{ tab === 'settings' && canManage && (
 							<SettingsTab
 								status={ status }
+								onOpenWizard={ openWizard }
 								onReindex={ () =>
 									setStatusKey( ( key ) => key + 1 )
 								}

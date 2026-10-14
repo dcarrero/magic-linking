@@ -1101,4 +1101,99 @@ final class SuggestionsRestTest extends GraphTestCase {
 			$this->assertNotSame( $before, $this->epoch(), "Renueva: {$what}." );
 		}
 	}
+
+	// ------------------------------------------------------------------ Ajustes del usuario (F1-16).
+
+	private function save_settings( array $values ): void {
+		delete_option( Installer::SETTINGS_OPTION );
+		Plugin::container()->get( \MagicLinking\Core\Settings::class )->update( $values );
+	}
+
+	public function test_the_inbound_page_size_comes_from_the_settings_unless_asked(): void {
+		$this->corpus( 5 );
+
+		$default = $this->request( 'GET', '/suggestions/inbound', array( 'post_id' => $this->target ) )->get_data();
+		$this->assertSame( 10, $default['per_page'] );
+
+		$this->save_settings( array( 'inbound_per_page' => 5 ) );
+		$five = $this->request( 'GET', '/suggestions/inbound', array( 'post_id' => $this->target ) )->get_data();
+		$this->assertSame( 5, $five['per_page'] );
+		$this->assertCount( 5, $five['items'] );
+
+		$asked = $this->request(
+			'GET',
+			'/suggestions/inbound',
+			array(
+				'post_id'  => $this->target,
+				'per_page' => 2,
+			)
+		)->get_data();
+		$this->assertSame( 2, $asked['per_page'], 'Lo que pide el cliente manda.' );
+	}
+
+	public function test_ignored_words_hide_the_suggestions_whose_anchor_contains_them(): void {
+		$this->corpus();
+		$source = $this->sources[1];
+		$before = array_column( $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $source ) )->get_data()['items'], 'anchor' );
+		$this->assertNotEmpty( $before );
+
+		$word = explode( ' ', (string) $before[0] )[0];
+		$this->save_settings( array( 'ignored_words' => array( strtoupper( $word ) ) ) );
+		$after = array_column( $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $source ) )->get_data()['items'], 'anchor' );
+
+		foreach ( $after as $anchor ) {
+			$this->assertDoesNotMatchRegularExpression( '/(?<![\p{L}\p{N}])' . preg_quote( $word, '/' ) . '(?![\p{L}\p{N}])/iu', (string) $anchor );
+		}
+		$this->assertLessThan( count( $before ), count( $after ) );
+	}
+
+	public function test_ignored_addresses_are_never_suggested_as_a_target_or_a_source(): void {
+		$this->corpus();
+		$source = $this->sources[1];
+		$out    = fn(): array => array_column( array_column( $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $source ) )->get_data()['items'], 'target' ), 'id' );
+		$in     = fn(): array => array_column( array_column( $this->request( 'GET', '/suggestions/inbound', array( 'post_id' => $this->target ) )->get_data()['items'], 'source' ), 'id' );
+
+		$this->assertContains( $this->target, $out() );
+		$this->assertContains( $source, $in() );
+
+		$this->save_settings( array( 'ignored_urls' => array( get_permalink( $this->target ) ) ) );
+		$this->assertNotContains( $this->target, $out() );
+
+		$this->save_settings( array( 'ignored_urls' => array( get_permalink( $source ) ) ) );
+		$this->assertNotContains( $source, $in() );
+		$this->assertSame( array(), $out(), 'Una entrada ignorada tampoco recibe sugerencias salientes.' );
+
+		$this->save_settings( array( 'ignored_urls' => array( 'https://example.org/otra-cosa/' ) ) );
+		$this->assertContains( $this->target, $out(), 'Otra dirección ignorada no afecta.' );
+	}
+
+	public function test_the_number_of_outbound_suggestions_shown_comes_from_the_settings(): void {
+		$this->corpus();
+		$source = $this->sources[1];
+		// Un destino más sobre el que el origen habla, para que haya al menos dos sugerencias.
+		self::factory()->post->create(
+			array(
+				'post_title'   => 'Mampara de ducha: guía',
+				'post_content' => $this->p( 'La mampara de la ducha, los azulejos y la grifería del baño se eligen juntos para que la reforma quede coherente.' ),
+			)
+		);
+		$this->build_index();
+
+		$count = fn(): int => count( $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $source ) )->get_data()['items'] );
+		$all   = $count();
+		$this->assertGreaterThanOrEqual( 2, $all );
+
+		$this->save_settings( array( 'outbound_shown' => 1 ) );
+		$this->assertSame( 1, $count() );
+
+		// Las palabras ignoradas se quitan antes de contar: siguen saliendo las que se configuraron.
+		$first = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $source ) )->get_data()['items'][0]['anchor'];
+		$this->save_settings(
+			array(
+				'outbound_shown' => 1,
+				'ignored_words'  => array( explode( ' ', (string) $first )[0] ),
+			)
+		);
+		$this->assertSame( 1, $count(), 'Ignorar la mejor no deja la lista vacía si hay otras.' );
+	}
 }

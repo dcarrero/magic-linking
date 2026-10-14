@@ -122,7 +122,9 @@ final class Suggestions {
 		$options['penalized'] = $this->dismissals->penalized_targets( $this->settings->post_types() );
 
 		try {
-			return $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) );
+			$found = $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) );
+
+			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
 		} finally {
 			$this->documents->release();
 		}
@@ -150,7 +152,7 @@ final class Suggestions {
 		$options['penalized']        = $this->dismissals->penalized_targets( $this->settings->post_types() );
 
 		try {
-			return $this->suggester( $options )->incoming( $post_id );
+			return $this->without_ignored( $this->suggester( $options )->incoming( $post_id ) );
 		} finally {
 			$this->documents->release();
 		}
@@ -169,21 +171,81 @@ final class Suggestions {
 	}
 
 	/**
-	 * Motor con la configuración congelada.
+	 * Cuántas sugerencias salientes se piden al motor: las que se muestran y, si hay palabras ignoradas que se
+	 * quitarán después, otras tantas de reserva para que no se vean menos de las configuradas.
+	 *
+	 * @param array $all Ajustes.
+	 *
+	 * @phpstan-param array<string, mixed> $all
+	 */
+	private function candidates( array $all ): int {
+		$shown = (int) $all['outbound_shown'];
+
+		return array() === $all['ignored_words'] ? $shown : min( 4 * $shown, 200 );
+	}
+
+	/**
+	 * Motor con la configuración congelada y los ajustes de calidad del usuario (docs/07 §8); lo que pida
+	 * quien llama manda sobre ellos.
 	 *
 	 * @param array $options Opciones del motor.
 	 *
 	 * @phpstan-param array<string, mixed> $options
 	 */
 	private function suggester( array $options ): Suggester {
+		$all = $this->settings->all();
+
+		$defaults = array( 'max_outgoing' => $this->candidates( $all ) );
+		// Las direcciones ignoradas se suman a los destinos descartados; ninguna lista pisa a la otra.
+		if ( array() !== $all['ignored_ids'] ) {
+			$options['never'] = array_values( array_unique( array_merge( $options['never'] ?? array(), $all['ignored_ids'] ) ) );
+		}
+
 		return new Suggester(
 			$this->repository,
 			$this->documents,
 			new Indexer(),
 			new PhraseFinder(),
-			new Scorer(),
+			new Scorer( array(), Scorer::THRESHOLD, Scorer::DENSITY, Scorer::MIN_RELEVANCE, array(), (int) $all['same_anchor_max'] ),
 			new Retriever( $this->repository ),
-			$options
+			array_merge( $defaults, $options )
+		);
+	}
+
+	/**
+	 * Quita las sugerencias cuya ancla contiene una de las palabras o frases ignoradas (palabra completa, sin
+	 * distinguir mayúsculas) o cuyo origen está en la lista de direcciones ignoradas.
+	 *
+	 * @param array $found Sugerencias del motor, ya ordenadas.
+	 *
+	 * @phpstan-param list<Suggestion> $found
+	 *
+	 * @return list<Suggestion>
+	 */
+	private function without_ignored( array $found ): array {
+		$all = $this->settings->all();
+		if ( array() === $all['ignored_words'] && array() === $all['ignored_ids'] ) {
+			return $found;
+		}
+
+		$patterns = array_map( static fn( string $word ): string => '/(?<![\p{L}\p{N}])' . preg_quote( $word, '/' ) . '(?![\p{L}\p{N}])/iu', $all['ignored_words'] );
+
+		return array_values(
+			array_filter(
+				$found,
+				static function ( Suggestion $suggestion ) use ( $patterns, $all ): bool {
+					if ( in_array( $suggestion->source, $all['ignored_ids'], true ) ) {
+						return false;
+					}
+					foreach ( $patterns as $pattern ) {
+						if ( 1 === preg_match( $pattern, $suggestion->anchor ) ) {
+							return false;
+						}
+					}
+
+					return true;
+				}
+			)
 		);
 	}
 }

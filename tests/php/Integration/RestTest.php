@@ -341,7 +341,8 @@ final class RestTest extends GraphTestCase {
 		$this->assertTrue( $changed['settings']['delete_data_on_uninstall'] );
 		$this->assertSame( 'queued', $changed['job']['status'] );
 
-		$this->assertSame( 400, $this->request( 'POST', '/settings', array( 'words_per_link' => 5 ), $this->admin )->get_status() );
+		$this->assertSame( 20, $this->request( 'POST', '/settings', array( 'words_per_link' => 5 ), $this->admin )->get_data()['settings']['words_per_link'], 'Fuera de rango se limita.' );
+		$this->assertSame( 400, $this->request( 'POST', '/settings', array( 'history_retention_days' => 7 ), $this->admin )->get_status() );
 	}
 
 	public function test_csv_export_of_the_current_view(): void {

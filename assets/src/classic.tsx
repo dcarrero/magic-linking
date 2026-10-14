@@ -16,8 +16,8 @@ import './editor/panel.scss';
  */
 function ClassicPanel( { boot }: { boot: EditorBoot } ) {
 	const adapter = useMemo(
-		() => classicAdapter( boot.postId ),
-		[ boot.postId ]
+		() => classicAdapter( boot.postId, boot ),
+		[ boot ]
 	);
 	const state = usePanelState( adapter, boot.perPage );
 	return <Panel adapter={ adapter } boot={ boot } state={ state } />;

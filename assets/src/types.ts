@@ -126,6 +126,26 @@ export interface SettingsValues {
 	/** Días que se conserva el historial: 30, 90, 365 o 0 (sin caducidad). */
 	history_retention_days: number;
 	delete_data_on_uninstall: boolean;
+	link_in_headings: boolean;
+	link_in_quotes: boolean;
+	link_in_tables: boolean;
+	open_in_new_tab: boolean;
+	/** Valores de `rel` separados por espacios. */
+	extra_rel: string;
+	outbound_shown: number;
+	inbound_per_page: number;
+	same_anchor_max: number;
+	ignored_urls: string[];
+	ignored_words: string[];
+}
+
+export interface WizardResponse {
+	dismissed: boolean;
+	/** Idioma del sitio, ya con su nombre. */
+	language: string;
+	multilingual: boolean;
+	/** Conector de IA de WordPress: conectado, sin conectar o no disponible (WordPress anterior a 7.0). */
+	ai: 'connected' | 'none' | 'unavailable';
 }
 
 export interface SettingsResponse {
@@ -138,6 +158,8 @@ export interface Boot {
 	namespace: string;
 	exportUrl: string;
 	canManage: boolean;
+	/** El asistente de arranque no se ha cerrado para este usuario. */
+	wizard?: boolean;
 	/** Elementos por página (Opciones de pantalla). */
 	perPage?: number;
 	settingsUrl: string;

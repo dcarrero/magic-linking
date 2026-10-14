@@ -24,6 +24,17 @@ final class BlockEditor {
 	public const ALLOWED = array( 'core/paragraph', 'core/list-item' );
 
 	/**
+	 * Bloque de cita: sus párrafos hijos solo se tocan si el usuario permite enlaces en citas; el bloque en sí
+	 * (su `<cite>`) no se toca nunca. La cita destacada (`core/pullquote`) tampoco se lee ni se toca.
+	 */
+	public const QUOTES = array( 'core/quote' );
+
+	/**
+	 * Bloque de tabla: se suma cuando el usuario permite enlaces en tablas.
+	 */
+	public const TABLES = array( 'core/table' );
+
+	/**
 	 * Si un contenido es del editor de bloques (tiene comentarios de bloque).
 	 *
 	 * @param string $content Contenido guardado.
@@ -47,13 +58,14 @@ final class BlockEditor {
 		}
 
 		$allowed = $this->allowed( $request );
+		$shut    = $this->shut_parents( $request->quotes, $request->tables );
 		$nodes   = $this->candidates( $map, $request );
 		$found   = array();
 		$blocked = null;
 		$refused = null;
 
 		foreach ( $nodes as $node ) {
-			if ( ! in_array( $node->name, $allowed, true ) ) {
+			if ( ! in_array( $node->name, $allowed, true ) || $this->inside( $node, $map, $shut ) ) {
 				// Solo importa si el texto de la sugerencia está de verdad en un bloque que no se toca.
 				if ( null !== $request->block_path || $this->mentions( $content, $node, $request ) ) {
 					$refused = $this->refusal( $node );
@@ -69,7 +81,7 @@ final class BlockEditor {
 					if ( null !== $view->unsafe() ) {
 						throw new InsertionException( InsertionException::UNSUPPORTED, __( 'The block contains markup (script, styles…) that cannot be scanned safely.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 					}
-					$problem = Linker::blocked( $view, $a, $b, $request->headings );
+					$problem = Linker::blocked( $view, $a, $b, $request->headings, $request->quotes, $request->tables );
 					if ( null !== $problem ) {
 						$blocked ??= $problem;
 						continue;
@@ -116,19 +128,22 @@ final class BlockEditor {
 	 * @param string $content  Contenido.
 	 * @param int    $post_id  Entrada (para el filtro `magiclinking_insertable_blocks`).
 	 * @param bool   $headings Enlazar también en encabezados.
+	 * @param bool   $quotes   Enlazar también en citas.
+	 * @param bool   $tables   Enlazar también en tablas.
 	 *
 	 * @return list<TextView>|null Null si la estructura de bloques no se puede leer.
 	 */
-	public function prepare( string $content, int $post_id, bool $headings = false ): ?array {
+	public function prepare( string $content, int $post_id, bool $headings = false, bool $quotes = false, bool $tables = false ): ?array {
 		$map = BlockMap::parse( $content );
 		if ( null === $map ) {
 			return null;
 		}
 
-		$allowed = $this->allowed( new InsertRequest( $post_id, '', '', '', '', null, array(), null, $headings ) );
+		$allowed = $this->allowed( new InsertRequest( $post_id, '', '', '', '', null, array(), null, $headings, $quotes, $tables ) );
+		$shut    = $this->shut_parents( $quotes, $tables );
 		$views   = array();
 		foreach ( $map->walk() as $node ) {
-			if ( $node->freeform || ! in_array( $node->name, $allowed, true ) ) {
+			if ( $node->freeform || ! in_array( $node->name, $allowed, true ) || $this->inside( $node, $map, $shut ) ) {
 				continue;
 			}
 			foreach ( $node->segments as [ $from, $to ] ) {
@@ -155,7 +170,7 @@ final class BlockEditor {
 				if ( null !== $view->unsafe() ) {
 					return false;
 				}
-				if ( null === Linker::blocked( $view, $a, $b, $request->headings ) ) {
+				if ( null === Linker::blocked( $view, $a, $b, $request->headings, $request->quotes, $request->tables ) ) {
 					++$found;
 				}
 			}
@@ -199,6 +214,9 @@ final class BlockEditor {
 		if ( $request->headings ) {
 			$names[] = 'core/heading';
 		}
+		if ( $request->tables ) {
+			$names = array_merge( $names, self::TABLES );
+		}
 
 		/**
 		 * Bloques en cuyo texto se puede insertar un enlace.
@@ -215,6 +233,44 @@ final class BlockEditor {
 		$filtered = apply_filters( 'magiclinking_insertable_blocks', $names, $request->post_id );
 
 		return array_values( array_unique( array_merge( $names, array_filter( array_map( 'strval', (array) $filtered ) ) ) ) );
+	}
+
+	/**
+	 * Bloques dentro de los cuales no se enlaza porque el usuario no lo ha permitido.
+	 *
+	 * @param bool $quotes Citas permitidas.
+	 * @param bool $tables Tablas permitidas.
+	 *
+	 * @return list<string>
+	 */
+	private function shut_parents( bool $quotes, bool $tables ): array {
+		return array_merge( $quotes ? array() : self::QUOTES, $tables ? array() : self::TABLES );
+	}
+
+	/**
+	 * Si un bloque está dentro de uno de los bloques cerrados (un párrafo dentro de una cita, por ejemplo).
+	 *
+	 * @param BlockNode $node Bloque.
+	 * @param BlockMap  $map  Mapa.
+	 * @param array     $shut Nombres de bloque cerrados.
+	 *
+	 * @phpstan-param list<string> $shut
+	 */
+	private function inside( BlockNode $node, BlockMap $map, array $shut ): bool {
+		if ( array() === $shut ) {
+			return false;
+		}
+		$parts = explode( '.', $node->path );
+		array_pop( $parts );
+		while ( array() !== $parts ) {
+			$parent = $map->find( implode( '.', $parts ) );
+			if ( null !== $parent && in_array( $parent->name, $shut, true ) ) {
+				return true;
+			}
+			array_pop( $parts );
+		}
+
+		return false;
 	}
 
 	/**

@@ -138,6 +138,59 @@ test.describe( 'Editor panel', () => {
 		);
 	} );
 
+	test( 'settings: table text is only offered when allowed, and the link gets target and rel', async ( {
+		page,
+	} ) => {
+		const table = wp(
+			'eval',
+			`
+			$cell = 'Instalar una bomba de calor reduce el consumo de energía en las casas con buen aislamiento.';
+			$content = "<!-- wp:table -->\\n<figure class=\\"wp-block-table\\"><table class=\\"has-fixed-layout\\"><tbody><tr><td>$cell</td></tr></tbody></table></figure>\\n<!-- /wp:table -->\\n\\n<!-- wp:paragraph -->\\n<p>Un párrafo sin relación alguna con el resto.</p>\\n<!-- /wp:paragraph -->";
+			echo wp_insert_post( array( 'post_name' => 'pe-tabla', 'post_title' => 'Guía en una tabla', 'post_content' => $content, 'post_status' => 'publish' ) );
+			`
+		).trim();
+		wp( 'magic-linking', 'index' );
+		await login( page );
+
+		// Por defecto, el texto de una tabla no se ofrece.
+		await openBlockEditor( page, Number( table ) );
+		let panel = await openSidebar( page );
+		await expect( panel.locator( '.magiclinking-card' ) ).toHaveCount( 0 );
+
+		// Con las tablas permitidas y los ajustes de enlace, sí, y el enlace sale con ellos.
+		wp(
+			'option',
+			'update',
+			'magiclinking_settings',
+			'{"link_in_tables":true,"open_in_new_tab":true,"extra_rel":"nofollow"}',
+			'--format=json'
+		);
+		await openBlockEditor( page, Number( table ) );
+		panel = await openSidebar( page );
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await expect( card ).toBeVisible();
+		await card.hover();
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+
+		const link = canvas( page ).locator( 'td a[href]' );
+		await expect( link ).toHaveText( 'bomba de calor' );
+		await expect( link ).toHaveAttribute( 'target', '_blank' );
+		await expect( link ).toHaveAttribute( 'rel', /noopener/ );
+		await expect( link ).toHaveAttribute( 'rel', /nofollow/ );
+
+		// Deshacer desde la tarjeta quita solo el enlace de la celda.
+		await card.getByRole( 'button', { name: 'Undo' } ).click();
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( link ).toHaveText( 'bomba de calor' );
+
+		const before = content( Number( table ) );
+		await save( page );
+		const after = content( Number( table ) );
+		expect( after ).toContain( 'target="_blank"' );
+		expect( withoutLink( after ) ).toBe( before );
+	} );
+
 	test( 'says the site has not been analyzed when there is no index', async ( {
 		page,
 	} ) => {

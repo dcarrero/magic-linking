@@ -21,7 +21,6 @@ use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\GraphRepository;
 use MagicLinking\Graph\LinkResolver;
 use MagicLinking\Graph\ReportRepository;
-use MagicLinking\Engine\DomExtractor;
 use MagicLinking\History\BatchJob;
 use MagicLinking\History\ChangeRepository;
 use MagicLinking\History\Reader;
@@ -32,6 +31,7 @@ use MagicLinking\I18n\Language;
 use MagicLinking\Index\DismissalRepository;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\PostSource;
+use MagicLinking\Index\ScopedExtractor;
 use MagicLinking\Index\SuggestionCache;
 use MagicLinking\Index\Suggestions;
 use MagicLinking\Index\TableDocuments;
@@ -188,7 +188,7 @@ final class Plugin {
 				return new TableRepository( $wpdb );
 			},
 			PostSource::class            => static fn( Container $c ): PostSource => new PostSource(
-				new DomExtractor(),
+				new ScopedExtractor( $c->get( Settings::class ) ),
 				$c->get( Language::class ),
 				$c->get( Settings::class ),
 				$c->get( GraphRepository::class )
@@ -292,7 +292,7 @@ final class Plugin {
 				$c->get( BrokenRepository::class )
 			),
 			JobsController::class        => static fn( Container $c ): JobsController => new JobsController( $c->get( Jobs::class ) ),
-			SettingsController::class    => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ) ),
+			SettingsController::class    => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ) ),
 			ExportHandler::class         => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ) ),
 			CliModule::class             => static fn( Container $c ): CliModule => new CliModule(
 				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) )

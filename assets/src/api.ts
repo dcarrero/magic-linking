@@ -21,6 +21,7 @@ import type {
 	SettingsValues,
 	SortKey,
 	StatusResponse,
+	WizardResponse,
 } from './types';
 
 const NS = window.magiclinking?.namespace ?? 'magic-linking/v1';
@@ -219,6 +220,18 @@ export const api = {
 		} ),
 	settings: () =>
 		apiFetch< SettingsResponse >( { path: path( '/settings' ) } ),
+	wizard: () => apiFetch< WizardResponse >( { path: path( '/wizard' ) } ),
+	/**
+	 * Cierra el asistente de arranque para este usuario, o lo vuelve a abrir.
+	 *
+	 * @param dismissed Cerrarlo para siempre.
+	 */
+	setWizardDismissed: ( dismissed: boolean ) =>
+		apiFetch< WizardResponse >( {
+			path: path( '/wizard' ),
+			method: 'POST',
+			data: { dismissed },
+		} ),
 	saveSettings: ( values: SettingsValues ) =>
 		apiFetch< SettingsResponse >( {
 			path: path( '/settings' ),

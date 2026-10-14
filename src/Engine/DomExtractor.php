@@ -23,7 +23,7 @@ final class DomExtractor implements ContentExtractor {
 	/**
 	 * Elementos cuyo contenido no cuenta.
 	 */
-	private const SKIP_TAGS = array( 'script', 'style', 'pre', 'table', 'blockquote', 'figure', 'figcaption', 'nav', 'button', 'form', 'iframe', 'noscript', 'svg', 'select', 'textarea', 'object', 'video', 'audio', 'template' );
+	private const SKIP_TAGS = array( 'script', 'style', 'pre', 'table', 'blockquote', 'figure', 'figcaption', 'caption', 'nav', 'button', 'form', 'iframe', 'noscript', 'svg', 'select', 'textarea', 'object', 'video', 'audio', 'template' );
 
 	/**
 	 * Elementos en línea cuyo texto no cuenta pero que cortan los n-gramas.
@@ -36,6 +36,11 @@ final class DomExtractor implements ContentExtractor {
 	private const BLOCK_TAGS = array( 'p', 'div', 'li', 'ul', 'ol', 'dl', 'dt', 'dd', 'section', 'article', 'header', 'footer', 'aside', 'main', 'br', 'hr', 'details', 'summary', 'center', 'address' );
 
 	/**
+	 * Elementos de tabla que cierran el párrafo en curso (una celda es un texto aparte).
+	 */
+	private const TABLE_TAGS = array( 'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th' );
+
+	/**
 	 * Encabezados.
 	 */
 	private const HEADING_TAGS = array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' );
@@ -44,6 +49,23 @@ final class DomExtractor implements ContentExtractor {
 	 * Separador que corta los n-gramas sin cerrar frase.
 	 */
 	private const SEPARATOR = '·';
+
+	/**
+	 * Crea el extractor.
+	 *
+	 * Por defecto lee solo párrafos y listas, y los encabezados como señal de relevancia. Con las opciones, el
+	 * texto de encabezados, citas y tablas también se ofrece como frase enlazable (docs/07 §8).
+	 *
+	 * @param bool $link_headings Los encabezados también son frases enlazables.
+	 * @param bool $link_quotes   Se lee el texto de las citas.
+	 * @param bool $link_tables   Se lee el texto de las tablas.
+	 */
+	public function __construct(
+		private bool $link_headings = false,
+		private bool $link_quotes = false,
+		private bool $link_tables = false
+	) {
+	}
 
 	/**
 	 * Encabezados encontrados.
@@ -140,12 +162,57 @@ final class DomExtractor implements ContentExtractor {
 	 * @param string $content Contenido.
 	 */
 	private function clean( string $content ): string {
-		$names   = implode( '|', array_map( static fn( string $n ): string => preg_quote( $n, '/' ), self::SKIP_BLOCKS ) );
+		$skip    = array_diff( self::SKIP_BLOCKS, $this->link_quotes ? array( 'quote' ) : array(), $this->link_tables ? array( 'table' ) : array() );
+		$names   = implode( '|', array_map( static fn( string $n ): string => preg_quote( $n, '/' ), $skip ) );
 		$content = (string) preg_replace( '/<!--\s+wp:(?:core\/)?(' . $names . ')(?:\s[^>]*?)?(?<!\/)-->.*?<!--\s+\/wp:(?:core\/)?\1\s+-->/s', "\n\n", $content );
 		$content = (string) preg_replace( '/<!--.*?-->/s', '', $content );
 		// Shortcodes con contenido que no es texto del artículo.
 		$content = (string) preg_replace( '/\[(caption|embed|video|audio|gallery|playlist)\b[^\]]*\].*?\[\/\1\]/is', ' ', $content );
 		return (string) preg_replace( '/\[\/?[a-z][\w-]*(?:\s[^\]]*)?\]/i', ' ', $content );
+	}
+
+	/**
+	 * Si el contenido de un elemento no cuenta como texto del artículo.
+	 *
+	 * @param string      $tag   Nombre del elemento, en minúsculas.
+	 * @param \DOMElement $child Elemento.
+	 */
+	private function skipped( string $tag, \DOMElement $child ): bool {
+		if ( 'blockquote' === $tag ) {
+			return ! $this->link_quotes;
+		}
+		if ( 'table' === $tag ) {
+			return ! $this->link_tables;
+		}
+		if ( 'figure' === $tag ) {
+			// Una tabla o una cita pueden ir envueltas en `figure` (`wp-block-table`, `wp-block-pullquote`).
+			return ! ( ( $this->link_tables && $child->getElementsByTagName( 'table' )->length > 0 ) || ( $this->link_quotes && $child->getElementsByTagName( 'blockquote' )->length > 0 ) );
+		}
+
+		// La cita de un `blockquote` no es texto del artículo (y no se enlaza).
+		if ( 'cite' === $tag ) {
+			return null !== $this->inside( $child, 'blockquote' );
+		}
+
+		return in_array( $tag, self::SKIP_TAGS, true );
+	}
+
+	/**
+	 * El ascendiente con ese nombre, si lo hay.
+	 *
+	 * @param \DOMNode $node Nodo.
+	 * @param string   $name Nombre del elemento.
+	 */
+	private function inside( \DOMNode $node, string $name ): ?\DOMElement {
+		// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- API de DOM.
+		for ( $parent = $node->parentNode; $parent instanceof \DOMElement; $parent = $parent->parentNode ) {
+			if ( strtolower( $parent->tagName ) === $name ) {
+				return $parent;
+			}
+		}
+		// phpcs:enable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+		return null;
 	}
 
 	/**
@@ -165,7 +232,7 @@ final class DomExtractor implements ContentExtractor {
 			}
 			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- API de DOM.
 			$tag = strtolower( $child->tagName );
-			if ( in_array( $tag, self::SKIP_TAGS, true ) ) {
+			if ( $this->skipped( $tag, $child ) ) {
 				$this->flush();
 				continue;
 			}
@@ -181,9 +248,13 @@ final class DomExtractor implements ContentExtractor {
 				if ( '' !== $heading ) {
 					$this->headings[] = $heading;
 				}
+				if ( $this->link_headings ) {
+					$this->walk( $child );
+					$this->flush();
+				}
 				continue;
 			}
-			if ( in_array( $tag, self::BLOCK_TAGS, true ) ) {
+			if ( in_array( $tag, self::BLOCK_TAGS, true ) || ( $this->link_quotes && 'blockquote' === $tag ) || ( $this->link_tables && in_array( $tag, self::TABLE_TAGS, true ) ) ) {
 				$this->flush();
 				$this->walk( $child );
 				$this->flush();

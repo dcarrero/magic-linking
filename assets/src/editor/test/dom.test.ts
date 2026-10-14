@@ -43,4 +43,44 @@ describe( 'classicTextElements', () => {
 			classicTextElements( root ).map( ( e ) => e.textContent )
 		).toEqual( [ 'Fuera' ] );
 	} );
+
+	it( 'lee citas, tablas y encabezados solo si el usuario lo permite', () => {
+		const root = html(
+			'<h2>Título</h2><blockquote><p>Cita</p></blockquote><table><tr><td>Celda</td><th>Cabecera</th></tr></table><p>Fuera</p>'
+		);
+		const texts = ( scope: {
+			headings: boolean;
+			quotes: boolean;
+			tables: boolean;
+		} ) => classicTextElements( root, scope ).map( ( e ) => e.textContent );
+		const off = { headings: false, quotes: false, tables: false };
+
+		expect( texts( off ) ).toEqual( [ 'Fuera' ] );
+		expect( texts( { ...off, headings: true } ) ).toEqual( [
+			'Título',
+			'Fuera',
+		] );
+		expect( texts( { ...off, quotes: true } ) ).toEqual( [
+			'Cita',
+			'Fuera',
+		] );
+		expect( texts( { ...off, tables: true } ) ).toEqual( [
+			'Celda',
+			'Cabecera',
+			'Fuera',
+		] );
+	} );
+
+	it( 'lee tablas y citas envueltas en figure solo si el ámbito está activo', () => {
+		const root = html(
+			'<figure><table><tr><td>Celda</td></tr></table></figure><figure><blockquote>Cita</blockquote></figure><figure><img alt="x"><figcaption>Pie</figcaption></figure>'
+		);
+		const off = { headings: false, quotes: false, tables: false };
+		const texts = ( scope: typeof off ) =>
+			classicTextElements( root, scope ).map( ( e ) => e.textContent );
+
+		expect( texts( off ) ).toEqual( [] );
+		expect( texts( { ...off, tables: true } ) ).toEqual( [ 'Celda' ] );
+		expect( texts( { ...off, quotes: true } ) ).toEqual( [ 'Cita' ] );
+	} );
 } );

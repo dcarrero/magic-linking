@@ -22,14 +22,52 @@ const CLASSIC_TEXT_BLOCKS =
 /**
  * Elementos de texto «hoja» del cuerpo del editor clásico: sin descendientes que sean también de texto, de modo
  * que un `p` dentro de un `li` (o un `div` que envuelve párrafos) cuenta una sola vez. Se ignora lo que está dentro
- * de citas y tablas, que el motor no lee.
+ * de citas y tablas salvo que el usuario lo permita en Ajustes, y los encabezados igual.
  *
- * @param body Cuerpo del documento de TinyMCE.
+ * @param body           Cuerpo del documento de TinyMCE.
+ * @param scope          Dónde más se enlaza.
+ * @param scope.headings
+ * @param scope.quotes
+ * @param scope.tables
  */
-export function classicTextElements( body: Element ): Element[] {
-	return Array.from( body.querySelectorAll( CLASSIC_TEXT_BLOCKS ) ).filter(
-		( element ) =>
-			! element.closest( 'blockquote, table, figure, pre' ) &&
-			! element.querySelector( CLASSIC_TEXT_BLOCKS )
+export function classicTextElements(
+	body: Element,
+	scope: { headings: boolean; quotes: boolean; tables: boolean } = {
+		headings: false,
+		quotes: false,
+		tables: false,
+	}
+): Element[] {
+	const selector = [
+		CLASSIC_TEXT_BLOCKS,
+		scope.headings ? 'h1, h2, h3, h4, h5, h6' : '',
+		scope.tables ? 'td, th' : '',
+		scope.quotes ? 'blockquote' : '',
+	]
+		.filter( Boolean )
+		.join( ', ' );
+	const excluded = [
+		'pre',
+		scope.quotes ? '' : 'blockquote',
+		scope.tables ? '' : 'table',
+	]
+		.filter( Boolean )
+		.join( ', ' );
+
+	// Como el servidor, un `figure` solo se lee si envuelve una tabla o una cita que el usuario permite.
+	const readable = ( figure: Element ) =>
+		( scope.tables && figure.querySelector( 'table' ) !== null ) ||
+		( scope.quotes && figure.querySelector( 'blockquote' ) !== null );
+
+	return Array.from( body.querySelectorAll( selector ) ).filter(
+		( element ) => {
+			const figure = element.closest( 'figure' );
+			return (
+				( ! figure || readable( figure ) ) &&
+				! element.closest( excluded ) &&
+				! element.querySelector( selector ) &&
+				! element.closest( 'cite' )
+			);
+		}
 	);
 }

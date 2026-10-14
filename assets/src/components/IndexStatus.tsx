@@ -14,6 +14,8 @@ interface Props {
 	onStatus: ( status: StatusResponse ) => void;
 	/** Cambia cuando algo fuera de aquí ha lanzado un proceso (p. ej. guardar ajustes). */
 	refreshKey: number;
+	/** El asistente de arranque ocupa el lugar de la presentación del primer análisis. */
+	hideIntro?: boolean;
 }
 
 const POLL_MS = 3000;
@@ -78,12 +80,14 @@ export function resultText( job: Job ): string {
  * @param root0.onFinished
  * @param root0.onStatus
  * @param root0.refreshKey
+ * @param root0.hideIntro
  */
 export function IndexStatus( {
 	canManage,
 	onFinished,
 	onStatus,
 	refreshKey,
+	hideIntro = false,
 }: Props ) {
 	const [ status, setStatus ] = useState< StatusResponse | null >( null );
 	const [ error, setError ] = useState( '' );
@@ -270,6 +274,8 @@ export function IndexStatus( {
 				) }
 			</div>
 		);
+	} else if ( status.indexed === 0 && hideIntro ) {
+		body = null;
 	} else if ( status.indexed === 0 ) {
 		body = (
 			<div className="magiclinking-empty">

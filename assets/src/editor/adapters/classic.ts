@@ -10,7 +10,7 @@ import { locate, rangeFromOffsets } from '../locate';
 import type { TextUnit } from '../locate';
 import { classicTextElements } from '../dom';
 import { clearHighlight, showHighlight } from '../highlight';
-import type { ApplyResult, EditorAdapter } from './types';
+import type { AdapterOptions, ApplyResult, EditorAdapter } from './types';
 
 interface TinyMceEditor {
 	isHidden: () => boolean;
@@ -37,13 +37,17 @@ function visual(): TinyMceEditor | null {
 
 /**
  * Elementos de texto hoja del cuerpo (los que lee el motor, sin contar dos veces un `p` dentro de un `li`).
- * @param body
+ * @param body  Cuerpo del documento de TinyMCE.
+ * @param scope Dónde más se enlaza.
  */
-function units( body: HTMLElement ): {
+function units(
+	body: HTMLElement,
+	scope: AdapterOptions[ 'linkIn' ]
+): {
 	units: TextUnit[];
 	elements: Element[];
 } {
-	const elements = classicTextElements( body );
+	const elements = classicTextElements( body, scope );
 	return {
 		elements,
 		units: elements.map( ( element, index ) => ( {
@@ -56,9 +60,13 @@ function units( body: HTMLElement ): {
 /**
  * Adaptador del editor clásico.
  *
- * @param postId Entrada que se edita.
+ * @param postId  Entrada que se edita.
+ * @param options Ajustes del usuario: dónde se enlaza y con qué atributos.
  */
-export function classicAdapter( postId: number ): EditorAdapter {
+export function classicAdapter(
+	postId: number,
+	options: AdapterOptions
+): EditorAdapter {
 	return {
 		postId,
 
@@ -86,7 +94,7 @@ export function classicAdapter( postId: number ): EditorAdapter {
 				return { ok: false, reason: 'text_mode' };
 			}
 			const body = editor.getBody();
-			const found = units( body );
+			const found = units( body, options.linkIn );
 			const result = locate( found.units, suggestion );
 			if ( result.status !== 'found' ) {
 				return { ok: false, reason: result.status };
@@ -115,6 +123,12 @@ export function classicAdapter( postId: number ): EditorAdapter {
 			editor.undoManager.transact( () => {
 				link.setAttribute( 'href', url );
 				link.setAttribute( 'data-mce-href', url );
+				if ( options.linkAttrs.target ) {
+					link.setAttribute( 'target', options.linkAttrs.target );
+				}
+				if ( options.linkAttrs.rel ) {
+					link.setAttribute( 'rel', options.linkAttrs.rel );
+				}
 				link.appendChild( range.extractContents() );
 				range.insertNode( link );
 			} );
@@ -155,7 +169,7 @@ export function classicAdapter( postId: number ): EditorAdapter {
 				clearHighlight();
 				return;
 			}
-			const found = units( editor.getBody() );
+			const found = units( editor.getBody(), options.linkIn );
 			const result = locate( found.units, suggestion );
 			const element =
 				result.status === 'found'

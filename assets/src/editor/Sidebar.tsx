@@ -41,8 +41,8 @@ function CountIcon( { count }: { count: number | null } ) {
  */
 export function Sidebar( { boot }: { boot: EditorBoot } ) {
 	const adapter = useMemo(
-		() => gutenbergAdapter( boot.postId ),
-		[ boot.postId ]
+		() => gutenbergAdapter( boot.postId, boot ),
+		[ boot ]
 	);
 	const state = usePanelState( adapter, boot.perPage );
 	const count = state.outbound.data ? state.visibleOutbound.length : null;

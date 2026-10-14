@@ -31,6 +31,16 @@ final class Linker {
 	private const HEADINGS = array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' );
 
 	/**
+	 * Citas y tablas: se enlazan solo si el usuario lo permite.
+	 */
+	private const QUOTES = array( 'blockquote' );
+
+	/**
+	 * Tablas.
+	 */
+	private const TABLES = array( 'table' );
+
+	/**
 	 * Apariciones del ancla con su contexto en una vista de texto.
 	 *
 	 * @param TextView      $view    Vista del tramo.
@@ -63,10 +73,21 @@ final class Linker {
 	 * @param int      $from     Primer carácter del ancla.
 	 * @param int      $to       Carácter siguiente al último.
 	 * @param bool     $headings Permitir encabezados.
+	 * @param bool     $quotes   Permitir citas.
+	 * @param bool     $tables   Permitir tablas.
 	 */
-	public static function blocked( TextView $view, int $from, int $to, bool $headings ): ?InsertionException {
-		$forbidden = $headings ? self::NEVER : array_merge( self::NEVER, self::HEADINGS );
-		$reason    = $view->blocker( $from, $to, $forbidden );
+	public static function blocked( TextView $view, int $from, int $to, bool $headings, bool $quotes = false, bool $tables = false ): ?InsertionException {
+		$forbidden = self::NEVER;
+		if ( ! $headings ) {
+			$forbidden = array_merge( $forbidden, self::HEADINGS );
+		}
+		if ( ! $quotes ) {
+			$forbidden = array_merge( $forbidden, self::QUOTES );
+		}
+		if ( ! $tables ) {
+			$forbidden = array_merge( $forbidden, self::TABLES );
+		}
+		$reason = $view->blocker( $from, $to, $forbidden );
 
 		if ( null === $reason ) {
 			return null;
@@ -76,6 +97,16 @@ final class Linker {
 		}
 		if ( str_starts_with( $reason, 'element:h' ) ) {
 			return new InsertionException( InsertionException::BLOCK_NOT_ALLOWED, __( 'This text is a heading and links in headings are not allowed.', 'magic-linking' ) );
+		}
+
+		if ( 'element:cite' === $reason ) {
+			return new InsertionException( InsertionException::BLOCK_NOT_ALLOWED, __( 'This text is the citation of a quote and is not linked.', 'magic-linking' ) );
+		}
+		if ( 'element:blockquote' === $reason ) {
+			return new InsertionException( InsertionException::BLOCK_NOT_ALLOWED, __( 'This text is in a quote and links in quotes are not allowed.', 'magic-linking' ) );
+		}
+		if ( 'element:table' === $reason ) {
+			return new InsertionException( InsertionException::BLOCK_NOT_ALLOWED, __( 'This text is in a table and links in tables are not allowed.', 'magic-linking' ) );
 		}
 
 		return new InsertionException( InsertionException::UNSAFE_ANCHOR, __( 'The anchor includes a shortcode, code or a line break and cannot be linked safely.', 'magic-linking' ) );
