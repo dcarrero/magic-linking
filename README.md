@@ -175,9 +175,10 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 
 ## 📝 Changelog
 
-### Unreleased
+### 0.11.0
 - Dismiss a suggestion for good, with undo; targets dismissed from more than 10 published entries rank slightly lower.
 - Bundled translations: Spanish (Spain), French, German, Italian and Portuguese (Brazil and Portugal).
+- Translations up to date in all six languages.
 - Setup assistant for new sites, and new settings: where links can go (headings, quotes, tables), open in a new tab, extra `rel`, suggestions shown, ignored addresses and words.
 - Changed: links in quotes are now off by default. Before, a paragraph inside a quote block could receive an automatic link; now it only does if you turn on "Quotes" in Settings.
 
