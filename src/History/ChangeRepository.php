@@ -362,6 +362,202 @@ final class ChangeRepository {
 	}
 
 	/**
+	 * Cambios por entrada, paginados, todo en SQL (F1-36, D-59): una fila por entrada con sus recuentos, ordenadas por
+	 * su última actividad (poner o deshacer un cambio). Cuenta un enlace una sola vez aunque se haya rehecho (solo
+	 * vale la fila más reciente de cada tramo, como {@see Slots}) y no trae HTML.
+	 *
+	 * @param array $filters  Filtros: `status` (`active`, `undone` o vacío = todos), `origin` (`plugin`, `editor` o vacío),
+	 *                        `search` (texto del título de la entrada), `post_id` (solo esa entrada) y `author` (solo entradas de este autor; 0 = todas).
+	 * @param int   $page     Página (desde 1).
+	 * @param int   $per_page Entradas por página.
+	 *
+	 * @phpstan-param array{status?: string, origin?: string, search?: string, author?: int, post_id?: int} $filters
+	 *
+	 * @return array{items: list<array{post_id: int, total: int, active: int, last_at: string}>, total: int}
+	 */
+	public function post_groups( array $filters, int $page, int $per_page ): array {
+		$wpdb     = $this->wpdb;
+		$per_page = max( 1, $per_page );
+		$offset   = max( 0, $page - 1 ) * $per_page;
+		$status   = $filters['status'] ?? '';
+		$author   = (int) ( $filters['author'] ?? 0 );
+		$search   = trim( (string) ( $filters['search'] ?? '' ) );
+
+		$join  = '';
+		$where = $this->live_rows_sql( 'c' ) . $wpdb->prepare( ' AND c.action IN ( %s, %s, %s )', ...self::PRIMARY ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Tres acciones.
+		if ( in_array( $filters['origin'] ?? '', array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR ), true ) ) {
+			$where .= $wpdb->prepare( ' AND c.origin = %s', $filters['origin'] );
+		}
+		if ( $author > 0 || '' !== $search ) {
+			$join = $wpdb->prepare( ' INNER JOIN %i p ON p.ID = c.post_id', $wpdb->posts );
+		}
+		if ( (int) ( $filters['post_id'] ?? 0 ) > 0 ) {
+			$where .= $wpdb->prepare( ' AND c.post_id = %d', (int) $filters['post_id'] );
+		}
+		if ( $author > 0 ) {
+			$where .= $wpdb->prepare( ' AND p.post_author = %d', $author );
+		}
+		if ( '' !== $search ) {
+			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( $search ) . '%' );
+		}
+
+		$having = '';
+		if ( 'active' === $status ) {
+			$having = ' HAVING active > 0';
+		} elseif ( 'undone' === $status ) {
+			$having = ' HAVING active < total';
+		}
+
+		$grouped = $wpdb->prepare( 'SELECT c.post_id, COUNT(*) AS total, SUM( c.undone_at IS NULL ) AS active, MAX( GREATEST( c.created_at, COALESCE( c.undone_at, c.created_at ) ) ) AS last_at FROM %i c', $this->table ) . $join . ' WHERE ' . $where . ' GROUP BY c.post_id' . $having; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
+
+		$total = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ( ' . $grouped . ' ) g' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$rows  = $wpdb->get_results( $grouped . $wpdb->prepare( ' ORDER BY last_at DESC, MAX( c.id ) DESC LIMIT %d OFFSET %d', $per_page, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+
+		$items = array();
+		foreach ( $rows as $row ) {
+			$items[] = array(
+				'post_id' => (int) $row['post_id'],
+				'total'   => (int) $row['total'],
+				'active'  => (int) $row['active'],
+				'last_at' => (string) $row['last_at'],
+			);
+		}
+
+		return array(
+			'items' => $items,
+			'total' => $total,
+		);
+	}
+
+	/**
+	 * Los primeros cambios de varias entradas en una sola consulta (`UNION ALL` con límite por entrada, sin
+	 * funciones de ventana), del más reciente al más antiguo. Sin HTML; para eso están {@see self::get_many()}.
+	 *
+	 * @param array  $post_ids Entradas.
+	 * @param int    $limit    Cambios por entrada.
+	 * @param string $origin   Solo de este origen (`plugin`, `editor`) o vacío.
+	 *
+	 * @phpstan-param list<int> $post_ids
+	 *
+	 * @return array<int, list<int>> IDs de cambio por entrada.
+	 */
+	public function recent_ids_of_posts( array $post_ids, int $limit, string $origin = '' ): array {
+		$wpdb  = $this->wpdb;
+		$parts = array();
+		foreach ( array_values( array_unique( $post_ids ) ) as $post_id ) {
+			$parts[] = '(' . $this->post_rows_sql( $post_id, $origin, 'c.id, c.post_id' ) . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $limit ) ) . ')'; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
+		}
+		if ( array() === $parts ) {
+			return array();
+		}
+
+		$rows = $wpdb->get_results( implode( ' UNION ALL ', $parts ), ARRAY_N ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+
+		$by_post = array();
+		foreach ( $rows as $row ) {
+			$by_post[ (int) $row[1] ][] = (int) $row[0];
+		}
+
+		return $by_post;
+	}
+
+	/**
+	 * Una página de los cambios de una entrada, del más reciente al más antiguo, y cuántos hay.
+	 *
+	 * @param int    $post_id  Entrada.
+	 * @param int    $page     Página (desde 1).
+	 * @param int    $per_page Cambios por página.
+	 * @param string $origin   Solo de este origen o vacío.
+	 *
+	 * @return array{ids: list<int>, total: int}
+	 */
+	public function post_ids_page( int $post_id, int $page, int $per_page, string $origin = '' ): array {
+		$wpdb = $this->wpdb;
+		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id' ) . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d OFFSET %d', max( 1, $per_page ), max( 0, $page - 1 ) * max( 1, $per_page ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$all  = (int) $wpdb->get_var( $this->post_rows_sql( $post_id, $origin, 'COUNT(*)' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+
+		return array(
+			'ids'   => array_map( 'intval', $ids ),
+			'total' => $all,
+		);
+	}
+
+	/**
+	 * Ids de los cambios activos o deshechos de una entrada (un tramo cuenta una vez), del más reciente al más antiguo.
+	 *
+	 * @param int  $post_id Entrada.
+	 * @param bool $undone  true = los deshechos (para rehacer); false = los puestos (para deshacer).
+	 *
+	 * @return list<int>
+	 */
+	public function pending_ids_of_post( int $post_id, bool $undone ): array {
+		$wpdb = $this->wpdb;
+		$cond = $undone ? ' AND c.undone_at IS NOT NULL' : ' AND c.undone_at IS NULL';
+		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, '', 'c.id' ) . $cond . ' ORDER BY c.id DESC' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+
+		return array_map( 'intval', $ids );
+	}
+
+	/**
+	 * De cuántas entradas distintas es cada lote.
+	 *
+	 * @param array $batch_ids Lotes.
+	 *
+	 * @phpstan-param list<string> $batch_ids
+	 *
+	 * @return array<string, int>
+	 */
+	public function batch_post_counts( array $batch_ids ): array {
+		$wpdb      = $this->wpdb;
+		$batch_ids = array_values( array_unique( $batch_ids ) );
+		if ( array() === $batch_ids ) {
+			return array();
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Lista de marcadores generada con array_fill().
+		$placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%s' ) );
+		$rows         = $wpdb->get_results( $wpdb->prepare( "SELECT batch_id, COUNT( DISTINCT post_id ) AS posts FROM %i WHERE batch_id IN ({$placeholders}) GROUP BY batch_id", $this->table, ...$batch_ids ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		$out = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[ (string) $row['batch_id'] ] = (int) $row['posts'];
+		}
+
+		return $out;
+	}
+
+	/**
+	 * `SELECT` de las filas visibles de una entrada (alias `c`).
+	 *
+	 * @param int    $post_id Entrada.
+	 * @param string $origin  Origen o vacío.
+	 * @param string $select  Columna o expresión.
+	 */
+	private function post_rows_sql( int $post_id, string $origin, string $select ): string {
+		$wpdb = $this->wpdb;
+		$sql  = $wpdb->prepare( 'SELECT ' . $select . ' FROM %i c WHERE c.post_id = %d AND c.action IN ( %s, %s, %s )', $this->table, $post_id, ...self::PRIMARY ) . ' AND ' . $this->live_rows_sql( 'c' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $select es una constante interna; tres acciones.
+		if ( in_array( $origin, array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR ), true ) ) {
+			$sql .= $wpdb->prepare( ' AND c.origin = %s', $origin );
+		}
+
+		return $sql;
+	}
+
+	/**
+	 * Condición SQL de las filas que cuentan: la más reciente de cada tramo. Una fila puesta (sin deshacer) siempre lo
+	 * es; una deshecha solo si nadie volvió a poner después el mismo tramo en el mismo lote (rehacer, `put_back_after`).
+	 *
+	 * @param string $alias Alias de la tabla.
+	 */
+	private function live_rows_sql( string $alias ): string {
+		return $this->wpdb->prepare(
+			"( {$alias}.undone_at IS NULL OR NOT EXISTS ( SELECT 1 FROM %i n WHERE n.post_id = {$alias}.post_id AND n.batch_id = {$alias}.batch_id AND n.id > {$alias}.id AND n.action = {$alias}.action AND COALESCE( n.block_path, '' ) = COALESCE( {$alias}.block_path, '' ) AND n.before_html = {$alias}.before_html AND n.after_html = {$alias}.after_html ) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias interno.
+			$this->table
+		);
+	}
+
+	/**
 	 * Si el mismo cambio (mismo lote, entrada, acción y tramo antes y después) se volvió a hacer después de este.
 	 *
 	 * @param array $change Fila `insert`, `retarget` o `unlink` del historial.

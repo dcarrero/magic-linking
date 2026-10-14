@@ -40,6 +40,18 @@ final class Reader {
 	private array $allowed = array();
 
 	/**
+	 * Títulos de destino ya resueltos en esta petición: dirección → título (null = sin título que enseñar).
+	 *
+	 * @var array<string, string|null>
+	 */
+	private array $targets = array();
+
+	/**
+	 * Cambios por entrada que trae cada entrada en el listado (el resto se pide aparte).
+	 */
+	public const FIRST_CHANGES = 10;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param ChangeRepository $changes Historial.
@@ -219,6 +231,222 @@ final class Reader {
 			'items' => $items,
 			'total' => $total,
 		);
+	}
+
+	/**
+	 * Entradas con sus cambios, paginadas por entrada y resueltas en SQL (F1-36, D-59). Cada entrada lleva sus
+	 * recuentos y sus {@see self::FIRST_CHANGES} cambios más recientes; el resto, con {@see self::post_changes()}.
+	 *
+	 * Un usuario con `edit_others_posts` ve las entradas de todos; otro, solo las suyas (se filtra en la consulta, así
+	 * la paginación cuenta lo que se ve). Después se comprueba `edit_post` entrada por entrada: si un tipo
+	 * personalizado tiene otras reglas, esa entrada se omite de la página.
+	 *
+	 * @param int   $user_id  Quien mira.
+	 * @param array $filters  `status` (`active`, `undone`), `origin` (`plugin`, `editor`), `search` y `post_id` (solo esa entrada).
+	 * @param int   $page     Página (desde 1).
+	 * @param int   $per_page Entradas por página.
+	 *
+	 * @phpstan-param array{status?: string, origin?: string, search?: string, post_id?: int} $filters
+	 *
+	 * @return array{items: list<array<string, mixed>>, total: int}
+	 */
+	public function post_groups( int $user_id, array $filters, int $page, int $per_page ): array {
+		$author = 0 === $user_id || user_can( $user_id, 'edit_others_posts' ) ? 0 : $user_id;
+		$result = $this->changes->post_groups( $filters + array( 'author' => $author ), $page, $per_page );
+
+		$post_ids = array_column( $result['items'], 'post_id' );
+		if ( array() !== $post_ids ) {
+			_prime_post_caches( $post_ids, false, false );
+		}
+
+		$visible = array_values( array_filter( $result['items'], fn( array $group ): bool => $this->can_edit( $user_id, $group['post_id'] ) ) );
+		$origin  = (string) ( $filters['origin'] ?? '' );
+		$recent  = $this->changes->recent_ids_of_posts( array_column( $visible, 'post_id' ), self::FIRST_CHANGES, $origin );
+		$full    = $this->changes->get_many( array_merge( array(), ...array_values( $recent ) ) );
+		$context = $this->change_context( $full );
+
+		$items = array();
+		foreach ( $visible as $group ) {
+			$post_id = $group['post_id'];
+			$post    = get_post( $post_id );
+			$shown   = array();
+			foreach ( $recent[ $post_id ] ?? array() as $id ) {
+				if ( isset( $full[ $id ] ) ) {
+					$shown[] = $this->present_change( $full[ $id ], $context );
+				}
+			}
+
+			$items[] = array(
+				'post_id'    => $post_id,
+				'post_title' => $post instanceof WP_Post ? get_the_title( $post ) : null,
+				'edit_url'   => $post instanceof WP_Post ? $this->edit_link( $post ) : null,
+				'view_url'   => $post instanceof WP_Post && 'publish' === $post->post_status ? (string) get_permalink( $post ) : null,
+				'total'      => $group['total'],
+				'active'     => $group['active'],
+				'undone'     => $group['total'] - $group['active'],
+				'last_at'    => (string) mysql_to_rfc3339( $group['last_at'] ),
+				'changes'    => $shown,
+			);
+		}//end foreach
+
+		return array(
+			'items' => $items,
+			'total' => $result['total'],
+		);
+	}
+
+	/**
+	 * Una entrada con sus recuentos y sus cambios más recientes, si el usuario puede verla y tiene cambios.
+	 *
+	 * @param int $user_id Quien mira.
+	 * @param int $post_id Entrada.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function post_group( int $user_id, int $post_id ): ?array {
+		return $this->post_groups( $user_id, array( 'post_id' => $post_id ), 1, 1 )['items'][0] ?? null;
+	}
+
+	/**
+	 * Una página de los cambios de una entrada, del más reciente al más antiguo.
+	 *
+	 * @param int    $user_id  Quien mira.
+	 * @param int    $post_id  Entrada.
+	 * @param int    $page     Página (desde 1).
+	 * @param int    $per_page Cambios por página.
+	 * @param string $origin   Origen (`plugin`, `editor`) o vacío.
+	 *
+	 * @return array{items: list<array<string, mixed>>, total: int}|null Null si no la puede ver.
+	 */
+	public function post_changes( int $user_id, int $post_id, int $page, int $per_page, string $origin = '' ): ?array {
+		if ( ! $this->can_edit( $user_id, $post_id ) ) {
+			return null;
+		}
+
+		$result  = $this->changes->post_ids_page( $post_id, $page, $per_page, $origin );
+		$full    = $this->changes->get_many( $result['ids'] );
+		$context = $this->change_context( $full );
+
+		$items = array();
+		foreach ( $result['ids'] as $id ) {
+			if ( isset( $full[ $id ] ) ) {
+				$items[] = $this->present_change( $full[ $id ], $context );
+			}
+		}
+
+		return array(
+			'items' => $items,
+			'total' => $result['total'],
+		);
+	}
+
+	/**
+	 * Ids de los cambios de una entrada que se pueden deshacer (puestos) o rehacer (deshechos), con el tramo contado una vez.
+	 *
+	 * @param int  $post_id Entrada.
+	 * @param bool $undone  true = los deshechos.
+	 *
+	 * @return list<int> Del más reciente al más antiguo.
+	 */
+	public function pending_of_post( int $post_id, bool $undone ): array {
+		return $this->changes->pending_ids_of_post( $post_id, $undone );
+	}
+
+	/**
+	 * Lo que hace falta de fuera para presentar un conjunto de cambios: de cuántas entradas es cada lote y las
+	 * entradas de destino de las direcciones (una resolución por dirección distinta).
+	 *
+	 * @param array $full Cambios con su HTML, por id.
+	 *
+	 * @phpstan-param array<int, array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string}> $full
+	 *
+	 * @return array{batches: array<string, int>}
+	 */
+	private function change_context( array $full ): array {
+		$users = array_unique( array_column( $full, 'user_id' ) );
+		if ( array() !== $users ) {
+			cache_users( array_map( 'intval', $users ) );
+		}
+
+		return array( 'batches' => $this->changes->batch_post_counts( array_values( array_unique( array_column( $full, 'batch_id' ) ) ) ) );
+	}
+
+	/**
+	 * Un cambio listo para la API, con su destino resuelto.
+	 *
+	 * @param array $change  Fila del historial con HTML.
+	 * @param array $context Ver {@see self::change_context()}.
+	 *
+	 * @phpstan-param array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string} $change
+	 * @phpstan-param array{batches: array<string, int>} $context
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function present_change( array $change, array $context ): array {
+		$view   = self::describe( $change );
+		$shown  = '' !== $view['url'] ? $view['url'] : (string) $view['previous_url'];
+		$target = $this->target_of( $shown );
+
+		return array(
+			'id'           => $change['id'],
+			'post_id'      => $change['post_id'],
+			'batch_id'     => $change['batch_id'],
+			'batch_posts'  => $context['batches'][ $change['batch_id'] ] ?? 1,
+			'kind'         => $change['action'],
+			'origin'       => '' === $change['origin'] ? ChangeRepository::ORIGIN_PLUGIN : $change['origin'],
+			'anchor'       => $view['anchor'],
+			'url'          => $view['url'],
+			'previous_url' => $view['previous_url'],
+			'target_title' => $target,
+			'user_id'      => $change['user_id'],
+			'user_name'    => self::user_name( $change['user_id'] ),
+			'state'        => null === $change['undone_at'] ? 'active' : 'undone',
+			'created_at'   => (string) mysql_to_rfc3339( $change['created_at'] ),
+			'undone_at'    => null === $change['undone_at'] ? null : (string) mysql_to_rfc3339( $change['undone_at'] ),
+		);
+	}
+
+	/**
+	 * Título de la entrada a la que lleva una dirección interna; null si es externa, no se reconoce o el usuario no puede leerla.
+	 *
+	 * @param string $url Dirección.
+	 */
+	private function target_of( string $url ): ?string {
+		if ( '' === $url ) {
+			return null;
+		}
+
+		if ( ! array_key_exists( $url, $this->targets ) ) {
+			$id     = $this->is_internal( $url ) ? url_to_postid( $url ) : 0;
+			$target = $id > 0 ? get_post( $id ) : null;
+
+			$this->targets[ $url ] = $target instanceof WP_Post && current_user_can( 'read_post', $target->ID ) ? get_the_title( $target ) : null;
+		}
+
+		return $this->targets[ $url ];
+	}
+
+	/**
+	 * Si una dirección es de este sitio.
+	 *
+	 * @param string $url Dirección.
+	 */
+	private function is_internal( string $url ): bool {
+		$host = wp_parse_url( $url, PHP_URL_HOST );
+		$own  = wp_parse_url( home_url(), PHP_URL_HOST );
+
+		return is_string( $host ) && is_string( $own ) && strtolower( $host ) === strtolower( $own );
+	}
+
+	/**
+	 * Enlace para editar una entrada, si el usuario actual puede.
+	 *
+	 * @param WP_Post $post Entrada.
+	 */
+	private function edit_link( WP_Post $post ): ?string {
+		$edit = current_user_can( 'edit_post', $post->ID ) ? get_edit_post_link( $post->ID, 'raw' ) : null;
+
+		return is_string( $edit ) ? $edit : null;
 	}
 
 	/**

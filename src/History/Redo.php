@@ -117,6 +117,32 @@ final class Redo {
 	}
 
 	/**
+	 * Rehace varios cambios de **una** entrada bajo un único candado, del más antiguo al más reciente (F1-36, D-59).
+	 *
+	 * @param int      $post_id Entrada.
+	 * @param array    $ids     Cambios de esa entrada.
+	 *
+	 * @phpstan-param list<int> $ids
+	 * @param int|null $user_id Quien lo pide (null = el usuario actual).
+	 *
+	 * @return list<UndoResult> Un resultado por cambio, en el orden en que se han tratado.
+	 */
+	public function redo_post( int $post_id, array $ids, ?int $user_id = null ): array {
+		sort( $ids );
+
+		try {
+			return $this->writer->exclusive(
+				$post_id,
+				function () use ( $ids, $user_id ): array {
+					return array_map( fn( int $id ): UndoResult => $this->redo( $id, $user_id ), $ids );
+				}
+			);
+		} catch ( InsertionException $e ) {
+			return array_map( static fn( int $id ): UndoResult => new UndoResult( $id, $post_id, UndoResult::FAILED, $e->getMessage(), $e->reason() ), $ids );
+		}
+	}
+
+	/**
 	 * Rehace todos los cambios deshechos de un lote, del primero al último.
 	 *
 	 * @param string   $batch_id Lote.

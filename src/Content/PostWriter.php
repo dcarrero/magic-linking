@@ -35,6 +35,13 @@ final class PostWriter {
 	private wpdb $wpdb;
 
 	/**
+	 * Entradas cuyo candado tiene esta petición ahora mismo.
+	 *
+	 * @var array<int, true>
+	 */
+	private array $held = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param wpdb $wpdb Conexión.
@@ -120,6 +127,11 @@ final class PostWriter {
 	 * @throws InsertionException Si otra operación tiene la entrada y no la suelta a tiempo.
 	 */
 	public function exclusive( int $post_id, callable $work ): mixed {
+		// Reentrante en la misma petición: deshacer varios cambios de una entrada toma el candado una vez (F1-36).
+		if ( isset( $this->held[ $post_id ] ) ) {
+			return $work();
+		}
+
 		$wpdb = $this->wpdb;
 		$name = sprintf( 'magiclinking_post_%d_%d', get_current_blog_id(), $post_id );
 
@@ -139,9 +151,12 @@ final class PostWriter {
 			self::log( sprintf( 'GET_LOCK no está disponible; se continúa sin candado en la entrada %d.', $post_id ) );
 		}
 
+		$this->held[ $post_id ] = true;
+
 		try {
 			return $work();
 		} finally {
+			unset( $this->held[ $post_id ] );
 			if ( null !== $got ) {
 				$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK( %s )', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Candado de MySQL.
 			}
