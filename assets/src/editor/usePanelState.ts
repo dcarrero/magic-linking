@@ -13,9 +13,14 @@ export interface PanelState {
 	setPage: ( page: number ) => void;
 	statuses: Record< string, CardStatus >;
 	setStatus: ( suggestion: Suggestion, status: CardStatus | null ) => void;
-	/** Descartadas en esta sesión, por dirección. */
+	/** Descartadas en esta sesión (ya guardadas en el servidor), por dirección. */
 	dismissed: Record< 'outbound' | 'inbound', ReadonlySet< string > >;
 	dismiss: (
+		suggestion: Suggestion,
+		direction: 'outbound' | 'inbound'
+	) => void;
+	/** Quita una sugerencia de las descartadas en esta sesión (se deshizo el descarte). */
+	restore: (
 		suggestion: Suggestion,
 		direction: 'outbound' | 'inbound'
 	) => void;
@@ -25,7 +30,7 @@ export interface PanelState {
 	visibleInbound: Suggestion[];
 	/** Entrantes sin las descartadas (de todas las páginas). */
 	inboundCount: number;
-	/** Vuelve a pedir las salientes y recupera las descartadas. */
+	/** Vuelve a pedir las salientes (el servidor ya no propone las descartadas). */
 	refreshOutbound: () => void;
 }
 
@@ -79,6 +84,17 @@ export function usePanelState(
 		[]
 	);
 
+	const restore = useCallback(
+		( suggestion: Suggestion, direction: 'outbound' | 'inbound' ) => {
+			setDismissed( ( previous ) => {
+				const next = new Set( previous[ direction ] );
+				next.delete( suggestionKey( suggestion ) );
+				return { ...previous, [ direction ]: next };
+			} );
+		},
+		[]
+	);
+
 	const { refresh } = outbound;
 	const refreshOutbound = useCallback( () => {
 		setDismissed( ( previous ) => ( {
@@ -105,9 +121,14 @@ export function usePanelState(
 		[ inbound.data, dismissed.inbound ]
 	);
 
+	// El total del servidor ya no cuenta lo descartado antes de pedirlo; solo hay que restar lo descartado
+	// ahora mismo que sigue en la lista que se tiene.
 	const inboundCount = Math.max(
 		0,
-		( inbound.data?.total ?? 0 ) - dismissed.inbound.size
+		( inbound.data?.total ?? 0 ) -
+			( inbound.data?.items ?? [] ).filter( ( item ) =>
+				dismissed.inbound.has( suggestionKey( item ) )
+			).length
 	);
 
 	// Tras enlazar la última de una página (o al cambiar el total), la página pedida puede no existir ya:
@@ -133,6 +154,7 @@ export function usePanelState(
 		setStatus,
 		dismissed,
 		dismiss,
+		restore,
 		visibleOutbound,
 		visibleInbound,
 		inboundCount,

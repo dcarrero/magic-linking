@@ -26,7 +26,7 @@ function seedEditor( ): Ids {
 		`
 		global $wpdb;
 		foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'pe-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
-		foreach ( array( 'docs', 'links', 'jobs', 'changes' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
+		foreach ( array( 'docs', 'links', 'jobs', 'changes', 'dismissed' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
 		delete_option( 'magiclinking_settings' );
 		if ( ! get_user_by( 'login', 'e2e_author' ) ) { wp_insert_user( array( 'user_login' => 'e2e_author', 'user_pass' => 'password', 'role' => 'author', 'user_email' => 'e2e_author@example.org' ) ); }
 		$author = get_user_by( 'login', 'e2e_author' )->ID;
@@ -133,7 +133,7 @@ test.describe( 'Editor panel', () => {
 			@unlink( WPMU_PLUGIN_DIR . '/magiclinking-e2e-classic.php' );
 			global $wpdb;
 			foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'pe-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
-			foreach ( array( 'docs', 'links', 'jobs', 'changes' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
+			foreach ( array( 'docs', 'links', 'jobs', 'changes', 'dismissed' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
 			`
 		);
 	} );
@@ -380,7 +380,7 @@ test.describe( 'Editor panel', () => {
 		await expect( panel.getByRole( 'tab', { name: /^Inbound \(\d+\)/ } ) ).toBeVisible();
 	} );
 
-	test( 'inbound: dismissing every card shows the message and the count follows', async ( {
+	test( 'inbound: dismissing every card is saved, the count follows and the cards do not come back after reloading', async ( {
 		page,
 	} ) => {
 		wp( 'magic-linking', 'index' );
@@ -388,14 +388,75 @@ test.describe( 'Editor panel', () => {
 		await openBlockEditor( page, ids.aislamiento );
 		const panel = await openSidebar( page );
 		await panel.getByRole( 'tab', { name: /^Inbound/ } ).click();
-		const cards = panel.locator( '.magiclinking-card' );
+		const cards = panel.locator( '.magiclinking-card:not(.is-dismissed)' );
 		await expect( cards.first() ).toBeVisible();
 		const total = await cards.count();
 		for ( let i = 0; i < total; i++ ) {
+			const saved = page.waitForResponse(
+				( response ) =>
+					/suggestions(\/|%2F)dismissals/i.test( response.url() ) &&
+					response.request().method() === 'POST'
+			);
 			await cards.first().getByRole( 'button', { name: /^Dismiss/ } ).click();
+			expect( ( await saved ).status() ).toBe( 200 );
 		}
-		await expect( panel ).toContainText( 'You have dismissed all the suggestions' );
+		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( total );
 		await expect( panel.getByRole( 'tab', { name: 'Inbound (0)' } ) ).toBeVisible();
+
+		// Recargar el editor: lo descartado no vuelve.
+		await openBlockEditor( page, ids.aislamiento );
+		const again = await openSidebar( page );
+		await again.getByRole( 'tab', { name: /^Inbound/ } ).click();
+		await expect( again ).toContainText( 'No other entry has a sentence that fits' );
+		await expect( again.locator( '.magiclinking-card' ) ).toHaveCount( 0 );
+		await expect( again.getByRole( 'tab', { name: 'Inbound (0)' } ) ).toBeVisible();
+	} );
+
+	test( 'outbound: a dismissed suggestion does not come back after reloading and can be restored from the panel', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await expect( card ).toContainText( 'Aislamiento de casas' );
+		const tab = panel.getByRole( 'tab', { name: /^Outbound \(\d+\)/ } );
+		const count = Number( ( await tab.textContent() )?.match( /\((\d+)\)/ )?.[ 1 ] );
+		expect( count ).toBeGreaterThan( 0 );
+
+		// Descartar: la tarjeta pasa a una fila con Deshacer (con el foco) y el contador baja.
+		await card.getByRole( 'button', { name: /^Dismiss/ } ).click();
+		const row = panel.locator( '.magiclinking-card.is-dismissed' ).first();
+		await expect( row.getByText( /^Suggestion dismissed/ ) ).toBeFocused();
+		await expect( tab ).toHaveText( `Outbound (${ count - 1 })` );
+		const accessibility = await new AxeBuilder( { page } )
+			.include( '.magiclinking-panel' )
+			.withTags( AXE_TAGS )
+			.analyze();
+		expect( accessibility.violations ).toEqual( [] );
+
+		// Deshacer el descarte: vuelve la tarjeta y el contador.
+		await row.getByRole( 'button', { name: /^Undo dismissing/ } ).click();
+		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 0 );
+		await expect( panel.locator( '.magiclinking-card' ).first() ).toContainText( 'Aislamiento de casas' );
+		await expect( tab ).toHaveText( `Outbound (${ count })` );
+
+		// Descartar otra vez y recargar: no vuelve, ni con Actualizar.
+		await panel
+			.locator( '.magiclinking-card' )
+			.first()
+			.getByRole( 'button', { name: /^Dismiss/ } )
+			.click();
+		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 1 );
+		await openBlockEditor( page, ids.origen );
+		const again = await openSidebar( page );
+		await expect( again.getByRole( 'tab', { name: /^Outbound/ } ) ).toBeVisible();
+		await expect( again ).not.toContainText( 'Aislamiento de casas' );
+		await again.getByRole( 'button', { name: 'Refresh' } ).first().click();
+		await expect( again ).not.toContainText( 'Aislamiento de casas' );
+		// Con ese destino fuera, la misma frase puede ofrecer otro (una sola sugerencia por frase): el contador no baja a la fuerza.
+		await expect( again.getByRole( 'tab', { name: /^Outbound \(\d+\)/ } ) ).toBeVisible();
 	} );
 
 	test( 'inbound: an entry the user cannot edit is shown without the Link button', async ( {
@@ -413,7 +474,8 @@ test.describe( 'Editor panel', () => {
 			'You cannot edit this entry, so the link cannot be added from here.'
 		);
 		await expect( card.getByRole( 'button', { name: /^Link to/ } ) ).toHaveCount( 0 );
-		await expect( card.getByRole( 'button', { name: /^Dismiss/ } ) ).toBeVisible();
+		// Descartar para siempre exige poder editar el origen (docs/04 §11): sin permiso, no hay botón.
+		await expect( card.getByRole( 'button', { name: /^Dismiss/ } ) ).toHaveCount( 0 );
 	} );
 
 	test( 'has no accessibility violations', async ( { page } ) => {

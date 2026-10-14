@@ -40,16 +40,18 @@ final class Suggestions {
 	/**
 	 * Constructor.
 	 *
-	 * @param TableRepository $repository Índice.
-	 * @param LexicalIndexer  $lexical    Indexador (para saber si el índice está construido).
-	 * @param TableDocuments  $documents  Entradas con sus enlaces.
-	 * @param Settings        $settings   Ajustes.
+	 * @param TableRepository     $repository Índice.
+	 * @param LexicalIndexer      $lexical    Indexador (para saber si el índice está construido).
+	 * @param TableDocuments      $documents  Entradas con sus enlaces.
+	 * @param Settings            $settings   Ajustes.
+	 * @param DismissalRepository $dismissals Pares descartados.
 	 */
 	public function __construct(
 		private TableRepository $repository,
 		private LexicalIndexer $lexical,
 		private TableDocuments $documents,
-		private Settings $settings
+		private Settings $settings,
+		private DismissalRepository $dismissals
 	) {
 	}
 
@@ -115,6 +117,10 @@ final class Suggestions {
 			}
 		}
 
+		// Lo descartado desde esta entrada no se vuelve a proponer; los destinos muy descartados bajan su prior.
+		$options['never']     = array_values( array_unique( array_merge( $options['never'] ?? array(), $this->dismissals->targets_for_source( $post_id ) ) ) );
+		$options['penalized'] = $this->dismissals->penalized_targets();
+
 		try {
 			return $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) );
 		} finally {
@@ -138,6 +144,10 @@ final class Suggestions {
 		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || ! $this->analyzes( $post ) || ! $this->ready() ) {
 			return array();
 		}
+
+		// Los orígenes que ya se descartaron para este destino no se vuelven a proponer.
+		$options['excluded_origins'] = array_values( array_unique( array_merge( $options['excluded_origins'] ?? array(), $this->dismissals->sources_for_target( $post_id ) ) ) );
+		$options['penalized']        = $this->dismissals->penalized_targets();
 
 		try {
 			return $this->suggester( $options )->incoming( $post_id );

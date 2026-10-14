@@ -29,6 +29,7 @@ use MagicLinking\History\Redo;
 use MagicLinking\History\Retention;
 use MagicLinking\History\Undo;
 use MagicLinking\I18n\Language;
+use MagicLinking\Index\DismissalRepository;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\PostSource;
 use MagicLinking\Index\SuggestionCache;
@@ -39,6 +40,7 @@ use MagicLinking\I18n\TextDomain;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
+use MagicLinking\Rest\DismissalsController;
 use MagicLinking\Rest\HistoryController;
 use MagicLinking\Rest\JobsController;
 use MagicLinking\Rest\ReportController;
@@ -70,6 +72,7 @@ final class Plugin {
 		HistoryController::class,
 		SuggestionCache::class,
 		SuggestionsController::class,
+		DismissalsController::class,
 		JobsController::class,
 		SettingsController::class,
 		ExportHandler::class,
@@ -199,11 +202,17 @@ final class Plugin {
 				global $wpdb;
 				return new TableDocuments( $c->get( PostSource::class ), new LinkResolver( $wpdb ), $c->get( GraphRepository::class ) );
 			},
+			DismissalRepository::class   => static function (): DismissalRepository {
+				global $wpdb;
+				return new DismissalRepository( $wpdb );
+			},
+			DismissalsController::class  => static fn( Container $c ): DismissalsController => new DismissalsController( $c->get( DismissalRepository::class ) ),
 			Suggestions::class           => static fn( Container $c ): Suggestions => new Suggestions(
 				$c->get( TableRepository::class ),
 				$c->get( LexicalIndexer::class ),
 				$c->get( TableDocuments::class ),
-				$c->get( Settings::class )
+				$c->get( Settings::class ),
+				$c->get( DismissalRepository::class )
 			),
 			SuggestionCache::class       => static fn(): SuggestionCache => new SuggestionCache(),
 			SuggestionPresenter::class   => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ) ),

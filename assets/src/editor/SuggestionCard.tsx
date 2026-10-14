@@ -12,7 +12,9 @@ export type CardStatus =
 			/** Deshace el enlace; devuelve el mensaje de lo ocurrido o null si no se pudo. */
 			undo?: () => Promise< string | null >;
 	  }
-	| { kind: 'error'; message: string };
+	| { kind: 'error'; message: string }
+	/** Descartada para siempre; se puede deshacer hasta que se vuelva a pedir la lista. */
+	| { kind: 'dismissed'; busy?: boolean };
 
 interface Props {
 	suggestion: Suggestion;
@@ -22,6 +24,8 @@ interface Props {
 	historyUrl: string;
 	onLink: ( suggestion: Suggestion ) => void;
 	onDismiss: ( suggestion: Suggestion ) => void;
+	/** Deshace el descarte. */
+	onRestore: ( suggestion: Suggestion ) => void;
 	onUndo: ( suggestion: Suggestion ) => void;
 	/** Resalta la frase en el lienzo (solo salientes). */
 	onHighlight?: ( suggestion: Suggestion | null ) => void;
@@ -36,6 +40,7 @@ interface Props {
  * @param root0.historyUrl
  * @param root0.onLink
  * @param root0.onDismiss
+ * @param root0.onRestore
  * @param root0.onUndo
  * @param root0.onHighlight
  */
@@ -46,6 +51,7 @@ export function SuggestionCard( {
 	historyUrl,
 	onLink,
 	onDismiss,
+	onRestore,
 	onUndo,
 	onHighlight,
 }: Props ) {
@@ -53,7 +59,7 @@ export function SuggestionCard( {
 	const statusRef = useRef< HTMLParagraphElement >( null );
 	const kind = status?.kind;
 	useEffect( () => {
-		if ( kind === 'added' || kind === 'error' ) {
+		if ( kind === 'added' || kind === 'error' || kind === 'dismissed' ) {
 			statusRef.current?.focus();
 		}
 	}, [ kind ] );
@@ -62,6 +68,42 @@ export function SuggestionCard( {
 		post.title || __( '(no title)', 'magic-linking' );
 	const busy = status?.kind === 'busy';
 	const added = status?.kind === 'added';
+
+	if ( status?.kind === 'dismissed' ) {
+		return (
+			<li className="magiclinking-card is-dismissed">
+				<div className="magiclinking-card__actions">
+					<p
+						className="magiclinking-card__status"
+						ref={ statusRef }
+						tabIndex={ -1 }
+					>
+						{ __(
+							'Suggestion dismissed. It will not be proposed again.',
+							'magic-linking'
+						) }
+					</p>
+					<Button
+						variant="link"
+						disabled={ status.busy }
+						accessibleWhenDisabled
+						onClick={ () => onRestore( suggestion ) }
+						aria-label={ sprintf(
+							/* translators: %s: title of the destination. */
+							__(
+								'Undo dismissing the suggestion for “%s”',
+								'magic-linking'
+							),
+							title( target )
+						) }
+					>
+						{ __( 'Undo', 'magic-linking' ) }
+					</Button>
+				</div>
+			</li>
+		);
+	}
+
 	const reasons = suggestion.reasons
 		.map( ( reason ) => reason.text )
 		.filter( Boolean );
@@ -190,21 +232,25 @@ export function SuggestionCard( {
 							) }
 						</Button>
 					) }
-					<Button
-						variant="tertiary"
-						size="compact"
-						onClick={ () => onDismiss( suggestion ) }
-						aria-label={ sprintf(
-							/* translators: %s: title of the destination. */
-							__(
-								'Dismiss the suggestion for “%s”',
-								'magic-linking'
-							),
-							title( target )
-						) }
-					>
-						{ __( 'Dismiss', 'magic-linking' ) }
-					</Button>
+					{ suggestion.can_insert && (
+						<Button
+							variant="tertiary"
+							size="compact"
+							disabled={ busy }
+							accessibleWhenDisabled
+							onClick={ () => onDismiss( suggestion ) }
+							aria-label={ sprintf(
+								/* translators: %s: title of the destination. */
+								__(
+									'Dismiss the suggestion for “%s”',
+									'magic-linking'
+								),
+								title( target )
+							) }
+						>
+							{ __( 'Dismiss', 'magic-linking' ) }
+						</Button>
+					) }
 				</div>
 			) }
 		</li>

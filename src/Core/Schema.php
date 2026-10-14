@@ -29,7 +29,7 @@ final class Schema {
 	/**
 	 * Tablas propias, sin prefijo.
 	 */
-	public const TABLES = array( 'docs', 'terms', 'postings', 'links', 'rules', 'changes', 'jobs' );
+	public const TABLES = array( 'docs', 'terms', 'postings', 'links', 'rules', 'changes', 'jobs', 'dismissed' );
 
 	/**
 	 * Nombre completo de una tabla.
@@ -57,10 +57,11 @@ final class Schema {
 		$rules    = self::table( $site_prefix, 'rules' );
 		$changes  = self::table( $site_prefix, 'changes' );
 		$jobs     = self::table( $site_prefix, 'jobs' );
+		$dismiss  = self::table( $site_prefix, 'dismissed' );
 
 		return array(
 			// Una fila por entrada indexada.
-			'docs'     => "CREATE TABLE {$docs} (
+			'docs'      => "CREATE TABLE {$docs} (
   post_id bigint(20) unsigned NOT NULL,
   post_type varchar(20) NOT NULL DEFAULT '',
   lang varchar(10) NOT NULL DEFAULT '',
@@ -86,7 +87,7 @@ final class Schema {
 			// Vocabulario. La raíz se compara byte a byte: con una
 			// colación insensible a tildes, «cancion» y «canción» chocarían
 			// en la clave única.
-			'terms'    => "CREATE TABLE {$terms} (
+			'terms'     => "CREATE TABLE {$terms} (
   term_id int(10) unsigned NOT NULL AUTO_INCREMENT,
   lang varchar(10) NOT NULL DEFAULT '',
   stem varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '',
@@ -100,7 +101,7 @@ final class Schema {
 			// Términos principales por entrada, top-K. `pos` es el puesto del término en su entrada (0 = el de más
 			// peso): los empates de peso no se pueden ordenar por otro campo sin cambiar qué frases objetivo
 			// salen de un destino.
-			'postings' => "CREATE TABLE {$postings} (
+			'postings'  => "CREATE TABLE {$postings} (
   term_id int(10) unsigned NOT NULL,
   post_id bigint(20) unsigned NOT NULL,
   weight float NOT NULL DEFAULT 0,
@@ -111,7 +112,7 @@ final class Schema {
 ) {$charset_collate};",
 
 			// Grafo de enlaces internos.
-			'links'    => "CREATE TABLE {$links} (
+			'links'     => "CREATE TABLE {$links} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   source_id bigint(20) unsigned NOT NULL,
   target_id bigint(20) unsigned NULL,
@@ -128,7 +129,7 @@ final class Schema {
 ) {$charset_collate};",
 
 			// Reglas automáticas, sin límite de filas.
-			'rules'    => "CREATE TABLE {$rules} (
+			'rules'     => "CREATE TABLE {$rules} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   phrase text NOT NULL,
   target_id bigint(20) unsigned NULL,
@@ -146,7 +147,7 @@ final class Schema {
 
 			// Historial de cambios en el contenido. before_html y
 			// after_html en vez de before/after: BEFORE es palabra reservada.
-			'changes'  => "CREATE TABLE {$changes} (
+			'changes'   => "CREATE TABLE {$changes} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   batch_id char(26) NOT NULL DEFAULT '',
   post_id bigint(20) unsigned NOT NULL,
@@ -165,7 +166,7 @@ final class Schema {
 ) {$charset_collate};",
 
 			// Procesos largos y gasto de IA.
-			'jobs'     => "CREATE TABLE {$jobs} (
+			'jobs'      => "CREATE TABLE {$jobs} (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   type varchar(30) NOT NULL DEFAULT '',
   status varchar(20) NOT NULL DEFAULT 'queued',
@@ -185,6 +186,16 @@ final class Schema {
   PRIMARY KEY  (id),
   KEY type_status (type,status),
   KEY created_at (created_at)
+) {$charset_collate};",
+
+			// Sugerencias descartadas: un par (origen, destino) por fila, para todo el sitio (docs/04 §11).
+			'dismissed' => "CREATE TABLE {$dismiss} (
+  source_id bigint(20) unsigned NOT NULL,
+  target_id bigint(20) unsigned NOT NULL,
+  user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (source_id,target_id),
+  KEY target_id (target_id)
 ) {$charset_collate};",
 		);
 	}

@@ -388,7 +388,7 @@ final class LexicalIndexTest extends GraphTestCase {
 		Installer::forget_check();
 
 		$this->assertFalse( $suggestions->ready(), 'La migración marca el índice como a medias antes de decidir.' );
-		$this->assertSame( 3, (int) get_option( Installer::DB_VERSION_OPTION ) );
+		$this->assertSame( MAGICLINKING_DB_VERSION, (int) get_option( Installer::DB_VERSION_OPTION ) );
 	}
 
 	public function test_a_new_site_without_documents_schedules_no_build(): void {
