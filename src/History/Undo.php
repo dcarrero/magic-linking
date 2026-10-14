@@ -31,6 +31,11 @@ use Throwable;
 final class Undo {
 
 	/**
+	 * Estados que cuentan como «deshecho» para avisar del lote.
+	 */
+	private const UNDONE = array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::FIX_REVERTED, UndoResult::GONE );
+
+	/**
 	 * Constructor.
 	 *
 	 * @param PostWriter       $writer  Lectura y escritura del contenido.
@@ -80,32 +85,53 @@ final class Undo {
 	}
 
 	/**
-	 * Deshace varios cambios de **una** entrada bajo un único candado, del más reciente al más antiguo (F1-36, D-59).
-	 * Cada uno pasa por la misma vía segura que {@see self::revert()}: verificación, deshacer manual si la entrada
-	 * cambió y bloqueo de edición.
+	 * Deshace varios cambios de **una** entrada bajo un único candado, del más reciente al más antiguo, y reindexa la
+	 * entrada una sola vez al final (F1-36, D-59). Cada uno pasa por la misma vía segura que {@see self::revert()}:
+	 * verificación, deshacer manual si la entrada cambió y bloqueo de edición. Avisa con `magiclinking_batch_undone`
+	 * una vez por cada lote afectado.
 	 *
 	 * @param int      $post_id Entrada.
 	 * @param array    $ids     Cambios de esa entrada.
+	 * @param int|null $user_id Quien lo pide (null = el usuario actual).
 	 *
 	 * @phpstan-param list<int> $ids
-	 * @param int|null $user_id Quien lo pide (null = el usuario actual).
 	 *
 	 * @return list<UndoResult> Un resultado por cambio, en el orden en que se han tratado.
 	 */
 	public function revert_post( int $post_id, array $ids, ?int $user_id = null ): array {
 		rsort( $ids );
+		$batches = $this->changes->light_of( $ids );
 
 		try {
-			return $this->writer->exclusive(
+			$results = $this->writer->exclusive(
 				$post_id,
 				function () use ( $ids, $user_id ): array {
-					return array_map( fn( int $id ): UndoResult => $this->revert( $id, $user_id ), $ids );
+					return array_map( fn( int $id ): UndoResult => $this->revert( $id, $user_id, false ), $ids );
 				}
 			);
 		} catch ( InsertionException $e ) {
 			// Otra operación tiene la entrada y no la suelta: ninguno se ha tocado.
 			return array_map( static fn( int $id ): UndoResult => new UndoResult( $id, $post_id, UndoResult::FAILED, $e->getMessage(), $e->reason() ), $ids );
 		}
+
+		$per_batch = array();
+		foreach ( $results as $result ) {
+			if ( in_array( $result->status, self::UNDONE, true ) ) {
+				$batch               = $batches[ $result->change_id ]['batch_id'] ?? '';
+				$per_batch[ $batch ] = ( $per_batch[ $batch ] ?? 0 ) + 1;
+			}
+		}
+		if ( array() !== $per_batch ) {
+			$this->refresh( $post_id );
+		}
+		foreach ( $per_batch as $batch => $undone ) {
+			if ( '' !== $batch ) {
+				// Misma acción que al deshacer un lote entero ({@see self::revert_batch()}): una vez por lote, con lo deshecho ahora.
+				do_action( 'magiclinking_batch_undone', (string) $batch, $undone );
+			}
+		}
+
+		return $results;
 	}
 
 	/**
@@ -113,8 +139,9 @@ final class Undo {
 	 *
 	 * @param int      $change_id Fila de magiclinking_changes.
 	 * @param int|null $user_id   Quien lo pide (null = el usuario actual; 0 = el sistema).
+	 * @param bool     $reindex   Reindexar la entrada al terminar (quien deshace varios de la misma entrada lo hace una vez al final).
 	 */
-	public function revert( int $change_id, ?int $user_id = null ): UndoResult {
+	public function revert( int $change_id, ?int $user_id = null, bool $reindex = true ): UndoResult {
 		$change = $this->changes->get( $change_id );
 		if ( null === $change || ! in_array( $change['action'], ChangeRepository::PRIMARY, true ) ) {
 			return new UndoResult( $change_id, 0, UndoResult::FAILED, __( 'That change does not exist.', 'magic-linking' ), InsertionException::BAD_REQUEST );
@@ -138,7 +165,9 @@ final class Undo {
 		}
 
 		$this->changes->mark_undone( $change_id );
-		$this->refresh( $post_id );
+		if ( $reindex ) {
+			$this->refresh( $post_id );
+		}
 
 		$messages = array(
 			UndoResult::RESTORED     => self::restored_message( $change['action'] ),

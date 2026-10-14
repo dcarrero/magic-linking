@@ -398,12 +398,98 @@
 }
 
 // Historial, vista por entrada (F1-36): una cabecera por entrada y filas densas, sin recuadros grandes.
-.magiclinking-viewswitch {
+// Barra de herramientas del Historial: Ver por · Estado · Origen · Buscar, en una sola fila.
+.magiclinking-toolbar {
 	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin: 12px 0 8px;
+
+	.magiclinking-toolbar__filters {
+		align-items: center;
+		display: flex;
+		flex: 1 1 auto;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.magiclinking-toolbar__search {
+		flex: 1 1 200px;
+		margin-left: auto;
+		max-width: 320px;
+
+		input {
+			box-sizing: border-box;
+			width: 100%;
+		}
+	}
+
+	select,
+	input[type="search"] {
+		margin: 0;
+	}
+}
+
+.magiclinking-viewswitch {
+	align-items: center;
+	display: flex;
 	gap: 8px;
-	margin: 12px 0 4px;
+}
+
+// Control segmentado: los dos botones comparten borde y el pulsado se rellena con el color del administrador.
+.magiclinking-segmented {
+	border: 1px solid var(--wp-admin-theme-color, #2271b1);
+	border-radius: 2px;
+	display: inline-flex;
+	overflow: hidden;
+
+	button {
+		background: #fff;
+		border: 0;
+		color: var(--wp-admin-theme-color, #2271b1);
+		cursor: pointer;
+		font-size: 13px;
+		line-height: 2;
+		min-height: 30px;
+		padding: 0 12px;
+
+		& + button {
+			border-left: 1px solid var(--wp-admin-theme-color, #2271b1);
+		}
+
+		&:hover {
+			background: #f0f0f1;
+		}
+
+		&[aria-pressed="true"] {
+			background: var(--wp-admin-theme-color, #2271b1);
+			color: #fff;
+		}
+
+		&:focus-visible {
+			box-shadow: inset 0 0 0 2px #fff;
+			outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+			outline-offset: 0;
+		}
+	}
+}
+
+// Una sola cabecera visual para todas las entradas; cada tabla conserva la suya para lectores de pantalla.
+.magiclinking-entries__head {
+	color: #50575e;
+	display: grid;
+	font-size: 12px;
+	font-weight: 600;
+	grid-template-columns: 15% 14% 17% 20% 10% 8% 8% 8%;
+	letter-spacing: 0.02em;
+	margin: 8px 0 4px;
+	padding: 0;
+	text-transform: uppercase;
+
+	span {
+		padding: 0 0 0 11px;
+	}
 }
 
 .magiclinking-entries__list {
@@ -460,36 +546,36 @@
 		border-collapse: collapse;
 		table-layout: fixed;
 
-		// Mismas columnas en todas las entradas, para que se lea de arriba abajo.
-		th:nth-child(1) {
+		// Mismas columnas en todas las entradas, alineadas con la cabecera única.
+		col:nth-child(1) {
 			width: 15%;
 		}
 
-		th:nth-child(2) {
+		col:nth-child(2) {
 			width: 14%;
 		}
 
-		th:nth-child(3) {
+		col:nth-child(3) {
 			width: 17%;
 		}
 
-		th:nth-child(4) {
+		col:nth-child(4) {
 			width: 20%;
 		}
 
-		th:nth-child(5) {
+		col:nth-child(5) {
 			width: 10%;
 		}
 
-		th:nth-child(6) {
+		col:nth-child(6) {
 			width: 8%;
 		}
 
-		th:nth-child(7) {
+		col:nth-child(7) {
 			width: 8%;
 		}
 
-		th:nth-child(8) {
+		col:nth-child(8) {
 			width: 8%;
 		}
 
@@ -503,9 +589,15 @@
 			vertical-align: top;
 		}
 
-		thead th {
-			font-weight: 600;
-			white-space: nowrap;
+		thead {
+			border: 0;
+			clip-path: inset(50%);
+			height: 1px;
+			margin: -1px;
+			overflow: hidden;
+			padding: 0;
+			position: absolute;
+			width: 1px;
 		}
 
 		.magiclinking-change__date {
@@ -537,13 +629,25 @@
 
 // En móvil, cada fila pasa a un bloque con la etiqueta de cada dato.
 @media screen and (max-width: 782px) {
+	.magiclinking-entries__head {
+		display: none;
+	}
+
+	.magiclinking-toolbar .magiclinking-toolbar__filters,
+	.magiclinking-toolbar .magiclinking-toolbar__search {
+		flex-basis: 100%;
+		max-width: none;
+	}
+
+	.magiclinking-toolbar .magiclinking-toolbar__filters select {
+		flex: 1 1 100%;
+		max-width: none;
+	}
+
 	.magiclinking-entry .magiclinking-changes {
 		display: block;
 		table-layout: auto;
 
-		th:nth-child(n) {
-			width: auto;
-		}
 
 		thead {
 			border: 0;

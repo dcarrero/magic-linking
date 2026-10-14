@@ -160,35 +160,56 @@ export const api = {
 			} ),
 			signal,
 		} ),
-	historyEntry: ( postId: number ) =>
+	historyEntry: ( postId: number, origin = '' ) =>
 		apiFetch< { entry: HistoryEntry } >( {
-			path: path( `/history/posts/${ postId }` ),
+			path: path( `/history/posts/${ postId }`, { origin } ),
 		} ),
-	historyEntryChanges: ( postId: number, page: number, perPage: number ) =>
+	/**
+	 * Más cambios de una entrada, con cursor: solo los anteriores al último mostrado.
+	 *
+	 * @param postId  Entrada.
+	 * @param before  Id del último cambio mostrado.
+	 * @param perPage Cambios por petición.
+	 * @param origin  Filtro de origen (vacío = todos).
+	 */
+	historyEntryChanges: (
+		postId: number,
+		before: number,
+		perPage: number,
+		origin = ''
+	) =>
 		apiFetch< HistoryEntryChangesResponse >( {
 			path: path( `/history/posts/${ postId }/changes`, {
-				page,
+				before,
 				per_page: perPage,
+				origin,
 			} ),
 		} ),
 	/**
-	 * Deshace o rehace cambios de una entrada en una sola petición: los indicados o, sin lista, todos los que toquen.
+	 * Deshace o rehace cambios de una entrada en una sola petición: los indicados o, sin lista, todos los que
+	 * cumplan el filtro de origen (lo que la pantalla ha contado y confirmado).
 	 *
-	 * @param mode      undo o redo.
-	 * @param postId    Entrada.
-	 * @param changeIds Cambios concretos de esa entrada.
+	 * @param mode              undo o redo.
+	 * @param postId            Entrada.
+	 * @param options           Qué cambios.
+	 * @param options.changeIds Cambios concretos de esa entrada.
+	 * @param options.origin    Filtro de origen.
 	 */
 	runHistoryEntry: (
 		mode: 'undo' | 'redo',
 		postId: number,
-		changeIds?: number[]
+		options: { changeIds?: number[]; origin?: string } = {}
 	) =>
 		apiFetch< EntryRunResponse >( {
 			path: path( `/${ mode }` ),
 			method: 'POST',
-			data: changeIds
-				? { post_id: postId, change_ids: changeIds }
-				: { post_id: postId },
+			data: {
+				post_id: postId,
+				...( options.changeIds
+					? { change_ids: options.changeIds }
+					: {} ),
+				...( options.origin ? { origin: options.origin } : {} ),
+			},
 		} ),
 	historyGroup: ( batchId: string ) =>
 		apiFetch< { group: HistoryGroup } >( {
@@ -206,7 +227,11 @@ export const api = {
 			path: path( `/history/jobs/${ id }` ),
 		} ),
 	controlHistoryJob: ( id: number, action: 'resume' | 'cancel' ) =>
-		apiFetch< { job: HistoryJob; group: HistoryGroup | null } >( {
+		apiFetch< {
+			job: HistoryJob;
+			group: HistoryGroup | null;
+			entry: HistoryEntry | null;
+		} >( {
 			path: path( `/history/jobs/${ id }/${ action }` ),
 			method: 'POST',
 		} ),

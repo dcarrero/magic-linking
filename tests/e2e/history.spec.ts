@@ -243,6 +243,50 @@ test.describe( 'History by entry', () => {
 		await expectNoViolations( page );
 	} );
 
+	test( 'undoing every change of a big entry runs in the background with progress', async ( {
+		page,
+	} ) => {
+		wp(
+			'eval',
+			`
+			wp_mkdir_p( WPMU_PLUGIN_DIR );
+			file_put_contents( WPMU_PLUGIN_DIR . '/magiclinking-e2e.php', '<?php if ( ! defined( "DISABLE_WP_CRON" ) ) { define( "DISABLE_WP_CRON", true ); } add_filter( "magiclinking_undo_sync_limit", static fn() => 1 ); add_filter( "action_scheduler_allow_async_request_runner", "__return_false" );' );
+			`
+		);
+		try {
+			await login( page );
+			await page.goto( SCREEN_HISTORY );
+			const entry = page
+				.locator( '.magiclinking-entry' )
+				.filter( { hasText: 'E2E origen A' } );
+			await entry
+				.getByRole( 'button', { name: 'Undo all (2) in E2E origen A' } )
+				.click();
+			await page
+				.getByRole( 'dialog', { name: 'Undo all changes in this entry?' } )
+				.getByRole( 'button', { name: 'Undo all', exact: true } )
+				.click();
+
+			const progress = entry.getByRole( 'progressbar' );
+			await expect( progress ).toBeVisible();
+			await expect( progress ).toHaveAttribute( 'max', '2' );
+			expect( content( 'e2e-origen-a' ) ).toContain( '<a href=' );
+			await expectNoViolations( page );
+
+			wp( 'action-scheduler', 'run' );
+			await expect( entry.getByText( '0 of 2 changes active' ) ).toBeVisible( {
+				timeout: 15_000,
+			} );
+			await expect( entry.getByText( '2 links undone.' ) ).toBeVisible();
+			await expect( progress ).toBeHidden();
+			expect( content( 'e2e-origen-a' ) ).not.toContain( '<a href=' );
+			expect( content( 'e2e-origen-b' ) ).toContain( '<a href=' );
+			await expectNoViolations( page );
+		} finally {
+			wp( 'eval', '@unlink( WPMU_PLUGIN_DIR . "/magiclinking-e2e.php" );' );
+		}
+	} );
+
 	test( 'on a phone the rows become blocks, with no horizontal scroll', async ( {
 		page,
 	} ) => {

@@ -237,9 +237,10 @@ final class Reader {
 	 * Entradas con sus cambios, paginadas por entrada y resueltas en SQL (F1-36, D-59). Cada entrada lleva sus
 	 * recuentos y sus {@see self::FIRST_CHANGES} cambios más recientes; el resto, con {@see self::post_changes()}.
 	 *
-	 * Un usuario con `edit_others_posts` ve las entradas de todos; otro, solo las suyas (se filtra en la consulta, así
-	 * la paginación cuenta lo que se ve). Después se comprueba `edit_post` entrada por entrada: si un tipo
-	 * personalizado tiene otras reglas, esa entrada se omite de la página.
+	 * Coherente con `edit_post` (D-59): la consulta deja pasar las entradas de los tipos en los que el usuario tiene
+	 * `edit_others_<tipo>` y, del resto, las suyas (así el total y las páginas cuadran para autores, coautores de
+	 * otro tipo y roles a medida). Después se comprueba `edit_post` entrada por entrada: si una regla fina (otro
+	 * plugin, estado de la entrada) la niega, se omite de la página y el total queda como cota superior.
 	 *
 	 * @param int   $user_id  Quien mira.
 	 * @param array $filters  `status` (`active`, `undone`), `origin` (`plugin`, `editor`), `search` y `post_id` (solo esa entrada).
@@ -251,8 +252,7 @@ final class Reader {
 	 * @return array{items: list<array<string, mixed>>, total: int}
 	 */
 	public function post_groups( int $user_id, array $filters, int $page, int $per_page ): array {
-		$author = 0 === $user_id || user_can( $user_id, 'edit_others_posts' ) ? 0 : $user_id;
-		$result = $this->changes->post_groups( $filters + array( 'author' => $author ), $page, $per_page );
+		$result = $this->changes->post_groups( $filters + array( 'restrict' => $this->restriction( $user_id ) ), $page, $per_page );
 
 		$post_ids = array_column( $result['items'], 'post_id' );
 		if ( array() !== $post_ids ) {
@@ -298,13 +298,43 @@ final class Reader {
 	/**
 	 * Una entrada con sus recuentos y sus cambios más recientes, si el usuario puede verla y tiene cambios.
 	 *
-	 * @param int $user_id Quien mira.
-	 * @param int $post_id Entrada.
+	 * @param int    $user_id Quien mira.
+	 * @param int    $post_id Entrada.
+	 * @param string $origin  Solo cambios de este origen (`plugin`, `editor`) o vacío.
 	 *
 	 * @return array<string, mixed>|null
 	 */
-	public function post_group( int $user_id, int $post_id ): ?array {
-		return $this->post_groups( $user_id, array( 'post_id' => $post_id ), 1, 1 )['items'][0] ?? null;
+	public function post_group( int $user_id, int $post_id, string $origin = '' ): ?array {
+		return $this->post_groups( $user_id, array( 'post_id' => $post_id ) + ( '' === $origin ? array() : array( 'origin' => $origin ) ), 1, 1 )['items'][0] ?? null;
+	}
+
+	/**
+	 * Límite en SQL de las entradas que ve un usuario: null si las ve todas.
+	 *
+	 * @param int $user_id Quien mira (0 = el sistema).
+	 *
+	 * @return array{types: list<string>, author: int, deleted: bool}|null
+	 */
+	private function restriction( int $user_id ): ?array {
+		if ( 0 === $user_id ) {
+			return null;
+		}
+
+		$types = array();
+		$all   = true;
+		foreach ( get_post_types( array(), 'objects' ) as $type ) {
+			if ( user_can( $user_id, $type->cap->edit_others_posts ) ) {
+				$types[] = $type->name;
+			} else {
+				$all = false;
+			}
+		}
+
+		return $all ? null : array(
+			'types'   => $types,
+			'author'  => $user_id,
+			'deleted' => user_can( $user_id, 'edit_others_posts' ),
+		);
 	}
 
 	/**
@@ -312,18 +342,18 @@ final class Reader {
 	 *
 	 * @param int    $user_id  Quien mira.
 	 * @param int    $post_id  Entrada.
-	 * @param int    $page     Página (desde 1).
+	 * @param int    $before   Cursor: solo los cambios con id menor que este (0 = desde el principio).
 	 * @param int    $per_page Cambios por página.
 	 * @param string $origin   Origen (`plugin`, `editor`) o vacío.
 	 *
 	 * @return array{items: list<array<string, mixed>>, total: int}|null Null si no la puede ver.
 	 */
-	public function post_changes( int $user_id, int $post_id, int $page, int $per_page, string $origin = '' ): ?array {
+	public function post_changes( int $user_id, int $post_id, int $before, int $per_page, string $origin = '' ): ?array {
 		if ( ! $this->can_edit( $user_id, $post_id ) ) {
 			return null;
 		}
 
-		$result  = $this->changes->post_ids_page( $post_id, $page, $per_page, $origin );
+		$result  = $this->changes->post_ids_page( $post_id, $before, $per_page, $origin );
 		$full    = $this->changes->get_many( $result['ids'] );
 		$context = $this->change_context( $full );
 
@@ -343,13 +373,14 @@ final class Reader {
 	/**
 	 * Ids de los cambios de una entrada que se pueden deshacer (puestos) o rehacer (deshechos), con el tramo contado una vez.
 	 *
-	 * @param int  $post_id Entrada.
-	 * @param bool $undone  true = los deshechos.
+	 * @param int    $post_id Entrada.
+	 * @param bool   $undone  true = los deshechos.
+	 * @param string $origin  Solo de este origen o vacío.
 	 *
 	 * @return list<int> Del más reciente al más antiguo.
 	 */
-	public function pending_of_post( int $post_id, bool $undone ): array {
-		return $this->changes->pending_ids_of_post( $post_id, $undone );
+	public function pending_of_post( int $post_id, bool $undone, string $origin = '' ): array {
+		return $this->changes->pending_ids_of_post( $post_id, $undone, $origin );
 	}
 
 	/**
@@ -367,6 +398,16 @@ final class Reader {
 		if ( array() !== $users ) {
 			cache_users( array_map( 'intval', $users ) );
 		}
+
+		$urls = array();
+		foreach ( $full as $change ) {
+			$view = self::describe( $change );
+			$url  = '' !== $view['url'] ? $view['url'] : (string) $view['previous_url'];
+			if ( '' !== $url ) {
+				$urls[ $url ] = $url;
+			}
+		}
+		$this->resolve_targets( array_values( $urls ) );
 
 		return array( 'batches' => $this->changes->batch_post_counts( array_values( array_unique( array_column( $full, 'batch_id' ) ) ) ) );
 	}
@@ -407,23 +448,83 @@ final class Reader {
 	}
 
 	/**
-	 * Título de la entrada a la que lleva una dirección interna; null si es externa, no se reconoce o el usuario no puede leerla.
+	 * Título de la entrada a la que lleva una dirección interna ya resuelta con {@see self::resolve_targets()}; null si
+	 * es externa, no se reconoce o el usuario no puede leerla.
 	 *
 	 * @param string $url Dirección.
 	 */
 	private function target_of( string $url ): ?string {
-		if ( '' === $url ) {
-			return null;
+		return $this->targets[ $url ] ?? null;
+	}
+
+	/**
+	 * Resuelve de una vez las direcciones internas de una página a los títulos de sus entradas: una consulta por
+	 * `post_name` (el último tramo de la ruta) en vez de `url_to_postid()` por dirección. Si varias entradas
+	 * comparten ese nombre se elige la que tiene exactamente ese enlace permanente; `?p=` y `?page_id=` se leen directos.
+	 *
+	 * @param array $urls Direcciones.
+	 *
+	 * @phpstan-param list<string> $urls
+	 */
+	private function resolve_targets( array $urls ): void {
+		global $wpdb;
+
+		$slugs = array();
+		$ids   = array();
+		foreach ( $urls as $url ) {
+			if ( array_key_exists( $url, $this->targets ) ) {
+				continue;
+			}
+			$this->targets[ $url ] = null;
+			if ( ! $this->is_internal( $url ) ) {
+				continue;
+			}
+
+			$query = array();
+			parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
+			foreach ( array( 'p', 'page_id' ) as $key ) {
+				if ( isset( $query[ $key ] ) && is_string( $query[ $key ] ) && ctype_digit( $query[ $key ] ) ) {
+					$ids[ $url ] = (int) $query[ $key ];
+				}
+			}
+			$segments = array_values( array_filter( explode( '/', (string) wp_parse_url( $url, PHP_URL_PATH ) ), static fn( string $part ): bool => '' !== $part ) );
+			if ( ! isset( $ids[ $url ] ) && array() !== $segments ) {
+				$slugs[ $url ] = sanitize_title( rawurldecode( (string) end( $segments ) ) );
+			}
+		}//end foreach
+
+		$by_name = array();
+		if ( array() !== $slugs ) {
+			$names        = array_values( array_unique( $slugs ) );
+			$placeholders = implode( ',', array_fill( 0, count( $names ), '%s' ) );
+			$found        = $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_name FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type NOT IN ('revision','nav_menu_item','attachment') AND post_name IN ({$placeholders})", ...$names ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Una consulta por página; lista de marcadores generada con array_fill().
+			foreach ( $found as $row ) {
+				$by_name[ (string) $row['post_name'] ][] = (int) $row['ID'];
+			}
 		}
 
-		if ( ! array_key_exists( $url, $this->targets ) ) {
-			$id     = $this->is_internal( $url ) ? url_to_postid( $url ) : 0;
-			$target = $id > 0 ? get_post( $id ) : null;
-
-			$this->targets[ $url ] = $target instanceof WP_Post && current_user_can( 'read_post', $target->ID ) ? get_the_title( $target ) : null;
+		$all = array_merge( $ids, ...array_values( $by_name ) );
+		if ( array() !== $all ) {
+			_prime_post_caches( array_values( array_unique( $all ) ), true, false );
 		}
 
-		return $this->targets[ $url ];
+		foreach ( $slugs as $url => $slug ) {
+			// Solo vale la entrada cuyo enlace permanente tiene exactamente esa ruta (descarta archivos con el mismo nombre).
+			$path = trim( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' );
+			foreach ( $by_name[ $slug ] ?? array() as $candidate ) {
+				if ( trim( (string) wp_parse_url( (string) get_permalink( $candidate ), PHP_URL_PATH ), '/' ) === $path ) {
+					$ids[ $url ] = $candidate;
+					break;
+				}
+			}
+		}
+
+		foreach ( $ids as $url => $id ) {
+			$post = get_post( $id );
+			if ( $post instanceof WP_Post && 'publish' === $post->post_status && current_user_can( 'read_post', $id ) ) {
+				$this->targets[ $url ] = get_the_title( $post );
+			}
+		}
 	}
 
 	/**

@@ -2,16 +2,18 @@ import { Notice } from '@wordpress/components';
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
+import type { ReactNode } from 'react';
 import { api } from '../api';
 import { useDebounced, useLoad } from '../hooks';
 import type { HistoryEntriesResponse, HistoryStatusFilter } from '../types';
 import { HistoryEntryGroup } from './HistoryEntryGroup';
 import { Pagination } from './Pagination';
-import { SearchBox } from './SearchBox';
 
 const PER_PAGE = 10;
 
 interface Props {
+	/** Conmutador «Ver por», que va al principio de la barra de herramientas. */
+	leading: ReactNode;
 	/** Avisa de cuánto se conserva el historial (lo trae la lista). */
 	onRetention: ( days: number ) => void;
 }
@@ -20,8 +22,9 @@ interface Props {
  * Vista por entrada del Historial: los cambios agrupados por entrada, con filtros y paginación del servidor.
  * @param root0
  * @param root0.onRetention
+ * @param root0.leading
  */
-export function HistoryEntries( { onRetention }: Props ) {
+export function HistoryEntries( { onRetention, leading }: Props ) {
 	const [ page, setPage ] = useState( 1 );
 	const [ status, setStatus ] = useState< HistoryStatusFilter >( 'all' );
 	const [ origin, setOrigin ] = useState( '' );
@@ -118,63 +121,81 @@ export function HistoryEntries( { onRetention }: Props ) {
 	const totalPages = local?.total_pages ?? 1;
 	const filtered = status !== 'all' || origin !== '' || debounced !== '';
 
+	const toolbar = (
+		<div className="magiclinking-toolbar">
+			{ leading }
+			<div className="magiclinking-toolbar__filters">
+				<label
+					htmlFor="magiclinking-history-status"
+					className="screen-reader-text"
+				>
+					{ __( 'Show entries with', 'magic-linking' ) }
+				</label>
+				<select
+					id="magiclinking-history-status"
+					value={ status }
+					onChange={ ( event ) =>
+						filter( setStatus )(
+							event.target.value as HistoryStatusFilter
+						)
+					}
+				>
+					<option value="all">
+						{ __( 'All changes', 'magic-linking' ) }
+					</option>
+					<option value="active">
+						{ __( 'With changes in place', 'magic-linking' ) }
+					</option>
+					<option value="undone">
+						{ __( 'With undone changes', 'magic-linking' ) }
+					</option>
+				</select>
+				<label
+					htmlFor="magiclinking-history-origin"
+					className="screen-reader-text"
+				>
+					{ __( 'Source', 'magic-linking' ) }
+				</label>
+				<select
+					id="magiclinking-history-origin"
+					value={ origin }
+					onChange={ ( event ) =>
+						filter( setOrigin )( event.target.value )
+					}
+				>
+					<option value="">
+						{ __( 'All sources', 'magic-linking' ) }
+					</option>
+					<option value="editor">
+						{ __( 'Added in the editor', 'magic-linking' ) }
+					</option>
+					<option value="plugin">
+						{ __( 'Written by Magic Linking', 'magic-linking' ) }
+					</option>
+				</select>
+				<div role="search" className="magiclinking-toolbar__search">
+					<label
+						htmlFor="magiclinking-history-search"
+						className="screen-reader-text"
+					>
+						{ __( 'Search entries by title', 'magic-linking' ) }
+					</label>
+					<input
+						type="search"
+						id="magiclinking-history-search"
+						placeholder={ __( 'Search entries…', 'magic-linking' ) }
+						value={ search }
+						onChange={ ( event ) =>
+							filter( setSearch )( event.target.value )
+						}
+					/>
+				</div>
+			</div>
+		</div>
+	);
+
 	const bar = ( position: 'top' | 'bottom' ) => (
 		<div className={ `tablenav ${ position }` }>
-			{ position === 'top' && (
-				<div className="alignleft actions">
-					<label
-						htmlFor="magiclinking-history-status"
-						className="screen-reader-text"
-					>
-						{ __( 'Show entries with', 'magic-linking' ) }
-					</label>
-					<select
-						id="magiclinking-history-status"
-						value={ status }
-						onChange={ ( event ) =>
-							filter( setStatus )(
-								event.target.value as HistoryStatusFilter
-							)
-						}
-					>
-						<option value="all">
-							{ __( 'All changes', 'magic-linking' ) }
-						</option>
-						<option value="active">
-							{ __( 'With changes in place', 'magic-linking' ) }
-						</option>
-						<option value="undone">
-							{ __( 'With undone changes', 'magic-linking' ) }
-						</option>
-					</select>
-					<label
-						htmlFor="magiclinking-history-origin"
-						className="screen-reader-text"
-					>
-						{ __( 'Source', 'magic-linking' ) }
-					</label>
-					<select
-						id="magiclinking-history-origin"
-						value={ origin }
-						onChange={ ( event ) =>
-							filter( setOrigin )( event.target.value )
-						}
-					>
-						<option value="">
-							{ __( 'All sources', 'magic-linking' ) }
-						</option>
-						<option value="editor">
-							{ __( 'Added in the editor', 'magic-linking' ) }
-						</option>
-						<option value="plugin">
-							{ __(
-								'Written by Magic Linking',
-								'magic-linking'
-							) }
-						</option>
-					</select>
-				</div>
-			) }
 			<Pagination
 				noun="entries"
 				top={ position === 'top' }
@@ -189,12 +210,7 @@ export function HistoryEntries( { onRetention }: Props ) {
 
 	return (
 		<div className="magiclinking-entries">
-			<SearchBox
-				id="magiclinking-history-search"
-				label={ __( 'Search entries by title', 'magic-linking' ) }
-				value={ search }
-				onChange={ filter( setSearch ) }
-			/>
+			{ toolbar }
 
 			{ error && (
 				<Notice status="error" isDismissible={ false }>
@@ -203,6 +219,19 @@ export function HistoryEntries( { onRetention }: Props ) {
 			) }
 
 			{ bar( 'top' ) }
+
+			{ items.length > 0 && (
+				<div className="magiclinking-entries__head" aria-hidden="true">
+					<span>{ __( 'Date', 'magic-linking' ) }</span>
+					<span>{ __( 'Change', 'magic-linking' ) }</span>
+					<span>{ __( 'Anchor text', 'magic-linking' ) }</span>
+					<span>{ __( 'Links to', 'magic-linking' ) }</span>
+					<span>{ __( 'Source', 'magic-linking' ) }</span>
+					<span>{ __( 'User', 'magic-linking' ) }</span>
+					<span>{ __( 'Status', 'magic-linking' ) }</span>
+					<span />
+				</div>
+			) }
 
 			<div
 				className="magiclinking-entries__list"
@@ -230,6 +259,7 @@ export function HistoryEntries( { onRetention }: Props ) {
 					<HistoryEntryGroup
 						key={ entry.post_id }
 						entry={ entry }
+						origin={ origin }
 						onChange={ onEntry( entry.post_id ) }
 					/>
 				) ) }

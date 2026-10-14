@@ -279,6 +279,8 @@ export interface HistoryEntry {
 	last_at: string;
 	/** Los más recientes; el resto se pide aparte. */
 	changes: HistoryEntryChange[];
+	/** Proceso en segundo plano de esta entrada, si lo hay. */
+	job?: HistoryJob | null;
 }
 
 export interface HistoryEntriesResponse extends Paged {
@@ -286,15 +288,17 @@ export interface HistoryEntriesResponse extends Paged {
 	retention_days: number;
 }
 
-export interface HistoryEntryChangesResponse extends Paged {
+export interface HistoryEntryChangesResponse {
 	items: HistoryEntryChange[];
+	/** Cambios de la entrada con el filtro de origen aplicado. */
+	total: number;
 }
 
 export interface EntryRunResponse {
 	results: ChangeResult[];
-	/** Cambios que quedan por tratar (se pide otra vez). */
-	remaining: number;
 	entry: HistoryEntry | null;
+	/** Proceso en segundo plano si había demasiados cambios para la petición (202). */
+	job: HistoryJob | null;
 }
 
 export type HistoryStatusFilter = 'all' | 'active' | 'undone';
@@ -336,6 +340,8 @@ export interface HistoryJob {
 	status: JobStatus;
 	mode: 'undo' | 'redo';
 	batch_id: string;
+	/** Entrada del proceso (0 si es de un lote). */
+	post_id?: number;
 	total: number;
 	done: number;
 	percent: number;

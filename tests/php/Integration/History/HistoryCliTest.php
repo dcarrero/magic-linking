@@ -131,4 +131,17 @@ final class HistoryCliTest extends HistoryTestCase {
 
 		$this->assertStringContainsString( 'never expires', end( WP_CLI::$lines ) );
 	}
+
+	public function test_undo_and_redo_by_entry(): void {
+		$post = $this->post( array( 'post_content' => $this->p( 'Compra aire acondicionado ya.' ) . "\n\n" . $this->p( 'Mira el ventilador industrial hoy.' ) ) );
+		$one  = $this->link( $post );
+		Plugin::container()->get( \MagicLinking\Content\Inserter::class )->insert( new \MagicLinking\Content\InsertRequest( $post, (string) get_permalink( $this->target ), 'ventilador industrial', 'Mira el ', ' hoy.' ) );
+
+		$this->command->history( array( 'undo' ), array( 'post' => (string) $one['post'] ) );
+		$this->assertStringContainsString( 'undone', strtolower( (string) end( WP_CLI::$lines ) ) );
+		$this->assertStringNotContainsString( '<a href=', $this->stored( $one['post'] ) );
+
+		$this->command->history( array( 'redo' ), array( 'post' => (string) $one['post'] ) );
+		$this->assertStringContainsString( '<a href=', $this->stored( $one['post'] ) );
+	}
 }

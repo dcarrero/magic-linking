@@ -2,13 +2,13 @@ import { __ } from '@wordpress/i18n';
 import type { ChangeKind, HistoryOrigin } from '../types';
 
 /**
- * Fecha del servidor (UTC, a veces sin zona) a un Date.
- * @param value Fecha RFC 3339.
+ * Fecha del servidor a un Date: RFC 3339 (con o sin zona; sin zona es UTC) o el formato de MySQL
+ * `YYYY-MM-DD HH:MM:SS` (UTC). Es la única función de fechas del servidor de la pantalla.
+ * @param value Fecha.
  */
-export function parseDate( value: string ): Date {
-	return new Date(
-		/(Z|[+-]\d\d:?\d\d)$/.test( value ) ? value : value + 'Z'
-	);
+export function parseServerDate( value: string ): Date {
+	const iso = value.replace( /^(\d{4}-\d\d-\d\d) (\d)/, '$1T$2' );
+	return new Date( /(Z|[+-]\d\d:?\d\d)$/.test( iso ) ? iso : iso + 'Z' );
 }
 
 /**
@@ -22,7 +22,7 @@ export function formatDate( value: string ): string {
 			dateStyle: 'medium',
 			timeStyle: 'short',
 		}
-	).format( parseDate( value ) );
+	).format( parseServerDate( value ) );
 }
 
 /**
@@ -36,7 +36,7 @@ export function formatFullDate( value: string ): string {
 			dateStyle: 'full',
 			timeStyle: 'medium',
 		}
-	).format( parseDate( value ) );
+	).format( parseServerDate( value ) );
 }
 
 /**

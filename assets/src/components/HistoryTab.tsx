@@ -1,4 +1,3 @@
-import { Button } from '@wordpress/components';
 import { useCallback, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
 import { __, sprintf } from '@wordpress/i18n';
@@ -53,6 +52,34 @@ export function HistoryTab( { settingsUrl }: Props ) {
 		);
 	};
 
+	const switcher = (
+		<div className="magiclinking-viewswitch">
+			<span id="magiclinking-viewswitch-label">
+				{ __( 'View by:', 'magic-linking' ) }
+			</span>
+			<div
+				className="magiclinking-segmented"
+				role="group"
+				aria-labelledby="magiclinking-viewswitch-label"
+			>
+				<button
+					type="button"
+					aria-pressed={ view === 'entry' }
+					onClick={ () => choose( 'entry' ) }
+				>
+					{ __( 'Entry', 'magic-linking' ) }
+				</button>
+				<button
+					type="button"
+					aria-pressed={ view === 'batch' }
+					onClick={ () => choose( 'batch' ) }
+				>
+					{ __( 'Batch', 'magic-linking' ) }
+				</button>
+			</div>
+		</div>
+	);
+
 	return (
 		<>
 			<p className="description">
@@ -71,36 +98,16 @@ export function HistoryTab( { settingsUrl }: Props ) {
 				) }
 			</p>
 
-			<div
-				className="magiclinking-viewswitch"
-				role="group"
-				aria-labelledby="magiclinking-viewswitch-label"
-			>
-				<span id="magiclinking-viewswitch-label">
-					{ __( 'View by:', 'magic-linking' ) }
-				</span>
-				<Button
-					variant={ view === 'entry' ? 'primary' : 'secondary' }
-					size="small"
-					aria-pressed={ view === 'entry' }
-					onClick={ () => choose( 'entry' ) }
-				>
-					{ __( 'Entry', 'magic-linking' ) }
-				</Button>
-				<Button
-					variant={ view === 'batch' ? 'primary' : 'secondary' }
-					size="small"
-					aria-pressed={ view === 'batch' }
-					onClick={ () => choose( 'batch' ) }
-				>
-					{ __( 'Batch', 'magic-linking' ) }
-				</Button>
-			</div>
-
 			{ view === 'entry' ? (
-				<HistoryEntries onRetention={ onRetention } />
+				<HistoryEntries
+					onRetention={ onRetention }
+					leading={ switcher }
+				/>
 			) : (
-				<HistoryBatches onRetention={ onRetention } />
+				<>
+					<div className="magiclinking-toolbar">{ switcher }</div>
+					<HistoryBatches onRetention={ onRetention } />
+				</>
 			) }
 		</>
 	);

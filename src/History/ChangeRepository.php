@@ -367,11 +367,11 @@ final class ChangeRepository {
 	 * vale la fila más reciente de cada tramo, como {@see Slots}) y no trae HTML.
 	 *
 	 * @param array $filters  Filtros: `status` (`active`, `undone` o vacío = todos), `origin` (`plugin`, `editor` o vacío),
-	 *                        `search` (texto del título de la entrada), `post_id` (solo esa entrada) y `author` (solo entradas de este autor; 0 = todas).
+	 *                        `search` (texto del título de la entrada), `post_id` (solo esa entrada) y `restrict` (tipos de entrada que el usuario edita sean de quien sean, su id como autor para el resto y si ve las entradas borradas; ausente = sin límite).
 	 * @param int   $page     Página (desde 1).
 	 * @param int   $per_page Entradas por página.
 	 *
-	 * @phpstan-param array{status?: string, origin?: string, search?: string, author?: int, post_id?: int} $filters
+	 * @phpstan-param array{status?: string, origin?: string, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
 	 *
 	 * @return array{items: list<array{post_id: int, total: int, active: int, last_at: string}>, total: int}
 	 */
@@ -380,7 +380,7 @@ final class ChangeRepository {
 		$per_page = max( 1, $per_page );
 		$offset   = max( 0, $page - 1 ) * $per_page;
 		$status   = $filters['status'] ?? '';
-		$author   = (int) ( $filters['author'] ?? 0 );
+		$restrict = $filters['restrict'] ?? null;
 		$search   = trim( (string) ( $filters['search'] ?? '' ) );
 
 		$join  = '';
@@ -388,14 +388,21 @@ final class ChangeRepository {
 		if ( in_array( $filters['origin'] ?? '', array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR ), true ) ) {
 			$where .= $wpdb->prepare( ' AND c.origin = %s', $filters['origin'] );
 		}
-		if ( $author > 0 || '' !== $search ) {
-			$join = $wpdb->prepare( ' INNER JOIN %i p ON p.ID = c.post_id', $wpdb->posts );
+		if ( null !== $restrict || '' !== $search ) {
+			$join = $wpdb->prepare( ( '' !== $search ? ' INNER' : ' LEFT' ) . ' JOIN %i p ON p.ID = c.post_id', $wpdb->posts ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Palabra fija.
 		}
 		if ( (int) ( $filters['post_id'] ?? 0 ) > 0 ) {
 			$where .= $wpdb->prepare( ' AND c.post_id = %d', (int) $filters['post_id'] );
 		}
-		if ( $author > 0 ) {
-			$where .= $wpdb->prepare( ' AND p.post_author = %d', $author );
+		if ( null !== $restrict ) {
+			$any = array( $wpdb->prepare( 'p.post_author = %d', $restrict['author'] ) );
+			if ( array() !== $restrict['types'] ) {
+				$any[] = 'p.post_type IN ( ' . implode( ',', array_map( static fn( string $type ): string => "'" . esc_sql( $type ) . "'", $restrict['types'] ) ) . ' )';
+			}
+			if ( $restrict['deleted'] ) {
+				$any[] = 'p.ID IS NULL';
+			}
+			$where .= ' AND ( ' . implode( ' OR ', $any ) . ' )';
 		}
 		if ( '' !== $search ) {
 			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( $search ) . '%' );
@@ -462,18 +469,19 @@ final class ChangeRepository {
 	}
 
 	/**
-	 * Una página de los cambios de una entrada, del más reciente al más antiguo, y cuántos hay.
+	 * Una página de los cambios de una entrada, del más reciente al más antiguo, con cursor, y cuántos hay.
 	 *
 	 * @param int    $post_id  Entrada.
-	 * @param int    $page     Página (desde 1).
+	 * @param int    $before   Cursor: solo los cambios con id menor que este (0 = desde el principio).
 	 * @param int    $per_page Cambios por página.
 	 * @param string $origin   Solo de este origen o vacío.
 	 *
 	 * @return array{ids: list<int>, total: int}
 	 */
-	public function post_ids_page( int $post_id, int $page, int $per_page, string $origin = '' ): array {
+	public function post_ids_page( int $post_id, int $before, int $per_page, string $origin = '' ): array {
 		$wpdb = $this->wpdb;
-		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id' ) . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d OFFSET %d', max( 1, $per_page ), max( 0, $page - 1 ) * max( 1, $per_page ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$cond = $before > 0 ? $wpdb->prepare( ' AND c.id < %d', $before ) : '';
+		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id' ) . $cond . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $per_page ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
 		$all  = (int) $wpdb->get_var( $this->post_rows_sql( $post_id, $origin, 'COUNT(*)' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
 
 		return array(
@@ -485,17 +493,51 @@ final class ChangeRepository {
 	/**
 	 * Ids de los cambios activos o deshechos de una entrada (un tramo cuenta una vez), del más reciente al más antiguo.
 	 *
-	 * @param int  $post_id Entrada.
-	 * @param bool $undone  true = los deshechos (para rehacer); false = los puestos (para deshacer).
+	 * @param int    $post_id Entrada.
+	 * @param bool   $undone  true = los deshechos (para rehacer); false = los puestos (para deshacer).
+	 * @param string $origin  Solo de este origen o vacío.
 	 *
 	 * @return list<int>
 	 */
-	public function pending_ids_of_post( int $post_id, bool $undone ): array {
+	public function pending_ids_of_post( int $post_id, bool $undone, string $origin = '' ): array {
 		$wpdb = $this->wpdb;
 		$cond = $undone ? ' AND c.undone_at IS NOT NULL' : ' AND c.undone_at IS NULL';
-		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, '', 'c.id' ) . $cond . ' ORDER BY c.id DESC' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id' ) . $cond . ' ORDER BY c.id DESC' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
 
 		return array_map( 'intval', $ids );
+	}
+
+	/**
+	 * Entrada, lote y acción de cada cambio, en una consulta y sin HTML.
+	 *
+	 * @param array $ids IDs de cambio.
+	 *
+	 * @phpstan-param list<int> $ids
+	 *
+	 * @return array<int, array{post_id: int, batch_id: string, action: string}> Por id; solo los que existen.
+	 */
+	public function light_of( array $ids ): array {
+		$wpdb = $this->wpdb;
+		$ids  = array_values( array_unique( array_map( 'intval', $ids ) ) );
+		if ( array() === $ids ) {
+			return array();
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Lista de marcadores generada con array_fill().
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$rows         = $wpdb->get_results( $wpdb->prepare( "SELECT id, post_id, batch_id, action FROM %i WHERE id IN ({$placeholders})", $this->table, ...$ids ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$out[ (int) $row['id'] ] = array(
+				'post_id'  => (int) $row['post_id'],
+				'batch_id' => (string) $row['batch_id'],
+				'action'   => (string) $row['action'],
+			);
+		}
+
+		return $out;
 	}
 
 	/**

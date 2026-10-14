@@ -1,16 +1,22 @@
 import { Button, Notice } from '@wordpress/components';
-import { useEffect, useRef, useState } from '@wordpress/element';
+import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { api, errorMessage } from '../api';
-import type { ChangeResult, HistoryEntry, HistoryEntryChange } from '../types';
+import { api, errorMessage, errorStatus } from '../api';
+import type {
+	ChangeResult,
+	HistoryEntry,
+	HistoryEntryChange,
+	HistoryIssue,
+	HistoryJob,
+} from '../types';
 import { ConfirmModal } from './ConfirmModal';
 import {
 	actionLabel,
 	entryTitle,
 	formatDate,
 	formatFullDate,
-	parseDate,
+	parseServerDate,
 	sourceLabel,
 } from './historyFormat';
 import {
@@ -22,6 +28,8 @@ import {
 
 interface Props {
 	entry: HistoryEntry;
+	/** Filtro de origen activo: lo que se cuenta, se confirma y se deshace es lo que el filtro deja ver. */
+	origin: string;
 	/** La entrada ha cambiado (o ya no hay nada que enseñar: null). */
 	onChange: ( entry: HistoryEntry | null ) => void;
 }
@@ -33,19 +41,21 @@ interface Pending {
 interface Outcome {
 	redo: boolean;
 	counts: ReturnType< typeof countStatuses >;
-	lines: ChangeResult[];
+	lines: ReadonlyArray< ChangeResult | HistoryIssue >;
 }
 
 /** Cambios que se piden de golpe al pulsar «Mostrar más»: tantos como trae el listado la primera vez. */
 const MORE_PER_PAGE = 10;
+const POLL_MS = 3000;
 
 /**
  * Una entrada del historial: cabecera con sus acciones y una tabla densa con un cambio por fila.
  * @param root0
  * @param root0.entry
+ * @param root0.origin
  * @param root0.onChange
  */
-export function HistoryEntryGroup( { entry, onChange }: Props ) {
+export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 	const [ changes, setChanges ] = useState< HistoryEntryChange[] >(
 		entry.changes
 	);
@@ -54,6 +64,7 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 	const [ loadingMore, setLoadingMore ] = useState( false );
 	const [ failure, setFailure ] = useState( '' );
 	const [ outcome, setOutcome ] = useState< Outcome | null >( null );
+	const [ job, setJob ] = useState< HistoryJob | null >( entry.job ?? null );
 	const heading = useRef< HTMLHeadingElement >( null );
 	const section = useRef< HTMLElement >( null );
 	const restoreFocus = useRef( false );
@@ -80,28 +91,76 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 		}
 	}, [ changes ] );
 
-	const run = async ( mode: 'undo' | 'redo', ids?: number[] ) => {
+	const refresh = useCallback( async () => {
+		try {
+			onChange(
+				( await api.historyEntry( entry.post_id, origin ) ).entry
+			);
+		} catch ( e ) {
+			setFailure(
+				errorMessage(
+					e,
+					__( 'Could not refresh this entry.', 'magic-linking' )
+				)
+			);
+		}
+	}, [ entry.post_id, origin, onChange ] );
+
+	// Seguimiento de un proceso en segundo plano: cada 3 s mientras esté en cola o en marcha.
+	const jobId = job?.id ?? 0;
+	const jobActive = job?.status === 'queued' || job?.status === 'running';
+	useEffect( () => {
+		if ( ! jobActive ) {
+			return undefined;
+		}
+		const timer = setInterval( async () => {
+			try {
+				const { job: next } = await api.historyJob( jobId );
+				setJob( next );
+				if ( next.status !== 'queued' && next.status !== 'running' ) {
+					const counts = next.counts;
+					setOutcome( {
+						redo: next.mode === 'redo',
+						counts,
+						lines: next.issues,
+					} );
+					speak(
+						summaryText( counts, next.mode === 'redo' ),
+						'polite'
+					);
+					await refresh();
+				}
+			} catch ( e ) {
+				const status = errorStatus( e );
+				if ( status === 403 || status === 404 ) {
+					setJob( null );
+				}
+				setFailure(
+					errorMessage(
+						e,
+						__(
+							'Could not read the progress of the process.',
+							'magic-linking'
+						)
+					)
+				);
+			}
+		}, POLL_MS );
+		return () => clearInterval( timer );
+	}, [ jobActive, jobId, refresh ] );
+
+	const control = async ( action: 'resume' | 'cancel' ) => {
+		if ( ! job ) {
+			return;
+		}
 		setBusy( true );
 		setFailure( '' );
-		restoreFocus.current = true;
-		const results: ChangeResult[] = [];
-		let latest: HistoryEntry | null = entry;
 		try {
-			// Una petición trata un puñado de cambios bajo el candado de la entrada; si quedan más, se vuelve a pedir.
-			let remaining = 0;
-			do {
-				const response = await api.runHistoryEntry(
-					mode,
-					entry.post_id,
-					ids
-				);
-				results.push( ...response.results );
-				latest = response.entry;
-				const progressed = response.results.some(
-					( result ) => ! needsAttention( result.status )
-				);
-				remaining = progressed ? response.remaining : 0;
-			} while ( remaining > 0 );
+			const response = await api.controlHistoryJob( job.id, action );
+			setJob( response.job );
+			if ( action === 'cancel' ) {
+				await refresh();
+			}
 		} catch ( e ) {
 			setFailure(
 				errorMessage(
@@ -109,12 +168,36 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 					__( 'That did not work. Try again.', 'magic-linking' )
 				)
 			);
-			// Lo que sí se haya tratado antes del error se refleja.
-			try {
-				latest = ( await api.historyEntry( entry.post_id ) ).entry;
-			} catch {
-				// Se queda como estaba.
+		} finally {
+			setBusy( false );
+		}
+	};
+
+	const run = async ( mode: 'undo' | 'redo', ids?: number[] ) => {
+		setBusy( true );
+		setFailure( '' );
+		restoreFocus.current = true;
+		let results: ChangeResult[] = [];
+		let latest: HistoryEntry | null = entry;
+		try {
+			// Una sola petición: el servidor aplica exactamente la lista o el filtro de origen que se confirmó.
+			const response = await api.runHistoryEntry( mode, entry.post_id, {
+				changeIds: ids,
+				origin,
+			} );
+			results = response.results;
+			latest = response.entry;
+			if ( response.job ) {
+				setJob( response.job );
+				setOutcome( null );
 			}
+		} catch ( e ) {
+			setFailure(
+				errorMessage(
+					e,
+					__( 'That did not work. Try again.', 'magic-linking' )
+				)
+			);
 		} finally {
 			setPending( null );
 			setBusy( false );
@@ -143,8 +226,9 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 		try {
 			const response = await api.historyEntryChanges(
 				entry.post_id,
-				Math.floor( changes.length / MORE_PER_PAGE ) + 1,
-				MORE_PER_PAGE
+				changes[ changes.length - 1 ]?.id ?? 0,
+				MORE_PER_PAGE,
+				origin
 			);
 			setChanges( ( previous ) => [
 				...previous,
@@ -204,7 +288,9 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 					) }{ ' ' }
 					· { __( 'Last change', 'magic-linking' ) }{ ' ' }
 					<time
-						dateTime={ parseDate( entry.last_at ).toISOString() }
+						dateTime={ parseServerDate(
+							entry.last_at
+						).toISOString() }
 						title={ formatFullDate( entry.last_at ) }
 					>
 						{ formatDate( entry.last_at ) }
@@ -248,7 +334,7 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 					<Button
 						variant="secondary"
 						size="small"
-						disabled={ entry.active === 0 || busy }
+						disabled={ entry.active === 0 || busy || jobActive }
 						accessibleWhenDisabled
 						aria-label={ sprintf(
 							/* translators: 1: number of active changes, 2: entry title. */
@@ -268,7 +354,7 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 						<Button
 							variant="secondary"
 							size="small"
-							disabled={ busy }
+							disabled={ busy || jobActive }
 							accessibleWhenDisabled
 							aria-label={ sprintf(
 								/* translators: 1: number of undone changes, 2: entry title. */
@@ -290,6 +376,66 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 					) }
 				</div>
 			</header>
+
+			{ job && jobActive && (
+				<div className="magiclinking-batch__progress">
+					<progress
+						max={ Math.max( 1, job.total ) }
+						value={ job.done }
+						aria-label={
+							job.mode === 'redo'
+								? __(
+										'Progress of redoing the changes',
+										'magic-linking'
+								  )
+								: __(
+										'Progress of undoing the changes',
+										'magic-linking'
+								  )
+						}
+					/>
+					<p>
+						{ sprintf(
+							/* translators: 1: changes done, 2: total changes. */
+							__(
+								'Working in the background: %1$s of %2$s.',
+								'magic-linking'
+							),
+							job.done.toLocaleString(),
+							job.total.toLocaleString()
+						) }
+					</p>
+					{ job.stalled && (
+						<Notice status="warning" isDismissible={ false }>
+							{ __(
+								'This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running.',
+								'magic-linking'
+							) }
+						</Notice>
+					) }
+					{ job.stalled && job.can_control && (
+						<div className="magiclinking-actions">
+							<Button
+								variant="secondary"
+								onClick={ () => control( 'resume' ) }
+								disabled={ busy }
+								accessibleWhenDisabled
+							>
+								{ __( 'Resume', 'magic-linking' ) }
+							</Button>
+							<Button
+								variant="secondary"
+								isDestructive
+								onClick={ () => control( 'cancel' ) }
+								disabled={ busy }
+								accessibleWhenDisabled
+							>
+								{ __( 'Cancel process', 'magic-linking' ) }
+							</Button>
+						</div>
+					) }
+				</div>
+			) }
 
 			{ outcome && (
 				<div className="magiclinking-outcome">
@@ -349,6 +495,11 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 						title
 					) }
 				</caption>
+				<colgroup>
+					{ [ 1, 2, 3, 4, 5, 6, 7, 8 ].map( ( n ) => (
+						<col key={ n } />
+					) ) }
+				</colgroup>
 				<thead>
 					<tr>
 						<th scope="col">{ __( 'Date', 'magic-linking' ) }</th>
@@ -375,7 +526,7 @@ export function HistoryEntryGroup( { entry, onChange }: Props ) {
 							key={ change.id }
 							change={ change }
 							title={ title }
-							disabled={ busy }
+							disabled={ busy || jobActive }
 							onRun={ ( mode ) => run( mode, [ change.id ] ) }
 						/>
 					) ) }
@@ -497,7 +648,9 @@ function ChangeRow( { change, title, disabled, onRun }: RowProps ) {
 				data-label={ __( 'Date', 'magic-linking' ) }
 			>
 				<time
-					dateTime={ parseDate( change.created_at ).toISOString() }
+					dateTime={ parseServerDate(
+						change.created_at
+					).toISOString() }
 					title={ formatFullDate( change.created_at ) }
 				>
 					{ formatDate( change.created_at ) }

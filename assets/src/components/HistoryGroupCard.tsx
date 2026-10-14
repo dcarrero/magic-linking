@@ -14,7 +14,7 @@ import {
 	entryTitle,
 	formatDate,
 	formatFullDate,
-	parseDate,
+	parseServerDate,
 } from './historyFormat';
 import {
 	countStatuses,
@@ -267,7 +267,11 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 			</h2>
 			<p className="magiclinking-batch__meta">
 				{ group.user_name } ·{ ' ' }
-				<time dateTime={ parseDate( group.created_at ).toISOString() }>
+				<time
+					dateTime={ parseServerDate(
+						group.created_at
+					).toISOString() }
+				>
 					{ formatDate( group.created_at ) }
 				</time>{ ' ' }
 				·{ ' ' }
@@ -507,7 +511,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 										<tr key={ change.id }>
 											<td>
 												<time
-													dateTime={ parseDate(
+													dateTime={ parseServerDate(
 														change.created_at
 													).toISOString() }
 													title={ formatFullDate(

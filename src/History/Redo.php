@@ -50,8 +50,9 @@ final class Redo {
 	 *
 	 * @param int      $change_id Fila `insert` de magiclinking_changes con `undone_at`.
 	 * @param int|null $user_id   Quien lo pide (null = el usuario actual; 0 = el sistema).
+	 * @param bool     $reindex   Reindexar la entrada al terminar (quien rehace varios de la misma entrada lo hace una vez al final).
 	 */
-	public function redo( int $change_id, ?int $user_id = null ): UndoResult {
+	public function redo( int $change_id, ?int $user_id = null, bool $reindex = true ): UndoResult {
 		$change = $this->changes->get( $change_id );
 		if ( null === $change || ! in_array( $change['action'], ChangeRepository::PRIMARY, true ) ) {
 			return new UndoResult( $change_id, 0, UndoResult::FAILED, __( 'That change does not exist.', 'magic-linking' ), InsertionException::BAD_REQUEST );
@@ -89,10 +90,8 @@ final class Redo {
 			);
 		}
 
-		try {
-			$this->jobs->reindex_now( $post_id );
-		} catch ( Throwable $e ) {
-			PostWriter::log( sprintf( 'No se pudo actualizar el grafo de la entrada %d: %s', $post_id, $e->getMessage() ) );
+		if ( $reindex ) {
+			$this->reindex( $post_id );
 		}
 
 		// El cambio ya está escrito y anotado: un oyente que falla no puede ocultarlo.
@@ -117,6 +116,19 @@ final class Redo {
 	}
 
 	/**
+	 * Reindexa una entrada; un fallo no oculta el cambio ya escrito.
+	 *
+	 * @param int $post_id Entrada.
+	 */
+	private function reindex( int $post_id ): void {
+		try {
+			$this->jobs->reindex_now( $post_id );
+		} catch ( Throwable $e ) {
+			PostWriter::log( sprintf( 'No se pudo actualizar el grafo de la entrada %d: %s', $post_id, $e->getMessage() ) );
+		}
+	}
+
+	/**
 	 * Rehace varios cambios de **una** entrada bajo un único candado, del más antiguo al más reciente (F1-36, D-59).
 	 *
 	 * @param int      $post_id Entrada.
@@ -131,15 +143,21 @@ final class Redo {
 		sort( $ids );
 
 		try {
-			return $this->writer->exclusive(
+			$results = $this->writer->exclusive(
 				$post_id,
 				function () use ( $ids, $user_id ): array {
-					return array_map( fn( int $id ): UndoResult => $this->redo( $id, $user_id ), $ids );
+					return array_map( fn( int $id ): UndoResult => $this->redo( $id, $user_id, false ), $ids );
 				}
 			);
 		} catch ( InsertionException $e ) {
 			return array_map( static fn( int $id ): UndoResult => new UndoResult( $id, $post_id, UndoResult::FAILED, $e->getMessage(), $e->reason() ), $ids );
 		}
+
+		if ( array() !== array_filter( $results, static fn( UndoResult $result ): bool => UndoResult::REDONE === $result->status ) ) {
+			$this->reindex( $post_id );
+		}
+
+		return $results;
 	}
 
 	/**

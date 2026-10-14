@@ -51,6 +51,11 @@ final class BatchJob implements Module {
 	public const MAX_ISSUES = 100;
 
 	/**
+	 * Cambios de una entrada que se tratan bajo un candado y con una reindexación (procesos de una entrada).
+	 */
+	public const POST_CHUNK = 10;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Reader        $reader Lectura del historial.
@@ -127,6 +132,61 @@ final class BatchJob implements Module {
 		}
 
 		return $this->jobs->get( $id );
+	}
+
+	/**
+	 * Lanza el proceso de varios cambios de **una** entrada («Deshacer todos» por encima del límite síncrono, F1-36).
+	 * Guarda la lista de cambios tal como se confirmó, así que lo que se trata coincide con lo contado. Quien llama ya
+	 * ha comprobado el permiso sobre la entrada.
+	 *
+	 * @param int   $post_id Entrada.
+	 * @param array $ids     Cambios de esa entrada, en el orden en que se tratan.
+	 * @param bool  $redo    true = rehacer; false = deshacer.
+	 * @param int   $user_id Quien lo pide.
+	 * @param bool  $enqueue Programar la primera ejecución.
+	 *
+	 * @phpstan-param list<int> $ids
+	 *
+	 * @return array{id: int, type: string, status: string, total: int, done: int, params: array<string, mixed>, error: string, created_by: int, created_at: string, updated_at: string}|null Null si no hay nada que tratar.
+	 */
+	public function start_for_post( int $post_id, array $ids, bool $redo, int $user_id, bool $enqueue = true ): ?array {
+		if ( array() === $ids ) {
+			return null;
+		}
+
+		$id = $this->jobs->create(
+			self::TYPE,
+			count( $ids ),
+			array(
+				'batch_id' => '',
+				'post_id'  => $post_id,
+				'ids'      => $ids,
+				'mode'     => $redo ? 'redo' : 'undo',
+				'user_id'  => $user_id,
+				'cursor'   => 0,
+				'counts'   => array(),
+				'issues'   => array(),
+				'undone'   => 0,
+			),
+			$user_id
+		);
+
+		if ( $enqueue ) {
+			as_enqueue_async_action( self::HOOK, array( $id ), Installer::ACTION_GROUP, true );
+		}
+
+		return $this->jobs->get( $id );
+	}
+
+	/**
+	 * Si una entrada tiene ahora mismo un proceso en segundo plano propio.
+	 *
+	 * @param int $post_id Entrada.
+	 */
+	public function is_busy_post( int $post_id ): bool {
+		$active = $this->active();
+
+		return null !== $active && (int) ( $active['params']['post_id'] ?? 0 ) === $post_id;
 	}
 
 	/**
@@ -241,7 +301,11 @@ final class BatchJob implements Module {
 
 		$this->jobs->set_status( $job_id, JobRepository::RUNNING );
 
-		$params  = $job['params'];
+		$params = $job['params'];
+		if ( (int) ( $params['post_id'] ?? 0 ) > 0 ) {
+			return $this->step_post( $job, $budget );
+		}
+
 		$batch   = (string) ( $params['batch_id'] ?? '' );
 		$redo    = 'redo' === ( $params['mode'] ?? '' );
 		$user_id = (int) ( $params['user_id'] ?? 0 );
@@ -318,6 +382,83 @@ final class BatchJob implements Module {
 				// Mismo aviso que al deshacer un lote en la petición: una sola vez, con el total.
 				do_action( 'magiclinking_batch_undone', $batch, $undone );
 			}
+		}
+
+		return ! $finished;
+	}
+
+	/**
+	 * Trata los cambios de un proceso de **una** entrada, en tandas de {@see self::POST_CHUNK} bajo un único candado y
+	 * con una sola reindexación por tanda.
+	 *
+	 * @param array<string, mixed> $job    Proceso.
+	 * @param float|null           $budget Segundos de trabajo.
+	 *
+	 * @return bool Si queda trabajo.
+	 */
+	private function step_post( array $job, ?float $budget ): bool {
+		$params  = $job['params'];
+		$post_id = (int) $params['post_id'];
+		$redo    = 'redo' === ( $params['mode'] ?? '' );
+		$user_id = (int) ( $params['user_id'] ?? 0 );
+		$cursor  = (int) ( $params['cursor'] ?? 0 );
+		$counts  = is_array( $params['counts'] ?? null ) ? $params['counts'] : array();
+		$issues  = is_array( $params['issues'] ?? null ) ? $params['issues'] : array();
+		$undone  = (int) ( $params['undone'] ?? 0 );
+		$done    = (int) $job['done'];
+		$stop_at = microtime( true ) + ( $budget ?? (float) self::TIME_BUDGET );
+		$ids     = array_map( 'intval', is_array( $params['ids'] ?? null ) ? $params['ids'] : array() );
+		$pending = array_values( array_filter( $ids, static fn( int $id ): bool => $redo ? $id > $cursor : ( 0 === $cursor || $id < $cursor ) ) );
+
+		$previous = get_current_user_id();
+		wp_set_current_user( $user_id );
+
+		try {
+			foreach ( array_chunk( $pending, self::POST_CHUNK ) as $chunk ) {
+				try {
+					$results = $redo ? $this->redo->redo_post( $post_id, $chunk, $user_id ) : $this->undo->revert_post( $post_id, $chunk, $user_id );
+				} catch ( Throwable $e ) {
+					PostWriter::log( sprintf( 'Fallo al tratar cambios de la entrada %d en segundo plano: %s', $post_id, $e->getMessage() ) );
+					$results = array_map( static fn( int $id ): UndoResult => new UndoResult( $id, $post_id, UndoResult::FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) ), $chunk );
+				}
+
+				foreach ( $results as $result ) {
+					$counts[ $result->status ] = (int) ( $counts[ $result->status ] ?? 0 ) + 1;
+					if ( in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::FIX_REVERTED, UndoResult::GONE ), true ) ) {
+						++$undone;
+					}
+					if ( in_array( $result->status, array( UndoResult::MANUAL, UndoResult::FAILED ), true ) && count( $issues ) < self::MAX_ISSUES ) {
+						$issues[] = array(
+							'change_id'  => $result->change_id,
+							'post_id'    => $result->post_id,
+							'post_title' => get_post( $result->post_id ) instanceof WP_Post ? get_the_title( $result->post_id ) : null,
+							'status'     => $result->status,
+							'message'    => $result->message,
+							'edit_url'   => $result->edit_url,
+						);
+					}
+					++$done;
+				}
+
+				$cursor = (int) end( $chunk );
+
+				if ( microtime( true ) >= $stop_at ) {
+					break;
+				}
+			}//end foreach
+		} finally {
+			wp_set_current_user( $previous );
+		}//end try
+
+		$params['cursor'] = $cursor;
+		$params['counts'] = $counts;
+		$params['issues'] = $issues;
+		$params['undone'] = $undone;
+
+		$finished = array() === $pending || (int) end( $pending ) === $cursor;
+		$this->jobs->set_progress( $job['id'], $done, max( (int) $job['total'], $done ), $params );
+		if ( $finished ) {
+			$this->jobs->set_status( $job['id'], JobRepository::DONE );
 		}
 
 		return ! $finished;

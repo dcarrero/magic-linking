@@ -316,18 +316,11 @@ final class HistoryEntriesTest extends HistoryTestCase {
 		$this->link( $a );
 		$this->second_link( $a );
 
-		$page = $this->request(
-			'GET',
-			'/history/posts/' . $a . '/changes',
-			array(
-				'per_page' => 1,
-				'page'     => 2,
-			)
-		)->get_data();
+		$page = $this->request( 'GET', '/history/posts/' . $a . '/changes', array( 'per_page' => 1 ) )->get_data();
 
 		$this->assertSame( 2, $page['total'] );
-		$this->assertSame( 2, $page['total_pages'] );
-		$this->assertSame( 'aire acondicionado', $page['items'][0]['anchor'] );
+		$this->assertCount( 1, $page['items'] );
+		$this->assertSame( 'ventilador industrial', $page['items'][0]['anchor'] );
 	}
 
 	// ------------------------------------------------------------------ Deshacer y rehacer varios.
@@ -347,7 +340,6 @@ final class HistoryEntriesTest extends HistoryTestCase {
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( array( $s['a2'], $s['a1'] ), array_column( $data['results'], 'change_id' ), 'En orden inverso.' );
-		$this->assertSame( 0, $data['remaining'] );
 		$this->assertSame( 0, $data['entry']['active'] );
 		$this->assertSame( 2, $data['entry']['undone'] );
 		$stored = $this->stored( $s['a'] );
@@ -464,19 +456,6 @@ final class HistoryEntriesTest extends HistoryTestCase {
 		$this->assertSame( 2, substr_count( $this->stored( $s['a'] ), '<a href=' ) );
 	}
 
-	public function test_a_large_entry_is_undone_in_slices_and_says_how_many_remain(): void {
-		add_filter( 'magiclinking_undo_sync_limit', static fn(): int => 1 );
-		$s = $this->seed();
-
-		$first = $this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) )->get_data();
-		$this->assertCount( 1, $first['results'] );
-		$this->assertSame( 1, $first['remaining'] );
-
-		$second = $this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) )->get_data();
-		$this->assertSame( 0, $second['remaining'] );
-		$this->assertSame( 0, $second['entry']['active'] );
-	}
-
 	public function test_nothing_to_undo_is_a_404(): void {
 		$s = $this->seed();
 		$this->request( 'POST', '/undo', array( 'post_id' => $s['b'] ) );
@@ -512,5 +491,233 @@ final class HistoryEntriesTest extends HistoryTestCase {
 		$this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) );
 
 		$this->assertSame( 1, $locks, 'Un único candado para los dos cambios de la entrada.' );
+	}
+
+	// ------------------------------------------------------------------ Revisión de código (PR 22).
+
+	public function test_undo_all_with_an_origin_filter_undoes_exactly_what_was_counted(): void {
+		$s = $this->seed();
+		global $wpdb;
+		$wpdb->update( $wpdb->prefix . 'magiclinking_changes', array( 'origin' => ChangeRepository::ORIGIN_EDITOR ), array( 'id' => $s['a1'] ) );
+
+		$entry = $this->request( 'GET', '/history/posts/' . $s['a'], array( 'origin' => 'plugin' ) )->get_data()['entry'];
+		$this->assertSame( 1, $entry['active'], 'Con el filtro, la entrada cuenta un cambio.' );
+
+		$data = $this->request(
+			'POST',
+			'/undo',
+			array(
+				'post_id' => $s['a'],
+				'origin'  => 'plugin',
+			)
+		)->get_data();
+
+		$this->assertSame( array( $s['a2'] ), array_column( $data['results'], 'change_id' ), 'Solo el que se contó.' );
+		$this->assertStringContainsString( 'aire acondicionado</a>', $this->stored( $s['a'] ), 'El del editor sigue puesto.' );
+		$this->assertSame( 1, $data['entry']['total'], 'La entrada que vuelve respeta el filtro.' );
+		$this->assertCount( 1, $data['entry']['changes'] );
+	}
+
+	public function test_every_change_appears_once_in_the_results(): void {
+		$s = $this->seed();
+		update_post_meta( $s['a'], '_edit_lock', time() . ':' . $this->editor );
+
+		$data = $this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) )->get_data();
+
+		$ids = array_column( $data['results'], 'change_id' );
+		$this->assertSame( $ids, array_values( array_unique( $ids ) ) );
+		$this->assertArrayNotHasKey( 'remaining', $data );
+	}
+
+	public function test_a_role_with_edit_others_pages_but_not_posts_sees_the_pages_of_others(): void {
+		add_role(
+			'page_editor',
+			'Page editor',
+			array(
+				'read'                 => true,
+				'edit_posts'           => true,
+				'edit_pages'           => true,
+				'edit_others_pages'    => true,
+				'edit_published_pages' => true,
+			)
+		);
+		$user = self::factory()->user->create( array( 'role' => 'page_editor' ) );
+		$page = $this->link(
+			$this->post(
+				array(
+					'post_type'   => 'page',
+					'post_author' => $this->editor,
+				)
+			)
+		);
+		$this->link( $this->post( array( 'post_author' => $this->editor ) ) );
+
+		$data = $this->request( 'GET', '/history', array( 'group' => 'post' ), $user )->get_data();
+
+		$this->assertSame( array( $page['post'] ), array_column( $data['items'], 'post_id' ), 'Ve la página ajena y no la entrada ajena.' );
+		$this->assertSame( 1, $data['total'] );
+		$this->assertSame( 200, $this->request( 'GET', '/history/posts/' . $page['post'] . '/changes', array(), $user )->get_status() );
+		remove_role( 'page_editor' );
+	}
+
+	public function test_show_more_pages_by_cursor_and_keeps_the_origin_filter(): void {
+		$a  = $this->two_slot_post();
+		$c1 = $this->link( $a )['change'];
+		$c2 = $this->second_link( $a );
+		global $wpdb;
+		$wpdb->update( $wpdb->prefix . 'magiclinking_changes', array( 'origin' => ChangeRepository::ORIGIN_EDITOR ), array( 'id' => $c1 ) );
+
+		$all   = $this->request(
+			'GET',
+			'/history/posts/' . $a . '/changes',
+			array(
+				'per_page' => 1,
+				'before'   => $c2,
+			)
+		)->get_data();
+		$plain = $this->request(
+			'GET',
+			'/history/posts/' . $a . '/changes',
+			array(
+				'per_page' => 5,
+				'origin'   => 'plugin',
+			)
+		)->get_data();
+
+		$this->assertSame( array( $c1 ), array_column( $all['items'], 'id' ), 'Cursor: solo los anteriores al último mostrado.' );
+		$this->assertSame( array( $c2 ), array_column( $plain['items'], 'id' ) );
+		$this->assertSame( 1, $plain['total'] );
+	}
+
+	public function test_busy_check_reads_the_changes_in_one_query(): void {
+		$a     = $this->two_slot_post();
+		$ids   = array( $this->link( $a )['change'], $this->second_link( $a ) );
+		$count = 0;
+		add_filter(
+			'query',
+			static function ( string $query ) use ( &$count ): string {
+				if ( preg_match( '/FROM `?\w*magiclinking_changes`? WHERE id = \d+/', $query ) ) {
+					++$count;
+				}
+
+				return $query;
+			}
+		);
+
+		$this->request(
+			'POST',
+			'/undo',
+			array(
+				'post_id'    => $a,
+				'change_ids' => $ids,
+			)
+		);
+
+		$this->assertLessThanOrEqual( 2, $count, 'Las comprobaciones previas no leen cambio a cambio.' );
+	}
+
+	public function test_undoing_many_changes_of_an_entry_reindexes_it_once(): void {
+		$s      = $this->seed();
+		$writes = 0;
+		add_filter(
+			'query',
+			static function ( string $query ) use ( &$writes ): string {
+				if ( preg_match( '/^\s*(INSERT|REPLACE|UPDATE|DELETE)[^;]*magiclinking_(docs|links)/i', $query ) ) {
+					++$writes;
+				}
+
+				return $query;
+			}
+		);
+		$this->request( 'POST', '/undo', array( 'post_id' => $s['b'] ) );
+		$one    = $writes;
+		$writes = 0;
+		$this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) );
+
+		$this->assertGreaterThan( 0, $one, 'La entrada se reindexa.' );
+		$this->assertLessThanOrEqual( $one, $writes, 'Dos cambios de una entrada reindexan una vez, como uno.' );
+	}
+
+	public function test_the_list_resolves_the_targets_without_a_query_per_destination(): void {
+		$count = function ( int $entries ): int {
+			for ( $i = 0; $i < $entries; $i++ ) {
+				$target = self::factory()->post->create(
+					array(
+						'post_title'   => 'Destino ' . $i . wp_generate_password( 3, false ),
+						'post_content' => $this->p( 'x' ),
+					)
+				);
+				$post   = $this->post();
+				Plugin::container()->get( Inserter::class )->insert( new InsertRequest( $post, (string) get_permalink( $target ), 'aire acondicionado', 'Compra ', ' ya.' ) );
+			}
+			wp_cache_flush();
+			$n = 0;
+			$f = static function ( string $query ) use ( &$n ): string {
+				++$n;
+
+				return $query;
+			};
+			add_filter( 'query', $f );
+			$data = $this->request(
+				'GET',
+				'/history',
+				array(
+					'group'    => 'post',
+					'per_page' => 50,
+				)
+			)->get_data();
+			remove_filter( 'query', $f );
+			$this->assertNotNull( $data['items'][0]['changes'][0]['target_title'] );
+
+			return $n;
+		};
+
+		$few  = $count( 2 );
+		$many = $count( 10 );
+
+		$this->assertLessThanOrEqual( $few + 6, $many, 'Ocho destinos más no añaden consultas por destino.' );
+	}
+
+	public function test_a_large_entry_goes_to_the_background_and_can_be_followed(): void {
+		add_filter( 'magiclinking_undo_sync_limit', static fn(): int => 1 );
+		$s = $this->seed();
+
+		$response = $this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) );
+
+		$this->assertSame( 202, $response->get_status() );
+		$job = $response->get_data()['job'];
+		$this->assertSame( 2, $job['total'] );
+		$this->assertSame( $s['a'], $job['post_id'] );
+		$this->assertStringContainsString( '<a href=', $this->stored( $s['a'] ), 'Todavía no se ha tocado nada.' );
+
+		$list = $this->request( 'GET', '/history', array( 'group' => 'post' ) )->get_data()['items'];
+		$this->assertSame( $job['id'], $this->group_for( $list, $s['a'] )['job']['id'] );
+		$this->assertSame( 409, $this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) )->get_status(), 'La entrada tiene un proceso.' );
+		$this->assertSame( 200, $this->request( 'GET', '/history/jobs/' . $job['id'] )->get_status() );
+
+		Plugin::container()->get( \MagicLinking\History\BatchJob::class )->step( $job['id'] );
+
+		$this->assertStringNotContainsString( '<a href=', $this->stored( $s['a'] ) );
+		$this->assertStringContainsString( '<a href=', $this->stored( $s['b'] ), 'Solo esa entrada.' );
+		$done = $this->request( 'GET', '/history/jobs/' . $job['id'] )->get_data()['job'];
+		$this->assertSame( 'done', $done['status'] );
+	}
+
+	public function test_undoing_by_entry_fires_the_batch_action_for_each_affected_batch(): void {
+		$s     = $this->seed();
+		$fired = array();
+		add_action(
+			'magiclinking_batch_undone',
+			static function ( string $batch, int $count ) use ( &$fired ): void {
+				$fired[ $batch ] = $count;
+			},
+			10,
+			2
+		);
+
+		$this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) );
+
+		$this->assertCount( 2, $fired, 'Los dos cambios de A son de lotes distintos.' );
+		$this->assertSame( array( 1, 1 ), array_values( $fired ) );
 	}
 }
