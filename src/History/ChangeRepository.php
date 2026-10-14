@@ -597,7 +597,7 @@ final class ChangeRepository {
 	 */
 	private function live_rows_sql( string $alias ): string {
 		return $this->wpdb->prepare(
-			"( {$alias}.undone_at IS NULL OR NOT EXISTS ( SELECT 1 FROM %i n WHERE n.post_id = {$alias}.post_id AND n.batch_id = {$alias}.batch_id AND n.id > {$alias}.id AND n.action = {$alias}.action AND COALESCE( n.block_path, '' ) = COALESCE( {$alias}.block_path, '' ) AND n.before_html = {$alias}.before_html AND n.after_html = {$alias}.after_html ) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias interno.
+			"( {$alias}.undone_at IS NULL OR NOT EXISTS ( SELECT 1 FROM %i n USE INDEX ( post_created ) WHERE n.post_id = {$alias}.post_id AND n.batch_id = {$alias}.batch_id AND n.id > {$alias}.id AND n.action = {$alias}.action AND COALESCE( n.block_path, '' ) = COALESCE( {$alias}.block_path, '' ) AND n.before_html = {$alias}.before_html AND n.after_html = {$alias}.after_html ) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias interno.
 			$this->table
 		);
 	}

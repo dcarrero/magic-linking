@@ -287,6 +287,83 @@ test.describe( 'History by entry', () => {
 		}
 	} );
 
+	test( 'after undoing with a filter the page falls back to the last one that exists', async ( {
+		page,
+	} ) => {
+		wp(
+			'eval',
+			`
+			$block = "<!-- wp:paragraph -->\\n<p>%s</p>\\n<!-- /wp:paragraph -->";
+			wp_set_current_user( 1 );
+			$inserter = MagicLinking\\Core\\Plugin::container()->get( MagicLinking\\Content\\Inserter::class );
+			$target = get_page_by_path( 'e2e-destino', OBJECT, 'post' );
+			for ( $i = 1; $i <= 8; $i++ ) {
+				$id = wp_insert_post( array( 'post_name' => "e2e-extra-$i", 'post_title' => "E2E extra $i", 'post_content' => sprintf( $block, 'Compra aire acondicionado ya.' ), 'post_status' => 'publish' ) );
+				$inserter->insert( new MagicLinking\\Content\\InsertRequest( $id, get_permalink( $target ), 'aire acondicionado', 'Compra ', ' ya.' ) );
+			}
+			`
+		);
+		await login( page );
+		await page.goto( SCREEN_HISTORY );
+		await page.getByLabel( 'Show entries with' ).selectOption( 'active' );
+		// 11 entradas con 10 por página: la segunda página tiene una.
+		await page.getByRole( 'button', { name: 'Next page' } ).first().click();
+		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 1 );
+		const entry = page.locator( '.magiclinking-entry' ).first();
+		await entry.getByRole( 'button', { name: /^Undo all \(1\)/ } ).click();
+		await page
+			.getByRole( 'dialog', { name: 'Undo all changes in this entry?' } )
+			.getByRole( 'button', { name: 'Undo all', exact: true } )
+			.click();
+
+		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 10 );
+		await expect( page.getByLabel( 'Current page' ) ).toHaveValue( '1' );
+		await expectNoViolations( page );
+	} );
+
+	test( 'the progress of a background process keeps polling while the filters change', async ( {
+		page,
+	} ) => {
+		wp(
+			'eval',
+			`
+			wp_mkdir_p( WPMU_PLUGIN_DIR );
+			file_put_contents( WPMU_PLUGIN_DIR . '/magiclinking-e2e.php', '<?php if ( ! defined( "DISABLE_WP_CRON" ) ) { define( "DISABLE_WP_CRON", true ); } add_filter( "magiclinking_undo_sync_limit", static fn() => 1 ); add_filter( "action_scheduler_allow_async_request_runner", "__return_false" );' );
+			`
+		);
+		try {
+			await login( page );
+			await page.goto( SCREEN_HISTORY );
+			const entry = page
+				.locator( '.magiclinking-entry' )
+				.filter( { hasText: 'E2E origen A' } );
+			await entry
+				.getByRole( 'button', { name: 'Undo all (2) in E2E origen A' } )
+				.click();
+			await page
+				.getByRole( 'dialog', { name: 'Undo all changes in this entry?' } )
+				.getByRole( 'button', { name: 'Undo all', exact: true } )
+				.click();
+			await expect( entry.getByRole( 'progressbar' ) ).toBeVisible();
+
+			let polls = 0;
+			page.on( 'request', ( request ) => {
+				if ( /history(\/|%2F)jobs(\/|%2F)\d+/.test( request.url() ) ) {
+					polls++;
+				}
+			} );
+			// Escribir en el buscador vuelve a pintar la lista varias veces dentro del intervalo de sondeo.
+			const search = page.getByLabel( 'Search entries by title' );
+			for ( const char of 'E2E origen A' ) {
+				await search.pressSequentially( char );
+				await page.waitForTimeout( 550 );
+			}
+			expect( polls ).toBeGreaterThanOrEqual( 1 );
+		} finally {
+			wp( 'eval', '@unlink( WPMU_PLUGIN_DIR . "/magiclinking-e2e.php" );' );
+		}
+	} );
+
 	test( 'on a phone the rows become blocks, with no horizontal scroll', async ( {
 		page,
 	} ) => {

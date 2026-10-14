@@ -720,4 +720,199 @@ final class HistoryEntriesTest extends HistoryTestCase {
 		$this->assertCount( 2, $fired, 'Los dos cambios de A son de lotes distintos.' );
 		$this->assertSame( array( 1, 1 ), array_values( $fired ) );
 	}
+
+	// ------------------------------------------------------------------ Segunda revisión (PR 22).
+
+	/**
+	 * Entrada con N frases enlazables (`termino1`…), todas enlazadas en un mismo lote.
+	 *
+	 * @param int $count Cuántas.
+	 *
+	 * @return array{post: int, batch: string, changes: list<int>}
+	 */
+	private function many_links( int $count ): array {
+		$content = '';
+		for ( $i = 1; $i <= $count; $i++ ) {
+			$content .= $this->p( "Mira el termino{$i} hoy." ) . "\n\n";
+		}
+		$post    = $this->post( array( 'post_content' => trim( $content ) ) );
+		$batch   = BatchId::generate();
+		$changes = array();
+		for ( $i = 1; $i <= $count; $i++ ) {
+			$changes[] = Plugin::container()->get( Inserter::class )->insert( new InsertRequest( $post, (string) get_permalink( $this->target ), "termino{$i}", 'Mira el ', ' hoy.' ), $batch )->change_id;
+		}
+
+		return array(
+			'post'    => $post,
+			'batch'   => $batch,
+			'changes' => $changes,
+		);
+	}
+
+	/**
+	 * Hace que el segundo guardado de WordPress lance una excepción.
+	 */
+	private function explode_on_second_save(): void {
+		$calls = 0;
+		add_action(
+			'wp_after_insert_post',
+			static function () use ( &$calls ): void {
+				if ( 2 === ++$calls ) {
+					throw new \RuntimeException( 'boom' );
+				}
+			}
+		);
+	}
+
+	public function test_an_exception_midway_keeps_what_was_applied_reindexed_and_notified(): void {
+		$m     = $this->many_links( 3 );
+		$fired = array();
+		add_action(
+			'magiclinking_batch_undone',
+			static function ( string $batch, int $count ) use ( &$fired ): void {
+				$fired[ $batch ] = $count;
+			},
+			10,
+			2
+		);
+		$writes = 0;
+		add_filter(
+			'query',
+			static function ( string $query ) use ( &$writes ): string {
+				if ( preg_match( '/^\s*(INSERT|REPLACE|UPDATE|DELETE)[^;]*magiclinking_(docs|links)/i', $query ) ) {
+					++$writes;
+				}
+
+				return $query;
+			}
+		);
+		$this->explode_on_second_save();
+
+		$results = Plugin::container()->get( \MagicLinking\History\Undo::class )->revert_post( $m['post'], $m['changes'], $this->admin );
+
+		$statuses = array_count_values( array_column( array_map( static fn( $r ): array => array( 'status' => $r->status ), $results ), 'status' ) );
+		$this->assertCount( 3, $results );
+		$this->assertSame( 1, $statuses['failed'] ?? 0, 'Solo falla el cambio en el que saltó.' );
+		$this->assertSame( 2, array_sum( array_diff_key( $statuses, array( 'failed' => 1 ) ) ), 'Los otros dos se aplicaron.' );
+		$this->assertGreaterThan( 0, $writes, 'Lo aplicado se reindexa.' );
+		$this->assertSame( array( $m['batch'] => 2 ), $fired, 'El aviso lleva lo realmente deshecho.' );
+	}
+
+	public function test_a_background_slice_counts_only_the_change_that_failed(): void {
+		$m = $this->many_links( 3 );
+		$this->explode_on_second_save();
+		$jobs = Plugin::container()->get( \MagicLinking\History\BatchJob::class );
+		$job  = $jobs->start_for_post( $m['post'], array_reverse( $m['changes'] ), false, $this->admin, false );
+
+		$jobs->step( (int) $job['id'] );
+
+		$done = Plugin::container()->get( \MagicLinking\Jobs\JobRepository::class )->get( (int) $job['id'] );
+		$this->assertSame( 1, $done['params']['counts']['failed'] ?? 0, 'No se marcan como fallidos los que se aplicaron.' );
+		$this->assertSame( 2, $done['params']['undone'] );
+		$this->assertCount( 1, $done['params']['issues'] );
+	}
+
+	public function test_a_background_process_fires_the_batch_action_once_with_the_total(): void {
+		$m     = $this->many_links( 11 );
+		$fired = array();
+		add_action(
+			'magiclinking_batch_undone',
+			static function ( string $batch, int $count ) use ( &$fired ): void {
+				$fired[] = array( $batch, $count );
+			},
+			10,
+			2
+		);
+		$jobs = Plugin::container()->get( \MagicLinking\History\BatchJob::class );
+		$job  = $jobs->start_for_post( $m['post'], array_reverse( $m['changes'] ), false, $this->admin, false );
+
+		$this->assertTrue( $jobs->step( (int) $job['id'], 0.0 ), 'El presupuesto corta tras la primera tanda de 10.' );
+		$this->assertSame( array(), $fired );
+		$this->assertFalse( $jobs->step( (int) $job['id'] ) );
+
+		$this->assertSame( array( array( $m['batch'], 11 ) ), $fired, 'Una vez, con el total.' );
+	}
+
+	public function test_the_busy_guard_sees_the_process_of_an_entry_from_every_route(): void {
+		add_filter( 'magiclinking_undo_sync_limit', static fn(): int => 1 );
+		$s = $this->seed();
+		$this->assertSame( 202, $this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) )->get_status() );
+
+		$this->assertSame( 409, $this->request( 'POST', '/undo', array( 'change_id' => $s['a1'] ) )->get_status(), 'Cambio suelto.' );
+		$this->assertSame( 409, $this->request( 'POST', '/redo', array( 'change_id' => $s['a1'] ) )->get_status(), 'Rehacer suelto.' );
+		$batch = Plugin::container()->get( ChangeRepository::class )->get( $s['a1'] )['batch_id'];
+		$this->assertSame( 409, $this->request( 'POST', '/undo', array( 'batch_id' => $batch ) )->get_status(), 'Lote que toca la entrada.' );
+		$this->assertSame(
+			409,
+			$this->request(
+				'POST',
+				'/undo',
+				array(
+					'post_id'    => $s['a'],
+					'change_ids' => array( $s['a1'] ),
+				)
+			)->get_status(),
+			'Entrada.'
+		);
+		$this->assertStringContainsString( '<a href=', $this->stored( $s['a'] ) );
+	}
+
+	public function test_redo_notices_come_after_the_reindex(): void {
+		$s = $this->seed();
+		$this->request( 'POST', '/undo', array( 'post_id' => $s['a'] ) );
+		$indexed = false;
+		add_filter(
+			'query',
+			static function ( string $query ) use ( &$indexed ): string {
+				if ( preg_match( '/^\s*(INSERT|REPLACE|UPDATE|DELETE)[^;]*magiclinking_(docs|links)/i', $query ) ) {
+					$indexed = true;
+				}
+
+				return $query;
+			}
+		);
+		$seen = array();
+		add_action(
+			'magiclinking_link_inserted',
+			static function () use ( &$indexed, &$seen ): void {
+				$seen[] = $indexed;
+			}
+		);
+
+		$this->request( 'POST', '/redo', array( 'post_id' => $s['a'] ) );
+
+		$this->assertSame( array( true, true ), $seen, 'Los avisos salen con la entrada ya reindexada.' );
+	}
+
+	public function test_the_grouped_query_stays_fast_with_twenty_thousand_rows(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'magiclinking_changes';
+		$batch = BatchId::generate();
+		$now   = gmdate( 'Y-m-d H:i:s' );
+		for ( $chunk = 0; $chunk < 20; $chunk++ ) {
+			$values = array();
+			for ( $i = 0; $i < 1000; $i++ ) {
+				$n        = $chunk * 1000 + $i;
+				$post     = 900000 + intdiv( $n, 4 );
+				$undone   = 0 === $n % 3 ? "'{$now}'" : 'NULL';
+				$values[] = "('{$batch}', {$post}, 'insert', '0', 'antes {$n}', 'despues {$n}', '', 1, '{$now}', {$undone}, 'plugin')";
+			}
+			$wpdb->query( "INSERT INTO {$table} (batch_id, post_id, action, block_path, before_html, after_html, content_hash_after, user_id, created_at, undone_at, origin) VALUES " . implode( ',', $values ) ); // phpcs:ignore WordPress.DB
+		}
+
+		$start = microtime( true );
+		$data  = $this->request(
+			'GET',
+			'/history',
+			array(
+				'group'    => 'post',
+				'per_page' => 10,
+			)
+		)->get_data();
+		$took  = microtime( true ) - $start;
+
+		fwrite( STDERR, sprintf( "\n[rendimiento] 20.000 filas, %d entradas: %.3f s\n", $data['total'], $took ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Medida de rendimiento en la salida de la prueba.
+		$this->assertSame( 5000, $data['total'] );
+		$this->assertLessThan( 3.0, $took );
+	}
 }

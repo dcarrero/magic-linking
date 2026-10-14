@@ -144,4 +144,23 @@ final class HistoryCliTest extends HistoryTestCase {
 		$this->command->history( array( 'redo' ), array( 'post' => (string) $one['post'] ) );
 		$this->assertStringContainsString( '<a href=', $this->stored( $one['post'] ) );
 	}
+
+	public function test_undo_by_entry_refuses_while_the_entry_has_a_background_process(): void {
+		add_filter( 'magiclinking_undo_sync_limit', static fn(): int => 1 );
+		$batch = $this->batch( 3 );
+		Plugin::container()->get( BatchJob::class )->start_for_post( $batch['posts'][0], array( $batch['changes'][0] ), false, 0, false );
+
+		$this->expectException( RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/background/' );
+		$this->command->history( array( 'undo' ), array( 'post' => (string) $batch['posts'][0] ) );
+	}
+
+	public function test_undo_by_batch_refuses_while_one_of_its_entries_has_a_background_process(): void {
+		$batch = $this->batch( 2 );
+		Plugin::container()->get( BatchJob::class )->start_for_post( $batch['posts'][1], array( $batch['changes'][1] ), false, 0, false );
+
+		$this->expectException( RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/background/' );
+		$this->command->history( array( 'undo', $batch['batch'] ), array() );
+	}
 }
