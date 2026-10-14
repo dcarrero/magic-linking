@@ -207,7 +207,7 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 * Improved: History is more compact and grouped by entry, with the date of every change, filters, "Undo all" and "Redo all" per entry (in the background when there are many) and a view by batch.
 * New: WP-CLI `wp magic-linking history undo|redo --post=<id>`.
 * Improved: Settings are organized in tabs (General, Suggestions, Links, History and data) with a save bar that stays in view.
-* Improved: the editor panel is more compact after you link or dismiss a suggestion; its title no longer repeats the count, and the toolbar button still announces it to screen readers.
+* Improved: the editor panel is more compact after you link or dismiss a suggestion; its title no longer repeats the count, which is still announced to screen readers.
 * Improved: History says where each link came from: "Editor panel", "Another entry's panel" or "Broken links".
 * Improved: translations are up to date in all six bundled languages.
 
