@@ -30,6 +30,7 @@ final class Candidate {
 	 * @param bool   $unlike        Si el destino es de otro tipo (página legal, contacto…).
 	 * @param bool   $pillar        Si el destino es contenido pilar.
 	 * @param int    $affinity      Filtros en modo Considerar que comparten origen y destino.
+	 * @param bool   $dismissed     Si el destino se ha descartado desde muchos orígenes (baja su prior en todo el sitio).
 	 */
 	public function __construct(
 		public readonly float $relevance,
@@ -44,7 +45,8 @@ final class Candidate {
 		public readonly int $anchor_uses,
 		public readonly bool $unlike,
 		public readonly bool $pillar = false,
-		public readonly int $affinity = 0
+		public readonly int $affinity = 0,
+		public readonly bool $dismissed = false
 	) {
 	}
 }

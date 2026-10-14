@@ -77,6 +77,20 @@ final class Suggester {
 	private array $never;
 
 	/**
+	 * Orígenes descartados para el destino de las entrantes (nunca se proponen como origen).
+	 *
+	 * @var list<int>
+	 */
+	private array $excluded_origins;
+
+	/**
+	 * Destinos con el prior rebajado (descartados desde muchos orígenes): ID → true.
+	 *
+	 * @var array<int, true>
+	 */
+	private array $penalized;
+
+	/**
 	 * Si se respetan los enlaces que ya existen (false en el modo de juicio del banco).
 	 *
 	 * @var bool
@@ -159,10 +173,12 @@ final class Suggester {
 	 *                                    semantic_weight (peso del coseno, 0–1), semantic_retrieval (candidatas por coseno),
 	 *                                    alternatives (frases alternativas por destino, 0–2), alternative_margin,
 	 *                                    pillars (IDs de destinos pilar), filters (type|category|tag → ignore|consider|require),
+	 *                                    excluded_origins (entrantes: orígenes que no se proponen, p. ej. los descartados),
+	 *                                    penalized (IDs de destinos con el prior rebajado, {@see Scorer::PENALTIES}),
 	 *                                    count_removed_links (banco: la densidad cuenta los enlaces retirados).
 	 * @param VectorStore|null $vectors  Vectores de las entradas (capa semántica); sin ellos, solo léxico.
 	 *
-	 * @phpstan-param array{max_outgoing?: int, never?: list<int>, existing_links?: bool, now?: int, semantic_weight?: float, semantic_retrieval?: bool, alternatives?: int, alternative_margin?: float, pillars?: list<int>, filters?: array<string, string>, count_removed_links?: bool} $options
+	 * @phpstan-param array{max_outgoing?: int, never?: list<int>, existing_links?: bool, now?: int, semantic_weight?: float, semantic_retrieval?: bool, alternatives?: int, alternative_margin?: float, pillars?: list<int>, filters?: array<string, string>, count_removed_links?: bool, excluded_origins?: list<int>, penalized?: list<int>} $options
 	 */
 	public function __construct(
 		private IndexRepository $index,
@@ -177,8 +193,11 @@ final class Suggester {
 		$this->retriever    = $retriever ?? new Retriever( $index );
 		$this->max_outgoing = $options['max_outgoing'] ?? self::MAX_OUTGOING;
 		$this->never        = $options['never'] ?? array();
-		$this->existing     = $options['existing_links'] ?? true;
-		$this->now          = $options['now'] ?? time();
+
+		$this->excluded_origins = $options['excluded_origins'] ?? array();
+		$this->penalized        = array_fill_keys( $options['penalized'] ?? array(), true );
+		$this->existing         = $options['existing_links'] ?? true;
+		$this->now              = $options['now'] ?? time();
 
 		$this->semantic_weight    = $options['semantic_weight'] ?? Semantic::WEIGHT;
 		$this->semantic_retrieval = $options['semantic_retrieval'] ?? false;
@@ -350,7 +369,7 @@ final class Suggester {
 		}
 		$analyzer = Analyzer::for_language( $meta->lang );
 		$phrases  = $this->finder->target_phrases( $meta, $this->index->terms( $target ), $analyzer );
-		$exclude  = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array() );
+		$exclude  = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array(), $this->excluded_origins );
 		$origins  = $this->retriever->incoming( $meta, $phrases, $exclude );
 		if ( $this->index instanceof Preloads ) {
 			$this->index->preload( array_merge( array( $target ), $origins ) );
@@ -425,12 +444,13 @@ final class Suggester {
 		$unlike   = 'post' !== $meta->type && 1 === preg_match( self::UNLIKE_SLUGS, $meta->slug );
 
 		$pillar   = isset( $this->pillars[ $target ] );
+		$penalty  = isset( $this->penalized[ $target ] );
 		$affinity = $this->affinity( $document, $meta );
 		$linked   = $links ?? count( $document->links );
 
 		$scored = array();
 		foreach ( $matches as $n => $match ) {
-			$candidate = new Candidate( $relevance, $match->kind, $match->words, $inbound, $match->position, $match->last, $age, $linked, $source->words, $this->index->anchor_uses( $match->key, $target ), $unlike, $pillar, $affinity );
+			$candidate = new Candidate( $relevance, $match->kind, $match->words, $inbound, $match->position, $match->last, $age, $linked, $source->words, $this->index->anchor_uses( $match->key, $target ), $unlike, $pillar, $affinity, $penalty );
 			$scored[]  = array( $match, $this->scorer->score( $candidate ), $n );
 		}
 		// Mayor puntuación primero; con empate, la primera aparición en el texto.

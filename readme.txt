@@ -199,6 +199,8 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 == Changelog ==
 
 = Unreleased =
+* New: dismiss a suggestion for good. A dismissed pair (entry, target) is not proposed again, in either direction, and you can undo it. A target dismissed from more than 10 published entries is ranked slightly lower across the site.
+* New: bundled translations into Spanish (Spain), French, German, Italian and Portuguese (Brazil and Portugal). Translations approved on translate.wordpress.org take precedence when available.
 * New: setup assistant for new sites, and new settings: where links can go (headings, quotes, tables), open links in a new tab, extra rel values, suggestions shown, ignored addresses and words.
 * Changed: links in quotes are now off by default, as in the new settings. Before, a paragraph inside a quote block could receive an automatic link; now it only does if you turn on "Quotes" in Settings.
 

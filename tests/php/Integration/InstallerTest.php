@@ -44,9 +44,9 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertTrue( $installer->maybe_upgrade() );
 
 		$this->assertSame( array(), $installer->missing_tables() );
-		$this->assertCount( 7, Schema::TABLES );
+		$this->assertCount( 8, Schema::TABLES );
 		$this->assertSame( MAGICLINKING_DB_VERSION, $installer->installed_version() );
-		$this->assertSame( 3, MAGICLINKING_DB_VERSION );
+		$this->assertSame( 4, MAGICLINKING_DB_VERSION );
 		$this->assertContains( $this->autoload_of( Installer::DB_VERSION_OPTION ), array( 'no', 'off' ) );
 		$this->assertSame( 0, $this->own_autoloaded_options() );
 	}
@@ -178,9 +178,26 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertTrue( $this->installer()->maybe_upgrade() );
 
 		$this->assertContains( 'pos', $this->columns( 'postings' ) );
-		$this->assertSame( 3, $this->installer()->installed_version() );
+		$this->assertSame( MAGICLINKING_DB_VERSION, $this->installer()->installed_version() );
 		$this->assertNotFalse( get_option( LexicalIndexer::BUILDING_OPTION, false ), 'el índice léxico antiguo no vale: no cuenta como construido' );
 		$this->assertNull( $wpdb->get_var( "SELECT NULLIF(lex_hash, '') FROM {$docs} WHERE post_id = 7" ), 'la huella léxica se vacía para que se reindexe' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	public function test_schema_4_adds_the_table_of_dismissed_suggestions(): void {
+		global $wpdb;
+
+		$installer = $this->installer();
+		$installer->maybe_upgrade();
+		$dismissed = Schema::table( $wpdb->prefix, 'dismissed' );
+		$wpdb->query( "DROP TABLE {$dismissed}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		update_option( Installer::DB_VERSION_OPTION, 3, false );
+		$this->assertSame( array( $dismissed ), $installer->missing_tables() );
+
+		$this->assertTrue( $installer->maybe_upgrade() );
+
+		$this->assertSame( array(), $installer->missing_tables() );
+		$this->assertSame( MAGICLINKING_DB_VERSION, $installer->installed_version() );
+		$this->assertColumns( 'dismissed', array( 'source_id', 'target_id', 'user_id', 'created_at' ) );
 	}
 
 	public function test_schema_3_keeps_the_id_of_a_build_in_progress(): void {
@@ -210,7 +227,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		( new TableRepository( $wpdb ) )->terms( 7 );
 
 		$this->assertContains( 'pos', $this->columns( 'postings' ) );
-		$this->assertSame( 3, $this->installer()->installed_version() );
+		$this->assertSame( MAGICLINKING_DB_VERSION, $this->installer()->installed_version() );
 	}
 
 	public function test_upgrading_requests_a_reconcile_but_a_fresh_install_does_not(): void {
@@ -266,7 +283,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertTrue( $installer->maybe_upgrade() );
 		$this->assertSame( 0, $runs );
 		$this->assertSame( 99, $installer->installed_version() );
-		$this->assertCount( 7, $installer->missing_tables(), 'No crea tablas al volver a una versión anterior del plugin.' );
+		$this->assertCount( 8, $installer->missing_tables(), 'No crea tablas al volver a una versión anterior del plugin.' );
 	}
 
 	public function test_activate_deactivate_reactivate_keeps_data_without_errors(): void {
@@ -347,7 +364,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( '', get_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_wizard_dismissed', true ), 'El asistente cerrado se borra con los datos, también de la caché.' );
 		$this->assertSame( 'keep', get_user_meta( $user, 'magiclinking_pro_something', true ), 'Solo se borran las claves propias exactas.' );
 		$this->assertSame( 'keep', get_user_meta( $user, 'other_plugin_user_meta', true ) );
-		$this->assertCount( 7, $installer->missing_tables() );
+		$this->assertCount( 8, $installer->missing_tables() );
 		$this->assertFalse( get_option( Installer::DB_VERSION_OPTION ) );
 		$this->assertFalse( get_option( Installer::SETTINGS_OPTION ) );
 		$this->assertFalse( get_transient( 'magiclinking_suggestions_1' ) );
@@ -398,7 +415,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE action_id = %d', $actions, $other ) ), 'La acción de otro plugin se queda.' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$this->assertFalse( get_option( LexicalIndexer::BUILDING_OPTION, false ) );
 		$this->assertFalse( get_transient( 'magiclinking_epoch_abc' ) );
-		$this->assertCount( 7, $installer->missing_tables(), 'Incluidas las tablas de historial (changes) y de procesos (jobs).' );
+		$this->assertCount( 8, $installer->missing_tables(), 'Incluidas las tablas de historial (changes) y de procesos (jobs).' );
 	}
 
 	public function test_uninstall_keeps_history_jobs_and_options_when_the_user_did_not_ask(): void {

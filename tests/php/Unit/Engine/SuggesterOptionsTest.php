@@ -139,6 +139,60 @@ final class SuggesterOptionsTest extends TestCase {
 		$this->assertFalse( $scorer->score( new Candidate( ...( array( 'pillar' => true ) + $weak ) ) )->passes );
 	}
 
+	public function test_options_for_dismissals_do_nothing_when_empty(): void {
+		$corpus   = self::corpus();
+		$document = $corpus->source->get( 8 );
+		$this->assertNotNull( $document );
+
+		$plain = $corpus->suggester( array(), self::loose() )->outgoing( $document );
+		$empty = $corpus->suggester(
+			array(
+				'excluded_origins' => array(),
+				'penalized'        => array(),
+			),
+			self::loose()
+		)->outgoing( $document );
+
+		$this->assertNotSame( array(), $plain );
+		$this->assertEquals( $plain, $empty, 'sin descartes el resultado es idéntico' );
+		$this->assertEquals( $corpus->suggester( array(), self::loose() )->incoming( 3 ), $corpus->suggester( array( 'excluded_origins' => array() ), self::loose() )->incoming( 3 ) );
+	}
+
+	public function test_penalized_target_loses_a_tenth_and_only_that_target(): void {
+		$corpus   = self::corpus();
+		$document = $corpus->source->get( 8 );
+		$this->assertNotNull( $document );
+
+		$plain = $corpus->suggester( array(), self::loose() )->outgoing( $document );
+		$down  = $corpus->suggester( array( 'penalized' => array( 3 ) ), self::loose() )->outgoing( $document );
+
+		$this->assertNotNull( self::to( $plain, 3 ) );
+		$this->assertNotNull( self::to( $down, 3 ) );
+		$this->assertEqualsWithDelta( self::to( $plain, 3 )->score->value - 0.1, self::to( $down, 3 )->score->value, 1e-9 );
+		$this->assertSame( array( 'dismissed_target' => 0.1 ), self::to( $down, 3 )->score->penalties );
+		foreach ( $plain as $suggestion ) {
+			if ( 3 !== $suggestion->target ) {
+				$this->assertEquals( $suggestion->score, self::to( $down, $suggestion->target )->score, 'los demás destinos no cambian' );
+			}
+		}
+	}
+
+	public function test_excluded_origins_are_not_proposed_for_incoming(): void {
+		$corpus = self::corpus();
+		$plain  = $corpus->suggester( array(), self::loose() )->incoming( 3 );
+		$origin = $plain[0]->source;
+
+		$kept = $corpus->suggester( array( 'excluded_origins' => array( $origin ) ), self::loose() )->incoming( 3 );
+
+		$this->assertGreaterThan( 1, count( $plain ) );
+		$this->assertNotContains( $origin, array_map( static fn( Suggestion $s ): int => $s->source, $kept ) );
+		$this->assertSame(
+			array_slice( array_map( static fn( Suggestion $s ): int => $s->source, $plain ), 1 ),
+			array_map( static fn( Suggestion $s ): int => $s->source, $kept ),
+			'el resto queda igual y en el mismo orden'
+		);
+	}
+
 	public function test_pillar_bonus_is_zero_by_default(): void {
 		$this->assertSame( 0.0, Scorer::BONUSES['pillar'] );
 		$this->assertSame( 0.0, Scorer::BONUSES['affinity'] );

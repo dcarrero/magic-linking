@@ -344,6 +344,13 @@ export interface InboundResponse extends Paged {
 	post_id?: number;
 }
 
+/** Respuesta de descartar una sugerencia o de deshacer el descarte. */
+export interface DismissalResponse {
+	dismissed: boolean;
+	source_id: number;
+	target_id: number;
+}
+
 export type InsertStatus = 'inserted' | 'failed';
 
 export interface InsertResult {

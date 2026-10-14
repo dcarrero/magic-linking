@@ -4,6 +4,7 @@
 import apiFetch from '@wordpress/api-fetch';
 import type {
 	BrokenResponse,
+	DismissalResponse,
 	HistoryChangesResponse,
 	HistoryGroup,
 	HistoryJob,
@@ -193,6 +194,29 @@ export const api = {
 			path: path( '/links' ),
 			method: 'POST',
 			data: { links },
+		} ),
+	/**
+	 * Descarta para siempre el par (origen, destino): no se vuelve a proponer en ningún panel.
+	 *
+	 * @param sourceId Entrada donde iría el enlace (hay que poder editarla).
+	 * @param targetId Entrada a la que enlazaría.
+	 */
+	dismissSuggestion: ( sourceId: number, targetId: number ) =>
+		apiFetch< DismissalResponse >( {
+			path: path( '/suggestions/dismissals' ),
+			method: 'POST',
+			data: { source_id: sourceId, target_id: targetId },
+		} ),
+	/**
+	 * Deshace el descarte de un par.
+	 *
+	 * @param sourceId Origen.
+	 * @param targetId Destino.
+	 */
+	restoreSuggestion: ( sourceId: number, targetId: number ) =>
+		apiFetch< DismissalResponse >( {
+			path: path( `/suggestions/dismissals/${ sourceId }/${ targetId }` ),
+			method: 'DELETE',
 		} ),
 	settings: () =>
 		apiFetch< SettingsResponse >( { path: path( '/settings' ) } ),

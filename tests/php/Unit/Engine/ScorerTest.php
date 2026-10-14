@@ -96,6 +96,32 @@ final class ScorerTest extends TestCase {
 		$this->assertSame( array( 'unlike_target' => 0.3 ), $scorer->score( self::candidate( array( 'unlike' => true ) ) )->penalties );
 	}
 
+	public function test_dismissed_target_lowers_the_prior_by_a_tenth(): void {
+		$scorer = new Scorer();
+		$plain  = $scorer->score( self::candidate() );
+		$down   = $scorer->score( self::candidate( array( 'dismissed' => true ) ) );
+
+		$this->assertSame( array( 'dismissed_target' => 0.1 ), $down->penalties );
+		$this->assertEqualsWithDelta( $plain->value - 0.1, $down->value, 1e-9 );
+		$this->assertSame( $plain->penalties, $scorer->score( self::candidate( array( 'dismissed' => false ) ) )->penalties, 'por defecto no penaliza' );
+	}
+
+	public function test_dismissed_target_can_drop_a_suggestion_below_the_threshold(): void {
+		$scorer = new Scorer();
+		$edge   = array(
+			'relevance' => 0.2,
+			'inbound'   => 9,
+			'last'      => true,
+			'age_days'  => 900,
+		);
+
+		$plain = $scorer->score( self::candidate( $edge ) );
+		$down  = $scorer->score( self::candidate( $edge + array( 'dismissed' => true ) ) );
+
+		$this->assertTrue( $plain->passes );
+		$this->assertFalse( $down->passes );
+	}
+
 	public function test_threshold(): void {
 		$weak = self::candidate(
 			array(
