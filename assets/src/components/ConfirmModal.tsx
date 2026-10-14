@@ -7,6 +7,8 @@ interface Props {
 	/** Texto del botón que confirma. */
 	confirmLabel: string;
 	busy: boolean;
+	/** El botón que confirma no se puede pulsar todavía (falta elegir algo). */
+	confirmDisabled?: boolean;
 	onConfirm: () => void;
 	onCancel: () => void;
 	children: ReactNode;
@@ -19,6 +21,7 @@ interface Props {
  * @param root0.title
  * @param root0.confirmLabel
  * @param root0.busy
+ * @param root0.confirmDisabled
  * @param root0.onConfirm
  * @param root0.onCancel
  * @param root0.children
@@ -27,6 +30,7 @@ export function ConfirmModal( {
 	title,
 	confirmLabel,
 	busy,
+	confirmDisabled = false,
 	onConfirm,
 	onCancel,
 	children,
@@ -44,7 +48,7 @@ export function ConfirmModal( {
 						variant="primary"
 						onClick={ onConfirm }
 						isBusy={ busy }
-						disabled={ busy }
+						disabled={ busy || confirmDisabled }
 						accessibleWhenDisabled
 					>
 						{ confirmLabel }

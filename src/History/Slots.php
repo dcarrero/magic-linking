@@ -19,9 +19,9 @@ final class Slots {
 	/**
 	 * Última fila de cada hueco, en el orden en que se crearon.
 	 *
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}> $rows Inserciones de un lote, de la más antigua a la más reciente.
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $rows Inserciones de un lote, de la más antigua a la más reciente.
 	 *
-	 * @return list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}>
+	 * @return list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}>
 	 */
 	public static function collapse( array $rows ): array {
 		$latest = array();
@@ -41,7 +41,7 @@ final class Slots {
 	 * @param array     $rows   Inserciones de un lote (de `ChangeRepository::inserts_of()`).
 	 * @param bool|null $undone true = solo los deshechos (rehacer); false = solo los puestos (deshacer); null = todos.
 	 *
-	 * @phpstan-param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}> $rows
+	 * @phpstan-param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $rows
 	 *
 	 * @return list<int>
 	 */

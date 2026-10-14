@@ -75,6 +75,30 @@ export interface BrokenItem {
 	reason_code: number;
 	reason: string;
 	edit_url: string;
+	/** El usuario puede editar la entrada donde está el enlace. */
+	can_fix: boolean;
+}
+
+/** Entrada a la que se puede apuntar para arreglar un enlace roto. */
+export interface BrokenTarget {
+	id: number;
+	title: string;
+	url: string;
+	type_label: string;
+}
+
+export interface BrokenTargetsResponse {
+	items: BrokenTarget[];
+}
+
+export interface FixResponse {
+	status: 'fixed';
+	mode: 'retarget' | 'unlink';
+	link_id: number;
+	change_id: number;
+	batch_id: string;
+	post_id: number;
+	group: HistoryGroup | null;
 }
 
 export interface BrokenResponse extends Paged {
@@ -171,9 +195,14 @@ export interface Boot {
 export type HistoryOrigin = 'plugin' | 'editor';
 
 /** Un grupo (lote) del historial: una acción del usuario. */
+/** Qué hizo un cambio: poner un enlace, cambiar su destino o quitarlo. */
+export type ChangeKind = 'insert' | 'retarget' | 'unlink';
+
 export interface HistoryGroup {
 	batch_id: string;
 	origin: HistoryOrigin;
+	/** Acción del primer cambio del grupo. */
+	kind?: ChangeKind;
 	created_at: string;
 	user_id: number;
 	user_name: string;
@@ -207,6 +236,9 @@ export interface HistoryChange {
 	edit_url: string | null;
 	anchor: string;
 	url: string;
+	kind?: ChangeKind;
+	/** Dirección anterior, si se cambió el destino o se quitó el enlace. */
+	previous_url?: string | null;
 	state: 'active' | 'undone';
 	created_at: string;
 	undone_at: string | null;
@@ -219,6 +251,7 @@ export interface HistoryChangesResponse extends Paged {
 export type ChangeStatus =
 	| 'restored'
 	| 'link_removed'
+	| 'fix_reverted'
 	| 'already_gone'
 	| 'manual'
 	| 'failed'

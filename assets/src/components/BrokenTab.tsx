@@ -1,11 +1,12 @@
-import { useEffect, useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 import type { ReactNode } from 'react';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { api } from '../api';
+import { api, errorMessage } from '../api';
 import { useDebounced, useIsFirstRender, useLoad } from '../hooks';
-import type { BrokenItem } from '../types';
+import type { BrokenItem, FixResponse } from '../types';
 import { Column, DataTable } from './DataTable';
+import { FixBrokenModal } from './FixBrokenModal';
 import { SearchBox } from './SearchBox';
 
 interface Props {
@@ -36,6 +37,19 @@ export function BrokenTab( {
 	const debounced = useDebounced( search );
 	const first = useIsFirstRender();
 	const postId = only?.id ?? 0;
+	// Se sube al arreglar o deshacer un enlace, para volver a pedir la lista sin recargar la página.
+	const [ version, setVersion ] = useState( 0 );
+	const [ fixing, setFixing ] = useState< {
+		row: BrokenItem;
+		mode: 'retarget' | 'unlink';
+	} | null >( null );
+	const [ notice, setNotice ] = useState< {
+		text: string;
+		batchId: string | null;
+		error?: boolean;
+	} | null >( null );
+	const [ undoing, setUndoing ] = useState( false );
+	const noticeRef = useRef< HTMLDivElement >( null );
 
 	const { data, loading, error } = useLoad(
 		( signal ) =>
@@ -43,7 +57,7 @@ export function BrokenTab( {
 				{ post_id: postId, search: debounced, page, per_page: perPage },
 				signal
 			),
-		[ postId, debounced, page, perPage, refreshKey ],
+		[ postId, debounced, page, perPage, refreshKey, version ],
 		__( 'Could not load the broken links.', 'magic-linking' )
 	);
 
@@ -73,6 +87,81 @@ export function BrokenTab( {
 		// Solo al llegar datos nuevos.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ data ] );
+
+	const onFixed = ( row: BrokenItem, response: FixResponse ) => {
+		setFixing( null );
+		setNotice( {
+			text:
+				response.mode === 'retarget'
+					? sprintf(
+							/* translators: 1: anchor text, 2: entry title. */
+							__(
+								'Destination changed for “%1$s” in “%2$s”.',
+								'magic-linking'
+							),
+							row.anchor || __( '(no text)', 'magic-linking' ),
+							row.source_title
+					  )
+					: sprintf(
+							/* translators: 1: anchor text, 2: entry title. */
+							__(
+								'Link removed from “%1$s” in “%2$s”; its text stays.',
+								'magic-linking'
+							),
+							row.anchor || __( '(no text)', 'magic-linking' ),
+							row.source_title
+					  ),
+			batchId: response.batch_id,
+		} );
+		setVersion( ( value ) => value + 1 );
+	};
+
+	// Al cerrarse el cuadro el botón de la fila ya no existe: el foco va al aviso, que se anuncia solo.
+	useEffect( () => {
+		if ( notice ) {
+			noticeRef.current?.focus();
+		}
+	}, [ notice ] );
+
+	const undo = async () => {
+		if ( ! notice?.batchId || undoing ) {
+			return;
+		}
+		setUndoing( true );
+		try {
+			const response = await api.runHistory( 'undo', {
+				batchId: notice.batchId,
+			} );
+			const bad = response.results.some(
+				( result ) =>
+					result.status === 'manual' || result.status === 'failed'
+			);
+			setNotice( {
+				text: bad
+					? __(
+							'The link could not be put back automatically. Open the history to see why.',
+							'magic-linking'
+					  )
+					: __(
+							'Done: the link is back as it was.',
+							'magic-linking'
+					  ),
+				batchId: null,
+				error: bad,
+			} );
+			setVersion( ( value ) => value + 1 );
+		} catch ( e ) {
+			setNotice( {
+				text: errorMessage(
+					e,
+					__( 'The change could not be undone.', 'magic-linking' )
+				),
+				batchId: notice.batchId,
+				error: true,
+			} );
+		}
+		setUndoing( false );
+	};
 
 	const columns: Column< BrokenItem, never >[] = [
 		{
@@ -130,6 +219,44 @@ export function BrokenTab( {
 				),
 			} );
 		}
+		if ( row.can_fix ) {
+			items.push(
+				{
+					id: 'retarget',
+					node: (
+						<button
+							type="button"
+							className="button-link"
+							onClick={ () =>
+								setFixing( { row, mode: 'retarget' } )
+							}
+						>
+							{ __( 'Change destination', 'magic-linking' ) }
+							<span className="screen-reader-text">
+								{ ' ' + row.anchor + ' ' + row.source_title }
+							</span>
+						</button>
+					),
+				},
+				{
+					id: 'unlink',
+					node: (
+						<button
+							type="button"
+							className="button-link"
+							onClick={ () =>
+								setFixing( { row, mode: 'unlink' } )
+							}
+						>
+							{ __( 'Remove link', 'magic-linking' ) }
+							<span className="screen-reader-text">
+								{ ' ' + row.anchor + ' ' + row.source_title }
+							</span>
+						</button>
+					),
+				}
+			);
+		}
 		return items;
 	};
 
@@ -137,10 +264,38 @@ export function BrokenTab( {
 		<div className="magiclinking-broken">
 			<p className="description">
 				{ __(
-					'Internal links that lead nowhere: the destination is in the trash, is not published, is private or does not exist. Nothing is checked over the network. Fix each one by editing the entry.',
+					'Internal links that lead nowhere: the destination is in the trash, is not published, is private or does not exist. Nothing is checked over the network. Fix each one by changing its destination or removing the link, or by editing the entry.',
 					'magic-linking'
 				) }
 			</p>
+
+			<div
+				ref={ noticeRef }
+				tabIndex={ -1 }
+				role="status"
+				aria-live="polite"
+				className="magiclinking-fix-notice"
+			>
+				{ notice && (
+					<p className={ notice.error ? 'magiclinking-warn' : '' }>
+						{ notice.text }
+						{ notice.batchId && (
+							<>
+								{ ' ' }
+								<button
+									type="button"
+									className="button-link"
+									onClick={ undo }
+									disabled={ undoing }
+									aria-disabled={ undoing }
+								>
+									{ __( 'Undo', 'magic-linking' ) }
+								</button>
+							</>
+						) }
+					</p>
+				) }
+			</div>
 
 			{ only && (
 				<p className="magiclinking-only">
@@ -203,6 +358,15 @@ export function BrokenTab( {
 				total={ data?.total ?? 0 }
 				onPage={ setPage }
 			/>
+
+			{ fixing && (
+				<FixBrokenModal
+					row={ fixing.row }
+					mode={ fixing.mode }
+					onClose={ () => setFixing( null ) }
+					onFixed={ ( response ) => onFixed( fixing.row, response ) }
+				/>
+			) }
 		</div>
 	);
 }

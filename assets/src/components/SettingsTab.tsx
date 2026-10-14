@@ -6,13 +6,14 @@ import {
 	TextControl,
 	TextareaControl,
 } from '@wordpress/components';
-import { useEffect, useState } from '@wordpress/element';
+import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import { useLoad } from '../hooks';
 import type { SettingsValues, StatusResponse } from '../types';
 import { Maintenance } from './Maintenance';
+import { SettingsSection, settingsSections } from './SettingsSection';
 
 interface Props {
 	/** Se llama cuando guardar los ajustes ha lanzado un análisis nuevo. */
@@ -43,6 +44,81 @@ function whole(
 	return Math.min( max, Math.max( min, number ) );
 }
 
+type NumberKey =
+	| 'words_per_link'
+	| 'same_anchor_max'
+	| 'outbound_shown'
+	| 'inbound_per_page'
+	| 'low_inbound_threshold';
+
+/** Límites y valor de respaldo de cada campo numérico (los mismos que aplica el servidor). */
+const NUMBER_RULES: Record<
+	NumberKey,
+	{ fallback: number; min: number; max: number }
+> = {
+	words_per_link: { fallback: 100, min: 20, max: 1000 },
+	same_anchor_max: { fallback: 5, min: 1, max: 50 },
+	outbound_shown: { fallback: 15, min: 1, max: 50 },
+	inbound_per_page: { fallback: 10, min: 5, max: 50 },
+	low_inbound_threshold: { fallback: 2, min: 1, max: 20 },
+};
+const NUMBER_KEYS = Object.keys( NUMBER_RULES ) as NumberKey[];
+
+type NumberTexts = Record< NumberKey, string >;
+
+/** Lo que hay escrito en un formulario: ajustes, textos de las listas y textos de los campos numéricos. */
+interface Draft {
+	values: SettingsValues;
+	urls: string;
+	words: string;
+	numbers: NumberTexts;
+}
+
+/**
+ * Borrador a partir de ajustes guardados.
+ * @param settings Ajustes.
+ */
+function draftOf( settings: SettingsValues ): Draft {
+	const numbers = {} as NumberTexts;
+	NUMBER_KEYS.forEach( ( key ) => {
+		numbers[ key ] = String( settings[ key ] );
+	} );
+	return {
+		values: settings,
+		urls: settings.ignored_urls.join( '\n' ),
+		words: settings.ignored_words.join( '\n' ),
+		numbers,
+	};
+}
+
+/**
+ * Los ajustes tal como se enviarían: los números se limitan a su rango (un campo vacío vuelve al valor por defecto).
+ * @param draft Borrador.
+ */
+function effective( draft: Draft ): SettingsValues {
+	const values = { ...draft.values };
+	NUMBER_KEYS.forEach( ( key ) => {
+		const { fallback, min, max } = NUMBER_RULES[ key ];
+		values[ key ] = whole( draft.numbers[ key ], fallback, min, max );
+	} );
+	const lines = ( text: string ) =>
+		text
+			.split( /\r?\n/ )
+			.map( ( line ) => line.trim() )
+			.filter( Boolean );
+	values.ignored_urls = lines( draft.urls );
+	values.ignored_words = lines( draft.words );
+	return values;
+}
+
+/**
+ * Huella de lo que se enviaría, para saber si hay cambios sin guardar.
+ * @param draft Borrador.
+ */
+function snapshot( draft: Draft ): string {
+	return JSON.stringify( effective( draft ) );
+}
+
 /**
  * Ajustes (docs/07 §8): pocos y con valores por defecto sensatos.
  * @param root0
@@ -56,22 +132,53 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		[],
 		__( 'Could not load the settings.', 'magic-linking' )
 	);
-	const [ values, setValues ] = useState< SettingsValues | null >( null );
+	const [ draft, setDraft ] = useState< Draft | null >( null );
 	const [ saving, setSaving ] = useState( false );
 	const [ message, setMessage ] = useState( '' );
 	const [ failure, setFailure ] = useState( '' );
-	const [ urlsText, setUrlsText ] = useState( '' );
-	const [ wordsText, setWordsText ] = useState( '' );
+	const [ baseline, setBaseline ] = useState( '' );
+	// Último borrador pintado: al volver la respuesta del servidor se compara con lo que se envió.
+	const latest = useRef< Draft | null >( null );
+	latest.current = draft;
+
+	/**
+	 * Deja el formulario y la referencia de «sin cambios» en unos ajustes guardados.
+	 * @param settings Ajustes.
+	 */
+	const reset = ( settings: SettingsValues ) => {
+		const next = draftOf( settings );
+		setDraft( next );
+		setBaseline( snapshot( next ) );
+	};
 
 	useEffect( () => {
 		if ( data ) {
-			setValues( data.settings );
-			setUrlsText( data.settings.ignored_urls.join( '\n' ) );
-			setWordsText( data.settings.ignored_words.join( '\n' ) );
+			const next = draftOf( data.settings );
+			setDraft( next );
+			setBaseline( snapshot( next ) );
 		}
 	}, [ data ] );
 
-	if ( ! values || ! data ) {
+	const dirty = useMemo(
+		() =>
+			draft !== null && baseline !== '' && snapshot( draft ) !== baseline,
+		[ draft, baseline ]
+	);
+
+	// Aviso del navegador al salir solo si hay cambios sin guardar.
+	useEffect( () => {
+		if ( ! dirty ) {
+			return undefined;
+		}
+		const warn = ( event: BeforeUnloadEvent ) => {
+			event.preventDefault();
+			event.returnValue = '';
+		};
+		window.addEventListener( 'beforeunload', warn );
+		return () => window.removeEventListener( 'beforeunload', warn );
+	}, [ dirty ] );
+
+	if ( ! draft || ! data ) {
 		return error ? (
 			<Notice status="error" isDismissible={ false }>
 				{ error }
@@ -81,11 +188,19 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		);
 	}
 
+	const { values } = draft;
+	const sections = settingsSections();
+
 	const set = < K extends keyof SettingsValues >(
 		key: K,
 		value: SettingsValues[ K ]
 	) => {
-		setValues( { ...values, [ key ]: value } );
+		setDraft( { ...draft, values: { ...values, [ key ]: value } } );
+		setMessage( '' );
+	};
+
+	const setText = ( key: 'urls' | 'words', value: string ) => {
+		setDraft( { ...draft, [ key ]: value } );
 		setMessage( '' );
 	};
 
@@ -101,19 +216,17 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		setSaving( true );
 		setFailure( '' );
 		try {
-			const lines = ( text: string ) =>
-				text
-					.split( /\r?\n/ )
-					.map( ( line ) => line.trim() )
-					.filter( Boolean );
-			const saved = await api.saveSettings( {
-				...values,
-				ignored_urls: lines( urlsText ),
-				ignored_words: lines( wordsText ),
-			} );
-			setValues( saved.settings );
-			setUrlsText( saved.settings.ignored_urls.join( '\n' ) );
-			setWordsText( saved.settings.ignored_words.join( '\n' ) );
+			const sent = snapshot( draft );
+			const saved = await api.saveSettings( effective( draft ) );
+			if (
+				latest.current !== null &&
+				snapshot( latest.current ) === sent
+			) {
+				reset( saved.settings );
+			} else {
+				// Se editó mientras se guardaba: se conservan esas ediciones y solo avanza lo guardado.
+				setBaseline( snapshot( draftOf( saved.settings ) ) );
+			}
 			const text = saved.job
 				? __(
 						'Settings saved. What Magic Linking reads has changed, so your site is being analyzed again.',
@@ -137,243 +250,279 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		}
 	};
 
+	const number = ( key: NumberKey, label: string, help: string ) => {
+		const { fallback, min, max } = NUMBER_RULES[ key ];
+		const text = draft.numbers[ key ];
+		const valid =
+			/^\d+$/.test( text ) &&
+			Number( text ) >= min &&
+			Number( text ) <= max;
+		return (
+			<TextControl
+				className="magiclinking-number"
+				__nextHasNoMarginBottom
+				__next40pxDefaultSize
+				type="number"
+				min={ min }
+				max={ max }
+				label={ label }
+				aria-invalid={ ! valid }
+				help={
+					valid ? (
+						help
+					) : (
+						<>
+							{ help }
+							<span className="magiclinking-field-error">
+								{ sprintf(
+									/* translators: 1: minimum, 2: maximum. */
+									__(
+										'Enter a whole number from %1$s to %2$s; otherwise it is adjusted when you leave the field.',
+										'magic-linking'
+									),
+									String( min ),
+									String( max )
+								) }
+							</span>
+						</>
+					)
+				}
+				value={ text }
+				onChange={ ( value ) => {
+					setDraft( {
+						...draft,
+						numbers: { ...draft.numbers, [ key ]: value },
+					} );
+					setMessage( '' );
+				} }
+				onBlur={ () =>
+					setDraft( {
+						...draft,
+						numbers: {
+							...draft.numbers,
+							[ key ]: String(
+								whole( text, fallback, min, max )
+							),
+						},
+					} )
+				}
+			/>
+		);
+	};
+
+	const noTypes = values.post_types.length === 0;
+	let statusText = '';
+	if ( noTypes ) {
+		statusText = __( 'Choose at least one content type.', 'magic-linking' );
+	} else if ( dirty ) {
+		statusText = __( 'Unsaved changes', 'magic-linking' );
+	}
+
 	return (
-		<>
-			<form className="magiclinking-settings" onSubmit={ save }>
-				<fieldset>
-					<legend>
-						{ __( 'Content types to analyze', 'magic-linking' ) }
-					</legend>
-					{ data.post_types.map( ( type ) => (
+		<div className="magiclinking-settings-page">
+			<nav
+				className="magiclinking-settings-nav"
+				aria-label={ __( 'Settings sections', 'magic-linking' ) }
+			>
+				<ul>
+					{ Object.values( sections ).map( ( section ) => (
+						<li key={ section.id }>
+							<a href={ `#${ section.id }` }>{ section.title }</a>
+						</li>
+					) ) }
+				</ul>
+			</nav>
+
+			<form
+				id="magiclinking-settings-form"
+				className="magiclinking-settings"
+				onSubmit={ save }
+			>
+				<SettingsSection section={ sections.content }>
+					<fieldset>
+						<legend>
+							{ __(
+								'Content types to analyze',
+								'magic-linking'
+							) }
+						</legend>
+						{ data.post_types.map( ( type ) => (
+							<CheckboxControl
+								key={ type.name }
+								__nextHasNoMarginBottom
+								label={ type.label }
+								checked={ values.post_types.includes(
+									type.name
+								) }
+								onChange={ ( checked ) =>
+									toggleType( type.name, checked )
+								}
+							/>
+						) ) }
+					</fieldset>
+				</SettingsSection>
+
+				<SettingsSection section={ sections.suggestions }>
+					<fieldset>
+						<legend>
+							{ __( 'Suggestions shown', 'magic-linking' ) }
+						</legend>
+						{ number(
+							'outbound_shown',
+							__(
+								'Outbound suggestions in the editor',
+								'magic-linking'
+							),
+							__(
+								'The most useful links to add from the entry you are editing.',
+								'magic-linking'
+							)
+						) }
+						{ number(
+							'inbound_per_page',
+							__(
+								'Inbound suggestions per page in the editor',
+								'magic-linking'
+							),
+							__(
+								'Entries that could link to the one you are editing, shown this many at a time.',
+								'magic-linking'
+							)
+						) }
+					</fieldset>
+					<fieldset>
+						<legend>
+							{ __(
+								'To avoid overloading your texts',
+								'magic-linking'
+							) }
+						</legend>
+						<p className="description">
+							{ __(
+								'These are quality settings, not limits: you can always insert any link yourself.',
+								'magic-linking'
+							) }
+						</p>
+						{ number(
+							'words_per_link',
+							__( 'Words per internal link', 'magic-linking' ),
+							__(
+								'An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed).',
+								'magic-linking'
+							)
+						) }
+						{ number(
+							'same_anchor_max',
+							__(
+								'Entries that can use the same anchor text for the same target',
+								'magic-linking'
+							),
+							__(
+								'Beyond this many entries, the same anchor text towards the same target is suggested less.',
+								'magic-linking'
+							)
+						) }
+					</fieldset>
+					<fieldset>
+						<legend>
+							{ __( 'Under-linked entries', 'magic-linking' ) }
+						</legend>
+						{ number(
+							'low_inbound_threshold',
+							__(
+								'Under-linked below this many inbound links',
+								'magic-linking'
+							),
+							__(
+								'An entry with at least one inbound link but fewer than this number is shown as under-linked.',
+								'magic-linking'
+							)
+						) }
+					</fieldset>
+				</SettingsSection>
+
+				<SettingsSection section={ sections.insertion }>
+					<fieldset>
+						<legend>
+							{ __(
+								'Where links can be inserted',
+								'magic-linking'
+							) }
+						</legend>
+						<p className="description">
+							{ __(
+								'Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too.',
+								'magic-linking'
+							) }
+						</p>
 						<CheckboxControl
-							key={ type.name }
 							__nextHasNoMarginBottom
-							label={ type.label }
-							checked={ values.post_types.includes( type.name ) }
+							label={ __( 'Headings', 'magic-linking' ) }
+							checked={ values.link_in_headings }
 							onChange={ ( checked ) =>
-								toggleType( type.name, checked )
+								set( 'link_in_headings', checked )
 							}
 						/>
-					) ) }
-				</fieldset>
+						<CheckboxControl
+							__nextHasNoMarginBottom
+							label={ __( 'Quotes', 'magic-linking' ) }
+							checked={ values.link_in_quotes }
+							onChange={ ( checked ) =>
+								set( 'link_in_quotes', checked )
+							}
+						/>
+						<CheckboxControl
+							__nextHasNoMarginBottom
+							label={ __( 'Tables', 'magic-linking' ) }
+							checked={ values.link_in_tables }
+							onChange={ ( checked ) =>
+								set( 'link_in_tables', checked )
+							}
+						/>
+						<p className="description">
+							{ __(
+								'Changing these makes Magic Linking read your entries again.',
+								'magic-linking'
+							) }
+						</p>
+					</fieldset>
+					<fieldset>
+						<legend>
+							{ __( 'Links you insert', 'magic-linking' ) }
+						</legend>
+						<CheckboxControl
+							__nextHasNoMarginBottom
+							label={ __(
+								'Open links in a new tab',
+								'magic-linking'
+							) }
+							help={ __(
+								'Off by default. Adds target="_blank" and rel="noopener" to the links Magic Linking inserts; links already in your content are not changed.',
+								'magic-linking'
+							) }
+							checked={ values.open_in_new_tab }
+							onChange={ ( checked ) =>
+								set( 'open_in_new_tab', checked )
+							}
+						/>
+						<TextControl
+							__nextHasNoMarginBottom
+							__next40pxDefaultSize
+							label={ __(
+								'Additional rel values',
+								'magic-linking'
+							) }
+							help={ __(
+								'Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts.',
+								'magic-linking'
+							) }
+							value={ values.extra_rel }
+							onChange={ ( value ) => set( 'extra_rel', value ) }
+						/>
+					</fieldset>
+				</SettingsSection>
 
-				<fieldset>
-					<legend>
-						{ __( 'Links you insert', 'magic-linking' ) }
-					</legend>
-					<CheckboxControl
-						__nextHasNoMarginBottom
-						label={ __(
-							'Open links in a new tab',
-							'magic-linking'
-						) }
-						help={ __(
-							'Off by default. Adds target="_blank" and rel="noopener" to the links Magic Linking inserts; links already in your content are not changed.',
-							'magic-linking'
-						) }
-						checked={ values.open_in_new_tab }
-						onChange={ ( checked ) =>
-							set( 'open_in_new_tab', checked )
-						}
-					/>
-					<TextControl
-						__nextHasNoMarginBottom
-						__next40pxDefaultSize
-						label={ __( 'Additional rel values', 'magic-linking' ) }
-						help={ __(
-							'Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts.',
-							'magic-linking'
-						) }
-						value={ values.extra_rel }
-						onChange={ ( value ) => set( 'extra_rel', value ) }
-					/>
-				</fieldset>
-
-				<SelectControl
-					__nextHasNoMarginBottom
-					__next40pxDefaultSize
-					label={ __(
-						'Keep the history of changes for',
-						'magic-linking'
-					) }
-					help={ __(
-						'Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept.',
-						'magic-linking'
-					) }
-					value={
-						String( values.history_retention_days ) as
-							| '0'
-							| '30'
-							| '90'
-							| '365'
-					}
-					options={ [
-						{
-							value: '30',
-							label: __( '30 days', 'magic-linking' ),
-						},
-						{
-							value: '90',
-							label: __( '90 days', 'magic-linking' ),
-						},
-						{
-							value: '365',
-							label: __( '365 days', 'magic-linking' ),
-						},
-						{
-							value: '0',
-							label: __( 'No expiry date', 'magic-linking' ),
-						},
-					] }
-					onChange={ ( value ) =>
-						set( 'history_retention_days', Number( value ) )
-					}
-				/>
-
-				<fieldset>
-					<legend>
-						{ __( 'Where links can be inserted', 'magic-linking' ) }
-					</legend>
-					<p className="description">
-						{ __(
-							'Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too.',
-							'magic-linking'
-						) }
-					</p>
-					<CheckboxControl
-						__nextHasNoMarginBottom
-						label={ __( 'Headings', 'magic-linking' ) }
-						checked={ values.link_in_headings }
-						onChange={ ( checked ) =>
-							set( 'link_in_headings', checked )
-						}
-					/>
-					<CheckboxControl
-						__nextHasNoMarginBottom
-						label={ __( 'Quotes', 'magic-linking' ) }
-						checked={ values.link_in_quotes }
-						onChange={ ( checked ) =>
-							set( 'link_in_quotes', checked )
-						}
-					/>
-					<CheckboxControl
-						__nextHasNoMarginBottom
-						label={ __( 'Tables', 'magic-linking' ) }
-						checked={ values.link_in_tables }
-						onChange={ ( checked ) =>
-							set( 'link_in_tables', checked )
-						}
-					/>
-					<p className="description">
-						{ __(
-							'Changing these makes Magic Linking read your entries again.',
-							'magic-linking'
-						) }
-					</p>
-				</fieldset>
-
-				<fieldset>
-					<legend>
-						{ __(
-							'To avoid overloading your texts',
-							'magic-linking'
-						) }
-					</legend>
-					<p className="description">
-						{ __(
-							'These are quality settings, not limits: you can always insert any link yourself.',
-							'magic-linking'
-						) }
-					</p>
-					<TextControl
-						__nextHasNoMarginBottom
-						__next40pxDefaultSize
-						type="number"
-						min={ 20 }
-						max={ 1000 }
-						label={ __(
-							'Words per internal link',
-							'magic-linking'
-						) }
-						help={ __(
-							'An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed).',
-							'magic-linking'
-						) }
-						value={ String( values.words_per_link ) }
-						onChange={ ( value ) =>
-							set(
-								'words_per_link',
-								whole( value, 100, 20, 1000 )
-							)
-						}
-					/>
-					<TextControl
-						__nextHasNoMarginBottom
-						__next40pxDefaultSize
-						type="number"
-						min={ 1 }
-						max={ 50 }
-						label={ __(
-							'Entries that can use the same anchor text for the same target',
-							'magic-linking'
-						) }
-						help={ __(
-							'Beyond this many entries, the same anchor text towards the same target is suggested less.',
-							'magic-linking'
-						) }
-						value={ String( values.same_anchor_max ) }
-						onChange={ ( value ) =>
-							set( 'same_anchor_max', whole( value, 5, 1, 50 ) )
-						}
-					/>
-				</fieldset>
-
-				<fieldset>
-					<legend>
-						{ __( 'Suggestions shown', 'magic-linking' ) }
-					</legend>
-					<TextControl
-						__nextHasNoMarginBottom
-						__next40pxDefaultSize
-						type="number"
-						min={ 1 }
-						max={ 50 }
-						label={ __(
-							'Outbound suggestions in the editor',
-							'magic-linking'
-						) }
-						help={ __(
-							'The most useful links to add from the entry you are editing.',
-							'magic-linking'
-						) }
-						value={ String( values.outbound_shown ) }
-						onChange={ ( value ) =>
-							set( 'outbound_shown', whole( value, 15, 1, 50 ) )
-						}
-					/>
-					<TextControl
-						__nextHasNoMarginBottom
-						__next40pxDefaultSize
-						type="number"
-						min={ 5 }
-						max={ 50 }
-						label={ __(
-							'Inbound suggestions per page in the editor',
-							'magic-linking'
-						) }
-						help={ __(
-							'Entries that could link to the one you are editing, shown this many at a time.',
-							'magic-linking'
-						) }
-						value={ String( values.inbound_per_page ) }
-						onChange={ ( value ) =>
-							set( 'inbound_per_page', whole( value, 10, 5, 50 ) )
-						}
-					/>
-				</fieldset>
-
-				<fieldset>
-					<legend>{ __( 'Ignored', 'magic-linking' ) }</legend>
+				<SettingsSection section={ sections.exclusions }>
 					<TextareaControl
 						__nextHasNoMarginBottom
 						label={ __( 'Ignored addresses', 'magic-linking' ) }
@@ -382,11 +531,8 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 							'magic-linking'
 						) }
 						rows={ 4 }
-						value={ urlsText }
-						onChange={ ( value ) => {
-							setUrlsText( value );
-							setMessage( '' );
-						} }
+						value={ draft.urls }
+						onChange={ ( value ) => setText( 'urls', value ) }
 					/>
 					<TextareaControl
 						__nextHasNoMarginBottom
@@ -396,36 +542,50 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 							'magic-linking'
 						) }
 						rows={ 4 }
-						value={ wordsText }
-						onChange={ ( value ) => {
-							setWordsText( value );
-							setMessage( '' );
-						} }
+						value={ draft.words }
+						onChange={ ( value ) => setText( 'words', value ) }
 					/>
-				</fieldset>
+				</SettingsSection>
 
-				<details className="magiclinking-advanced">
-					<summary>{ __( 'Advanced', 'magic-linking' ) }</summary>
-					<TextControl
+				<SettingsSection section={ sections.data }>
+					<SelectControl
 						__nextHasNoMarginBottom
 						__next40pxDefaultSize
-						type="number"
-						min={ 1 }
-						max={ 20 }
 						label={ __(
-							'Under-linked below this many inbound links',
+							'Keep the history of changes for',
 							'magic-linking'
 						) }
 						help={ __(
-							'An entry with at least one inbound link but fewer than this number is shown as under-linked.',
+							'Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept.',
 							'magic-linking'
 						) }
-						value={ String( values.low_inbound_threshold ) }
+						value={
+							String( values.history_retention_days ) as
+								| '0'
+								| '30'
+								| '90'
+								| '365'
+						}
+						options={ [
+							{
+								value: '30',
+								label: __( '30 days', 'magic-linking' ),
+							},
+							{
+								value: '90',
+								label: __( '90 days', 'magic-linking' ),
+							},
+							{
+								value: '365',
+								label: __( '365 days', 'magic-linking' ),
+							},
+							{
+								value: '0',
+								label: __( 'No expiry date', 'magic-linking' ),
+							},
+						] }
 						onChange={ ( value ) =>
-							set(
-								'low_inbound_threshold',
-								whole( value, 2, 1, 20 )
-							)
+							set( 'history_retention_days', Number( value ) )
 						}
 					/>
 					<CheckboxControl
@@ -443,49 +603,43 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 							set( 'delete_data_on_uninstall', checked )
 						}
 					/>
-				</details>
+				</SettingsSection>
 
-				{ failure && (
-					<Notice status="error" isDismissible={ false }>
-						{ failure }
-					</Notice>
-				) }
-				{ message && (
-					<Notice status="success" isDismissible={ false }>
-						{ message }
-					</Notice>
-				) }
-
-				<Button
-					type="submit"
-					variant="primary"
-					disabled={ saving || values.post_types.length === 0 }
-					accessibleWhenDisabled
-				>
-					{ __( 'Save settings', 'magic-linking' ) }
-				</Button>
-				{ values.post_types.length === 0 && (
-					<p className="description">
-						{ __(
-							'Choose at least one content type.',
-							'magic-linking'
-						) }
-					</p>
-				) }
-			</form>
-			<div className="magiclinking-maintenance">
-				<h2>{ __( 'Setup assistant', 'magic-linking' ) }</h2>
-				<p>
-					{ __(
-						'Go through the first steps again: content types, AI and the first analysis.',
-						'magic-linking'
+				<div className="magiclinking-savebar">
+					{ failure && (
+						<Notice status="error" isDismissible={ false }>
+							{ failure }
+						</Notice>
 					) }
-				</p>
-				<Button variant="secondary" onClick={ onOpenWizard }>
-					{ __( 'Open the setup assistant', 'magic-linking' ) }
-				</Button>
-			</div>
-			<Maintenance status={ status } onStarted={ onReindex } />
-		</>
+					{ message && (
+						<Notice status="success" isDismissible={ false }>
+							{ message }
+						</Notice>
+					) }
+					<div className="magiclinking-savebar__row">
+						<Button
+							type="submit"
+							variant="primary"
+							disabled={ saving || ! dirty || noTypes }
+							accessibleWhenDisabled
+						>
+							{ __( 'Save settings', 'magic-linking' ) }
+						</Button>
+						<p
+							className="magiclinking-savebar__status"
+							role="status"
+						>
+							{ statusText }
+						</p>
+					</div>
+				</div>
+			</form>
+
+			<Maintenance
+				status={ status }
+				onStarted={ onReindex }
+				onOpenWizard={ onOpenWizard }
+			/>
+		</div>
 	);
 }

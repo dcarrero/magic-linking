@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Rest;
 
+use MagicLinking\Content\Destination;
 use MagicLinking\Content\InsertionException;
 use MagicLinking\Content\Inserter;
 use MagicLinking\Content\InsertRequest;
@@ -18,7 +19,6 @@ use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Suggestion;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\Reader;
-use MagicLinking\I18n\Language;
 use MagicLinking\Index\SuggestionCache;
 use MagicLinking\Index\Suggestions;
 use Throwable;
@@ -60,16 +60,16 @@ final class SuggestionsController implements Module {
 	 * @param Inserter            $inserter    Inserción segura.
 	 * @param Reader              $reader      Historial (para devolver el grupo).
 	 * @param Settings            $settings    Ajustes.
-	 * @param Language            $language    Idioma por entrada.
 	 * @param SuggestionPresenter $presenter   Forma de la respuesta.
+	 * @param Destination         $destination Comprobación del destino.
 	 */
 	public function __construct(
 		private Suggestions $suggestions,
 		private Inserter $inserter,
 		private Reader $reader,
 		private Settings $settings,
-		private Language $language,
-		private SuggestionPresenter $presenter
+		private SuggestionPresenter $presenter,
+		private Destination $destination
 	) {
 	}
 
@@ -531,20 +531,7 @@ final class SuggestionsController implements Module {
 	 * @return string|InsertionException La dirección, o el motivo por el que no se puede enlazar a ese destino.
 	 */
 	private function destination( int $post_id, int $target_id ): string|InsertionException {
-		$target = get_post( $target_id );
-		if ( ! $target instanceof WP_Post || 'publish' !== $target->post_status || ! in_array( $target->post_type, $this->settings->post_types(), true ) || '' !== $target->post_password || $target_id === $post_id ) {
-			return new InsertionException( 'bad_target', __( 'The destination is not a published entry that can be linked.', 'magic-linking' ) );
-		}
-		if ( $this->language->for_post( $post_id ) !== $this->language->for_post( $target_id ) ) {
-			return new InsertionException( 'language_mismatch', __( 'The destination is in a different language, so no link is added.', 'magic-linking' ) );
-		}
-
-		$url = (string) get_permalink( $target );
-		if ( '' === $url ) {
-			return new InsertionException( 'bad_target', __( 'The destination is not a published entry that can be linked.', 'magic-linking' ) );
-		}
-
-		return $url;
+		return $this->destination->resolve( $post_id, $target_id );
 	}
 
 	/**

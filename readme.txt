@@ -44,7 +44,7 @@ It works entirely on your server, with no artificial intelligence, no account, n
 * **Orphan pages**: entries that no other entry links to.
 * **Under-linked pages**: entries with some inbound links, but fewer than you consider enough (2 by default, you can change it).
 * **Over-linked pages**: entries with more internal links than one for every 100 words (you can change that too). A short text may always have one link.
-* **Broken internal links**: links to an entry that is in the trash, is a draft or private, or does not exist. The complete list, with the anchor text, the reason and a link to edit the entry.
+* **Broken internal links**: links to an entry that is in the trash, is a draft or private, or does not exist. The complete list, with the anchor text and the reason. Fix each one from the list: change its destination to another published entry, or remove the link and keep its text. Magic Linking checks that nothing else in the entry changes, and you can undo it from History.
 * Numbers for every entry: inbound, internal outbound, external and broken links.
 * Filters, search by title, sorting, pagination and **CSV export** of the view you are looking at.
 
@@ -72,7 +72,7 @@ It works entirely on your server, with no artificial intelligence, no account, n
 
 **Roadmap**
 
-Next: several phrases per destination and adjustable anchor text, automatic rules, fixing broken links one by one and, optionally, help from the AI connectors that WordPress already provides. None of that is in this version.
+Next: several phrases per destination and adjustable anchor text, automatic rules and, optionally, help from the AI connectors that WordPress already provides. None of that is in this version.
 
 == Installation ==
 
@@ -80,7 +80,7 @@ Next: several phrases per destination and adjustable anchor text, automatic rule
 2. Go to **Magic Linking** in the admin sidebar and press **Analyze my site**. Nothing is analysed until you do it. The first time it also builds the index used for suggestions, in the background.
 3. Open any post or page. In the block editor, open the **Magic Linking** panel from the top bar (or the three dots menu); in the classic editor, use the **Magic Linking** box.
 4. Read the suggestions and press **Link** on the ones you like.
-5. For the site-wide picture, use the filters *Orphans*, *Under-linked*, *Over-linked* and *With broken links* in the report, or open *Broken links* to fix them one by one.
+5. For the site-wide picture, use the filters *Orphans*, *Under-linked*, *Over-linked* and *With broken links* in the report, or open *Broken links* to change the destination of each one or remove it.
 
 From the terminal: `wp magic-linking index` analyses the site and `wp magic-linking report --filter=orphans --format=csv` prints the orphan pages as CSV.
 
@@ -92,9 +92,9 @@ Only when you press *Link* on a suggestion, and only by adding that link.
 
 * Outbound suggestions (for the entry you are editing): the link is inserted in the editor itself. You save the entry when you want, as with any other change.
 * Inbound suggestions (links from other entries to this one): the link is written into the other entry on the server. The rest of that entry must stay identical, byte for byte, or nothing is written. WordPress creates a revision, and the change is listed in History, where you can undo it.
-* It never modifies an entry that is open in an editor, and it never edits, removes or rewrites links you already had.
+* It never modifies an entry that is open in an editor, and it only edits, removes or rewrites a link you already had when you ask for it from the broken links list (change its destination or remove it, keeping its text), with the same check and undo.
 
-Everything else (the report, the index, the settings) only reads your content and writes to its own tables.
+Everything else (the report, the index, the settings, the broken links list until you fix one) only reads your content and writes to its own tables.
 
 = How do I undo a link? =
 

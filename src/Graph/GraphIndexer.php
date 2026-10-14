@@ -318,9 +318,10 @@ final class GraphIndexer {
 	}
 
 	/**
-	 * Analizador con el host y los alias actuales.
+	 * Analizador con el host y los alias actuales: el mismo que construye el grafo (también lo usa el arreglo de
+	 * enlaces rotos para reconocer los enlaces con el mismo criterio).
 	 */
-	private function parser(): LinkParser {
+	public function parser(): LinkParser {
 		if ( null === $this->parser ) {
 			/**
 			 * Otros hosts que cuentan como enlaces internos (dominios alternativos del mismo sitio).

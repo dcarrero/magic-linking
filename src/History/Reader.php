@@ -196,26 +196,73 @@ final class Reader {
 			}
 
 			$post = get_post( $change['post_id'] );
-			$link = Undo::inserted_link( $change['before_html'], $change['after_html'] );
 			$edit = $post instanceof WP_Post && current_user_can( 'edit_post', $post->ID ) ? get_edit_post_link( $post->ID, 'raw' ) : null;
+			$view = self::describe( $change );
 
 			$items[] = array(
-				'id'         => $change['id'],
-				'post_id'    => $change['post_id'],
-				'post_title' => $post instanceof WP_Post ? get_the_title( $post ) : null,
-				'edit_url'   => is_string( $edit ) ? $edit : null,
-				'anchor'     => null === $link ? '' : self::plain( $link['inner'] ),
-				'url'        => null === $link ? '' : OpenTag::href( $link['open'] ),
-				'origin'     => $origin,
-				'state'      => null === $change['undone_at'] ? 'active' : 'undone',
-				'created_at' => (string) mysql_to_rfc3339( $change['created_at'] ),
-				'undone_at'  => null === $change['undone_at'] ? null : (string) mysql_to_rfc3339( $change['undone_at'] ),
+				'id'           => $change['id'],
+				'post_id'      => $change['post_id'],
+				'post_title'   => $post instanceof WP_Post ? get_the_title( $post ) : null,
+				'edit_url'     => is_string( $edit ) ? $edit : null,
+				'kind'         => $change['action'],
+				'origin'       => $origin,
+				'anchor'       => $view['anchor'],
+				'url'          => $view['url'],
+				'previous_url' => $view['previous_url'],
+				'state'        => null === $change['undone_at'] ? 'active' : 'undone',
+				'created_at'   => (string) mysql_to_rfc3339( $change['created_at'] ),
+				'undone_at'    => null === $change['undone_at'] ? null : (string) mysql_to_rfc3339( $change['undone_at'] ),
 			);
 		}//end foreach
 
 		return array(
 			'items' => $items,
 			'total' => $total,
+		);
+	}
+
+	/**
+	 * Qué enlace tocó un cambio: su texto, la dirección a la que apunta ahora y, si se cambió, la anterior.
+	 *
+	 * @param array $change Fila del historial.
+	 *
+	 * @phpstan-param array{action: string, before_html: string, after_html: string} $change
+	 *
+	 * @return array{anchor: string, url: string, previous_url: string|null}
+	 */
+	private static function describe( array $change ): array {
+		$none = array(
+			'anchor'       => '',
+			'url'          => '',
+			'previous_url' => null,
+		);
+
+		if ( ChangeRepository::RETARGET === $change['action'] ) {
+			$tags = Undo::retargeted_tags( $change['before_html'], $change['after_html'] );
+
+			return null === $tags ? $none : array(
+				'anchor'       => self::plain( $tags['inner'] ),
+				'url'          => OpenTag::href( $tags['new'] ),
+				'previous_url' => OpenTag::href( $tags['old'] ),
+			);
+		}
+
+		if ( ChangeRepository::UNLINK === $change['action'] ) {
+			$link = Undo::removed_link( $change['before_html'], $change['after_html'] );
+
+			return null === $link ? $none : array(
+				'anchor'       => self::plain( $link['inner'] ),
+				'url'          => '',
+				'previous_url' => OpenTag::href( $link['open'] ),
+			);
+		}
+
+		$link = Undo::inserted_link( $change['before_html'], $change['after_html'] );
+
+		return null === $link ? $none : array(
+			'anchor'       => self::plain( $link['inner'] ),
+			'url'          => OpenTag::href( $link['open'] ),
+			'previous_url' => null,
 		);
 	}
 
@@ -235,8 +282,8 @@ final class Reader {
 	/**
 	 * Si el usuario puede editar todas las entradas de un grupo.
 	 *
-	 * @param int                                                                                                        $user_id Quien mira.
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}> $slots   Huecos.
+	 * @param int                                                                                                                        $user_id Quien mira.
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $slots   Huecos.
 	 */
 	private function can_see( int $user_id, array $slots ): bool {
 		foreach ( $slots as $slot ) {
@@ -251,7 +298,7 @@ final class Reader {
 	/**
 	 * Carga de una vez las entradas de varios lotes (una consulta en vez de una por entrada).
 	 *
-	 * @param array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}>> $rows Inserciones por lote.
+	 * @param array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}>> $rows Inserciones por lote.
 	 */
 	private function prime( array $rows ): void {
 		$ids = array();
@@ -269,9 +316,9 @@ final class Reader {
 	/**
 	 * Resumen de un grupo.
 	 *
-	 * @param string                                                                                                     $batch_id Lote.
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}> $slots    Huecos (ya juntos).
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string}> $rows     Todas las inserciones.
+	 * @param string                                                                                                                     $batch_id Lote.
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $slots    Huecos (ya juntos).
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $rows     Todas las inserciones.
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -296,6 +343,7 @@ final class Reader {
 
 		return array(
 			'batch_id'   => $batch_id,
+			'kind'       => $first['action'],
 			'created_at' => (string) mysql_to_rfc3339( $first['created_at'] ),
 			'user_id'    => $user,
 			'user_name'  => self::user_name( $user ),
