@@ -20,7 +20,7 @@ interface Ids {
 }
 
 /** Crea el sitio de prueba: un origen con un párrafo enlazable, el destino, una entrada de otro autor y una clásica. */
-function seedEditor( ): Ids {
+function seedEditor(): Ids {
 	const out = wp(
 		'eval',
 		`
@@ -43,10 +43,7 @@ function seedEditor( ): Ids {
 
 /** Contenido guardado de una entrada. */
 function content( id: number ): string {
-	return wp(
-		'eval',
-		`echo get_post( ${ id } )->post_content;`
-	).trim();
+	return wp( 'eval', `echo get_post( ${ id } )->post_content;` ).trim();
 }
 
 /** Filas del Historial registradas desde el editor para una entrada (F1-34). */
@@ -103,7 +100,8 @@ async function openBlockEditor( page: Page, id: number ): Promise< void > {
 	await page.waitForFunction(
 		() =>
 			// @ts-expect-error wp lo pone WordPress.
-			window.wp?.data?.select( 'core/block-editor' )?.getBlocks().length > 0
+			window.wp?.data?.select( 'core/block-editor' )?.getBlocks().length >
+			0
 	);
 	await page.evaluate( () => {
 		// @ts-expect-error wp lo pone WordPress.
@@ -284,8 +282,12 @@ test.describe( 'Editor panel', () => {
 
 		// Enlazar: el enlace aparece en el editor, sin guardar; el servidor no se toca.
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
-		await expect( card.locator( '.magiclinking-fold__text' ) ).toBeFocused();
-		await expect( card.locator( '.magiclinking-fold__text' ) ).toContainText( 'Link added.' );
+		await expect(
+			card.locator( '.magiclinking-fold__text' )
+		).toBeFocused();
+		await expect(
+			card.locator( '.magiclinking-fold__text' )
+		).toContainText( 'Link added.' );
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveText(
 			'bomba de calor'
 		);
@@ -295,8 +297,14 @@ test.describe( 'Editor panel', () => {
 		await expect( card ).toHaveClass( /is-folded/ );
 		await expect( card ).toContainText( 'bomba de calor' );
 		await expect( card ).toContainText( 'Aislamiento de casas' );
-		await expect( card.locator( '.magiclinking-card__sentence, .magiclinking-card__reasons' ) ).toHaveCount( 0 );
-		expect( ( await card.boundingBox() )?.height ?? 999 ).toBeLessThan( 60 );
+		await expect(
+			card.locator(
+				'.magiclinking-card__sentence, .magiclinking-card__reasons'
+			)
+		).toHaveCount( 0 );
+		expect( ( await card.boundingBox() )?.height ?? 999 ).toBeLessThan(
+			60
+		);
 		const folded = await new AxeBuilder( { page } )
 			.include( '.magiclinking-panel' )
 			.withTags( AXE_TAGS )
@@ -336,9 +344,9 @@ test.describe( 'Editor panel', () => {
 		await card.getByRole( 'button', { name: 'Undo' } ).click();
 
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
-		await expect( canvas( page ).locator( 'p[data-block]' ).first() ).toContainText(
-			'ESCRITO'
-		);
+		await expect(
+			canvas( page ).locator( 'p[data-block]' ).first()
+		).toContainText( 'ESCRITO' );
 	} );
 
 	test( 'outbound: the card Undo removes the link and keeps a title changed after it', async ( {
@@ -355,7 +363,9 @@ test.describe( 'Editor panel', () => {
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 1 );
 		await page.evaluate( () =>
 			// @ts-expect-error wp lo pone WordPress.
-			window.wp.data.dispatch( 'core/editor' ).editPost( { title: 'Título nuevo' } )
+			window.wp.data
+				.dispatch( 'core/editor' )
+				.editPost( { title: 'Título nuevo' } )
 		);
 		await card.getByRole( 'button', { name: 'Undo' } ).click();
 
@@ -363,7 +373,9 @@ test.describe( 'Editor panel', () => {
 		expect(
 			await page.evaluate( () =>
 				// @ts-expect-error wp lo pone WordPress.
-				window.wp.data.select( 'core/editor' ).getEditedPostAttribute( 'title' )
+				window.wp.data
+					.select( 'core/editor' )
+					.getEditedPostAttribute( 'title' )
 			)
 		).toBe( 'Título nuevo' );
 	} );
@@ -387,9 +399,9 @@ test.describe( 'Editor panel', () => {
 		);
 
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
-		await expect( canvas( page ).locator( 'p[data-block]' ).first() ).toContainText(
-			'ANTES'
-		);
+		await expect(
+			canvas( page ).locator( 'p[data-block]' ).first()
+		).toContainText( 'ANTES' );
 	} );
 
 	test( 'outbound: warns when the text changed and refresh analyzes the editor content', async ( {
@@ -412,9 +424,9 @@ test.describe( 'Editor panel', () => {
 			);
 		} );
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
-		await expect( card.locator( '.magiclinking-card__status' ) ).toContainText(
-			'The text has changed since the suggestion was made'
-		);
+		await expect(
+			card.locator( '.magiclinking-card__status' )
+		).toContainText( 'The text has changed since the suggestion was made' );
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
 
 		const request = page.waitForResponse(
@@ -449,11 +461,15 @@ test.describe( 'Editor panel', () => {
 		await expect( card ).toContainText( 'Guía de calefacción para casas' );
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
 		await expect( card.getByText( /^Link added in/ ) ).toBeVisible();
-		await expect( card.getByRole( 'link', { name: 'See in History' } ) ).toBeVisible();
+		await expect(
+			card.getByRole( 'link', { name: 'See in History' } )
+		).toBeVisible();
 		expect( content( ids.origen ) ).toContain( '<a href=' );
 
 		await card.getByRole( 'button', { name: 'Undo' } ).click();
-		await expect( card.getByRole( 'button', { name: /^Link to/ } ) ).toBeVisible();
+		await expect(
+			card.getByRole( 'button', { name: /^Link to/ } )
+		).toBeVisible();
 		expect( content( ids.origen ) ).toBe( before );
 	} );
 
@@ -467,7 +483,11 @@ test.describe( 'Editor panel', () => {
 		await page.route( /suggestions(\/|%2F)inbound/i, async ( route ) => {
 			const response = await route.fetch();
 			const body = await response.json();
-			if ( new URL( route.request().url() ).searchParams.get( 'page' ) === '1' && first ) {
+			if (
+				new URL( route.request().url() ).searchParams.get( 'page' ) ===
+					'1' &&
+				first
+			) {
 				first = false;
 				body.total_pages = 2;
 			}
@@ -486,9 +506,15 @@ test.describe( 'Editor panel', () => {
 		await panel.getByRole( 'button', { name: 'Next' } ).click();
 		await second;
 
-		await expect( panel.locator( '.magiclinking-card' ).first() ).toBeVisible();
-		await expect( panel ).not.toContainText( 'No other entry has a sentence' );
-		await expect( panel.getByRole( 'tab', { name: /^Inbound \(\d+\)/ } ) ).toBeVisible();
+		await expect(
+			panel.locator( '.magiclinking-card' ).first()
+		).toBeVisible();
+		await expect( panel ).not.toContainText(
+			'No other entry has a sentence'
+		);
+		await expect(
+			panel.getByRole( 'tab', { name: /^Inbound \(\d+\)/ } )
+		).toBeVisible();
 	} );
 
 	test( 'inbound: dismissing every card is saved, the count follows and the cards do not come back after reloading', async ( {
@@ -508,19 +534,30 @@ test.describe( 'Editor panel', () => {
 					/suggestions(\/|%2F)dismissals/i.test( response.url() ) &&
 					response.request().method() === 'POST'
 			);
-			await cards.first().getByRole( 'button', { name: /^Dismiss/ } ).click();
+			await cards
+				.first()
+				.getByRole( 'button', { name: /^Dismiss/ } )
+				.click();
 			expect( ( await saved ).status() ).toBe( 200 );
 		}
-		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( total );
-		await expect( panel.getByRole( 'tab', { name: 'Inbound (0)' } ) ).toBeVisible();
+		await expect(
+			panel.locator( '.magiclinking-card.is-dismissed' )
+		).toHaveCount( total );
+		await expect(
+			panel.getByRole( 'tab', { name: 'Inbound (0)' } )
+		).toBeVisible();
 
 		// Recargar el editor: lo descartado no vuelve.
 		await openBlockEditor( page, ids.aislamiento );
 		const again = await openSidebar( page );
 		await again.getByRole( 'tab', { name: /^Inbound/ } ).click();
-		await expect( again ).toContainText( 'No other entry has a sentence that fits' );
+		await expect( again ).toContainText(
+			'No other entry has a sentence that fits'
+		);
 		await expect( again.locator( '.magiclinking-card' ) ).toHaveCount( 0 );
-		await expect( again.getByRole( 'tab', { name: 'Inbound (0)' } ) ).toBeVisible();
+		await expect(
+			again.getByRole( 'tab', { name: 'Inbound (0)' } )
+		).toBeVisible();
 	} );
 
 	test( 'outbound: a dismissed suggestion does not come back after reloading and can be restored from the panel', async ( {
@@ -533,14 +570,18 @@ test.describe( 'Editor panel', () => {
 		const card = panel.locator( '.magiclinking-card' ).first();
 		await expect( card ).toContainText( 'Aislamiento de casas' );
 		const tab = panel.getByRole( 'tab', { name: /^Outbound \(\d+\)/ } );
-		const count = Number( ( await tab.textContent() )?.match( /\((\d+)\)/ )?.[ 1 ] );
+		const count = Number(
+			( await tab.textContent() )?.match( /\((\d+)\)/ )?.[ 1 ]
+		);
 		expect( count ).toBeGreaterThan( 0 );
 
 		// Descartar: la tarjeta pasa a una fila con Deshacer (con el foco) y el contador baja.
 		await card.getByRole( 'button', { name: /^Dismiss/ } ).click();
 		const row = panel.locator( '.magiclinking-card.is-dismissed' ).first();
 		await expect( row.locator( '.magiclinking-fold__text' ) ).toBeFocused();
-		await expect( row.locator( '.magiclinking-fold__text' ) ).toContainText( 'Suggestion dismissed' );
+		await expect( row.locator( '.magiclinking-fold__text' ) ).toContainText(
+			'Suggestion dismissed'
+		);
 		await expect( tab ).toHaveText( `Outbound (${ count - 1 })` );
 		const accessibility = await new AxeBuilder( { page } )
 			.include( '.magiclinking-panel' )
@@ -550,9 +591,15 @@ test.describe( 'Editor panel', () => {
 
 		// Deshacer el descarte: vuelve la tarjeta y el contador.
 		await row.getByRole( 'button', { name: /^Undo dismissing/ } ).click();
-		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 0 );
-		await expect( panel.locator( '.magiclinking-card' ).first() ).toBeFocused();
-		await expect( panel.locator( '.magiclinking-card' ).first() ).toContainText( 'Aislamiento de casas' );
+		await expect(
+			panel.locator( '.magiclinking-card.is-dismissed' )
+		).toHaveCount( 0 );
+		await expect(
+			panel.locator( '.magiclinking-card' ).first()
+		).toBeFocused();
+		await expect(
+			panel.locator( '.magiclinking-card' ).first()
+		).toContainText( 'Aislamiento de casas' );
 		await expect( tab ).toHaveText( `Outbound (${ count })` );
 
 		// Descartar otra vez y recargar: no vuelve, ni con Actualizar.
@@ -561,15 +608,21 @@ test.describe( 'Editor panel', () => {
 			.first()
 			.getByRole( 'button', { name: /^Dismiss/ } )
 			.click();
-		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 1 );
+		await expect(
+			panel.locator( '.magiclinking-card.is-dismissed' )
+		).toHaveCount( 1 );
 		await openBlockEditor( page, ids.origen );
 		const again = await openSidebar( page );
-		await expect( again.getByRole( 'tab', { name: /^Outbound/ } ) ).toBeVisible();
+		await expect(
+			again.getByRole( 'tab', { name: /^Outbound/ } )
+		).toBeVisible();
 		await expect( again ).not.toContainText( 'Aislamiento de casas' );
 		await again.getByRole( 'button', { name: 'Refresh' } ).first().click();
 		await expect( again ).not.toContainText( 'Aislamiento de casas' );
 		// Con ese destino fuera, la misma frase puede ofrecer otro (una sola sugerencia por frase): el contador no baja a la fuerza.
-		await expect( again.getByRole( 'tab', { name: /^Outbound \(\d+\)/ } ) ).toBeVisible();
+		await expect(
+			again.getByRole( 'tab', { name: /^Outbound \(\d+\)/ } )
+		).toBeVisible();
 	} );
 
 	test( 'inbound: dismissing on a page re-requests it so the next page does not skip any suggestion', async ( {
@@ -591,16 +644,25 @@ test.describe( 'Editor panel', () => {
 		await expect( panel.getByText( 'Page 1 of 2' ) ).toBeVisible();
 		const first = await live.first().innerText();
 
-		await live.first().getByRole( 'button', { name: /^Dismiss/ } ).click();
-		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 1 );
+		await live
+			.first()
+			.getByRole( 'button', { name: /^Dismiss/ } )
+			.click();
+		await expect(
+			panel.locator( '.magiclinking-card.is-dismissed' )
+		).toHaveCount( 1 );
 		// La página se vuelve a pedir: sube la segunda sugerencia y no queda página 2 que saltarse.
 		await expect( live ).toHaveCount( 1 );
 		expect( await live.first().innerText() ).not.toBe( first );
-		await expect( panel.getByRole( 'button', { name: 'Next' } ) ).toHaveCount( 0 );
+		await expect(
+			panel.getByRole( 'button', { name: 'Next' } )
+		).toHaveCount( 0 );
 
 		// Deshacer: vuelve la descartada y la lista de dos páginas.
 		await panel.getByRole( 'button', { name: /^Undo dismissing/ } ).click();
-		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 0 );
+		await expect(
+			panel.locator( '.magiclinking-card.is-dismissed' )
+		).toHaveCount( 0 );
 		await expect( panel.getByText( 'Page 1 of 2' ) ).toBeVisible();
 	} );
 
@@ -618,9 +680,13 @@ test.describe( 'Editor panel', () => {
 		await expect( card ).toContainText(
 			'You cannot edit this entry, so the link cannot be added from here.'
 		);
-		await expect( card.getByRole( 'button', { name: /^Link to/ } ) ).toHaveCount( 0 );
+		await expect(
+			card.getByRole( 'button', { name: /^Link to/ } )
+		).toHaveCount( 0 );
 		// Descartar para siempre exige poder editar el origen (docs/04 §11): sin permiso, no hay botón.
-		await expect( card.getByRole( 'button', { name: /^Dismiss/ } ) ).toHaveCount( 0 );
+		await expect(
+			card.getByRole( 'button', { name: /^Dismiss/ } )
+		).toHaveCount( 0 );
 	} );
 
 	test( 'folded rows: Refresh and changing tab do not steal the focus, and the row says what happened in visible text', async ( {
@@ -635,21 +701,30 @@ test.describe( 'Editor panel', () => {
 		const text = card.locator( '.magiclinking-fold__text' );
 		await expect( text ).toBeFocused();
 		// Texto visible (no solo el glifo) y el destino completo en el DOM.
-		await expect( card.locator( '.magiclinking-fold__state' ) ).toHaveText( /Linked/ );
-		await expect( card.locator( '.magiclinking-fold__state' ) ).toBeVisible();
+		await expect( card.locator( '.magiclinking-fold__state' ) ).toHaveText(
+			/Linked/
+		);
+		await expect(
+			card.locator( '.magiclinking-fold__state' )
+		).toBeVisible();
 
 		// Cambiar de pestaña y volver monta la fila ya plegada: no roba el foco.
 		await panel.getByRole( 'tab', { name: /^Inbound/ } ).click();
 		await panel.getByRole( 'tab', { name: /^Outbound/ } ).click();
-		await expect( panel.locator( '.magiclinking-fold__text' ).first() ).not.toBeFocused();
-		await expect( panel.getByRole( 'tab', { name: /^Outbound/ } ) ).toBeFocused();
+		await expect(
+			panel.locator( '.magiclinking-fold__text' ).first()
+		).not.toBeFocused();
+		await expect(
+			panel.getByRole( 'tab', { name: /^Outbound/ } )
+		).toBeFocused();
 
 		// Actualizar vuelve a pedir la lista: el foco se queda en el botón.
-		const refresh = panel.getByRole( 'button', { name: 'Refresh' } ).first();
+		const refresh = panel
+			.getByRole( 'button', { name: 'Refresh' } )
+			.first();
 		await refresh.focus();
 		await refresh.click();
 		await expect( refresh ).toBeFocused();
-
 	} );
 
 	test( 'inbound: the folded row shows the source entry and a double click on Undo sends a single request', async ( {
@@ -663,17 +738,26 @@ test.describe( 'Editor panel', () => {
 		const card = panel.locator( '.magiclinking-card' ).first();
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
 		await expect( card ).toHaveClass( /is-folded/ );
-		await expect( card ).toContainText( 'In: Guía de calefacción para casas' );
-		const undo = card.getByRole( 'button', { name: /^Undo the link in “Guía de calefacción/ } );
+		await expect( card ).toContainText(
+			'In: Guía de calefacción para casas'
+		);
+		const undo = card.getByRole( 'button', {
+			name: /^Undo the link in “Guía de calefacción/,
+		} );
 		await expect( undo ).toBeVisible();
 		let calls = 0;
 		page.on( 'request', ( request ) => {
-			if ( request.method() === 'POST' && /undo/i.test( request.url() ) ) {
+			if (
+				request.method() === 'POST' &&
+				/undo/i.test( request.url() )
+			) {
 				calls++;
 			}
 		} );
 		await undo.dblclick();
-		await expect( card.getByRole( 'button', { name: /^Link to/ } ) ).toBeVisible();
+		await expect(
+			card.getByRole( 'button', { name: /^Link to/ } )
+		).toBeVisible();
 		await expect( card ).toBeFocused();
 		expect( calls ).toBe( 1 );
 	} );
@@ -683,7 +767,9 @@ test.describe( 'Editor panel', () => {
 		await login( page );
 		await openBlockEditor( page, ids.origen );
 		const panel = await openSidebar( page );
-		await expect( panel.locator( '.magiclinking-card' ).first() ).toBeVisible();
+		await expect(
+			panel.locator( '.magiclinking-card' ).first()
+		).toBeVisible();
 
 		const run = async () => {
 			const results = await new AxeBuilder( { page } )
@@ -728,7 +814,9 @@ test.describe( 'Editor panel', () => {
 		// Guardar otra vez no lo registra de nuevo, y registrar no escribe en la entrada.
 		await page.evaluate( () =>
 			// @ts-expect-error wp lo pone WordPress.
-			window.wp.data.dispatch( 'core/editor' ).editPost( { title: 'Otro título' } )
+			window.wp.data
+				.dispatch( 'core/editor' )
+				.editPost( { title: 'Otro título' } )
 		);
 		await save( page );
 		await page.waitForTimeout( 1500 );
@@ -738,7 +826,9 @@ test.describe( 'Editor panel', () => {
 		await page.goto( SCREEN_HISTORY );
 		const batch = page.locator( '.magiclinking-batch' );
 		await expect( batch ).toHaveCount( 1 );
-		await expect( batch.getByRole( 'heading', { level: 2 } ) ).toContainText( '1 link added' );
+		await expect(
+			batch.getByRole( 'heading', { level: 2 } )
+		).toContainText( '1 link added' );
 		await expect( batch ).toContainText( 'Added in the editor' );
 		await expect( page.locator( '.magiclinking-wrap' ) ).toContainText(
 			'Links you add from the editor panel are listed here too once you save the entry.'
@@ -746,15 +836,25 @@ test.describe( 'Editor panel', () => {
 		await expectHistoryAccessible( page );
 
 		// Deshacer desde el Historial quita el enlace de la entrada, byte a byte.
-		const toggle = batch.locator( 'button[aria-controls^="magiclinking-details-"]' );
+		const toggle = batch.locator(
+			'button[aria-controls^="magiclinking-details-"]'
+		);
 		await toggle.click();
-		const table = batch.getByRole( 'table', { name: 'Links in this batch' } );
+		const table = batch.getByRole( 'table', {
+			name: 'Links in this batch',
+		} );
 		await expect( table ).toContainText( 'bomba de calor' );
 		releaseEditLock( ids.origen );
 		await table.getByRole( 'button', { name: /^Undo change in/ } ).click();
-		const dialog = page.getByRole( 'dialog', { name: 'Undo this change?' } );
-		await dialog.getByRole( 'button', { name: 'Undo change', exact: true } ).click();
-		await expect( batch.getByRole( 'status' ) ).toContainText( '1 link undone.' );
+		const dialog = page.getByRole( 'dialog', {
+			name: 'Undo this change?',
+		} );
+		await dialog
+			.getByRole( 'button', { name: 'Undo change', exact: true } )
+			.click();
+		await expect( batch.getByRole( 'status' ) ).toContainText(
+			'1 link undone.'
+		);
 		expect( content( ids.origen ) ).toBe( before );
 		await expectHistoryAccessible( page );
 	} );
@@ -775,20 +875,25 @@ test.describe( 'Editor panel', () => {
 		await expect.poll( () => activeEditorRows( ids.origen ) ).toBe( 1 );
 
 		// El usuario quita el enlace a mano en el bloque y guarda: el servidor lo nota al guardar.
-		await page.evaluate( ( html ) => {
-			// @ts-expect-error wp lo pone WordPress.
-			const { select, dispatch } = window.wp.data;
-			const first = select( 'core/block-editor' ).getBlocks()[ 0 ];
-			dispatch( 'core/block-editor' ).updateBlockAttributes(
-				first.clientId,
-				{ content: html }
-			);
-		}, ( await canvas( page ).locator( 'p[data-block]' ).first().innerText() ) );
+		await page.evaluate(
+			( html ) => {
+				// @ts-expect-error wp lo pone WordPress.
+				const { select, dispatch } = window.wp.data;
+				const first = select( 'core/block-editor' ).getBlocks()[ 0 ];
+				dispatch( 'core/block-editor' ).updateBlockAttributes(
+					first.clientId,
+					{ content: html }
+				);
+			},
+			await canvas( page ).locator( 'p[data-block]' ).first().innerText()
+		);
 		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
 		await save( page );
 		await expect.poll( () => activeEditorRows( ids.origen ) ).toBe( 0 );
 		expect( content( ids.origen ) ).not.toContain( '<a href=' );
-		expect( content( ids.origen ).replace( /\s+/g, ' ' ) ).toContain( 'bomba de calor' );
+		expect( content( ids.origen ).replace( /\s+/g, ' ' ) ).toContain(
+			'bomba de calor'
+		);
 		expect( before ).toContain( 'bomba de calor' );
 
 		await page.goto( SCREEN_HISTORY );
@@ -829,9 +934,9 @@ test.describe( 'Editor panel', () => {
 		// En la pestaña Texto no se escribe: se explica.
 		await page.locator( '#content-html' ).click();
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
-		await expect( card.locator( '.magiclinking-card__status' ) ).toContainText(
-			'Switch to the Visual tab'
-		);
+		await expect(
+			card.locator( '.magiclinking-card__status' )
+		).toContainText( 'Switch to the Visual tab' );
 
 		await page.locator( '#content-tmce' ).click();
 		const frame = page.frameLocator( '#content_ifr' );
@@ -843,7 +948,9 @@ test.describe( 'Editor panel', () => {
 		// Deshacer de la tarjeta quita solo ese enlace y respeta lo escrito después.
 		await page.evaluate( () =>
 			// @ts-expect-error tinymce lo pone WordPress.
-			window.tinymce.get( 'content' ).execCommand( 'mceInsertContent', false, ' ESCRITO' )
+			window.tinymce
+				.get( 'content' )
+				.execCommand( 'mceInsertContent', false, ' ESCRITO' )
 		);
 		await card.getByRole( 'button', { name: 'Undo' } ).click();
 		await expect( frame.locator( 'body a' ) ).toHaveCount( 0 );
@@ -888,7 +995,9 @@ test.describe( 'Editor panel', () => {
 		await login( page );
 		await page.goto( `/wp-admin/post.php?post=${ clasico }&action=edit` );
 
-		const card = page.locator( '#magiclinking-editor-panel .magiclinking-card' ).first();
+		const card = page
+			.locator( '#magiclinking-editor-panel .magiclinking-card' )
+			.first();
 		await expect( card ).toBeVisible();
 		await page.locator( '#content-tmce' ).click();
 		const frame = page.frameLocator( '#content_ifr' );
@@ -908,15 +1017,21 @@ test.describe( 'Editor panel', () => {
 		await expect( batch ).toContainText( 'Added in the editor' );
 		await expectHistoryAccessible( page );
 
-		await batch.locator( 'button[aria-controls^="magiclinking-details-"]' ).click();
-		const table = batch.getByRole( 'table', { name: 'Links in this batch' } );
+		await batch
+			.locator( 'button[aria-controls^="magiclinking-details-"]' )
+			.click();
+		const table = batch.getByRole( 'table', {
+			name: 'Links in this batch',
+		} );
 		releaseEditLock( clasico );
 		await table.getByRole( 'button', { name: /^Undo change in/ } ).click();
 		await page
 			.getByRole( 'dialog', { name: 'Undo this change?' } )
 			.getByRole( 'button', { name: 'Undo change', exact: true } )
 			.click();
-		await expect( batch.getByRole( 'status' ) ).toContainText( '1 link undone.' );
+		await expect( batch.getByRole( 'status' ) ).toContainText(
+			'1 link undone.'
+		);
 		const plain = ( html: string ) => html.replace( /<\/?p>/g, '' ).trim();
 		expect( plain( content( clasico ) ) ).toBe( plain( before ) );
 	} );
@@ -939,7 +1054,9 @@ test.describe( 'Editor panel', () => {
 		);
 		await login( page );
 		await page.goto( `/wp-admin/post.php?post=${ clasico }&action=edit` );
-		const card = page.locator( '#magiclinking-editor-panel .magiclinking-card' ).first();
+		const card = page
+			.locator( '#magiclinking-editor-panel .magiclinking-card' )
+			.first();
 		await expect( card ).toBeVisible();
 		await page.locator( '#content-tmce' ).click();
 		const frame = page.frameLocator( '#content_ifr' );
@@ -955,8 +1072,13 @@ test.describe( 'Editor panel', () => {
 		await expect( frame.locator( 'body a' ) ).toHaveCount( 1 );
 		await page.evaluate( () => {
 			// @ts-expect-error tinymce lo pone WordPress.
-			const editor = window.tinymce.get( 'content' );
-			editor.setContent( editor.getContent().replace( /<a [^>]*>(.*?)<\/a>/, '$1' ) );
+			const editor = window.tinymce.get( 'content' ) as {
+				getContent: () => string;
+				setContent: ( html: string ) => void;
+			};
+			editor.setContent(
+				editor.getContent().replace( /<a [^>]*>(.*?)<\/a>/, '$1' )
+			);
 		} );
 		await page.locator( '#publish' ).click();
 		await page.waitForURL( /message=1/ );
