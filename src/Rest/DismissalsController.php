@@ -11,6 +11,7 @@ namespace MagicLinking\Rest;
 
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
+use MagicLinking\Core\Settings;
 use MagicLinking\Index\DismissalRepository;
 use MagicLinking\Index\SuggestionCache;
 use WP_Error;
@@ -34,8 +35,9 @@ final class DismissalsController implements Module {
 	 * Constructor.
 	 *
 	 * @param DismissalRepository $dismissals Pares descartados.
+	 * @param Settings            $settings   Ajustes (tipos que se analizan).
 	 */
-	public function __construct( private DismissalRepository $dismissals ) {
+	public function __construct( private DismissalRepository $dismissals, private Settings $settings ) {
 	}
 
 	/**
@@ -43,7 +45,30 @@ final class DismissalsController implements Module {
 	 */
 	public function register(): void {
 		add_action( 'rest_api_init', array( $this, 'routes' ) );
-		add_action( 'deleted_post', array( $this->dismissals, 'forget_post' ) );
+		add_action( 'deleted_post', array( $this, 'on_deleted' ), 10, 2 );
+	}
+
+	/**
+	 * Una entrada se borra: olvida sus pares y renueva la caché si había alguno.
+	 *
+	 * Sale pronto con lo que nunca tiene pares (revisiones, autoguardados, adjuntos, menús y tipos que no se
+	 * analizan) y mientras el esquema 4 no está instalado (véase Jobs::on_post_deleted()).
+	 *
+	 * @param int          $post_id ID.
+	 * @param WP_Post|null $post    Entrada borrada.
+	 */
+	public function on_deleted( int $post_id, ?WP_Post $post = null ): void {
+		$post ??= get_post( $post_id );
+		if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, $this->settings->post_types(), true ) || wp_is_post_autosave( $post ) ) {
+			return;
+		}
+		if ( (int) get_option( Installer::DB_VERSION_OPTION, 0 ) < 4 ) {
+			return;
+		}
+
+		if ( $this->dismissals->forget_post( $post_id ) > 0 ) {
+			SuggestionCache::bump();
+		}
 	}
 
 	/**
@@ -108,13 +133,13 @@ final class DismissalsController implements Module {
 		$source = (int) $request['source_id'];
 		$target = (int) $request['target_id'];
 
-		if ( ! get_post( $source ) instanceof WP_Post || ! get_post( $target ) instanceof WP_Post ) {
-			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
-		}
 		if ( $source === $target ) {
 			return new WP_Error( 'magiclinking_bad_request', __( 'An entry cannot link to itself.', 'magic-linking' ), array( 'status' => 400 ) );
 		}
-
+		// Una sola respuesta para «no existe» y «no se puede usar»: no sirve para saber qué entradas privadas hay.
+		if ( ! $this->usable_source( $source ) || ! $this->usable_target( $target ) ) {
+			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
+		}
 		Installer::ensure_current();
 		if ( ! $this->dismissals->add( $source, $target, get_current_user_id() ) ) {
 			return $this->failed();
@@ -154,6 +179,30 @@ final class DismissalsController implements Module {
 				'target_id' => $target,
 			)
 		);
+	}
+
+	/**
+	 * Si la entrada puede ser origen de un descarte: existe y es de un tipo que se analiza, y no es un autoborrador.
+	 *
+	 * @param int $id ID.
+	 */
+	private function usable_source( int $id ): bool {
+		$post = get_post( $id );
+
+		return $post instanceof WP_Post && 'auto-draft' !== $post->post_status && in_array( $post->post_type, $this->settings->post_types(), true );
+	}
+
+	/**
+	 * Si la entrada puede ser destino: de un tipo que se analiza y publicada, o que el usuario puede leer.
+	 *
+	 * @param int $id ID.
+	 */
+	private function usable_target( int $id ): bool {
+		$post = get_post( $id );
+
+		return $post instanceof WP_Post
+			&& in_array( $post->post_type, $this->settings->post_types(), true )
+			&& ( 'publish' === $post->post_status || current_user_can( 'read_post', $id ) );
 	}
 
 	/**

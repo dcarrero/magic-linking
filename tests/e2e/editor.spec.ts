@@ -459,6 +459,38 @@ test.describe( 'Editor panel', () => {
 		await expect( again.getByRole( 'tab', { name: /^Outbound \(\d+\)/ } ) ).toBeVisible();
 	} );
 
+	test( 'inbound: dismissing on a page re-requests it so the next page does not skip any suggestion', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		// Una por página: con dos entrantes hay dos páginas y descartar la primera desplaza la lista del servidor.
+		await page.route( /suggestions(\/|%2F)inbound/i, async ( route ) => {
+			const url = new URL( route.request().url() );
+			url.searchParams.set( 'per_page', '1' );
+			await route.continue( { url: url.toString() } );
+		} );
+		await login( page );
+		await openBlockEditor( page, ids.aislamiento );
+		const panel = await openSidebar( page );
+		await panel.getByRole( 'tab', { name: /^Inbound/ } ).click();
+		const live = panel.locator( '.magiclinking-card:not(.is-dismissed)' );
+		await expect( live ).toHaveCount( 1 );
+		await expect( panel.getByText( 'Page 1 of 2' ) ).toBeVisible();
+		const first = await live.first().innerText();
+
+		await live.first().getByRole( 'button', { name: /^Dismiss/ } ).click();
+		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 1 );
+		// La página se vuelve a pedir: sube la segunda sugerencia y no queda página 2 que saltarse.
+		await expect( live ).toHaveCount( 1 );
+		expect( await live.first().innerText() ).not.toBe( first );
+		await expect( panel.getByRole( 'button', { name: 'Next' } ) ).toHaveCount( 0 );
+
+		// Deshacer: vuelve la descartada y la lista de dos páginas.
+		await panel.getByRole( 'button', { name: /^Undo dismissing/ } ).click();
+		await expect( panel.locator( '.magiclinking-card.is-dismissed' ) ).toHaveCount( 0 );
+		await expect( panel.getByText( 'Page 1 of 2' ) ).toBeVisible();
+	} );
+
 	test( 'inbound: an entry the user cannot edit is shown without the Link button', async ( {
 		page,
 	} ) => {

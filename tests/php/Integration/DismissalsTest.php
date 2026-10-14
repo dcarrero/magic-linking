@@ -110,6 +110,10 @@ final class DismissalsTest extends GraphTestCase {
 		return Plugin::container()->get( DismissalRepository::class );
 	}
 
+	private function has( int $source, int $target ): bool {
+		return in_array( $target, $this->repo()->targets_for_source( $source ), true );
+	}
+
 	private function p( string $html ): string {
 		return "<!-- wp:paragraph -->\n<p>{$html}</p>\n<!-- /wp:paragraph -->";
 	}
@@ -257,8 +261,8 @@ final class DismissalsTest extends GraphTestCase {
 		$this->dismiss( $this->sources[1], $this->target );
 
 		$this->assertContains( $this->target, $this->outbound_targets( $this->sources[2] ), 'Otro origen hacia el mismo destino sigue.' );
-		$this->assertTrue( $this->repo()->has( $this->sources[1], $this->target ) );
-		$this->assertFalse( $this->repo()->has( $this->target, $this->sources[1] ), 'El par es dirigido.' );
+		$this->assertTrue( $this->has( $this->sources[1], $this->target ) );
+		$this->assertFalse( $this->has( $this->target, $this->sources[1] ), 'El par es dirigido.' );
 	}
 
 	public function test_dismissing_twice_keeps_one_row_and_succeeds(): void {
@@ -305,17 +309,17 @@ final class DismissalsTest extends GraphTestCase {
 		foreach ( array_slice( $ids, 0, 10 ) as $id ) {
 			$this->assertSame( 200, $this->dismiss( $id, $this->target )->get_status() );
 		}
-		$this->assertSame( array(), $repo->penalized_targets(), 'Con 10 orígenes todavía no se rebaja.' );
+		$this->assertSame( array(), $repo->penalized_targets( array( 'post' ) ), 'Con 10 orígenes todavía no se rebaja.' );
 		$this->assertSame( $base_a, $this->score( $source, $this->target ) );
 
 		$this->assertSame( 200, $this->dismiss( $ids[10], $this->target )->get_status() );
-		$this->assertSame( array( $this->target ), $repo->penalized_targets() );
+		$this->assertSame( array( $this->target ), $repo->penalized_targets( array( 'post' ) ) );
 		$this->assertEqualsWithDelta( $base_a - 0.1, (float) $this->score( $source, $this->target ), 1e-9 );
 		$this->assertEqualsWithDelta( $base_b - 0.1, (float) $this->score( $other, $this->target ), 1e-9, 'En todo el sitio, no solo en los orígenes descartados.' );
 
 		// Deshacer uno de los once devuelve el prior.
 		$this->restore( $ids[10], $this->target );
-		$this->assertSame( array(), $repo->penalized_targets() );
+		$this->assertSame( array(), $repo->penalized_targets( array( 'post' ) ) );
 		$this->assertSame( $base_a, $this->score( $source, $this->target ) );
 	}
 
@@ -329,7 +333,7 @@ final class DismissalsTest extends GraphTestCase {
 		$this->assertSame( 403, $this->dismiss( $source, $this->target, $this->subscriber )->get_status() );
 		$this->assertSame( 401, $this->restore( $source, $this->target, 0 )->get_status() );
 		$this->assertSame( 403, $this->restore( $source, $this->target, $this->subscriber )->get_status() );
-		$this->assertFalse( $this->repo()->has( $source, $this->target ), 'Nada se ha guardado.' );
+		$this->assertFalse( $this->has( $source, $this->target ), 'Nada se ha guardado.' );
 	}
 
 	public function test_the_capability_is_edit_post_on_the_origin(): void {
@@ -339,16 +343,16 @@ final class DismissalsTest extends GraphTestCase {
 
 		// Un autor no puede descartar para una entrada ajena como origen, ni deshacerlo.
 		$this->assertSame( 403, $this->dismiss( $theirs, $this->target, $this->author )->get_status() );
-		$this->assertFalse( $this->repo()->has( $theirs, $this->target ) );
+		$this->assertFalse( $this->has( $theirs, $this->target ) );
 		$this->repo()->add( $theirs, $this->target, $this->admin );
 		$this->assertSame( 403, $this->restore( $theirs, $this->target, $this->author )->get_status() );
-		$this->assertTrue( $this->repo()->has( $theirs, $this->target ), 'Sigue descartado.' );
+		$this->assertTrue( $this->has( $theirs, $this->target ), 'Sigue descartado.' );
 
 		// Sí con la suya, aunque el destino sea ajeno.
 		$this->assertSame( 200, $this->dismiss( $mine, $this->target, $this->author )->get_status() );
-		$this->assertTrue( $this->repo()->has( $mine, $this->target ) );
+		$this->assertTrue( $this->has( $mine, $this->target ) );
 		$this->assertSame( 200, $this->restore( $mine, $this->target, $this->author )->get_status() );
-		$this->assertFalse( $this->repo()->has( $mine, $this->target ) );
+		$this->assertFalse( $this->has( $mine, $this->target ) );
 	}
 
 	public function test_bad_requests(): void {
@@ -379,8 +383,8 @@ final class DismissalsTest extends GraphTestCase {
 		$this->dismiss( $this->sources[2], $this->target );
 
 		wp_delete_post( $this->sources[1], true );
-		$this->assertFalse( $this->repo()->has( $this->sources[1], $this->target ) );
-		$this->assertTrue( $this->repo()->has( $this->sources[2], $this->target ) );
+		$this->assertFalse( $this->has( $this->sources[1], $this->target ) );
+		$this->assertTrue( $this->has( $this->sources[2], $this->target ) );
 
 		wp_delete_post( $this->target, true );
 		$this->assertSame( array(), $this->repo()->targets_for_source( $this->sources[2] ) );
@@ -398,5 +402,142 @@ final class DismissalsTest extends GraphTestCase {
 		$this->assertSame( $name, $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) ) ) ); // phpcs:ignore WordPress.DB
 		$this->assertSame( array(), $this->http, 'Ninguna petición HTTP.' );
 		$this->assertSame( 0, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE autoload IN ('yes','on','auto','auto-on') AND option_name LIKE %s", $wpdb->esc_like( 'magiclinking_' ) . '%dismiss%' ) ) ); // phpcs:ignore WordPress.DB
+	}
+
+	// ------------------------------------------------------------------ Revisión de código del PR.
+
+	public function test_drafts_and_unpublished_origins_do_not_count_for_the_site_wide_penalty(): void {
+		$this->corpus( 2 );
+		$drafts = self::factory()->post->create_many( 11, array( 'post_status' => 'draft' ) );
+		foreach ( $drafts as $id ) {
+			$this->dismiss( $id, $this->target );
+		}
+		$this->assertSame( array(), $this->repo()->penalized_targets( array( 'post' ) ), 'Once borradores no rebajan el destino.' );
+
+		$published = self::factory()->post->create_many( 11 );
+		foreach ( $published as $i => $id ) {
+			$this->dismiss( $id, $this->target );
+			$expected = $i + 1 > 10 ? array( $this->target ) : array();
+			$this->assertSame( $expected, $this->repo()->penalized_targets( array( 'post' ) ) );
+		}
+
+		$this->assertSame( array(), $this->repo()->penalized_targets( array( 'page' ) ), 'Solo cuentan orígenes de tipos analizados.' );
+	}
+
+	public function test_only_analyzed_origins_are_accepted(): void {
+		$this->corpus( 2 );
+		$page = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$this->assertSame( 200, $this->dismiss( $page, $this->target )->get_status(), 'Una página se analiza por defecto.' );
+
+		$revision = wp_save_post_revision( $this->sources[1] );
+		$this->assertNotEmpty( $revision );
+		$attachment = self::factory()->attachment->create();
+		$auto       = self::factory()->post->create( array( 'post_status' => 'auto-draft' ) );
+		foreach ( array( (int) $revision, $attachment, $auto ) as $bad ) {
+			$this->assertSame( 404, $this->dismiss( $bad, $this->target )->get_status(), "Origen no válido {$bad}" );
+			$this->assertSame( array(), $this->repo()->targets_for_source( $bad ) );
+		}
+	}
+
+	public function test_a_target_that_does_not_exist_or_cannot_be_read_gets_the_same_answer(): void {
+		$this->corpus( 2 );
+		$private    = self::factory()->post->create(
+			array(
+				'post_status' => 'private',
+				'post_author' => $this->admin,
+			)
+		);
+		$other_type = self::factory()->attachment->create();
+		$mine       = $this->sources[0];
+
+		$missing = $this->dismiss( $mine, 999999, $this->author );
+		$denied  = $this->dismiss( $mine, $private, $this->author );
+		$typed   = $this->dismiss( $mine, $other_type, $this->author );
+
+		$this->assertSame( 404, $missing->get_status() );
+		$this->assertSame( $missing->get_status(), $denied->get_status() );
+		$this->assertSame( $missing->get_status(), $typed->get_status() );
+		$this->assertSame( $missing->get_data()['code'], $denied->get_data()['code'] );
+		$this->assertSame( $missing->get_data()['message'], $denied->get_data()['message'] );
+		$this->assertSame( array(), $this->repo()->targets_for_source( $mine ) );
+
+		// Quien sí puede leer el privado, puede descartarlo.
+		$this->assertSame( 200, $this->dismiss( $this->sources[1], $private, $this->admin )->get_status() );
+	}
+
+	public function test_deleting_unrelated_content_does_not_touch_the_table(): void {
+		$this->corpus( 2 );
+		$this->dismiss( $this->sources[1], $this->target );
+		$deletes = 0;
+		add_filter(
+			'query',
+			static function ( $sql ) use ( &$deletes ) {
+				if ( str_contains( (string) $sql, 'magiclinking_dismissed' ) ) {
+					++$deletes;
+				}
+				return $sql;
+			}
+		);
+
+		wp_delete_post( (int) wp_save_post_revision( $this->sources[0] ), true );
+		wp_delete_post( self::factory()->attachment->create(), true );
+		$this->assertSame( 0, $deletes, 'Revisiones y adjuntos no consultan la tabla.' );
+
+		wp_delete_post( $this->sources[1], true );
+		$this->assertGreaterThan( 0, $deletes );
+	}
+
+	public function test_forgetting_a_deleted_origin_renews_the_suggestion_cache(): void {
+		$this->corpus( 2 );
+		// Un borrador no renueva la caché por sí mismo: si se renueva, es por haber borrado sus pares.
+		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$this->dismiss( $draft, $this->target );
+		$before = wp_cache_get_last_changed( \MagicLinking\Index\SuggestionCache::GROUP );
+		usleep( 2000 );
+
+		wp_delete_post( $draft, true );
+
+		$this->assertSame( array(), $this->repo()->targets_for_source( $draft ) );
+		$this->assertNotSame( $before, wp_cache_get_last_changed( \MagicLinking\Index\SuggestionCache::GROUP ) );
+	}
+
+	public function test_the_table_name_follows_the_current_site(): void {
+		global $wpdb;
+		$original = $wpdb->prefix;
+		$other    = $original . 'otro_';
+		$wpdb->query( "CREATE TEMPORARY TABLE {$other}magiclinking_dismissed LIKE {$original}magiclinking_dismissed" ); // phpcs:ignore WordPress.DB
+		$repo = $this->repo();
+
+		$wpdb->prefix = $other;
+		try {
+			$repo->add( 11, 22, 1 );
+			$this->assertSame( array( 22 ), $repo->targets_for_source( 11 ) );
+		} finally {
+			$wpdb->prefix = $original;
+		}
+		$this->assertSame( array(), $repo->targets_for_source( 11 ), 'El sitio original no ve el par del otro.' );
+	}
+
+	public function test_the_penalized_list_is_cached_until_something_changes(): void {
+		$this->corpus( 2 );
+		$queries = 0;
+		add_filter(
+			'query',
+			static function ( $sql ) use ( &$queries ) {
+				if ( str_contains( (string) $sql, 'HAVING COUNT' ) ) {
+					++$queries;
+				}
+				return $sql;
+			}
+		);
+		$repo = $this->repo();
+
+		$repo->penalized_targets( array( 'post' ) );
+		$repo->penalized_targets( array( 'post' ) );
+		$this->assertSame( 1, $queries, 'La segunda lectura sale de la caché.' );
+
+		$this->dismiss( $this->sources[1], $this->target );
+		$repo->penalized_targets( array( 'post' ) );
+		$this->assertSame( 2, $queries, 'Descartar renueva la época y se recalcula.' );
 	}
 }

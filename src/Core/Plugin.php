@@ -206,7 +206,7 @@ final class Plugin {
 				global $wpdb;
 				return new DismissalRepository( $wpdb );
 			},
-			DismissalsController::class  => static fn( Container $c ): DismissalsController => new DismissalsController( $c->get( DismissalRepository::class ) ),
+			DismissalsController::class  => static fn( Container $c ): DismissalsController => new DismissalsController( $c->get( DismissalRepository::class ), $c->get( Settings::class ) ),
 			Suggestions::class           => static fn( Container $c ): Suggestions => new Suggestions(
 				$c->get( TableRepository::class ),
 				$c->get( LexicalIndexer::class ),

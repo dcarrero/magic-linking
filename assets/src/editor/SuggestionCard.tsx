@@ -14,7 +14,13 @@ export type CardStatus =
 	  }
 	| { kind: 'error'; message: string }
 	/** Descartada para siempre; se puede deshacer hasta que se vuelva a pedir la lista. */
-	| { kind: 'dismissed'; busy?: boolean };
+	| { kind: 'dismissing' }
+	| {
+			kind: 'dismissed';
+			busy?: boolean;
+			/** Solo entrantes: el servidor ya no la devuelve; se pinta donde estaba. */
+			ghost?: { suggestion: Suggestion; index: number };
+	  };
 
 interface Props {
 	suggestion: Suggestion;
@@ -67,6 +73,7 @@ export function SuggestionCard( {
 	const title = ( post: { title?: string } ) =>
 		post.title || __( '(no title)', 'magic-linking' );
 	const busy = status?.kind === 'busy';
+	const dismissing = status?.kind === 'dismissing';
 	const added = status?.kind === 'added';
 
 	if ( status?.kind === 'dismissed' ) {
@@ -216,7 +223,7 @@ export function SuggestionCard( {
 							variant="primary"
 							size="compact"
 							isBusy={ busy }
-							disabled={ busy }
+							disabled={ busy || dismissing }
 							accessibleWhenDisabled
 							onClick={ () => onLink( suggestion ) }
 							aria-label={ sprintf(
@@ -236,7 +243,9 @@ export function SuggestionCard( {
 						<Button
 							variant="tertiary"
 							size="compact"
-							disabled={ busy }
+							isBusy={ dismissing }
+							aria-busy={ dismissing }
+							disabled={ busy || dismissing }
 							accessibleWhenDisabled
 							onClick={ () => onDismiss( suggestion ) }
 							aria-label={ sprintf(

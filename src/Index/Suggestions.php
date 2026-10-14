@@ -119,7 +119,7 @@ final class Suggestions {
 
 		// Lo descartado desde esta entrada no se vuelve a proponer; los destinos muy descartados bajan su prior.
 		$options['never']     = array_values( array_unique( array_merge( $options['never'] ?? array(), $this->dismissals->targets_for_source( $post_id ) ) ) );
-		$options['penalized'] = $this->dismissals->penalized_targets();
+		$options['penalized'] = $this->dismissals->penalized_targets( $this->settings->post_types() );
 
 		try {
 			return $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) );
@@ -147,7 +147,7 @@ final class Suggestions {
 
 		// Los orígenes que ya se descartaron para este destino no se vuelven a proponer.
 		$options['excluded_origins'] = array_values( array_unique( array_merge( $options['excluded_origins'] ?? array(), $this->dismissals->sources_for_target( $post_id ) ) ) );
-		$options['penalized']        = $this->dismissals->penalized_targets();
+		$options['penalized']        = $this->dismissals->penalized_targets( $this->settings->post_types() );
 
 		try {
 			return $this->suggester( $options )->incoming( $post_id );

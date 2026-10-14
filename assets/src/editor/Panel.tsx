@@ -245,7 +245,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 		suggestion: Suggestion,
 		direction: 'outbound' | 'inbound'
 	) => {
-		setStatus( suggestion, { kind: 'busy' } );
+		setStatus( suggestion, { kind: 'dismissing' } );
 		try {
 			await api.dismissSuggestion(
 				suggestion.source.id,
@@ -264,8 +264,20 @@ export function Panel( { adapter, boot, state }: Props ) {
 			return;
 		}
 		adapter.highlight( null );
-		state.dismiss( suggestion, direction );
-		setStatus( suggestion, { kind: 'dismissed' } );
+		if ( direction === 'inbound' ) {
+			// Los elementos de las páginas siguientes suben: se vuelve a pedir la página para no saltarse ninguno.
+			const index = state.inboundItems.findIndex(
+				( item ) =>
+					suggestionKey( item ) === suggestionKey( suggestion )
+			);
+			setStatus( suggestion, {
+				kind: 'dismissed',
+				ghost: { suggestion, index: Math.max( 0, index ) },
+			} );
+			inbound.refresh();
+		} else {
+			setStatus( suggestion, { kind: 'dismissed' } );
+		}
 		speak(
 			__(
 				'Suggestion dismissed. It will not be proposed again.',
@@ -279,14 +291,19 @@ export function Panel( { adapter, boot, state }: Props ) {
 		suggestion: Suggestion,
 		direction: 'outbound' | 'inbound'
 	) => {
-		setStatus( suggestion, { kind: 'dismissed', busy: true } );
+		const previous = statuses[ suggestionKey( suggestion ) ];
+		setStatus( suggestion, {
+			kind: 'dismissed',
+			busy: true,
+			ghost: previous?.kind === 'dismissed' ? previous.ghost : undefined,
+		} );
 		try {
 			await api.restoreSuggestion(
 				suggestion.source.id,
 				suggestion.target.id
 			);
 		} catch ( error ) {
-			setStatus( suggestion, { kind: 'dismissed' } );
+			setStatus( suggestion, previous ?? { kind: 'dismissed' } );
 			speak(
 				errorMessage(
 					error,
@@ -299,8 +316,10 @@ export function Panel( { adapter, boot, state }: Props ) {
 			);
 			return;
 		}
-		state.restore( suggestion, direction );
 		setStatus( suggestion, null );
+		if ( direction === 'inbound' ) {
+			inbound.refresh();
+		}
 		speak( __( 'Suggestion restored.', 'magic-linking' ), 'polite' );
 		// El botón pulsado desaparece con la fila: el foco vuelve a la lista.
 		listRef.current?.focus();
@@ -435,7 +454,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 							) }
 							{ inbound.loading && ! inbound.data && <Loading /> }
 							{ inbound.data &&
-								( inbound.data.items.length === 0 ? (
+								( state.inboundItems.length === 0 ? (
 									! inbound.loading &&
 									( inbound.data.total > 0 ? (
 										// La página pedida ya no existe (se enlazó la última de ella): se vuelve a pedir la última.
@@ -453,7 +472,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 											className="magiclinking-panel__cards"
 											aria-busy={ inbound.loading }
 										>
-											{ inbound.data.items.map(
+											{ state.inboundItems.map(
 												( item ) => (
 													<SuggestionCard
 														key={ suggestionKey(
