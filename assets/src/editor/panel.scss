@@ -86,14 +86,64 @@
 		box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
 	}
 
+	&:focus {
+		outline: none;
+	}
+
 	&.is-added,
 	&.is-dismissed {
 		background: #f6f7f7;
 	}
 
+	// Enlazada o descartada: una sola fila (F1-31).
+	&.is-folded {
+		align-items: baseline;
+		column-gap: 8px;
+		display: flex;
+		flex-wrap: wrap;
+		margin-bottom: 6px;
+		padding: 6px 12px;
+
+		.components-button.is-link {
+			flex: 0 0 auto;
+		}
+	}
+
 	p {
 		margin: 0 0 6px;
 	}
+}
+
+.magiclinking-card .magiclinking-fold__text {
+	// Hasta dos líneas y luego puntos suspensivos; el texto completo siempre está en el DOM (teclado, táctil y lector).
+	-webkit-box-orient: vertical;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	flex: 1 1 0;
+	margin: 0;
+	min-width: 0;
+	overflow: hidden;
+
+	&:focus {
+		outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+		outline-offset: 2px;
+	}
+}
+
+.magiclinking-fold__state {
+	color: #50575e;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.magiclinking-fold__anchor {
+	font-weight: 600;
+}
+
+.magiclinking-fold__history {
+	flex: 1 0 100%;
+	font-size: 12px;
 }
 
 .magiclinking-card__sentence {

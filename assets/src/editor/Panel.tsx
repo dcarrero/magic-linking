@@ -1,4 +1,4 @@
-import { useEffect, useRef } from '@wordpress/element';
+import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { Button, TabPanel } from '@wordpress/components';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
@@ -134,8 +134,17 @@ export function Panel( { adapter, boot, state }: Props ) {
 		}
 	}, [ outbound.data ] );
 
-	// Al deshacer un descarte, la fila con el botón desaparece: el foco vuelve a la lista.
-	const listRef = useRef< HTMLDivElement >( null );
+	// Tras un Deshacer del usuario (enlace o descarte) la fila desaparece: el foco lo recoge la tarjeta que vuelve,
+	// una sola vez y solo ella (Actualizar o cambiar de pestaña no mueven el foco). Caduca por si la tarjeta no vuelve.
+	const [ focusKey, setFocusKey ] = useState< string | null >( null );
+	const clearFocusKey = useCallback( () => setFocusKey( null ), [] );
+	useEffect( () => {
+		if ( ! focusKey ) {
+			return undefined;
+		}
+		const timer = window.setTimeout( clearFocusKey, 4000 );
+		return () => window.clearTimeout( timer );
+	}, [ focusKey, clearFocusKey ] );
 
 	const linkOutbound = ( suggestion: Suggestion ) => {
 		const result = adapter.apply( suggestion );
@@ -221,6 +230,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 		try {
 			const message = await status.undo();
 			if ( message ) {
+				setFocusKey( suggestionKey( suggestion ) );
 				setStatus( suggestion, null );
 				speak( message, 'polite' );
 				return;
@@ -316,13 +326,12 @@ export function Panel( { adapter, boot, state }: Props ) {
 			);
 			return;
 		}
+		setFocusKey( suggestionKey( suggestion ) );
 		setStatus( suggestion, null );
 		if ( direction === 'inbound' ) {
 			inbound.refresh();
 		}
 		speak( __( 'Suggestion restored.', 'magic-linking' ), 'polite' );
-		// El botón pulsado desaparece con la fila: el foco vuelve a la lista.
-		listRef.current?.focus();
 	};
 
 	const outboundCount = state.visibleOutbound.length;
@@ -351,11 +360,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 			>
 				{ ( tab ) =>
 					tab.name === 'outbound' ? (
-						<div
-							className="magiclinking-panel__list"
-							ref={ listRef }
-							tabIndex={ -1 }
-						>
+						<div className="magiclinking-panel__list">
 							<div className="magiclinking-panel__toolbar">
 								<Button
 									variant="secondary"
@@ -415,6 +420,11 @@ export function Panel( { adapter, boot, state }: Props ) {
 													restore( card, 'outbound' )
 												}
 												onUndo={ undo }
+												focusRequested={
+													focusKey ===
+													suggestionKey( item )
+												}
+												onFocusDone={ clearFocusKey }
 												onHighlight={
 													adapter.highlight
 												}
@@ -424,11 +434,7 @@ export function Panel( { adapter, boot, state }: Props ) {
 								) ) }
 						</div>
 					) : (
-						<div
-							className="magiclinking-panel__list"
-							ref={ listRef }
-							tabIndex={ -1 }
-						>
+						<div className="magiclinking-panel__list">
 							<div className="magiclinking-panel__toolbar">
 								<Button
 									variant="secondary"
@@ -504,6 +510,15 @@ export function Panel( { adapter, boot, state }: Props ) {
 															)
 														}
 														onUndo={ undo }
+														focusRequested={
+															focusKey ===
+															suggestionKey(
+																item
+															)
+														}
+														onFocusDone={
+															clearFocusKey
+														}
 													/>
 												)
 											) }
