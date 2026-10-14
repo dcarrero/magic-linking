@@ -14,8 +14,10 @@ use MagicLinking\Admin\EditorPanel;
 use MagicLinking\Admin\Screen;
 use MagicLinking\Cli\CliModule;
 use MagicLinking\Cli\Command;
+use MagicLinking\Content\Destination;
 use MagicLinking\Content\Inserter;
 use MagicLinking\Content\PostWriter;
+use MagicLinking\Content\Repairer;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\GraphRepository;
@@ -41,6 +43,7 @@ use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
 use MagicLinking\Rest\DismissalsController;
+use MagicLinking\Rest\FixController;
 use MagicLinking\Rest\HistoryController;
 use MagicLinking\Rest\JobsController;
 use MagicLinking\Rest\ReportController;
@@ -69,6 +72,7 @@ final class Plugin {
 		Retention::class,
 		BatchJob::class,
 		ReportController::class,
+		FixController::class,
 		HistoryController::class,
 		SuggestionCache::class,
 		SuggestionsController::class,
@@ -221,8 +225,8 @@ final class Plugin {
 				$c->get( Inserter::class ),
 				$c->get( Reader::class ),
 				$c->get( Settings::class ),
-				$c->get( Language::class ),
-				$c->get( SuggestionPresenter::class )
+				$c->get( SuggestionPresenter::class ),
+				$c->get( Destination::class )
 			),
 			PostWriter::class            => static function (): PostWriter {
 				global $wpdb;
@@ -237,6 +241,21 @@ final class Plugin {
 				$c->get( ChangeRepository::class ),
 				$c->get( Jobs::class ),
 				$c->get( Settings::class )
+			),
+			Repairer::class              => static fn( Container $c ): Repairer => new Repairer(
+				$c->get( PostWriter::class ),
+				$c->get( ChangeRepository::class ),
+				$c->get( Jobs::class ),
+				$c->get( Settings::class )
+			),
+			Destination::class           => static fn( Container $c ): Destination => new Destination( $c->get( Settings::class ), $c->get( Language::class ) ),
+			FixController::class         => static fn( Container $c ): FixController => new FixController(
+				$c->get( BrokenRepository::class ),
+				$c->get( Repairer::class ),
+				$c->get( Destination::class ),
+				$c->get( Settings::class ),
+				$c->get( Language::class ),
+				$c->get( Reader::class )
 			),
 			Undo::class                  => static fn( Container $c ): Undo => new Undo(
 				$c->get( PostWriter::class ),

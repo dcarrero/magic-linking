@@ -11,6 +11,8 @@ export function statusLabel( status: ChangeStatus ): string {
 			return __( 'Undone', 'magic-linking' );
 		case 'link_removed':
 			return __( 'Link removed', 'magic-linking' );
+		case 'fix_reverted':
+			return __( 'Link put back', 'magic-linking' );
 		case 'already_gone':
 			return __( 'Already gone', 'magic-linking' );
 		case 'already_undone':
@@ -46,6 +48,7 @@ export function summaryText(
 		? counts.redone ?? 0
 		: ( counts.restored ?? 0 ) +
 		  ( counts.link_removed ?? 0 ) +
+		  ( counts.fix_reverted ?? 0 ) +
 		  ( counts.already_gone ?? 0 ) +
 		  ( counts.already_undone ?? 0 );
 

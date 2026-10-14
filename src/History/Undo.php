@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\History;
 
+use MagicLinking\Content\AnchorScanner;
 use MagicLinking\Content\BlockMap;
 use MagicLinking\Content\InsertionException;
 use MagicLinking\Content\PostWriter;
@@ -62,7 +63,7 @@ final class Undo {
 		$undone = count(
 			array_filter(
 				$results,
-				static fn( UndoResult $result ): bool => in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::GONE ), true )
+				static fn( UndoResult $result ): bool => in_array( $result->status, array( UndoResult::RESTORED, UndoResult::LINK_REMOVED, UndoResult::FIX_REVERTED, UndoResult::GONE ), true )
 			)
 		);
 		if ( $undone > 0 ) {
@@ -86,7 +87,7 @@ final class Undo {
 	 */
 	public function revert( int $change_id, ?int $user_id = null ): UndoResult {
 		$change = $this->changes->get( $change_id );
-		if ( null === $change || ChangeRepository::INSERT !== $change['action'] ) {
+		if ( null === $change || ! in_array( $change['action'], ChangeRepository::PRIMARY, true ) ) {
 			return new UndoResult( $change_id, 0, UndoResult::FAILED, __( 'That change does not exist.', 'magic-linking' ), InsertionException::BAD_REQUEST );
 		}
 
@@ -111,8 +112,9 @@ final class Undo {
 		$this->refresh( $post_id );
 
 		$messages = array(
-			UndoResult::RESTORED     => __( 'Link undone.', 'magic-linking' ),
+			UndoResult::RESTORED     => self::restored_message( $change['action'] ),
 			UndoResult::LINK_REMOVED => __( 'The post was edited afterwards: only the link was removed.', 'magic-linking' ),
+			UndoResult::FIX_REVERTED => __( 'The post was edited afterwards: only this link was put back as it was.', 'magic-linking' ),
 			UndoResult::GONE         => __( 'The link is no longer in the post.', 'magic-linking' ),
 		);
 
@@ -125,7 +127,7 @@ final class Undo {
 	 * @param array<string, mixed> $change  Fila del historial.
 	 * @param int|null             $user_id Quien lo pide.
 	 *
-	 * @return string|null `restored`, `link_removed`, `already_gone` o null si no se puede deshacer solo.
+	 * @return string|null `restored`, `link_removed`, `fix_reverted`, `already_gone` o null si no se puede deshacer solo.
 	 *
 	 * @throws InsertionException Si no se puede escribir con seguridad; no se ha tocado nada.
 	 * @throws Throwable Lo que lance WordPress o un complemento al guardar (se relanza tras limpiar el historial).
@@ -141,32 +143,26 @@ final class Undo {
 			[ $next, $range ] = $whole;
 			$status           = UndoResult::RESTORED;
 		} else {
-			$link = self::inserted_link( (string) $change['before_html'], (string) $change['after_html'] );
-			if ( null === $link ) {
+			$found = $this->edited_since( $content, $change );
+			if ( is_string( $found ) ) {
+				// Borrado a mano o recuperado de una revisión: no hay nada que deshacer.
+				return $found;
+			}
+			if ( null === $found ) {
 				return null;
 			}
+			[ $next, $range, $status ] = $found;
+		}
 
-			$count = substr_count( $content, $link['exact'] );
-			if ( 0 === $count && ! str_contains( $content, $link['open'] ) ) {
-				// Borrado a mano o recuperado de una revisión: no hay nada que quitar.
-				return UndoResult::GONE;
-			}
-			if ( 1 !== $count ) {
-				return null;
-			}
-
-			$start = (int) strpos( $content, $link['exact'] );
-			$end   = $start + strlen( $link['exact'] );
-
-			$next   = substr( $content, 0, $start ) . $link['inner'] . substr( $content, $end );
-			$range  = array( $start, $end );
-			$status = UndoResult::LINK_REMOVED;
-		}//end if
-
-		$check = Verifier::check( $content, $next, $range, -1 );
+		$check = Verifier::for_action( (string) $change['action'], $content, $next, $range, true );
 		if ( ! $check->ok ) {
 			PostWriter::log( sprintf( 'Verificación fallida al deshacer el cambio %d: %s.', (int) $change['id'], $check->reason ) );
-			throw new InsertionException( InsertionException::VERIFY_FAILED, __( 'The change could not be confirmed as only removing the link; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
+			throw new InsertionException(
+				InsertionException::VERIFY_FAILED,
+				ChangeRepository::INSERT === $change['action']
+					? __( 'The change could not be confirmed as only removing the link; nothing was written.', 'magic-linking' )
+					: __( 'The change could not be confirmed as only restoring the link; nothing was written.', 'magic-linking' )
+			); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$user = $user_id ?? get_current_user_id();
@@ -195,6 +191,217 @@ final class Undo {
 		}
 
 		return $status;
+	}
+
+	/**
+	 * Camino 2: la entrada se editó después del cambio. Se deshace solo lo que el cambio hizo, si se puede localizar
+	 * sin ambigüedad.
+	 *
+	 * - Insertar: se quita el `<a>` exacto si aparece una vez.
+	 * - Cambiar el destino: se devuelve la etiqueta `<a>` anterior si la nueva aparece una vez.
+	 * - Quitar: se vuelve a poner el tramo anterior si el tramo de después aparece una vez.
+	 *
+	 * @param string $content Contenido actual.
+	 * @param array  $change  Fila del historial.
+	 *
+	 * @phpstan-param array<string, mixed> $change
+	 *
+	 * @return array{0: string, 1: array{0: int, 1: int}, 2: string}|string|null Contenido nuevo, rango y estado; `already_gone` si ya no está lo que había que deshacer; null si no se puede solo.
+	 */
+	private function edited_since( string $content, array $change ): array|string|null {
+		$before = (string) $change['before_html'];
+		$after  = (string) $change['after_html'];
+
+		if ( ChangeRepository::RETARGET === $change['action'] ) {
+			return $this->retarget_back( $content, $before, $after );
+		}
+
+		if ( ChangeRepository::UNLINK === $change['action'] ) {
+			if ( '' === $after || 1 !== substr_count( $content, $after ) ) {
+				return null;
+			}
+
+			$start = (int) strpos( $content, $after );
+
+			return array(
+				substr( $content, 0, $start ) . $before . substr( $content, $start + strlen( $after ) ),
+				array( $start, $start + strlen( $after ) ),
+				UndoResult::FIX_REVERTED,
+			);
+		}
+
+		$link = self::inserted_link( $before, $after );
+		if ( null === $link ) {
+			return null;
+		}
+
+		$count = substr_count( $content, $link['exact'] );
+		if ( 0 === $count && ! str_contains( $content, $link['open'] ) ) {
+			return UndoResult::GONE;
+		}
+		if ( 1 !== $count ) {
+			return null;
+		}
+
+		$start = (int) strpos( $content, $link['exact'] );
+		$end   = $start + strlen( $link['exact'] );
+
+		return array( substr( $content, 0, $start ) . $link['inner'] . substr( $content, $end ), array( $start, $end ), UndoResult::LINK_REMOVED );
+	}
+
+	/**
+	 * Devuelve el `href` anterior a un enlace cuyo destino se cambió, si la entrada se editó después.
+	 *
+	 * Se busca el `<a>` entero (con el procesador de etiquetas, no por cadena exacta): su `href` es el nuevo y lo que
+	 * envuelve es lo mismo que cuando se arregló. Los atributos que se hayan añadido después se conservan; solo cambia
+	 * el `href`. Con 0 o más de 1 coincidencias no se escribe nada.
+	 *
+	 * @param string $content Contenido actual.
+	 * @param string $before  HTML del tramo antes del cambio.
+	 * @param string $after   HTML del tramo después del cambio.
+	 *
+	 * @return array{0: string, 1: array{0: int, 1: int}, 2: string}|string|null
+	 */
+	private function retarget_back( string $content, string $before, string $after ): array|string|null {
+		$tags  = self::retargeted_tags( $before, $after );
+		$links = AnchorScanner::scan( $content );
+		if ( null === $tags || null === $links ) {
+			return null;
+		}
+
+		$new_href = AnchorScanner::href( $tags['new'] );
+		$old_href = AnchorScanner::href( $tags['old'] );
+		$new_at   = array();
+		$same     = 0;
+		$old_seen = false;
+		foreach ( $links as $link ) {
+			$inner = substr( $content, $link['open_end'], $link['close_start'] - $link['open_end'] );
+			if ( $inner !== $tags['inner'] ) {
+				continue;
+			}
+			++$same;
+			$href = AnchorScanner::href( substr( $content, $link['open_start'], $link['open_end'] - $link['open_start'] ) );
+			if ( $href === $new_href ) {
+				$new_at[] = $link;
+			} elseif ( $href === $old_href ) {
+				$old_seen = true;
+			}
+		}
+
+		if ( array() === $new_at ) {
+			// Ya no hay un enlace con ese texto, o ya apunta a donde apuntaba: no hay nada que deshacer.
+			// Si hay uno con ese texto que apunta a otro sitio, no se sabe qué quería el usuario: a mano.
+			return 0 === $same || $old_seen ? UndoResult::GONE : null;
+		}
+		if ( count( $new_at ) > 1 ) {
+			return null;
+		}
+
+		$open     = substr( $content, $new_at[0]['open_start'], $new_at[0]['open_end'] - $new_at[0]['open_start'] );
+		$restored = AnchorScanner::with_href( $open, $old_href );
+		if ( null === $restored ) {
+			return null;
+		}
+
+		return array(
+			substr( $content, 0, $new_at[0]['open_start'] ) . $restored . substr( $content, $new_at[0]['open_end'] ),
+			array( $new_at[0]['open_start'], $new_at[0]['open_end'] ),
+			UndoResult::FIX_REVERTED,
+		);
+	}
+
+	/**
+	 * Mensaje de un deshacer que devuelve el contenido a como estaba.
+	 *
+	 * @param string $action Acción deshecha.
+	 */
+	private static function restored_message( string $action ): string {
+		switch ( $action ) {
+			case ChangeRepository::RETARGET:
+				return __( 'Destination restored.', 'magic-linking' );
+			case ChangeRepository::UNLINK:
+				return __( 'Link put back.', 'magic-linking' );
+			default:
+				return __( 'Link undone.', 'magic-linking' );
+		}
+	}
+
+	/**
+	 * Aviso cuando no se puede deshacer solo.
+	 *
+	 * @param string $action Acción que se quería deshacer.
+	 */
+	private static function manual_message( string $action ): string {
+		switch ( $action ) {
+			case ChangeRepository::RETARGET:
+				return __( 'This post was edited afterwards; restore the link address by hand.', 'magic-linking' );
+			case ChangeRepository::UNLINK:
+				return __( 'This post was edited afterwards; put the link back by hand.', 'magic-linking' );
+			default:
+				return __( 'This post was edited afterwards; remove the link by hand.', 'magic-linking' );
+		}
+	}
+
+	/**
+	 * Las etiquetas `<a>` antes y después de un cambio de destino: la única que difiere entre los dos tramos.
+	 *
+	 * @param string $before HTML antes.
+	 * @param string $after  HTML después.
+	 *
+	 * @return array{old: string, new: string, inner: string}|null
+	 */
+	public static function retargeted_tags( string $before, string $after ): ?array {
+		$old = AnchorScanner::scan( $before );
+		$new = AnchorScanner::scan( $after );
+		if ( null === $old || null === $new || count( $old ) !== count( $new ) ) {
+			return null;
+		}
+
+		$found = null;
+		foreach ( $old as $index => $a ) {
+			$tag_old = substr( $before, $a['open_start'], $a['open_end'] - $a['open_start'] );
+			$tag_new = substr( $after, $new[ $index ]['open_start'], $new[ $index ]['open_end'] - $new[ $index ]['open_start'] );
+			if ( $tag_old === $tag_new ) {
+				continue;
+			}
+			if ( null !== $found || ! AnchorScanner::differ_only_in_href( $tag_old, $tag_new ) ) {
+				return null;
+			}
+			$found = array(
+				'old'   => $tag_old,
+				'new'   => $tag_new,
+				'inner' => substr( $after, $new[ $index ]['open_end'], $new[ $index ]['close_start'] - $new[ $index ]['open_end'] ),
+			);
+		}
+
+		return $found;
+	}
+
+	/**
+	 * El enlace que quitó un cambio: su etiqueta de apertura y lo que envolvía.
+	 *
+	 * @param string $before HTML antes (con el enlace).
+	 * @param string $after  HTML después (sin él).
+	 *
+	 * @return array{open: string, inner: string}|null
+	 */
+	public static function removed_link( string $before, string $after ): ?array {
+		$links = AnchorScanner::scan( $before );
+		if ( null === $links ) {
+			return null;
+		}
+
+		foreach ( $links as $a ) {
+			$inner = substr( $before, $a['open_end'], $a['close_start'] - $a['open_end'] );
+			if ( substr( $before, 0, $a['open_start'] ) . $inner . substr( $before, $a['close_end'] ) === $after ) {
+				return array(
+					'open'  => substr( $before, $a['open_start'], $a['open_end'] - $a['open_start'] ),
+					'inner' => $inner,
+				);
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -317,7 +524,7 @@ final class Undo {
 			(int) $change['id'],
 			(int) $change['post_id'],
 			UndoResult::MANUAL,
-			__( 'This post was edited afterwards; remove the link by hand.', 'magic-linking' ),
+			self::manual_message( (string) $change['action'] ),
 			InsertionException::EDITED_AFTER,
 			is_string( $url ) ? $url : null
 		);

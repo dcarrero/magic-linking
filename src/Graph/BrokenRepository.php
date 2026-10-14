@@ -63,6 +63,46 @@ final class BrokenRepository {
 	}
 
 	/**
+	 * Un enlace roto y cuál de las apariciones de su dirección es en su entrada (para arreglarlo, F1-33).
+	 *
+	 * La posición se cuenta entre las filas del grafo con la misma dirección, que se guardan en el orden del documento;
+	 * la comparación es exacta.
+	 *
+	 * @param int $id Fila de magiclinking_links.
+	 *
+	 * @return array{id: int, source_id: int, url: string, anchor: string, broken: int, ordinal: int, count: int}|null Null si no existe.
+	 */
+	public function occurrence( int $id ): ?array {
+		$wpdb  = $this->wpdb;
+		$links = Schema::table( $wpdb->prefix, 'links' );
+		$row   = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Consulta propia.
+			$wpdb->prepare( 'SELECT id, source_id, target_url, anchor, is_broken FROM %i WHERE id = %d', $links, $id ),
+			ARRAY_A
+		);
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+
+		// La comparación es binaria (exacta); MySQL no distingue mayúsculas en target_url.
+		$counts  = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Consulta propia.
+			$wpdb->prepare( 'SELECT COUNT(*) AS total, COALESCE( SUM( id < %d ), 0 ) AS before_it FROM %i WHERE source_id = %d AND is_internal = 1 AND BINARY target_url = %s', $id, $links, (int) $row['source_id'], (string) $row['target_url'] ),
+			ARRAY_A
+		);
+		$ordinal = (int) ( $counts['before_it'] ?? 0 );
+		$count   = (int) ( $counts['total'] ?? 0 );
+
+		return array(
+			'id'        => (int) $row['id'],
+			'source_id' => (int) $row['source_id'],
+			'url'       => (string) $row['target_url'],
+			'anchor'    => (string) $row['anchor'],
+			'broken'    => (int) $row['is_broken'],
+			'ordinal'   => $ordinal,
+			'count'     => $count,
+		);
+	}
+
+	/**
 	 * Una página de enlaces rotos.
 	 *
 	 * @param array{post_id?: int, search?: string, page?: int, per_page?: int} $args Filtros y página.
@@ -109,6 +149,7 @@ final class BrokenRepository {
 				'reason_code'  => $code,
 				'reason'       => BrokenReason::label( $code ),
 				'edit_url'     => current_user_can( 'edit_post', $source ) ? (string) get_edit_post_link( $source, 'raw' ) : '',
+				'can_fix'      => current_user_can( 'edit_post', $source ),
 			);
 		}
 

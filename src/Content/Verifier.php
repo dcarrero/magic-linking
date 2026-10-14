@@ -20,6 +20,10 @@ use WP_HTML_Tag_Processor;
  * 3. Dentro del rango, el texto plano es idéntico: solo cambian etiquetas.
  * 4. El número de `<a>` del rango ha cambiado exactamente en el sentido pedido (+1 o −1).
  * 5. Las etiquetas del rango son las mismas salvo el par `<a>`…`</a>`, y ese par está bien anidado.
+ *
+ * Cambiar el destino de un enlace (`check_retarget()`) pasa las mismas comprobaciones salvo la 4 y la 5: el número
+ * de enlaces y la secuencia de etiquetas no varían, y los atributos de todos los `<a>` son idénticos salvo el
+ * `href` de uno solo.
  */
 final class Verifier {
 
@@ -91,6 +95,86 @@ final class Verifier {
 	}
 
 	/**
+	 * La comprobación que corresponde a una acción del historial: la única tabla acción → verificación.
+	 *
+	 * @param string $action  `insert`, `retarget` o `unlink`.
+	 * @param string $before  Contenido antes.
+	 * @param string $after   Contenido después.
+	 * @param array  $range   Bytes [inicio, fin) del tramo modificado en $before.
+	 * @param bool   $reverse Se comprueba el deshacer de la acción (el enlace se pone donde se quitó y al revés).
+	 *
+	 * @phpstan-param array{0: int, 1: int} $range
+	 */
+	public static function for_action( string $action, string $before, string $after, array $range, bool $reverse = false ): VerifyResult {
+		if ( 'retarget' === $action ) {
+			return self::check_retarget( $before, $after, $range );
+		}
+
+		$adds = 'unlink' === $action ? $reverse : ! $reverse;
+
+		return self::check( $before, $after, $range, $adds ? 1 : -1 );
+	}
+
+	/**
+	 * Comprueba que un cambio de destino ha tocado solo el `href` de un enlace.
+	 *
+	 * @param string $before Contenido antes.
+	 * @param string $after  Contenido después.
+	 * @param array  $range  Bytes [inicio, fin) del tramo modificado en $before.
+	 *
+	 * @phpstan-param array{0: int, 1: int} $range
+	 */
+	public static function check_retarget( string $before, string $after, array $range ): VerifyResult {
+		[ $start, $end ] = $range;
+		$delta           = strlen( $after ) - strlen( $before );
+
+		if ( $start < 0 || $end < $start || $end > strlen( $before ) || $end + $delta < $start ) {
+			return VerifyResult::fail( 'range' );
+		}
+
+		if ( substr( $after, 0, $start ) !== substr( $before, 0, $start ) || substr( $after, $end + $delta ) !== substr( $before, $end ) ) {
+			return VerifyResult::fail( 'outside_changed' );
+		}
+
+		if ( self::block_names( $before ) !== self::block_names( $after ) ) {
+			return VerifyResult::fail( 'blocks' );
+		}
+
+		$tags_before = self::scan( substr( $before, $start, $end - $start ) );
+		$tags_after  = self::scan( substr( $after, $start, $end + $delta - $start ) );
+
+		if ( $tags_before['text'] !== $tags_after['text'] ) {
+			return VerifyResult::fail( 'text' );
+		}
+		if ( $tags_before['links'] !== $tags_after['links'] || $tags_before['sequence'] !== $tags_after['sequence'] ) {
+			return VerifyResult::fail( 'tags' );
+		}
+		if ( $tags_after['nested'] || $tags_after['crossed'] ) {
+			return VerifyResult::fail( 'link_crosses_tags' );
+		}
+
+		// Todos los enlaces con los mismos atributos salvo el `href` de uno.
+		$changed = 0;
+		foreach ( $tags_before['attributes'] as $index => $old ) {
+			$new = $tags_after['attributes'][ $index ] ?? null;
+			if ( $old === $new ) {
+				continue;
+			}
+			++$changed;
+
+			if ( null === $new || ( $old['href'] ?? null ) === ( $new['href'] ?? null ) ) {
+				return VerifyResult::fail( 'attributes' );
+			}
+			unset( $old['href'], $new['href'] );
+			if ( $old !== $new ) {
+				return VerifyResult::fail( 'attributes' );
+			}
+		}
+
+		return 1 === $changed ? VerifyResult::pass() : VerifyResult::fail( 'link_count' );
+	}
+
+	/**
 	 * Nombres de todos los bloques (también los hijos) en orden de documento; el HTML suelto es `''`.
 	 *
 	 * @param string $content Contenido.
@@ -115,7 +199,7 @@ final class Verifier {
 	 *
 	 * @param string $html Tramo.
 	 *
-	 * @return array{text: string, links: int, sequence: list<string>, nested: bool, crossed: bool}
+	 * @return array{text: string, links: int, sequence: list<string>, nested: bool, crossed: bool, attributes: list<array<string, string|true>>}
 	 */
 	private static function scan( string $html ): array {
 		$processor = new WP_HTML_Tag_Processor( $html );
@@ -126,6 +210,7 @@ final class Verifier {
 		$depth     = 0;
 		$nested    = false;
 		$crossed   = false;
+		$attrs     = array();
 
 		while ( $processor->next_token() ) {
 			$type = $processor->get_token_type();
@@ -148,6 +233,7 @@ final class Verifier {
 				$sequence[] = $name;
 				$open[]     = $name;
 				if ( 'A' === $name ) {
+					$attrs[] = AnchorScanner::read_attributes( $processor );
 					++$links;
 					++$depth;
 					$nested = $nested || $depth > 1;
@@ -168,11 +254,12 @@ final class Verifier {
 		}//end while
 
 		return array(
-			'text'     => $text,
-			'links'    => $links,
-			'sequence' => $sequence,
-			'nested'   => $nested,
-			'crossed'  => $crossed,
+			'text'       => $text,
+			'links'      => $links,
+			'sequence'   => $sequence,
+			'nested'     => $nested,
+			'crossed'    => $crossed,
+			'attributes' => $attrs,
 		);
 	}
 
