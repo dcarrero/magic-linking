@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-import { login, SCREEN_HISTORY, wp } from './wp';
+import { login, openHistoryByBatch, wp } from './wp';
 
 /**
  * Panel del editor (F1-11): barra lateral de Gutenberg y caja del editor clásico.
@@ -735,13 +735,13 @@ test.describe( 'Editor panel', () => {
 		expect( editorRows( ids.origen ) ).toBe( 1 );
 		expect( withoutLink( content( ids.origen ) ) ).toBe( before );
 
-		await page.goto( SCREEN_HISTORY );
+		await openHistoryByBatch( page );
 		const batch = page.locator( '.magiclinking-batch' );
 		await expect( batch ).toHaveCount( 1 );
 		await expect( batch.getByRole( 'heading', { level: 2 } ) ).toContainText( '1 link added' );
 		await expect( batch ).toContainText( 'Added in the editor' );
 		await expect( page.locator( '.magiclinking-wrap' ) ).toContainText(
-			'Links you add from the editor panel are listed here too once you save the entry.'
+			'Links you add from the editor panel appear once you save the entry; Magic Linking only records them.'
 		);
 		await expectHistoryAccessible( page );
 
@@ -791,7 +791,7 @@ test.describe( 'Editor panel', () => {
 		expect( content( ids.origen ).replace( /\s+/g, ' ' ) ).toContain( 'bomba de calor' );
 		expect( before ).toContain( 'bomba de calor' );
 
-		await page.goto( SCREEN_HISTORY );
+		await openHistoryByBatch( page );
 		const batch = page.locator( '.magiclinking-batch' );
 		await expect( batch ).toContainText( 'Added in the editor' );
 		await expect( batch ).toContainText( 'Undone' );
@@ -902,7 +902,7 @@ test.describe( 'Editor panel', () => {
 		await page.waitForURL( /message=1/ );
 		await expect.poll( () => editorRows( clasico ) ).toBe( 1 );
 
-		await page.goto( SCREEN_HISTORY );
+		await openHistoryByBatch( page );
 		const batch = page.locator( '.magiclinking-batch' );
 		await expect( batch ).toHaveCount( 1 );
 		await expect( batch ).toContainText( 'Added in the editor' );
