@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-import { login, wp } from './wp';
+import { login, SCREEN_HISTORY, wp } from './wp';
 
 /**
  * Panel del editor (F1-11): barra lateral de Gutenberg y caja del editor clásico.
@@ -47,6 +47,39 @@ function content( id: number ): string {
 		'eval',
 		`echo get_post( ${ id } )->post_content;`
 	).trim();
+}
+
+/** Filas del Historial registradas desde el editor para una entrada (F1-34). */
+function editorRows( id: number ): number {
+	return Number(
+		wp(
+			'eval',
+			`global $wpdb; echo (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}magiclinking_changes WHERE post_id = %d AND origin = 'editor'", ${ id } ) );`
+		).trim()
+	);
+}
+
+/**
+ * Quien acaba de salir del editor deja el bloqueo `_edit_lock` vigente 150 s y Deshacer no escribe mientras dure
+ * (docs/06 §1.5). Aquí se simula que ya venció.
+ * @param id Entrada.
+ */
+function releaseEditLock( id: number ): void {
+	wp( 'eval', `delete_post_meta( ${ id }, '_edit_lock' );` );
+}
+
+/** Pasa axe sobre un trozo de la pantalla del Historial. */
+async function expectHistoryAccessible( page: Page ): Promise< void > {
+	await page.waitForFunction( () =>
+		document
+			.getAnimations()
+			.every( ( animation ) => animation.playState !== 'running' )
+	);
+	const results = await new AxeBuilder( { page } )
+		.include( '.magiclinking-wrap' )
+		.withTags( AXE_TAGS )
+		.analyze();
+	expect( results.violations ).toEqual( [] );
 }
 
 /** El mismo contenido sin el primer enlace: tiene que ser idéntico al original. */
@@ -655,6 +688,67 @@ test.describe( 'Editor panel', () => {
 		await run();
 	} );
 
+	test( 'history: a link added in the editor is recorded on save, shown as added in the editor and undone from History', async ( {
+		page,
+	} ) => {
+		wp( 'magic-linking', 'index' );
+		const before = content( ids.origen );
+		await login( page );
+		await openBlockEditor( page, ids.origen );
+		const panel = await openSidebar( page );
+		const card = panel.locator( '.magiclinking-card' ).first();
+		await expect( card ).toBeVisible();
+
+		// Un enlace que se deshace antes de guardar no cuenta.
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 1 );
+		await card.getByRole( 'button', { name: 'Undo' } ).click();
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 0 );
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount( 1 );
+
+		// Sin guardar, el servidor no sabe nada.
+		expect( editorRows( ids.origen ) ).toBe( 0 );
+
+		await save( page );
+		const saved = content( ids.origen );
+		expect( withoutLink( saved ) ).toBe( before );
+		await expect.poll( () => editorRows( ids.origen ) ).toBe( 1 );
+
+		// Guardar otra vez no lo registra de nuevo, y registrar no escribe en la entrada.
+		await page.evaluate( () =>
+			// @ts-expect-error wp lo pone WordPress.
+			window.wp.data.dispatch( 'core/editor' ).editPost( { title: 'Otro título' } )
+		);
+		await save( page );
+		await page.waitForTimeout( 1500 );
+		expect( editorRows( ids.origen ) ).toBe( 1 );
+		expect( withoutLink( content( ids.origen ) ) ).toBe( before );
+
+		await page.goto( SCREEN_HISTORY );
+		const batch = page.locator( '.magiclinking-batch' );
+		await expect( batch ).toHaveCount( 1 );
+		await expect( batch.getByRole( 'heading', { level: 2 } ) ).toContainText( '1 link added' );
+		await expect( batch ).toContainText( 'Added in the editor' );
+		await expect( page.locator( '.magiclinking-wrap' ) ).toContainText(
+			'Links you add from the editor panel are listed here too once you save the entry.'
+		);
+		await expectHistoryAccessible( page );
+
+		// Deshacer desde el Historial quita el enlace de la entrada, byte a byte.
+		const toggle = batch.locator( 'button[aria-controls^="magiclinking-details-"]' );
+		await toggle.click();
+		const table = batch.getByRole( 'table', { name: 'Links in this batch' } );
+		await expect( table ).toContainText( 'bomba de calor' );
+		releaseEditLock( ids.origen );
+		await table.getByRole( 'button', { name: /^Undo change in/ } ).click();
+		const dialog = page.getByRole( 'dialog', { name: 'Undo this change?' } );
+		await dialog.getByRole( 'button', { name: 'Undo change', exact: true } ).click();
+		await expect( batch.getByRole( 'status' ) ).toContainText( '1 link undone.' );
+		expect( content( ids.origen ) ).toBe( before );
+		await expectHistoryAccessible( page );
+	} );
+
 	test( 'classic editor: the box links in TinyMCE and does nothing in the Text tab', async ( {
 		page,
 	} ) => {
@@ -723,5 +817,58 @@ test.describe( 'Editor panel', () => {
 		expect(
 			plain( withoutLink( after ) ).replace( /(\s|&nbsp;)ESCRITO/, '' )
 		).toBe( plain( before ) );
+	} );
+	test( 'history: a link added in the classic editor is recorded after saving and undone from History', async ( {
+		page,
+	} ) => {
+		const clasico = Number(
+			wp(
+				'eval',
+				`echo wp_insert_post( array( 'post_name' => 'pe-clasico-historial', 'post_title' => 'Guía clásica con historial', 'post_status' => 'publish', 'post_content' => '<p>La instalación de una bomba de calor reduce el consumo de energía en las casas con buen aislamiento.</p>' ) );`
+			).trim()
+		);
+		wp( 'magic-linking', 'index' );
+		wp(
+			'eval',
+			`
+			if ( ! is_dir( WPMU_PLUGIN_DIR ) ) { mkdir( WPMU_PLUGIN_DIR ); }
+			file_put_contents( WPMU_PLUGIN_DIR . '/magiclinking-e2e-classic.php', "<?php\\nadd_filter( 'use_block_editor_for_post', '__return_false' );\\n" );
+			`
+		);
+		const before = content( clasico );
+		await login( page );
+		await page.goto( `/wp-admin/post.php?post=${ clasico }&action=edit` );
+
+		const card = page.locator( '#magiclinking-editor-panel .magiclinking-card' ).first();
+		await expect( card ).toBeVisible();
+		await page.locator( '#content-tmce' ).click();
+		const frame = page.frameLocator( '#content_ifr' );
+		await expect( frame.locator( 'body p' ) ).toBeVisible();
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( frame.locator( 'body a' ) ).toHaveCount( 1 );
+		expect( editorRows( clasico ) ).toBe( 0 );
+
+		// Al guardar la página se recarga; el panel avisa al volver a cargar.
+		await page.locator( '#publish' ).click();
+		await page.waitForURL( /message=1/ );
+		await expect.poll( () => editorRows( clasico ) ).toBe( 1 );
+
+		await page.goto( SCREEN_HISTORY );
+		const batch = page.locator( '.magiclinking-batch' );
+		await expect( batch ).toHaveCount( 1 );
+		await expect( batch ).toContainText( 'Added in the editor' );
+		await expectHistoryAccessible( page );
+
+		await batch.locator( 'button[aria-controls^="magiclinking-details-"]' ).click();
+		const table = batch.getByRole( 'table', { name: 'Links in this batch' } );
+		releaseEditLock( clasico );
+		await table.getByRole( 'button', { name: /^Undo change in/ } ).click();
+		await page
+			.getByRole( 'dialog', { name: 'Undo this change?' } )
+			.getByRole( 'button', { name: 'Undo change', exact: true } )
+			.click();
+		await expect( batch.getByRole( 'status' ) ).toContainText( '1 link undone.' );
+		const plain = ( html: string ) => html.replace( /<\/?p>/g, '' ).trim();
+		expect( plain( content( clasico ) ) ).toBe( plain( before ) );
 	} );
 } );

@@ -159,10 +159,13 @@ final class Schema {
   user_id bigint(20) unsigned NOT NULL DEFAULT 0,
   created_at datetime NOT NULL,
   undone_at datetime NULL,
+  origin varchar(20) NOT NULL DEFAULT 'plugin',
+  origin_key char(40) NULL,
   PRIMARY KEY  (id),
   KEY batch_id (batch_id),
   KEY post_created (post_id,created_at),
-  KEY created_at (created_at)
+  KEY created_at (created_at),
+  KEY origin_key (origin_key)
 ) {$charset_collate};",
 
 			// Procesos largos y gasto de IA.

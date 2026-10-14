@@ -150,15 +150,20 @@ export function Panel( { adapter, boot, state }: Props ) {
 		const result = adapter.apply( suggestion );
 		if ( result.ok ) {
 			const message = __( 'Link added.', 'magic-linking' );
+			// Al guardar la entrada se registra en el Historial; si se deshace aquí antes, deja de contar.
+			const insertion = state.trackInsertion( suggestion, result.anchor );
 			setStatus( suggestion, {
 				kind: 'added',
 				message,
-				undo: () =>
-					Promise.resolve(
-						result.undo()
-							? __( 'Link removed.', 'magic-linking' )
-							: null
-					),
+				undo: () => {
+					const removed = result.undo();
+					if ( removed ) {
+						state.forgetInsertion( insertion );
+					}
+					return Promise.resolve(
+						removed ? __( 'Link removed.', 'magic-linking' ) : null
+					);
+				},
 			} );
 			speak( message, 'polite' );
 			return;

@@ -269,6 +269,7 @@ export function gutenbergAdapter(
 
 			return {
 				ok: true,
+				anchor: applied,
 				// Quita solo este enlace, si sigue tal como se puso, como una edición nueva: no usa el
 				// `undo()` global, que podría deshacer otro cambio (título, categorías, texto escrito).
 				undo: () => {

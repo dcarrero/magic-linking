@@ -137,6 +137,7 @@ export function classicAdapter(
 
 			return {
 				ok: true,
+				anchor: applied,
 				// Quita solo este `<a>`, si sigue en el documento tal como se puso: no usa el deshacer de
 				// TinyMCE, que podría llevarse texto escrito después.
 				undo: () => {

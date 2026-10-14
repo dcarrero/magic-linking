@@ -20,6 +20,8 @@ export type ApplyFailure =
 export type ApplyResult =
 	| {
 			ok: true;
+			/** Texto que quedó enlazado, tal como está en el editor. */
+			anchor: string;
 			/** Deshace el enlace si el contenido no ha cambiado desde que se puso; devuelve si lo hizo. */
 			undo: () => boolean;
 	  }

@@ -167,9 +167,13 @@ export interface Boot {
 	tabUrls?: Record< 'report' | 'broken' | 'history' | 'settings', string >;
 }
 
+/** De dónde viene un grupo: lo escribió Magic Linking, o el usuario lo puso en el editor y solo se registró. */
+export type HistoryOrigin = 'plugin' | 'editor';
+
 /** Un grupo (lote) del historial: una acción del usuario. */
 export interface HistoryGroup {
 	batch_id: string;
+	origin: HistoryOrigin;
 	created_at: string;
 	user_id: number;
 	user_name: string;
@@ -196,6 +200,7 @@ export interface HistoryResponse {
 
 export interface HistoryChange {
 	id: number;
+	origin: HistoryOrigin;
 	post_id: number;
 	/** Null si la entrada ya no existe. */
 	post_title: string | null;
@@ -380,4 +385,33 @@ declare global {
 	interface Window {
 		magiclinking?: Boot;
 	}
+}
+
+/** Enlace que el panel puso en el editor, para registrarlo en el Historial al guardar (F1-34). */
+export interface EditorLink {
+	/** Identificador de la inserción, generado en el cliente: evita registrar dos veces el mismo enlace. */
+	insertion_id: string;
+	/** Clave de la sugerencia de la que sale. */
+	suggestion: string;
+	/** Entrada a la que enlaza; la dirección la pone el servidor. */
+	target_id: number;
+	/** Texto enlazado. */
+	anchor: string;
+}
+
+export interface EditorLinkResult {
+	insertion_id: string;
+	status:
+		| 'recorded'
+		| 'duplicate'
+		| 'not_found'
+		| 'ambiguous'
+		| 'unverified'
+		| 'invalid';
+	change_id: number;
+}
+
+export interface EditorHistoryResponse {
+	batch_id: string | null;
+	results: EditorLinkResult[];
 }

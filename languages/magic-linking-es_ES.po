@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.11.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-14T10:06:21+00:00\n"
+"POT-Creation-Date: 2026-10-14T10:39:45+00:00\n"
 "PO-Revision-Date: 2026-10-07 12:30+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -248,6 +248,7 @@ msgstr[0] "Se ha borrado %d fila del historial."
 msgstr[1] "Se han borrado %d filas del historial."
 
 #: src/Cli/Command.php:706 src/Rest/DismissalsController.php:141
+#: src/Rest/EditorHistoryController.php:119
 #: src/Rest/SuggestionsController.php:586
 msgid "That entry does not exist."
 msgstr "Esa entrada no existe."
@@ -441,11 +442,11 @@ msgstr "Sobrecargada"
 msgid "OK"
 msgstr "Bien"
 
-#: src/History/Reader.php:314
+#: src/History/Reader.php:331
 msgid "Automatic"
 msgstr "Automático"
 
-#: src/History/Reader.php:319
+#: src/History/Reader.php:336
 msgid "Deleted user"
 msgstr "Usuario eliminado"
 
@@ -1066,6 +1067,14 @@ msgstr[0] "%s enlace añadido"
 msgstr[1] "%s enlaces añadidos"
 
 #: assets/build/index.js:16
+msgid "Added in the editor"
+msgstr "Añadido en el editor"
+
+#: assets/build/index.js:16
+msgid "Added by Magic Linking"
+msgstr "Añadido por Magic Linking"
+
+#: assets/build/index.js:16
 msgid "Progress of redoing the batch"
 msgstr "Avance de rehacer el lote"
 
@@ -1215,6 +1224,10 @@ msgstr "No se ha podido cargar el historial."
 #: assets/build/index.js:25
 msgid "Every link Magic Linking writes into your content is listed here, newest first, so you can undo it."
 msgstr "Aquí se listan todos los enlaces que Magic Linking escribe en tu contenido, del más reciente al más antiguo, para que puedas deshacerlos."
+
+#: assets/build/index.js:25
+msgid "Links you add from the editor panel are listed here too once you save the entry. Magic Linking only records them: it never rewrites the entry when you save."
+msgstr "Los enlaces que añades desde el panel del editor también aparecen aquí cuando guardas la entrada. Magic Linking solo los registra: nunca reescribe la entrada al guardar."
 
 #. translators: %s: number of days.
 #: assets/build/index.js:26
