@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.10.0
+Stable tag: 0.11.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,7 +21,8 @@ It works entirely on your server, with no artificial intelligence, no account, n
 * **Outbound suggestions**: a Magic Linking panel in the block editor (and a box in the classic editor) proposes phrases of the text you are writing that could link to other entries of your site. Each suggestion shows the phrase with the anchor text highlighted in the editor, the destination and the reason.
 * **One click to link**: press *Link* and the link is added in the editor itself, on that phrase only. It is part of your unsaved changes until you save, and you can undo it with the *Undo* button of the card or with the editor's own undo.
 * **Inbound suggestions**: the same panel lists other entries whose text mentions the one you are editing and could link to it. Pressing *Link* writes the link in that other entry, see "How and when it changes your content".
-* Only the entries and block types where a link can be inserted safely are proposed. Headings, quotes and tables are left alone unless a developer allows them with a filter.
+* Only the entries and block types where a link can be inserted safely are proposed. Paragraphs and lists are always used; headings, quotes and tables are left alone unless you turn them on in Settings (or a developer allows them with a filter).
+* **Dismiss**: a suggestion you do not want can be dismissed for good, from either side, and restored with *Undo*.
 
 **How and when it changes your content**
 
@@ -113,7 +114,7 @@ The suggestions come from the index of your site, which is built in the backgrou
 
 = Why can't I link from this phrase? =
 
-Links are only inserted in paragraphs, lists and similar blocks, and never inside an existing link. A developer can allow more block types with `magiclinking_insertable_blocks`.
+Links are only inserted in paragraphs and lists, and never inside an existing link. Headings, quotes and tables are off by default: turn them on in Magic Linking > Settings > Where links can be inserted. A developer can allow more block types with `magiclinking_insertable_blocks`.
 
 = Does it work in the classic editor? =
 
@@ -176,7 +177,7 @@ Each site of a network has its own report, history and settings.
 3. Inbound suggestions: other entries that could link to the one you are editing.
 4. History: every link added from the server, with undo and redo.
 5. The report: totals for analyzed entries, orphans, internal links and broken links, with filters, search and sorting.
-6. Settings: content types, thresholds, history retention and maintenance.
+6. Settings: content types, where links can be inserted, suggestions shown, history retention and maintenance.
 
 == Support and documentation ==
 
@@ -190,7 +191,7 @@ Magic Linking does not connect to any external service.
 
 == Privacy ==
 
-Magic Linking does not collect, store or send personal data. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added (which user, when, which entry and the text of the paragraph that changed, so it can be undone). Suggestions you dismiss are not stored. It does not set cookies.
+Magic Linking does not collect, store or send personal data. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added (which user, when, which entry and the text of the paragraph that changed, so it can be undone). The pairs (entry, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies.
 
 == Third-party libraries ==
 
@@ -198,9 +199,10 @@ Magic Linking does not collect, store or send personal data. It stores, in your 
 
 == Changelog ==
 
-= Unreleased =
+= 0.11.0 =
 * New: dismiss a suggestion for good. A dismissed pair (entry, target) is not proposed again, in either direction, and you can undo it. A target dismissed from more than 10 published entries is ranked slightly lower across the site.
 * New: bundled translations into Spanish (Spain), French, German, Italian and Portuguese (Brazil and Portugal). Translations approved on translate.wordpress.org take precedence when available.
+* Improved: translations are complete in all six bundled languages.
 * New: setup assistant for new sites, and new settings: where links can go (headings, quotes, tables), open links in a new tab, extra rel values, suggestions shown, ignored addresses and words.
 * Changed: links in quotes are now off by default, as in the new settings. Before, a paragraph inside a quote block could receive an automatic link; now it only does if you turn on "Quotes" in Settings.
 
