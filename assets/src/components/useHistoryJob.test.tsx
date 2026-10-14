@@ -1,6 +1,3 @@
-/**
- * @jest-environment jsdom
- */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { HistoryJob } from '../types';
@@ -110,8 +107,11 @@ describe( 'useHistoryJob', () => {
 		await tick( 3000 );
 		await tick( 9000 );
 		expect( mocked.historyJob ).toHaveBeenCalledTimes( 1 );
-		await act( async () =>
-			resolvers[ 0 ]( { job: make( { status: 'done', done: 10 } ) } )
+		await act(
+			async () =>
+				resolvers[ 0 ]?.( {
+					job: make( { status: 'done', done: 10 } ),
+				} )
 		);
 		await tick( 9000 );
 		expect( mocked.historyJob ).toHaveBeenCalledTimes( 1 );

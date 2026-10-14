@@ -15,10 +15,10 @@ interface ProgressProps {
 
 /**
  * Barra de progreso de un proceso en segundo plano, con el aviso de atasco y los botones de reanudar y cancelar.
- * @param props          Propiedades.
- * @param props.job      Proceso que se sigue.
- * @param props.labels   Etiquetas accesibles de la barra, una por modo.
- * @param props.busy     Hay una orden de reanudar o cancelar en curso.
+ * @param props           Propiedades.
+ * @param props.job       Proceso que se sigue.
+ * @param props.labels    Etiquetas accesibles de la barra, una por modo.
+ * @param props.busy      Hay una orden de reanudar o cancelar en curso.
  * @param props.onControl Reanudar o cancelar.
  */
 export function JobProgress( props: ProgressProps ) {
