@@ -9,18 +9,18 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 
 *Enlazado interno para WordPress que funciona gratis de verdad, con la IA que ya tiene tu WordPress y sin vender créditos.*
 
-> **Status: version 0.10 ([0.9 is on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It does not use AI yet; it works entirely on your server (see the [Roadmap](#-roadmap)).
+> **Status: version 0.20 ([0.11 is the latest on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It does not use AI yet; it works entirely on your server (see the [Roadmap](#-roadmap)).
 
 ## 🚀 Features
 
 - **💡 Outbound suggestions** - In the block editor (sidebar panel) and in the classic editor (box): phrases of your text that can link to other entries, with the anchor highlighted in the text and the reason
 - **🖱️ One-click linking** - The link is inserted in the editor itself, on that phrase only; you save when you want, and you can undo it from the card
 - **📥 Inbound suggestions** - Other entries that mention the one you are editing; the link is written there, on the server, and the rest of that entry must stay identical byte for byte or nothing is written. WordPress keeps a revision
-- **↩️ History with undo and redo** - Every link added from the server is listed; configurable retention (30, 90, 365 days or forever); large groups are undone in the background
+- **↩️ History with undo and redo** - Every link Magic Linking changes (server, editor panel and broken-link fixes) is listed, grouped by entry with dates and filters, undo or redo one change, an entry or a batch; configurable retention (30, 90, 365 days or forever); large groups are undone in the background
 - **🧭 Link report** - Orphan, under-linked and over-linked entries, with inbound, internal outbound, external and broken counts for every entry
 - **🔎 Filters and search** - Filter by problem type, search by title, sort, paginate
 - **📤 CSV export** - Export the exact view you are looking at
-- **🩹 Broken internal links** - Complete list with anchor text, reason and a link to edit the source entry (trash, draft, private or non-existent targets)
+- **🩹 Broken internal links** - Complete list with anchor text, reason and a link to edit the source entry (trash, draft, private or non-existent targets); fix each one by changing its destination or removing the link, with undo
 - **⚡ Made for big sites** - The index and the analysis are built in the background with Action Scheduler (bundled); suggestions in milliseconds with thousands of entries
 - **🌍 Multilingual** - Language per entry from WPML, Polylang or the site language; never suggests links between languages; English and Spanish included
 - **⌨️ WP-CLI** - Index, status, reports and history from the terminal
@@ -70,9 +70,9 @@ See [Development](#-development) to build the assets.
 
 1. Open **Magic Linking** in the admin sidebar and press **Analyse my site**. Nothing is analysed until you do it; the first time it also builds the suggestions index in the background.
 2. **Editor**: open a post or page and the **Magic Linking** panel (block editor) or box (classic). Press **Link** on the suggestions you like.
-3. **History**: undo or redo any link added from the server.
+3. **History**: undo or redo any change, by entry or by batch.
 4. **Report**: use the filters *Orphans*, *Under-linked*, *Over-linked* and *With broken links*; export to CSV.
-5. **Broken links**: review each broken internal link and open its entry to fix it.
+5. **Broken links**: review each broken internal link and fix it: change its destination, remove the link or open its entry.
 6. **Settings**: thresholds for under-linked and over-linked entries, history retention, full re-analysis (*Maintenance*) and what to do with the data when the plugin is deleted.
 
 ### WP-CLI
@@ -83,7 +83,7 @@ wp magic-linking status                                   # progress and totals
 wp magic-linking report --filter=orphans --format=csv     # orphan pages as CSV
 wp magic-linking broken                                   # broken internal links
 wp magic-linking job list                                 # background jobs (also: pause, resume, cancel)
-wp magic-linking history list                             # history (also: undo, redo, purge)
+wp magic-linking history list                             # history (also: undo, redo, purge; undo|redo --post=<id>)
 ```
 
 ### How links are counted
@@ -174,6 +174,14 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 [GPL-2.0-or-later](LICENSE).
 
 ## 📝 Changelog
+
+### 0.20.0
+- Fix a broken internal link from the list: change its destination or remove the link keeping its text, with undo from History.
+- History records the links you add from the editor panel (schema 5; the update runs by itself) and marks them undone if you remove them and save.
+- History more compact and grouped by entry, with dates, filters, "Undo all" / "Redo all" per entry and a view by batch; `wp magic-linking history undo|redo --post=<id>`.
+- Settings in tabs (General, Suggestions, Links, History and data) with a sticky save bar; more compact editor panel after linking or dismissing.
+- History shows where each link came from: "Editor panel", "Another entry's panel" or "Broken links".
+- Translations up to date in all six languages.
 
 ### 0.11.0
 - Dismiss a suggestion for good, with undo; targets dismissed from more than 10 published entries rank slightly lower.
