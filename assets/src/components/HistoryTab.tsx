@@ -1,6 +1,6 @@
 import { useCallback, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
-import { __, sprintf } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { HistoryBatches } from './HistoryBatches';
 import { HistoryEntries } from './HistoryEntries';
 
@@ -19,7 +19,12 @@ function retentionText( days: number ): string {
 	return days > 0
 		? sprintf(
 				/* translators: %s: number of days. */
-				__( 'Changes are kept for %s days.', 'magic-linking' ),
+				_n(
+					'Changes are kept for %s day.',
+					'Changes are kept for %s days.',
+					days,
+					'magic-linking'
+				),
 				days.toLocaleString()
 		  )
 		: __( 'Changes are kept with no expiry date.', 'magic-linking' );

@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { __, _x } from '@wordpress/i18n';
 import type { ChangeKind, HistoryOrigin } from '../types';
 
 /**
@@ -66,15 +66,15 @@ export function actionLabel( kind: ChangeKind ): string {
 }
 
 /**
- * De dónde viene un cambio: el editor, el arreglo de enlaces rotos o Magic Linking.
+ * De dónde viene un cambio: el panel del editor (enlace saliente de la entrada que se editaba), el panel de otra entrada (enlace entrante) o el arreglo de enlaces rotos.
  * @param origin Origen.
  * @param kind   Acción.
  */
 export function sourceLabel( origin: HistoryOrigin, kind: ChangeKind ): string {
 	if ( origin === 'editor' ) {
-		return __( 'Editor', 'magic-linking' );
+		return _x( 'Panel (outbound)', 'history origin', 'magic-linking' );
 	}
 	return kind === 'insert'
-		? __( 'Magic Linking', 'magic-linking' )
-		: __( 'Broken links', 'magic-linking' );
+		? _x( 'Panel (inbound)', 'history origin', 'magic-linking' )
+		: _x( 'Broken links', 'history origin', 'magic-linking' );
 }

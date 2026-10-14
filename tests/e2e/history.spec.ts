@@ -151,7 +151,7 @@ test.describe( 'History by entry', () => {
 		}
 		await expect( table.locator( 'tbody' ) ).not.toContainText( 'E2E origen A' );
 		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'ventilador industrial' );
-		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'Magic Linking' );
+		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'Panel (inbound)' );
 		await expect( table.locator( 'tbody tr' ).first() ).toContainText( 'E2E destino' );
 		await expect( table.getByRole( 'link', { name: 'E2E destino' } ).first() ).toHaveAttribute( 'href', /e2e-destino|[?&]p=\d+/ );
 
@@ -215,7 +215,7 @@ test.describe( 'History by entry', () => {
 		await page.goto( SCREEN_HISTORY );
 		const entry = page.locator( '.magiclinking-entry' ).filter( { hasText: 'E2E casa C' } );
 		await entry.getByRole( 'button', { name: /^Undo “aire acondicionado” in E2E casa C/ } ).click();
-		await expect( entry.getByText( '0 of 1 changes active' ) ).toBeVisible();
+		await expect( entry.getByText( '0 of 1 change active' ) ).toBeVisible();
 
 		await page.getByLabel( 'Show entries with' ).selectOption( 'undone' );
 		await expect( page.locator( '.magiclinking-entry' ) ).toHaveCount( 1 );

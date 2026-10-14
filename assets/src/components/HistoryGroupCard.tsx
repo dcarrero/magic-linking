@@ -215,9 +215,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 				<span
 					className={ `magiclinking-origin magiclinking-origin--${ group.origin }` }
 				>
-					{ group.origin === 'editor'
-						? __( 'Added in the editor', 'magic-linking' )
-						: __( 'Added by Magic Linking', 'magic-linking' ) }
+					{ originText( group ) }
 				</span>
 			</p>
 			{ ! expanded && (
@@ -677,4 +675,17 @@ function destination( change: HistoryChange ): string {
 		);
 	}
 	return change.url;
+}
+
+/**
+ * Texto de dónde viene un lote: el panel del editor, el panel de otra entrada o el arreglo de enlaces rotos.
+ * @param group Lote.
+ */
+function originText( group: HistoryGroup ): string {
+	if ( group.origin === 'editor' ) {
+		return __( 'Added from the editor panel', 'magic-linking' );
+	}
+	return group.kind === undefined || group.kind === 'insert'
+		? __( 'Added to other entries from the editor panel', 'magic-linking' )
+		: __( 'Fixed from Broken links', 'magic-linking' );
 }

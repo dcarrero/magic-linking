@@ -742,7 +742,7 @@ test.describe( 'Editor panel', () => {
 		const batch = page.locator( '.magiclinking-batch' );
 		await expect( batch ).toHaveCount( 1 );
 		await expect( batch.getByRole( 'heading', { level: 2 } ) ).toContainText( '1 link added' );
-		await expect( batch ).toContainText( 'Added in the editor' );
+		await expect( batch ).toContainText( 'Added from the editor panel' );
 		await expect( page.locator( '.magiclinking-wrap' ) ).toContainText(
 			'Links you add from the editor panel appear once you save the entry; Magic Linking only records them.'
 		);
@@ -796,7 +796,7 @@ test.describe( 'Editor panel', () => {
 
 		await openHistoryByBatch( page );
 		const batch = page.locator( '.magiclinking-batch' );
-		await expect( batch ).toContainText( 'Added in the editor' );
+		await expect( batch ).toContainText( 'Added from the editor panel' );
 		await expect( batch ).toContainText( 'Undone' );
 		await expectHistoryAccessible( page );
 	} );
@@ -908,7 +908,7 @@ test.describe( 'Editor panel', () => {
 		await openHistoryByBatch( page );
 		const batch = page.locator( '.magiclinking-batch' );
 		await expect( batch ).toHaveCount( 1 );
-		await expect( batch ).toContainText( 'Added in the editor' );
+		await expect( batch ).toContainText( 'Added from the editor panel' );
 		await expectHistoryAccessible( page );
 
 		await batch.locator( 'button[aria-controls^="magiclinking-details-"]' ).click();

@@ -1,7 +1,7 @@
 import { Notice } from '@wordpress/components';
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
-import { __, _n, sprintf } from '@wordpress/i18n';
+import { __, _n, _x, sprintf } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
 import { api } from '../api';
 import { useDebounced, useLoad } from '../hooks';
@@ -176,10 +176,18 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 						{ __( 'All sources', 'magic-linking' ) }
 					</option>
 					<option value="editor">
-						{ __( 'Added in the editor', 'magic-linking' ) }
+						{ _x(
+							'Panel (outbound)',
+							'history origin',
+							'magic-linking'
+						) }
 					</option>
 					<option value="plugin">
-						{ __( 'Written by Magic Linking', 'magic-linking' ) }
+						{ _x(
+							'Panel (inbound) and broken links',
+							'history origin filter',
+							'magic-linking'
+						) }
 					</option>
 				</select>
 				<div role="search" className="magiclinking-toolbar__search">

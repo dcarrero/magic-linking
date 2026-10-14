@@ -1,6 +1,6 @@
 import { useMemo } from '@wordpress/element';
 import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/editor';
-import { __, sprintf } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 import { Icon, link } from '@wordpress/icons';
 import { gutenbergAdapter } from './adapters/gutenberg';
 import type { EditorBoot } from './boot';
@@ -47,14 +47,7 @@ export function Sidebar( { boot }: { boot: EditorBoot } ) {
 	const state = usePanelState( adapter, boot.perPage );
 	const count = state.outbound.data ? state.visibleOutbound.length : null;
 
-	const title =
-		count !== null && count > 0
-			? sprintf(
-					/* translators: %d: number of outbound suggestions. */
-					__( 'Internal links (%d)', 'magic-linking' ),
-					count
-			  )
-			: __( 'Internal links', 'magic-linking' );
+	const title = __( 'Internal links', 'magic-linking' );
 
 	return (
 		<>
