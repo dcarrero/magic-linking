@@ -421,7 +421,7 @@ final class AiController implements Module {
 	 *
 	 * @param array $models Modelos de `Capabilities::detect()`.
 	 *
-	 * @phpstan-param list<array{provider: string, provider_name: string, model: string, name: string}> $models
+	 * @phpstan-param list<array{provider: string, provider_name: string, model: string, name: string, strict?: bool}> $models
 	 *
 	 * @return list<array{provider: string, provider_name: string, model: string, name: string, local: bool, price: array{0: float, 1: float}|null, recommended: bool}>
 	 */
