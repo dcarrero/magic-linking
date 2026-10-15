@@ -589,6 +589,33 @@ final class AiTest extends GraphTestCase {
 		$this->assertFalse( $pinned['strict'], 'Y entonces la petición va sin esquema.' );
 	}
 
+	public function test_the_schemaless_repeat_only_happens_if_time_is_left(): void {
+		$this->needs_ai_client();
+		$clock                 = new \stdClass();
+		$clock->t              = 0.0;
+		FakeAiProvider::$reply = static function () use ( $clock ) {
+			$clock->t += 49.0;
+
+			return new ClientException( 'Bad Request (400)', 400 );
+		};
+		$request               = new Request( 'hola', 'sistema', array( 'type' => 'object' ), 2000, 50, array(), 100, 'ai_rerank' );
+
+		$outcome = $this->clocked_client( $clock )->generate( $request );
+
+		$this->assertInstanceOf( Failure::class, $outcome );
+		$this->assertSame( 1, FakeAiProvider::$calls, 'Quedaba 1 s: no se repite sin esquema.' );
+	}
+
+	public function test_a_batch_model_cannot_be_saved_as_the_preferred_model(): void {
+		wp_set_current_user( $this->admin );
+
+		$response = $this->request( 'POST', '/settings', array( 'ai_model' => 'openai/gpt-4.1-mini:batch' ) );
+
+		$this->assertSame( 400, $response->get_status() );
+		$this->container( Settings::class )->update( array( 'ai_model' => 'openai/gpt-4.1-mini:batch' ) );
+		$this->assertSame( '', $this->container( Settings::class )->ai_model() );
+	}
+
 	public function test_a_429_is_retried_and_ends_as_a_rate_limit_error(): void {
 		$this->needs_ai_client();
 		FakeAiProvider::$reply = new ClientException( 'Too Many Requests (429)', 429 );

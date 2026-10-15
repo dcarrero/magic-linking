@@ -136,4 +136,12 @@ final class ModelsTest extends TestCase {
 		$this->assertTrue( Models::allowed( 'nvidia/x:free' ) );
 		$this->assertTrue( Models::allowed( 'llama3.2:3b' ) );
 	}
+
+	public function test_same_model_compares_exact_ids_or_a_date_suffix_only(): void {
+		$this->assertTrue( Models::same( 'openai/gpt-4.1-mini', 'gpt-4.1-mini-2025-04-14' ) );
+		$this->assertTrue( Models::same( 'claude-3-5-haiku-20241022', 'anthropic/claude-3.5-haiku' ) );
+		$this->assertFalse( Models::same( 'gpt-4.1', 'gpt-4.1-mini' ) );
+		$this->assertFalse( Models::same( 'gpt-4o', 'gpt-4o-mini' ) );
+		$this->assertFalse( Models::same( '', 'gpt-4o' ) );
+	}
 }

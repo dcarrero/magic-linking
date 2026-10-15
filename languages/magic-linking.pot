@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-15T19:18:20+00:00\n"
+"POT-Creation-Date: 2026-10-15T20:16:20+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -646,6 +646,10 @@ msgstr ""
 
 #: src/Rest/JobsController.php:165
 msgid "That process does not exist."
+msgstr ""
+
+#: src/Rest/SettingsController.php:179
+msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
 msgstr ""
 
 #. translators: %s: comma-separated list of shared terms.

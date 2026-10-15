@@ -64,6 +64,13 @@ class Client {
 	protected int $retry_wait_ms = 800;
 
 	/**
+	 * Modelos ya resueltos en el registro en esta petición PHP.
+	 *
+	 * @var array<string, object|null>
+	 */
+	private array $resolved = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Budget $budget Tope diario y registro del gasto.
@@ -253,7 +260,7 @@ class Client {
 		$started  = $this->now();
 		$request  = $request->with_timeout( $this->fit_timeout( $request->timeout ) );
 		$attempts = 1;
-		$outcome  = $this->attempt( $request );
+		$outcome  = $this->attempt( $request, $started );
 
 		// Un reintento con espera ante red, 429 o 5xx, solo si cabe en el tiempo que se dio a la petición: tras
 		// agotar la espera no queda margen y no se reintenta. Un tiempo agotado (`timeout`) tampoco se repite.
@@ -262,7 +269,7 @@ class Client {
 			if ( $left >= self::MIN_RETRY ) {
 				$this->wait( $this->retry_wait_ms );
 				++$attempts;
-				$outcome = $this->attempt( $request->with_timeout( $left ) );
+				$outcome = $this->attempt( $request->with_timeout( $left ), $this->now() );
 			}
 		}
 
@@ -275,15 +282,22 @@ class Client {
 	 * Una vuelta al proveedor. Si el proveedor rechaza el esquema JSON (400 o 422), se repite sin esquema: el
 	 * reordenado valida la respuesta por su cuenta.
 	 *
+	 * La repetición sin esquema solo se hace con el tiempo que queda de lo dado a la petición (contando lo que tardó
+	 * el primer intento y la resolución del modelo, que puede pedir su lista a la red).
+	 *
 	 * @param Request $request Petición.
+	 * @param float   $started Instante en que empezó este intento.
 	 *
 	 * @return Response|Failure
 	 */
-	private function attempt( Request $request ): Response|Failure {
+	private function attempt( Request $request, float $started ): Response|Failure {
 		$outcome = $this->read( $this->run( $request ) );
 
 		if ( $outcome instanceof Failure && null !== $request->schema && in_array( $outcome->http, array( 400, 422 ), true ) ) {
-			$outcome = $this->read( $this->run( $request->without_schema() ) );
+			$left = (int) floor( $request->timeout - ( $this->now() - $started ) );
+			if ( $left >= self::MIN_RETRY ) {
+				$outcome = $this->read( $this->run( $request->without_schema()->with_timeout( $left ) ) );
+			}
 		}
 
 		return $outcome;
@@ -356,11 +370,17 @@ class Client {
 			return null;
 		}
 
-		try {
-			return $registry::defaultRegistry()->getProviderModel( $request->provider, $request->models[0] );
-		} catch ( Throwable $e ) {
-			return null;
+		// Resolverlo puede pedir la lista de modelos a la red: una vez por petición PHP y proveedor/modelo.
+		$key = $request->provider . "\n" . $request->models[0];
+		if ( ! array_key_exists( $key, $this->resolved ) ) {
+			try {
+				$this->resolved[ $key ] = $registry::defaultRegistry()->getProviderModel( $request->provider, $request->models[0] );
+			} catch ( Throwable $e ) {
+				$this->resolved[ $key ] = null;
+			}
 		}
+
+		return $this->resolved[ $key ];
 	}
 
 	/**

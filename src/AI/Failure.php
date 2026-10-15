@@ -84,9 +84,14 @@ final class Failure {
 	 * @param string $detail Detalle tal como lo dio el cliente de IA.
 	 */
 	public static function scrub( string $detail ): string {
-		$detail = (string) preg_replace( '/\b(?:sk|pk|key|rk|or|AIza)[-_][A-Za-z0-9_-]{8,}/i', '[clave]', $detail );
+		// Se ocultan las claves de Google, OpenAI, Anthropic y OpenRouter, y las parecidas.
+		$detail = (string) preg_replace( '/\bAIza[A-Za-z0-9_-]{20,}/', '[clave]', $detail );
+		$detail = (string) preg_replace( '/\b(?:sk|pk|rk)-[A-Za-z0-9_-]{8,}/i', '[clave]', $detail );
 		$detail = (string) preg_replace( '/(Bearer|Basic)\s+\S+/i', '$1 [clave]', $detail );
 		$detail = (string) preg_replace( '/([?&](?:key|api_key|apikey|token|access_token)=)[^&\s"\']+/i', '$1[clave]', $detail );
+		// Los proveedores citan trozos del texto enviado («near '…'», cuerpos JSON): nada entre comillas ni llaves
+		// llega a la pantalla, porque la interfaz promete que no se enseña texto de las entradas.
+		$detail = (string) preg_replace( '/(?<![\pL\pN])([\'"`])(?:(?!\1).)*\1|[“‘«][^”’»]*[”’»]|\{[^{}]*\}/us', '…', $detail );
 		$detail = (string) preg_replace( '/\s+/', ' ', strip_tags( $detail ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Sin WordPress en las pruebas unitarias.
 
 		return mb_substr( trim( $detail ), 0, 300, 'UTF-8' );

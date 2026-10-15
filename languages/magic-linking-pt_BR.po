@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-15T19:18:20+00:00\n"
+"POT-Creation-Date: 2026-10-15T20:16:20+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Português do Brasil\n"
@@ -649,6 +649,10 @@ msgstr "Envie um grupo ou uma única alteração."
 #: src/Rest/JobsController.php:165
 msgid "That process does not exist."
 msgstr "Esse processo não existe."
+
+#: src/Rest/SettingsController.php:179
+msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
+msgstr "Esse modelo funciona em lotes, não em tempo real, então não serve para o editor. Escolha outro ou deixe no automático."
 
 #. translators: %s: comma-separated list of shared terms.
 #: src/Rest/SuggestionPresenter.php:166

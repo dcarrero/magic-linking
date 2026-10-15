@@ -45,4 +45,26 @@ final class TimeoutTest extends TestCase {
 		$this->assertStringNotContainsString( '<b>', $out );
 		$this->assertLessThanOrEqual( 300, mb_strlen( Failure::scrub( str_repeat( 'a ', 500 ) ) ) );
 	}
+
+	public function test_scrub_hides_google_openai_anthropic_and_openrouter_keys_but_not_look_alikes(): void {
+		$out = Failure::scrub( 'API key AIzaSyA1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q not valid; sk-or-v1-0123456789abcdef; sk-ant-api03-abcdefghijkl; Bearer abc.def.ghi; use key_something and order-12345' );
+
+		$this->assertStringNotContainsString( 'AIzaSy', $out );
+		$this->assertStringNotContainsString( 'sk-or-v1', $out );
+		$this->assertStringNotContainsString( 'sk-ant', $out );
+		$this->assertStringNotContainsString( 'abc.def.ghi', $out );
+		$this->assertStringContainsString( 'key_something', $out );
+		$this->assertStringContainsString( 'order-12345', $out );
+	}
+
+	public function test_scrub_removes_quoted_fragments_of_the_users_text(): void {
+		$out = Failure::scrub( 'invalid input near \'Mi receta secreta de paella\' at position 5; body {"title":"Tarta de la abuela"} and “otro título” "otro más"; it\'s fine' );
+
+		$this->assertStringNotContainsString( 'paella', $out );
+		$this->assertStringNotContainsString( 'abuela', $out );
+		$this->assertStringNotContainsString( 'título', $out );
+		$this->assertStringNotContainsString( 'otro más', $out );
+		$this->assertStringContainsString( 'invalid input near', $out );
+		$this->assertStringContainsString( 'it\'s fine', $out, 'Un apóstrofo dentro de una palabra no abre una cita.' );
+	}
 }

@@ -86,7 +86,17 @@ final class Models {
 		$a = self::normalize( $a );
 		$b = self::normalize( $b );
 
-		return '' !== $a && '' !== $b && ( str_starts_with( $a, $b ) || str_starts_with( $b, $a ) );
+		if ( '' === $a || '' === $b ) {
+			return false;
+		}
+
+		// Iguales, o el mismo modelo con sufijo de fecha (`gpt-4.1-mini` = `gpt-4.1-mini-2025-04-14`); nunca
+		// `gpt-4.1` con `gpt-4.1-mini`.
+		$date = '/^-\d{4}-?\d{2}-?\d{2}$|^-\d{2,4}$/';
+
+		return $a === $b
+			|| ( str_starts_with( $a, $b ) && 1 === preg_match( $date, substr( $a, strlen( $b ) ) ) )
+			|| ( str_starts_with( $b, $a ) && 1 === preg_match( $date, substr( $b, strlen( $a ) ) ) );
 	}
 
 	/**

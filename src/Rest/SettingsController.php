@@ -10,11 +10,13 @@ declare(strict_types=1);
 namespace MagicLinking\Rest;
 
 use MagicLinking\AI\Capabilities;
+use MagicLinking\AI\Models;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\I18n\Language;
 use MagicLinking\Jobs\Jobs;
+use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -171,7 +173,14 @@ final class SettingsController implements Module {
 							'type' => 'integer',
 						),
 						'ai_model'                     => array(
-							'type' => 'string',
+							'type'              => 'string',
+							'validate_callback' => static function ( $value ) {
+								if ( is_string( $value ) && ! Models::allowed( $value ) ) {
+									return new WP_Error( 'magiclinking_ai_model_batch', __( 'That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic.', 'magic-linking' ), array( 'status' => 400 ) );
+								}
+
+								return true;
+							},
 						),
 					),
 				),
