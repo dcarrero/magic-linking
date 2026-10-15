@@ -51,4 +51,60 @@ final class ModelsTest extends TestCase {
 		$this->assertSame( 'raro-1', Models::pick( array( 'raro-1', 'raro-2' ) ), 'Sin precios, el primero.' );
 		$this->assertNull( Models::pick( array() ) );
 	}
+
+	/**
+	 * Lista real de «AI Provider for OpenRouter» 1.0.0 (recortada).
+	 *
+	 * @return list<string>
+	 */
+	private static function openrouter(): array {
+		return array(
+			'meta/muse-spark-open',
+			'~unbiased/pareto-latest',
+			'nvidia/nemotron-3-super:free',
+			'openai/gpt-4.1-mini:batch',
+			'openai/gpt-4o-mini-2024-07-18',
+			'openai/gpt-4.1-mini',
+			'anthropic/claude-haiku-4.5',
+		);
+	}
+
+	public function test_normalize_strips_provider_and_variant_and_claude_dots(): void {
+		$this->assertSame( 'gpt-4.1-mini', Models::normalize( 'openai/gpt-4.1-mini' ) );
+		$this->assertSame( 'gpt-4.1-mini', Models::normalize( 'openai/gpt-4.1-mini:batch' ) );
+		$this->assertSame( 'pareto-latest', Models::normalize( '~unbiased/pareto-latest' ) );
+		$this->assertSame( 'claude-haiku-4-5', Models::normalize( 'anthropic/claude-haiku-4.5' ) );
+		$this->assertSame( 'gemini-2.5-flash', Models::normalize( 'models/gemini-2.5-flash' ), 'Los puntos de Gemini no cambian.' );
+		$this->assertSame( 'llama3.2:3b', Models::normalize( 'llama3.2:3b' ), 'La etiqueta de Ollama no es una variante.' );
+	}
+
+	public function test_price_with_openrouter_ids(): void {
+		$this->assertSame( array( 0.40, 1.60 ), Models::price( 'openai/gpt-4.1-mini' ) );
+		$this->assertSame( array( 0.15, 0.60 ), Models::price( 'openai/gpt-4o-mini-2024-07-18' ) );
+		$this->assertSame( array( 1.00, 5.00 ), Models::price( 'anthropic/claude-haiku-4.5' ) );
+		$this->assertNull( Models::price( 'openai/gpt-4.1-mini:batch' ), 'Una variante no síncrona no tiene precio de tabla.' );
+		$this->assertNull( Models::price( 'nvidia/nemotron-3-super:free' ) );
+		$this->assertNull( Models::price( 'meta/muse-spark-open' ) );
+	}
+
+	public function test_pick_with_the_openrouter_list(): void {
+		$this->assertSame( 'openai/gpt-4.1-mini', Models::pick( self::openrouter() ) );
+		$this->assertSame( 'openai/gpt-4.1-mini', Models::pick( array_reverse( self::openrouter() ) ) );
+	}
+
+	public function test_pick_never_returns_batch_or_free_variants(): void {
+		$this->assertSame( 'openai/gpt-4.1-mini', Models::pick( array( 'openai/gpt-4.1-mini:batch', 'openai/gpt-4.1-mini' ) ) );
+		$this->assertNull( Models::pick( array( 'openai/gpt-4.1-mini:batch', 'nvidia/x:free' ) ) );
+		$this->assertSame( 'openai/gpt-4o-mini', Models::pick( array( 'openai/gpt-4.1-mini:batch', 'openai/gpt-4o-mini' ) ), 'Sin la sincrónica de 4.1-mini, la siguiente.' );
+	}
+
+	public function test_pick_ignores_a_pinned_batch_model_but_keeps_other_pinned_ones(): void {
+		$this->assertSame( 'openai/gpt-4.1-mini', Models::pick( self::openrouter(), 'openai/gpt-4.1-mini:batch' ) );
+		$this->assertSame( 'anthropic/claude-haiku-4.5', Models::pick( self::openrouter(), 'anthropic/claude-haiku-4.5' ) );
+	}
+
+	public function test_pick_falls_back_to_cheapest_priced_with_openrouter_ids(): void {
+		$this->assertSame( 'openai/gpt-4.1-nano', Models::pick( array( 'meta/muse-spark-open', 'openai/gpt-4.1', 'openai/gpt-4.1-nano' ) ) );
+		$this->assertSame( 'meta/muse-spark-open', Models::pick( array( 'meta/muse-spark-open', 'x/y:batch' ) ), 'Sin precios, el primero utilizable.' );
+	}
 }
