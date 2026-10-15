@@ -376,15 +376,21 @@ export const api = {
 	 * Reordena con IA las salientes de la entrada abierta. Una sola llamada al modelo por petición; un fallo de la IA
 	 * llega como `ok: false` con un texto, no como error HTTP.
 	 *
-	 * @param postId Entrada que se edita.
-	 * @param items  Sugerencias, en orden léxico (máximo 20).
-	 * @param signal Para cancelar.
+	 * @param postId  Entrada que se edita.
+	 * @param items   Sugerencias, en orden léxico (máximo 20).
+	 * @param content Contenido que el editor tiene ahora (puede no estar guardado): el servidor comprueba que las frases son de él.
+	 * @param signal  Para cancelar.
 	 */
-	rerank: ( postId: number, items: RerankItem[], signal?: AbortSignal ) =>
+	rerank: (
+		postId: number,
+		items: RerankItem[],
+		content: string,
+		signal?: AbortSignal
+	) =>
 		apiFetch< RerankResponse >( {
 			path: path( '/suggestions/rerank' ),
 			method: 'POST',
-			data: { post_id: postId, items },
+			data: { post_id: postId, items, content },
 			signal,
 		} ),
 	/**

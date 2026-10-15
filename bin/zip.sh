@@ -27,6 +27,8 @@ rsync -a --exclude-from=.distignore --exclude-from="${IGNORED}" --exclude=/vendo
 cp composer.lock "${BUILD}/"
 composer install --working-dir="${BUILD}" --no-dev --optimize-autoloader --classmap-authoritative --no-interaction --quiet
 # composer.json se queda: wordpress.org lo pide cuando hay vendor/.
+# Documentación de la dependencia que el plugin no usa (instrucciones para agentes, historial de cambios y READMEs); las licencias se quedan.
+rm -f "${BUILD}/vendor/woocommerce/action-scheduler/"{AGENTS.md,CLAUDE.md,changelog.txt,README.md} "${BUILD}/vendor/woocommerce/action-scheduler/lib/cron-expression/README.md"
 rm "${BUILD}/composer.lock"
 
 (cd dist && zip -rq "${SLUG}.zip" "${SLUG}")

@@ -101,7 +101,7 @@ export function AiSettingsCards( {
  * @param status Estado de la IA.
  * @param saved  Modelo guardado.
  */
-function modelOptions( status: AiStatus, saved: string ) {
+export function modelOptions( status: AiStatus, saved: string ) {
 	const options: { value: string; label: string }[] = [
 		{
 			value: '',
@@ -116,7 +116,7 @@ function modelOptions( status: AiStatus, saved: string ) {
 		seen.add( entry.model );
 		options.push( {
 			value: entry.model,
-			label: engineText( entry.model, entry.provider ),
+			label: engineText( entry.provider_name, entry.model ),
 		} );
 	} );
 	if ( saved !== '' && ! seen.has( saved ) ) {

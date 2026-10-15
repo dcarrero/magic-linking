@@ -14,7 +14,9 @@ use MagicLinking\AI\Budget;
 use MagicLinking\AI\Capabilities;
 use MagicLinking\AI\Client;
 use MagicLinking\AI\Failure;
+use MagicLinking\AI\RateLimit;
 use MagicLinking\AI\Request;
+use MagicLinking\AI\RerankProtocol;
 use MagicLinking\AI\Reranker;
 use MagicLinking\AI\Response;
 use MagicLinking\Core\Plugin;
@@ -248,7 +250,7 @@ final class AiTest extends GraphTestCase {
 		$this->assertSame( 0, $this->ai_rows(), 'Sin cliente no hay petición que apuntar.' );
 
 		$this->corpus();
-		$reranker = new Reranker( $none, $caps, $this->container( \MagicLinking\Index\PostSource::class ), $this->container( \MagicLinking\Content\Destination::class ), $this->container( \MagicLinking\I18n\Language::class ) );
+		$reranker = new Reranker( $none, $caps, $this->container( \MagicLinking\Index\PostSource::class ), $this->container( \MagicLinking\Content\Destination::class ), $this->container( \MagicLinking\I18n\Language::class ), $this->container( Budget::class ) );
 		$this->assertSame(
 			array(
 				'ok'     => false,
@@ -477,13 +479,17 @@ final class AiTest extends GraphTestCase {
 		$this->reply( '   ' );
 		FakeAiProvider::$usage = array( 900, 2500 );
 
-		$outcome = $this->quick_client()->generate( $this->simple_request() );
+		$outcome = $this->quick_client()->generate( $this->simple_request()->with_models( array( 'gpt-4o-mini' ) ) );
 
 		$this->assertInstanceOf( Failure::class, $outcome );
 		$this->assertSame( Failure::INVALID, $outcome->code );
 		$row = $this->last_ai_row();
 		$this->assertSame( 'failed', $row['status'] );
 		$this->assertSame( '3400', $row['ai_tokens_real'], 'El proveedor lo cobra aunque no sirva.' );
+		$this->assertSame( FakeAiProvider::ID, $row['ai_provider'] );
+		$this->assertSame( 'gpt-4o-mini', $row['ai_model'] );
+		$this->assertGreaterThan( 0.0, (float) $row['ai_cost_real'], 'Y se apunta lo que cuesta.' );
+		$this->assertSame( 3400, $this->container( JobRepository::class )->ai_usage( 30 )['models'][0]['tokens'], 'Entra en el desglose por modelo.' );
 		$this->assertSame( 1, FakeAiProvider::$calls, 'Una respuesta vacía no se reintenta.' );
 	}
 
@@ -721,14 +727,137 @@ final class AiTest extends GraphTestCase {
 
 		$result = $this->container( Reranker::class )->rerank( $this->source, $this->items() );
 
-		$this->assertSame(
-			array(
-				'ok'     => false,
-				'reason' => Failure::BUDGET,
-			),
-			$result
-		);
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( Failure::TOO_SMALL, $result['reason'], 'Un tope menor que una petición no es «mañana».' );
+		$this->assertGreaterThan( RerankProtocol::MAX_OUTPUT_TOKENS, $result['needs'] );
 		$this->assertSame( 0, FakeAiProvider::$calls );
+	}
+
+	public function test_the_daily_limit_counts_the_largest_answer_the_request_allows(): void {
+		$this->needs_ai_client();
+		$this->corpus();
+		wp_set_current_user( $this->admin );
+		$this->reply( '{"results":[{"candidato":1,"apto":true,"confianza":0.5},{"candidato":2,"apto":true,"confianza":0.5}]}' );
+		$reranker = $this->container( Reranker::class );
+
+		// Hay sitio para la entrada y la salida típica (~1.300) pero no para las 2.500 que la petición permite.
+		$needs = Reranker::worst_case_tokens( 2 );
+		$this->container( Settings::class )->update( array( 'ai_daily_token_limit' => $needs + 500 ) );
+		$this->container( JobRepository::class )->record_ai(
+			array(
+				'type'        => 'ai_rerank',
+				'status'      => 'done',
+				'tokens_est'  => 0,
+				'tokens_real' => 1200,
+				'cost_est'    => 0.0,
+				'cost_real'   => 0.0,
+				'provider'    => 'x',
+				'model'       => 'y',
+				'user_id'     => 1,
+				'params'      => array(),
+				'error'       => '',
+			)
+		);
+
+		$result = $reranker->rerank( $this->source, array_slice( $this->items(), 0, 2 ) );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( Failure::BUDGET, $result['reason'] );
+		$this->assertSame( 0, FakeAiProvider::$calls );
+	}
+
+	public function test_a_sentence_that_is_not_in_the_entry_is_never_sent(): void {
+		$this->needs_ai_client();
+		$this->corpus();
+		$this->reply( '{"results":[{"candidato":1,"apto":true,"confianza":0.5}]}' );
+		$invented = 'Texto inventado que nadie escribió pero que contiene una bomba de calor en medio.';
+		$items    = $this->items();
+		$items[1] = array(
+			'target_id' => $this->targets[1],
+			'sentence'  => $invented,
+			'anchor'    => 'bomba de calor',
+			'offset'    => (int) strpos( $invented, 'bomba de calor' ),
+		);
+
+		$result = $this->container( Reranker::class )->rerank( $this->source, array_slice( $items, 0, 2 ) );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame( array( 1 ), $result['skipped'] );
+		$this->assertStringNotContainsString( 'inventado', FakeAiProvider::$sent[0] );
+
+		FakeAiProvider::$calls = 0;
+		$none                  = $this->container( Reranker::class )->rerank( $this->source, array( $items[1] ) );
+		$this->assertSame( Reranker::NOTHING, $none['reason'] );
+		$this->assertSame( 0, FakeAiProvider::$calls, 'Sin ninguna frase de la entrada no se llama al modelo.' );
+	}
+
+	public function test_sentences_are_checked_against_the_editor_content_when_it_is_sent(): void {
+		$this->needs_ai_client();
+		$this->corpus();
+		$this->reply( '{"results":[{"candidato":1,"apto":true,"confianza":0.5}]}' );
+		$draft_sentence = 'Una frase nueva sin guardar sobre la bomba de calor y el ahorro.';
+		$item           = array(
+			'target_id' => $this->targets[0],
+			'sentence'  => $draft_sentence,
+			'anchor'    => 'bomba de calor',
+			'offset'    => (int) strpos( $draft_sentence, 'bomba de calor' ),
+		);
+		$reranker       = $this->container( Reranker::class );
+
+		$saved = $reranker->rerank( $this->source, array( $item ) );
+		$this->assertSame( Reranker::NOTHING, $saved['reason'], 'Sin guardar, la entrada del servidor no la tiene.' );
+
+		$draft = $reranker->rerank( $this->source, array( $item ), $this->p( $draft_sentence ) );
+		$this->assertTrue( $draft['ok'] );
+
+		// Y al revés: con el contenido del editor, lo que solo estaba en lo guardado ya no cuenta.
+		$old = $reranker->rerank( $this->source, array( $this->items()[0] ), $this->p( $draft_sentence ) );
+		$this->assertSame( Reranker::NOTHING, $old['reason'] );
+	}
+
+	public function test_a_sentence_longer_than_the_limit_is_skipped(): void {
+		$this->needs_ai_client();
+		$this->corpus();
+		$long = 'Instalar una bomba de calor ' . str_repeat( 'reduce el consumo de la vivienda y mucho más. ', 60 );
+		wp_update_post(
+			array(
+				'ID'           => $this->source,
+				'post_content' => $this->p( $long ),
+			)
+		);
+		$item = array(
+			'target_id' => $this->targets[0],
+			'sentence'  => $long,
+			'anchor'    => 'bomba de calor',
+			'offset'    => (int) strpos( $long, 'bomba de calor' ),
+		);
+
+		$result = $this->container( Reranker::class )->rerank( $this->source, array( $item ) );
+
+		$this->assertSame( Reranker::NOTHING, $result['reason'] );
+		$this->assertSame( 0, FakeAiProvider::$calls );
+	}
+
+	public function test_rest_rerank_is_limited_per_user_per_minute(): void {
+		$this->needs_ai_client();
+		$this->corpus();
+		$this->reply( '{"results":[{"candidato":1,"apto":true,"confianza":0.5},{"candidato":2,"apto":true,"confianza":0.5}]}' );
+		$body = array(
+			'post_id' => $this->source,
+			'items'   => array_slice( $this->items(), 0, 2 ),
+		);
+
+		for ( $i = 0; $i < RateLimit::PER_MINUTE; $i++ ) {
+			$this->assertTrue( $this->request( 'POST', '/suggestions/rerank', $body, $this->admin )->get_data()['ok'], "Llamada {$i}" );
+		}
+		$blocked = $this->request( 'POST', '/suggestions/rerank', $body, $this->admin )->get_data();
+
+		$this->assertFalse( $blocked['ok'] );
+		$this->assertSame( Failure::TOO_MANY, $blocked['reason'] );
+		$this->assertSame( RateLimit::PER_MINUTE, FakeAiProvider::$calls );
+
+		$other = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$this->assertTrue( $this->request( 'POST', '/suggestions/rerank', $body, $other )->get_data()['ok'], 'El límite es por usuario.' );
 	}
 
 	// ------------------------------------------------------------------ REST.
@@ -882,7 +1011,7 @@ final class AiTest extends GraphTestCase {
 		$this->assertTrue( $data['text'] );
 		$this->assertTrue( $data['ready'] );
 		$this->assertTrue( $data['enabled'] );
-		$this->assertFalse( $data['budget_spent'] );
+		$this->assertSame( 'ok', $data['budget'] );
 		$this->assertSame( 'gpt-4o-mini', $data['model'] );
 		$this->assertSame( 'Fake AI', $data['provider']['name'] );
 		$this->assertSame( 3300, $data['estimate']['tokens_in'] );
@@ -893,6 +1022,21 @@ final class AiTest extends GraphTestCase {
 		$off = $this->request( 'GET', '/ai/capabilities', array(), $this->author )->get_data();
 		$this->assertFalse( $off['enabled'] );
 		$this->assertFalse( $off['ready'] );
+	}
+
+	public function test_rest_capabilities_say_when_the_limit_is_smaller_than_one_request(): void {
+		$this->needs_ai_client();
+		$settings = $this->container( Settings::class );
+
+		$settings->update( array( 'ai_daily_token_limit' => 100 ) );
+		$small = $this->request( 'GET', '/ai/capabilities', array(), $this->author )->get_data();
+		$this->assertFalse( $small['ready'] );
+		$this->assertSame( 'too_small', $small['budget'] );
+		$this->assertSame( 100, $small['limit'] );
+		$this->assertGreaterThan( 100, $small['needs'] );
+
+		$settings->update( array( 'ai_daily_token_limit' => 100000 ) );
+		$this->assertSame( 'ok', $this->request( 'GET', '/ai/capabilities', array(), $this->author )->get_data()['budget'] );
 	}
 
 	public function test_rest_capabilities_and_status_permissions(): void {
@@ -928,6 +1072,7 @@ final class AiTest extends GraphTestCase {
 		$costs = array_column( $data['usage']['models'], 'cost', 'model' );
 		$this->assertNull( $costs['unpriced-model'] );
 		$this->assertContains( 'unpriced-model', array_column( $data['models'], 'model' ) );
+		$this->assertSame( 'Fake AI', $data['models'][0]['provider_name'] );
 		$this->assertFalse( $data['notice_dismissed'] );
 	}
 
@@ -943,7 +1088,7 @@ final class AiTest extends GraphTestCase {
 	}
 
 	public function test_failure_messages_are_plain_language(): void {
-		foreach ( array( Failure::UNAVAILABLE, Failure::VETOED, Failure::BUDGET, Failure::RATE_LIMIT, Failure::NETWORK, Failure::INVALID, Failure::FAILED, Reranker::NOTHING ) as $reason ) {
+		foreach ( array( Failure::UNAVAILABLE, Failure::VETOED, Failure::BUDGET, Failure::RATE_LIMIT, Failure::NETWORK, Failure::INVALID, Failure::FAILED, Failure::TOO_SMALL, Failure::TOO_MANY, Reranker::NOTHING ) as $reason ) {
 			$text = AiController::failure_message( $reason );
 			$this->assertNotSame( '', $text );
 			$this->assertDoesNotMatchRegularExpression( '/prompt_|Exception|HTTP|\b[45]\d\d\b/', $text, $reason );
@@ -976,6 +1121,12 @@ final class AiTest extends GraphTestCase {
 		);
 		$this->assertSame( Budget::MAX_LIMIT, $after['ai_daily_token_limit'] );
 		$this->assertSame( 'gpt-4o-mini', $after['ai_model'] );
+
+		// Los identificadores de los proveedores pueden llevar más signos (`@`, `+`); no se pierden sin avisar.
+		$after = $settings->update( array( 'ai_model' => 'org/modelo@v2+q4:latest' ) );
+		$this->assertSame( 'org/modelo@v2+q4:latest', $after['ai_model'] );
+		$after = $settings->update( array( 'ai_model' => '  <b>raro</b>  ' ) );
+		$this->assertSame( 'raro', $after['ai_model'] );
 	}
 
 	public function test_the_ai_settings_save_through_the_settings_route(): void {

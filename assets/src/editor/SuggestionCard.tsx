@@ -305,15 +305,14 @@ export function SuggestionCard( {
 					{ reasons.join( ' · ' ) }
 				</p>
 			) }
-
-			{ ai && direction === 'outbound' && (
+			{ /* Con estado propio (enlazando, error, descartando) cambiar el ancla cambiaría la clave y lo perdería. */ }
+			{ ai && direction === 'outbound' && ! status && (
 				<AiNote
 					mark={ ai }
 					anchor={ suggestion.anchor }
 					onUseAnchor={ onUseAnchor }
 				/>
 			) }
-
 			{ ! suggestion.can_insert && (
 				<p className="magiclinking-card__note">
 					{ __(
@@ -322,7 +321,6 @@ export function SuggestionCard( {
 					) }
 				</p>
 			) }
-
 			{ status?.kind === 'error' && (
 				<p
 					className="magiclinking-card__status is-error"
@@ -332,7 +330,6 @@ export function SuggestionCard( {
 					{ status.message }
 				</p>
 			) }
-
 			<div className="magiclinking-card__actions">
 				{ suggestion.can_insert && (
 					<Button

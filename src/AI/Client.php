@@ -315,7 +315,9 @@ class Client {
 		// Un modelo de razonamiento con poco margen de salida puede gastarlo todo pensando y devolver texto vacío
 		// sin error (05 §10): es una respuesta inválida, y los tokens se cobran igualmente.
 		if ( '' === trim( $text ) ) {
-			return new Failure( Failure::INVALID, 'Empty text from ' . $model, 0, $total );
+			$wasted = max( 0, $total - $in );
+
+			return new Failure( Failure::INVALID, 'Empty text from ' . $model, 0, $total, $id, $model, (float) CostEstimator::cost( $in, $wasted, $model, $this->is_local( $id ) ) );
 		}
 
 		$out   = max( 0, $total - $in );
@@ -403,9 +405,9 @@ class Client {
 				'tokens_est'  => $request->estimated,
 				'tokens_real' => $outcome->tokens,
 				'cost_est'    => 0.0,
-				'cost_real'   => 0.0,
-				'provider'    => '',
-				'model'       => '',
+				'cost_real'   => $outcome->cost,
+				'provider'    => $outcome->provider,
+				'model'       => $outcome->model,
 				'user_id'     => get_current_user_id(),
 				'params'      => $params,
 				'error'       => substr( $outcome->code . ( '' !== $outcome->detail ? ': ' . $outcome->detail : '' ), 0, 500 ),

@@ -533,8 +533,15 @@ export interface AiCapabilities {
 	enabled: boolean;
 	/** Se puede usar ahora: hay conector y no se ha alcanzado el tope de hoy. */
 	ready: boolean;
-	/** Hay conector y tope, pero el de hoy ya se gastó. */
-	budget_spent: boolean;
+	/**
+	 * Tope diario: `ok` cabe una petición; `exhausted` hoy ya no cabe; `too_small` el tope es menor que una sola
+	 * petición; `off` el tope es 0.
+	 */
+	budget: 'ok' | 'exhausted' | 'too_small' | 'off';
+	/** Tope diario fijado, en tokens. */
+	limit: number;
+	/** Lo máximo que puede costar una petición, en tokens. */
+	needs: number;
 	provider: { id: string; name: string } | null;
 	model: string | null;
 	local: boolean;
@@ -619,7 +626,12 @@ export interface AiStatus {
 	local: boolean;
 	provider: { id: string; name: string } | null;
 	model: string | null;
-	models: { provider: string; model: string; name: string }[];
+	models: {
+		provider: string;
+		provider_name: string;
+		model: string;
+		name: string;
+	}[];
 	connectors_url: string;
 	budget: {
 		limit: number;

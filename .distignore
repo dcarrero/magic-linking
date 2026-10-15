@@ -40,3 +40,5 @@
 # Las traducciones viajan compiladas (.mo para PHP y .json para JavaScript); los .po son su fuente
 # y WordPress no los lee. Quitarlos ahorra unos 80 KB del ZIP con seis idiomas.
 /languages/*.po
+# La plantilla .pot no la lee WordPress ni hace falta en el paquete (wordpress.org genera la suya).
+/languages/*.pot

@@ -48,7 +48,9 @@ const caps: AiCapabilities = {
 	text: true,
 	enabled: true,
 	ready: true,
-	budget_spent: false,
+	budget: 'ok',
+	limit: 2000000,
+	needs: 9000,
 	provider: { id: 'p', name: 'P' },
 	model: 'm',
 	local: false,
@@ -81,6 +83,7 @@ const data = ( ...ids: number[] ): OutboundResponse => ( {
 	items: ids.map( suggestion ),
 } );
 
+const getContent = () => '<p>contenido</p>';
 let root: Root;
 let current: AiRerank;
 
@@ -91,7 +94,7 @@ function Probe( {
 	payload: OutboundResponse | null;
 	busy: ( s: Suggestion ) => boolean;
 } ) {
-	current = useAiRerank( 7, payload, busy );
+	current = useAiRerank( 7, payload, busy, getContent );
 	return null;
 }
 
@@ -173,6 +176,7 @@ describe( 'useAiRerank', () => {
 		expect( mocked.rerank ).toHaveBeenCalledTimes( 1 );
 		expect( mocked.rerank.mock.calls[ 0 ][ 0 ] ).toBe( 7 );
 		expect( mocked.rerank.mock.calls[ 0 ][ 1 ] ).toHaveLength( 2 );
+		expect( mocked.rerank.mock.calls[ 0 ][ 2 ] ).toBe( '<p>contenido</p>' );
 		expect( current.phase ).toBe( 'done' );
 		expect( current.usage ).toEqual( usage );
 		expect( current.unfit ).toBe( 1 );
@@ -346,5 +350,42 @@ describe( 'useAiRerank', () => {
 		const after = current.view( payload.items )[ 0 ];
 		expect( after?.item.anchor ).toBe( 'bomba de calor reduce' );
 		expect( after?.mark?.improved ).toBeNull();
+	} );
+
+	it( 'does not report a failure when the list changes while the request is running', async () => {
+		mocked.rerank.mockImplementation(
+			(
+				_post: number,
+				_items: unknown,
+				_content: string,
+				signal: AbortSignal
+			) =>
+				new Promise( ( _resolve, reject ) => {
+					signal.addEventListener( 'abort', () =>
+						reject( new Error( 'aborted' ) )
+					);
+				} )
+		);
+		await mount( data( 1, 2 ) );
+		await act( async () => current.run() );
+		expect( current.phase ).toBe( 'loading' );
+		( speak as jest.Mock ).mockClear();
+
+		await mount( data( 1, 2 ) );
+
+		expect( current.phase ).toBe( 'idle' );
+		expect( current.message ).toBe( '' );
+		expect( speak ).not.toHaveBeenCalled();
+	} );
+
+	it( 'asks for the capabilities once per list, not after every link or dismissal', async () => {
+		const payload = data( 1, 2, 3 );
+		await mount( payload );
+		expect( mocked.aiCapabilities ).toHaveBeenCalledTimes( 1 );
+
+		const first = suggestionKey( payload.items[ 0 ] as Suggestion );
+		await mount( payload, ( s ) => suggestionKey( s ) === first );
+
+		expect( mocked.aiCapabilities ).toHaveBeenCalledTimes( 1 );
 	} );
 } );

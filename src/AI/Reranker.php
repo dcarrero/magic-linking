@@ -45,6 +45,11 @@ final class Reranker {
 	public const NOTHING = 'nothing';
 
 	/**
+	 * Caracteres que puede tener la frase de una sugerencia; una más larga no se envía.
+	 */
+	public const SENTENCE_LIMIT = 2000;
+
+	/**
 	 * Palabras del cuerpo que entran en el resumen antes de cortar por caracteres.
 	 */
 	public const SUMMARY_WORDS = 120;
@@ -57,13 +62,15 @@ final class Reranker {
 	 * @param PostSource   $posts        Lector de entradas ya limpias.
 	 * @param Destination  $destination  Comprobación de que un destino se puede enlazar.
 	 * @param Language     $language     Idioma por entrada.
+	 * @param Budget       $budget       Tope diario.
 	 */
 	public function __construct(
 		private Client $client,
 		private Capabilities $capabilities,
 		private PostSource $posts,
 		private Destination $destination,
-		private Language $language
+		private Language $language,
+		private Budget $budget
 	) {
 	}
 
@@ -86,6 +93,19 @@ final class Reranker {
 	}
 
 	/**
+	 * Lo máximo que puede costar una petición de `$count` candidatas: la entrada típica más todo lo que la petición
+	 * permite de salida. Con eso se comprueba el tope diario (regla 4): un modelo de razonamiento puede gastar el
+	 * máximo aunque la respuesta típica sea corta.
+	 *
+	 * @param int $count Candidatas.
+	 */
+	public static function worst_case_tokens( int $count ): int {
+		$count = max( 0, min( RerankProtocol::MAX_CANDIDATES, $count ) );
+
+		return 300 + $count * 300 + RerankProtocol::MAX_OUTPUT_TOKENS;
+	}
+
+	/**
 	 * Tokens de salida previstos para `$count` candidatas (el tope de la petición es mayor, ver RerankProtocol).
 	 *
 	 * @param int $count Candidatas.
@@ -97,15 +117,22 @@ final class Reranker {
 	/**
 	 * Reordena las sugerencias salientes de una entrada.
 	 *
-	 * @param int   $post_id Entrada que se edita (origen de los enlaces).
-	 * @param array $items   Sugerencias en orden léxico: destino, frase, ancla y byte donde empieza el ancla.
+	 * Cada frase se comprueba en el servidor contra el texto real de la entrada: el del editor si se manda
+	 * (`$content`, puede no estar guardado) y, si no, el guardado. Una frase que no está se descarta y no se envía.
+	 * El usuario ya puede escribir lo que quiera en una entrada que puede editar; lo que no puede es mandar al modelo
+	 * texto que no es de la entrada.
+	 *
+	 * @param int         $post_id Entrada que se edita (origen de los enlaces).
+	 * @param array       $items   Sugerencias en orden léxico: destino, frase, ancla y byte donde empieza el ancla.
+	 * @param string|null $content Contenido del editor; null = el guardado.
 	 *
 	 * @phpstan-param list<Item> $items
 	 *
 	 * @return array<string, mixed> `ok` y, si va bien, `items` (orden nuevo), `skipped` y `usage`; si no, `reason`.
 	 */
-	public function rerank( int $post_id, array $items ): array {
-		if ( ! $this->capabilities->detect()['text'] ) {
+	public function rerank( int $post_id, array $items, ?string $content = null ): array {
+		$caps = $this->capabilities->detect();
+		if ( ! $caps['text'] ) {
 			return array(
 				'ok'     => false,
 				'reason' => $this->client->vetoed() ? Failure::VETOED : Failure::UNAVAILABLE,
@@ -113,13 +140,14 @@ final class Reranker {
 		}
 
 		$lang       = $this->language->for_post( $post_id );
+		$haystack   = $this->paragraphs( $post_id, $content );
 		$candidates = array();
 		$positions  = array();
 		$skipped    = array();
 		$summaries  = array();
 
 		foreach ( $items as $index => $item ) {
-			$summary = $this->candidate( $post_id, $item, $summaries );
+			$summary = $this->candidate( $post_id, $item, $summaries, $haystack );
 			if ( null === $summary || count( $candidates ) >= RerankProtocol::MAX_CANDIDATES ) {
 				$skipped[] = $index;
 				continue;
@@ -142,11 +170,20 @@ final class Reranker {
 			);
 		}
 
-		$caps    = $this->capabilities->detect();
-		$prompt  = RerankProtocol::prompt( $candidates, $lang );
-		$system  = RerankProtocol::system();
-		$count   = count( $candidates );
-		$tokens  = CostEstimator::tokens( $system . "\n" . $prompt, $lang ) + self::output_tokens( $count );
+		$prompt = RerankProtocol::prompt( $candidates, $lang );
+		$system = RerankProtocol::system();
+		$count  = count( $candidates );
+		$tokens = CostEstimator::tokens( $system . "\n" . $prompt, $lang ) + RerankProtocol::MAX_OUTPUT_TOKENS;
+
+		// Un tope menor que una sola petición no se arregla esperando a mañana: se dice aparte.
+		if ( $this->budget->enabled() && $this->budget->limit() < $tokens ) {
+			return array(
+				'ok'     => false,
+				'reason' => Failure::TOO_SMALL,
+				'needs'  => $tokens,
+			);
+		}
+
 		$request = new Request(
 			$prompt,
 			$system,
@@ -229,24 +266,73 @@ final class Reranker {
 	}
 
 	/**
+	 * Textos de la entrada abierta (párrafos y encabezados), con los espacios colapsados, contra los que se comprueba
+	 * cada frase.
+	 *
+	 * @param int         $post_id Entrada.
+	 * @param string|null $content Contenido del editor; null = el guardado.
+	 *
+	 * @return list<string>
+	 */
+	private function paragraphs( int $post_id, ?string $content ): array {
+		$post = get_post( $post_id );
+		if ( ! $post instanceof WP_Post ) {
+			return array();
+		}
+
+		$document = $this->posts->from_post( $post, $content );
+		$texts    = $document->headings;
+		foreach ( $document->paragraphs as $paragraph ) {
+			$texts[] = $paragraph->text;
+		}
+
+		return array_map( array( self::class, 'squash' ), $texts );
+	}
+
+	/**
+	 * Texto con las secuencias de espacios (también los de no separación) convertidas en un solo espacio.
+	 *
+	 * @param string $text Texto.
+	 */
+	private static function squash( string $text ): string {
+		return trim( (string) preg_replace( '/[\s\x{00A0}]+/u', ' ', $text ) );
+	}
+
+	/**
 	 * Título y resumen del destino de una sugerencia, o null si no se puede enviar a un modelo.
 	 *
 	 * @param int                                     $post_id   Origen.
 	 * @param array                                   $item      Sugerencia.
 	 * @param array<int, array{0: string, 1: string}> $summaries Resúmenes ya hechos en esta llamada.
+	 * @param array                                   $haystack  Textos de la entrada abierta.
 	 *
 	 * @phpstan-param Item $item
+	 * @phpstan-param list<string> $haystack
 	 *
 	 * @return array{0: string, 1: string}|null
 	 */
-	private function candidate( int $post_id, array $item, array &$summaries ): ?array {
+	private function candidate( int $post_id, array $item, array &$summaries, array $haystack ): ?array {
 		$target_id = $item['target_id'];
+		$sentence  = $item['sentence'];
 
-		// Lo que llega del navegador se comprueba contra el servidor: el ancla está donde dice y el destino es una
-		// entrada publicada, sin contraseña, de un tipo analizado y del mismo idioma (regla 9).
-		if ( '' === $item['anchor'] || substr( $item['sentence'], $item['offset'], strlen( $item['anchor'] ) ) !== $item['anchor'] ) {
+		// Lo que llega del navegador se comprueba contra el servidor: el ancla está donde dice, la frase es de la
+		// entrada abierta y no es desmesurada.
+		if ( '' === $item['anchor'] || mb_strlen( $sentence, 'UTF-8' ) > self::SENTENCE_LIMIT || substr( $sentence, $item['offset'], strlen( $item['anchor'] ) ) !== $item['anchor'] ) {
 			return null;
 		}
+		$squashed = self::squash( $sentence );
+		$found    = false;
+		foreach ( $haystack as $text ) {
+			if ( str_contains( $text, $squashed ) ) {
+				$found = true;
+				break;
+			}
+		}
+		if ( ! $found ) {
+			return null;
+		}
+
+		// Destino publicado, sin contraseña, de un tipo analizado y del mismo idioma (regla 9): lo decide `resolve()`.
 		if ( ! is_string( $this->destination->resolve( $post_id, $target_id ) ) ) {
 			return null;
 		}
@@ -255,7 +341,7 @@ final class Reranker {
 		}
 
 		$post = get_post( $target_id );
-		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || '' !== $post->post_password ) {
+		if ( ! $post instanceof WP_Post ) {
 			return null;
 		}
 

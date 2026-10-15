@@ -250,14 +250,14 @@ final class Settings {
 	}
 
 	/**
-	 * Identificador de modelo válido: letras, números y los signos que usan los proveedores (`. : _ / -`); vacío = automático.
+	 * Identificador de modelo: texto saneado de hasta 120 caracteres (los proveedores usan `@`, `+`, `:`, `/`…); vacío = automático.
 	 *
 	 * @param mixed $value Texto recibido.
 	 */
 	private static function clean_model( $value ): string {
-		$model = trim( is_string( $value ) ? $value : '' );
+		$model = is_string( $value ) ? sanitize_text_field( $value ) : '';
 
-		return 1 === preg_match( '/^[A-Za-z0-9][A-Za-z0-9._:\/-]{0,79}$/', $model ) ? $model : '';
+		return mb_substr( $model, 0, 120, 'UTF-8' );
 	}
 
 	/**

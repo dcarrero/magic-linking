@@ -68,14 +68,16 @@ export interface AiRerank {
  * llama a ningún modelo. El resultado vale para la lista con la que se pidió: si las salientes se vuelven a pedir
  * (guardar, actualizar, descartar), se olvida y vuelve el orden léxico.
  *
- * @param postId Entrada abierta.
- * @param data   Respuesta de las salientes (su identidad dice si la lista es la misma).
- * @param isBusy Dice si una sugerencia ya tiene un estado propio (enlazada, descartada, con error).
+ * @param postId     Entrada abierta.
+ * @param data       Respuesta de las salientes (su identidad dice si la lista es la misma).
+ * @param isBusy     Dice si una sugerencia ya tiene un estado propio (enlazada, descartada, con error).
+ * @param getContent Contenido que el editor tiene ahora (el servidor comprueba que las frases son de él).
  */
 export function useAiRerank(
 	postId: number,
 	data: OutboundResponse | null,
-	isBusy: ( suggestion: Suggestion ) => boolean
+	isBusy: ( suggestion: Suggestion ) => boolean,
+	getContent: () => string
 ): AiRerank {
 	const [ capabilities, setCapabilities ] = useState< AiCapabilities | null >(
 		null
@@ -106,15 +108,16 @@ export function useAiRerank(
 		[ items, busy ]
 	);
 
-	// Lo que se sabe del conector (sin llamar al modelo). Se pide de nuevo si cambia cuántas sugerencias hay.
-	const count = Math.max( 1, pending );
+	// Lo que se sabe del conector (sin llamar al modelo). Se pide una vez por lista de sugerencias: enlazar o
+	// descartar no la cambia, y cada petición puede costar una consulta de red al servidor del conector.
+	const count = Math.max( 1, Math.min( items?.length ?? 0, 20 ) );
 	const hasItems = !! items && items.length > 0;
 	useEffect( () => {
 		if ( ! hasItems ) {
 			return undefined;
 		}
 		const controller = new AbortController();
-		api.aiCapabilities( Math.min( count, 20 ), controller.signal )
+		api.aiCapabilities( count, controller.signal )
 			.then( ( caps ) => {
 				if ( ! controller.signal.aborted ) {
 					setCapabilities( caps );
@@ -131,14 +134,24 @@ export function useAiRerank(
 
 	// Una lista nueva (guardar, actualizar, descartar) deja sin valor lo que la IA dijo de la anterior.
 	useEffect( () => {
-		running.current?.abort();
+		// Se suelta antes de abortar: la petición cancelada no es un fallo de la IA y no debe avisar de uno.
+		const previous = running.current;
+		running.current = null;
+		previous?.abort();
 		setPhase( 'idle' );
 		setMessage( '' );
 		setOutcome( null );
 		setOverrides( {} );
 	}, [ data ] );
 
-	useEffect( () => () => running.current?.abort(), [] );
+	useEffect(
+		() => () => {
+			const previous = running.current;
+			running.current = null;
+			previous?.abort();
+		},
+		[]
+	);
 
 	const run = useCallback( () => {
 		if ( ! items || phase === 'loading' ) {
@@ -170,7 +183,12 @@ export function useAiRerank(
 			'polite'
 		);
 
-		api.rerank( postId, rerankItems( sent ), controller.signal )
+		api.rerank(
+			postId,
+			rerankItems( sent ),
+			getContent(),
+			controller.signal
+		)
 			.then( ( response ) => {
 				if ( running.current !== controller ) {
 					return;
@@ -205,7 +223,7 @@ export function useAiRerank(
 				}
 			} )
 			.finally( () => window.clearTimeout( timer ) );
-	}, [ items, phase, busy, postId ] );
+	}, [ items, phase, busy, postId, getContent ] );
 
 	const reset = useCallback( () => {
 		setPhase( 'idle' );

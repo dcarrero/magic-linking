@@ -127,7 +127,8 @@ export function usePanelState(
 			statuses[ suggestionKey( suggestion ) ] !== undefined,
 		[ statuses ]
 	);
-	const ai = useAiRerank( adapter.postId, outbound.data, isBusy );
+	const getContent = useCallback( () => adapter.getContent(), [ adapter ] );
+	const ai = useAiRerank( adapter.postId, outbound.data, isBusy, getContent );
 
 	const { refresh } = outbound;
 	const refreshOutbound = useCallback( () => {

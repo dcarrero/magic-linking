@@ -14,6 +14,7 @@ use MagicLinking\AI\Capabilities;
 use MagicLinking\AI\Client;
 use MagicLinking\AI\Failure;
 use MagicLinking\AI\Models;
+use MagicLinking\AI\RateLimit;
 use MagicLinking\AI\RerankProtocol;
 use MagicLinking\AI\Reranker;
 use MagicLinking\Core\Module;
@@ -98,6 +99,7 @@ final class AiController implements Module {
 						'minimum'  => 1,
 						'required' => true,
 					),
+					'content' => array( 'type' => 'string' ),
 					'items'   => array(
 						'type'              => 'array',
 						'required'          => true,
@@ -236,9 +238,20 @@ final class AiController implements Module {
 			);
 		}
 
-		$result = $this->reranker->rerank( $post_id, $items );
+		$content = $request->has_param( 'content' ) ? (string) $request['content'] : null;
+		if ( null !== $content && strlen( $content ) > SuggestionsController::MAX_DRAFT ) {
+			return new WP_Error( 'magiclinking_too_large', __( 'The content is too long to analyze.', 'magic-linking' ), array( 'status' => 413 ) );
+		}
+
+		// Un freno simple por usuario y minuto: cada llamada gasta del tope de todo el sitio.
+		$result = RateLimit::allow( get_current_user_id() )
+			? $this->reranker->rerank( $post_id, $items, $content )
+			: array(
+				'ok'     => false,
+				'reason' => Failure::TOO_MANY,
+			);
 		if ( ! $result['ok'] ) {
-			$result['message'] = self::failure_message( (string) $result['reason'] );
+			$result['message'] = self::failure_message( (string) $result['reason'], (int) ( $result['needs'] ?? 0 ) );
 		}
 
 		return new WP_REST_Response( $result );
@@ -248,9 +261,18 @@ final class AiController implements Module {
 	 * Texto breve, sin detalles técnicos, para cada motivo por el que no hubo reordenado (docs/05 §8).
 	 *
 	 * @param string $reason Motivo (`Failure::*` o `Reranker::NOTHING`).
+	 * @param int    $needs  Tokens que necesita una petición (para el motivo `limit_too_small`).
 	 */
-	public static function failure_message( string $reason ): string {
+	public static function failure_message( string $reason, int $needs = 0 ): string {
 		switch ( $reason ) {
+			case Failure::TOO_SMALL:
+				return sprintf(
+					/* translators: %s: tokens one AI request needs, formatted. */
+					__( 'The daily AI limit you set is lower than what one request needs (about %s tokens); raise it in Settings → AI. Showing suggestions without AI.', 'magic-linking' ),
+					number_format_i18n( $needs )
+				);
+			case Failure::TOO_MANY:
+				return __( 'You are asking for AI too often; wait a minute and try again. Showing suggestions without AI.', 'magic-linking' );
 			case Failure::UNAVAILABLE:
 				return __( 'There is no AI connected on this site, so the suggestions are shown without AI.', 'magic-linking' );
 			case Failure::VETOED:
@@ -263,7 +285,7 @@ final class AiController implements Module {
 				return __( 'None of these suggestions can be sent to AI; showing them as they are.', 'magic-linking' );
 			default:
 				return __( 'The AI did not respond; showing suggestions without AI.', 'magic-linking' );
-		}
+		}//end switch
 	}
 
 	/**
@@ -275,15 +297,29 @@ final class AiController implements Module {
 		$caps = $this->capabilities->detect();
 		$base = $this->base( $caps );
 
-		$estimate = Reranker::typical_estimate( (int) $request['count'], $caps['model'], $caps['local'] );
+		$count    = (int) $request['count'];
+		$estimate = Reranker::typical_estimate( $count, $caps['model'], $caps['local'] );
+		$needs    = Reranker::worst_case_tokens( $count );
+
+		// `ok` si cabe una petición; `exhausted` si hoy ya no cabe; `too_small` si el tope es menor que una petición
+		// (esperar a mañana no lo arregla); `off` con el tope a 0.
+		if ( ! $this->budget->enabled() ) {
+			$budget = 'off';
+		} elseif ( $this->budget->limit() < $needs ) {
+			$budget = 'too_small';
+		} else {
+			$budget = $this->budget->allows( $needs ) ? 'ok' : 'exhausted';
+		}
 
 		return new WP_REST_Response(
 			array(
 				'available'      => $base['available'],
 				'text'           => $caps['text'],
 				'enabled'        => $this->budget->enabled(),
-				'ready'          => $caps['text'] && ! $this->budget->exhausted(),
-				'budget_spent'   => $caps['text'] && $this->budget->enabled() && $this->budget->exhausted(),
+				'ready'          => $caps['text'] && 'ok' === $budget,
+				'budget'         => $budget,
+				'limit'          => $this->budget->limit(),
+				'needs'          => $needs,
 				'provider'       => $base['provider'],
 				'model'          => $base['model'],
 				'local'          => $caps['local'],
@@ -327,7 +363,7 @@ final class AiController implements Module {
 
 		return new WP_REST_Response(
 			array(
-				'state'            => $this->state( $caps ),
+				'state'            => $this->capabilities->state(),
 				'available'        => $base['available'],
 				'text'             => $caps['text'],
 				'json'             => $caps['json'],
@@ -336,9 +372,10 @@ final class AiController implements Module {
 				'model'            => $base['model'],
 				'models'           => array_map(
 					static fn( array $m ): array => array(
-						'provider' => $m['provider'],
-						'model'    => $m['model'],
-						'name'     => $m['name'],
+						'provider'      => $m['provider'],
+						'provider_name' => $m['provider_name'],
+						'model'         => $m['model'],
+						'name'          => $m['name'],
 					),
 					$caps['models']
 				),
@@ -377,21 +414,6 @@ final class AiController implements Module {
 		}
 
 		return new WP_REST_Response( array( 'dismissed' => (bool) get_user_meta( get_current_user_id(), self::notice_meta_key(), true ) ) );
-	}
-
-	/**
-	 * Estado del conector: `unavailable`, `connected` o `none`.
-	 *
-	 * @param array $caps Resultado de `Capabilities::detect()`.
-	 *
-	 * @phpstan-param array{text: bool, ...} $caps
-	 */
-	private function state( array $caps ): string {
-		if ( ! $this->client->available() ) {
-			return 'unavailable';
-		}
-
-		return $caps['text'] ? 'connected' : 'none';
 	}
 
 	/**

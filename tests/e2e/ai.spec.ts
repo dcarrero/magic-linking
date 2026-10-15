@@ -263,15 +263,23 @@ test.describe( 'AI through the connector', () => {
 		await expect( panel.locator( '.magiclinking-card' ).first() ).toBeVisible();
 		await expect( panel.getByRole( 'button', { name: 'Improve with AI' } ) ).toHaveCount( 0 );
 
+		// Un tope menor que una sola petición: no se dice «mañana», se dice que no alcanza.
 		wp( 'option', 'update', 'magiclinking_settings', '{"ai_daily_token_limit":10}', '--format=json' );
+		await openBlockEditor( page, origen );
+		panel = await openSidebar( page );
+		await expect( panel.getByRole( 'button', { name: 'Improve with AI' } ) ).toBeDisabled();
+		await expect( panel ).toContainText( 'is lower than what one request needs' );
+		await expect( panel ).not.toContainText( 'available again tomorrow' );
+
+		// Un tope que alcanza, pero ya gastado hoy: disponible mañana.
+		wp( 'option', 'update', 'magiclinking_settings', '{"ai_daily_token_limit":100000}', '--format=json' );
 		wp(
 			'eval',
-			`global $wpdb; $now = current_time( 'mysql', true ); $wpdb->insert( $wpdb->prefix . 'magiclinking_jobs', array( 'type' => 'ai_rerank', 'status' => 'done', 'ai_tokens_real' => 500, 'created_at' => $now, 'updated_at' => $now ) );`
+			`global $wpdb; $now = current_time( 'mysql', true ); $wpdb->insert( $wpdb->prefix . 'magiclinking_jobs', array( 'type' => 'ai_rerank', 'status' => 'done', 'ai_tokens_real' => 99990, 'created_at' => $now, 'updated_at' => $now ) );`
 		);
 		await openBlockEditor( page, origen );
 		panel = await openSidebar( page );
-		const button = panel.getByRole( 'button', { name: 'Improve with AI' } );
-		await expect( button ).toBeDisabled();
+		await expect( panel.getByRole( 'button', { name: 'Improve with AI' } ) ).toBeDisabled();
 		await expect( panel ).toContainText( 'The daily AI limit you set is reached' );
 	} );
 

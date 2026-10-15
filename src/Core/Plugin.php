@@ -315,7 +315,8 @@ final class Plugin {
 				$c->get( Capabilities::class ),
 				$c->get( PostSource::class ),
 				$c->get( Destination::class ),
-				$c->get( Language::class )
+				$c->get( Language::class ),
+				$c->get( Budget::class )
 			),
 			AiController::class            => static fn( Container $c ): AiController => new AiController(
 				$c->get( Reranker::class ),

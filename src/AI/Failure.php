@@ -33,6 +33,12 @@ final class Failure {
 	/** La respuesta llegó vacía o no se puede usar. */
 	public const INVALID = 'invalid';
 
+	/** El tope diario que fijó el usuario es menor que lo que necesita una sola petición. */
+	public const TOO_SMALL = 'limit_too_small';
+
+	/** El usuario pide IA demasiado a menudo (límite simple por minuto). */
+	public const TOO_MANY = 'too_many';
+
 	/** Cualquier otro fallo (clave rechazada, argumentos, fallo interno). */
 	public const FAILED = 'failed';
 
@@ -43,12 +49,18 @@ final class Failure {
 	 * @param string $detail    Detalle técnico para el registro; nunca para el usuario.
 	 * @param int    $http      Código HTTP del proveedor si se conoce.
 	 * @param int    $tokens    Tokens ya gastados aunque no sirviera la respuesta (respuesta vacía).
+	 * @param string $provider  Proveedor que respondió, si hubo gasto.
+	 * @param string $model     Modelo que respondió, si hubo gasto.
+	 * @param float  $cost      Coste estimado de lo gastado.
 	 */
 	public function __construct(
 		public readonly string $code,
 		public readonly string $detail = '',
 		public readonly int $http = 0,
-		public readonly int $tokens = 0
+		public readonly int $tokens = 0,
+		public readonly string $provider = '',
+		public readonly string $model = '',
+		public readonly float $cost = 0.0
 	) {
 	}
 

@@ -1,7 +1,7 @@
 import { Button } from '@wordpress/components';
 import { useInstanceId } from '@wordpress/compose';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { estimateText, usageText } from './aiText';
+import { estimateText, tokensText, usageText } from './aiText';
 import type { AiRerank } from './useAiRerank';
 
 /**
@@ -20,12 +20,23 @@ export function AiBar( { ai }: { ai: AiRerank } ) {
 	}
 
 	const loading = ai.phase === 'loading';
-	const hint = caps.budget_spent
-		? __(
-				'The daily AI limit you set is reached. It will be available again tomorrow.',
+	let hint = estimateText( caps );
+	if ( caps.budget === 'exhausted' ) {
+		hint = __(
+			'The daily AI limit you set is reached. It will be available again tomorrow.',
+			'magic-linking'
+		);
+	} else if ( caps.budget === 'too_small' ) {
+		hint = sprintf(
+			/* translators: 1: daily limit in tokens, 2: tokens one AI request needs. */
+			__(
+				'The daily AI limit you set (%1$s tokens) is lower than what one request needs (about %2$s). Raise it in Settings → AI.',
 				'magic-linking'
-		  )
-		: estimateText( caps );
+			),
+			tokensText( caps.limit ),
+			tokensText( caps.needs )
+		);
+	}
 
 	return (
 		<div className="magiclinking-ai">
