@@ -40,21 +40,62 @@ final class RerankerEstimateTest extends TestCase {
 		return $out;
 	}
 
-	public function test_the_estimate_of_the_real_prompt_is_a_modest_upper_bound_not_a_multiple(): void {
+	public function test_the_bound_of_the_real_prompt_covers_the_real_spend_and_the_typical_estimate_is_close_to_it(): void {
 		$candidates = $this->real_candidates();
 		$prompt     = RerankProtocol::prompt( $candidates, 'es' );
-		$estimate   = Reranker::request_tokens( RerankProtocol::system(), $prompt, 3 );
+		$input      = Reranker::request_tokens( RerankProtocol::system(), $prompt ) - RerankProtocol::MAX_OUTPUT_TOKENS;
+		$typical    = Reranker::typical_estimate( 3, null, true )['tokens'];
 
 		// Real (gemma3:4b, Ollama): 678 de entrada + 103 de salida = 781.
-		$this->assertGreaterThanOrEqual( 781, $estimate, 'Tiene que ser una cota: no puede quedar por debajo del gasto real.' );
-		$this->assertLessThanOrEqual( (int) round( 781 * 1.5 ), $estimate, 'Antes salía 3,2 veces el real por contar el tope de salida.' );
-		$this->assertGreaterThanOrEqual( (int) round( 781 * 1.1 ), $estimate, 'Con algo de margen sobre lo real.' );
+		$this->assertGreaterThanOrEqual( 678, $input, 'La entrada estimada no queda por debajo de la real.' );
+		$this->assertGreaterThanOrEqual( 781, $typical );
+		$this->assertLessThanOrEqual( (int) round( 781 * 1.5 ), $typical, 'Antes salía 3,2 veces el real por contar el tope de salida.' );
+		$this->assertGreaterThanOrEqual( (int) round( 781 * 1.1 ), $typical );
+	}
+
+	/**
+	 * Candidatas en el límite de lo que admite el panel: frase larguísima, título y resumen llenos.
+	 *
+	 * @return list<array{sentence: string, anchor: string, offset: int, title: string, summary: string}>
+	 */
+	private function maximal_candidates( int $count ): array {
+		$out = array();
+		for ( $i = 0; $i < $count; $i++ ) {
+			$sentence = str_repeat( 'palabra ', 600 ) . 'ancla de prueba ' . str_repeat( 'ñandú ', 300 );
+			$out[]    = array(
+				'sentence' => $sentence,
+				'anchor'   => 'ancla de prueba',
+				'offset'   => (int) strpos( $sentence, 'ancla de prueba' ),
+				'title'    => str_repeat( 'Título ', 80 ),
+				'summary'  => str_repeat( 'resumen ñ ', 200 ),
+			);
+		}
+
+		return $out;
+	}
+
+	public function test_needs_is_an_upper_bound_of_any_valid_request(): void {
+		foreach ( array( 1, 2, 4, 10, RerankProtocol::MAX_CANDIDATES ) as $count ) {
+			$prompt = RerankProtocol::prompt( $this->maximal_candidates( $count ), 'es' );
+			$bound  = Reranker::request_tokens( RerankProtocol::system(), $prompt );
+
+			$this->assertLessThanOrEqual( Reranker::worst_case_tokens( $count ), $bound, "needs cubre una petición de {$count} candidatas llenas." );
+			$this->assertGreaterThanOrEqual( Reranker::typical_estimate( $count, null, true )['tokens'], Reranker::worst_case_tokens( $count ), 'La cota nunca baja de la estimación típica.' );
+		}
+	}
+
+	public function test_the_bound_counts_the_output_cap_that_the_request_really_sends(): void {
+		$prompt = RerankProtocol::prompt( $this->real_candidates(), 'es' );
+		$input  = \MagicLinking\AI\CostEstimator::tokens( RerankProtocol::system() . "\n" . $prompt, 'es' );
+
+		$this->assertSame( $input + RerankProtocol::MAX_OUTPUT_TOKENS, Reranker::request_tokens( RerankProtocol::system(), $prompt ) );
+		$this->assertGreaterThanOrEqual( 2000, RerankProtocol::MAX_OUTPUT_TOKENS, 'Los modelos de razonamiento no bajan de ~2.000 (05 §10).' );
 	}
 
 	public function test_the_button_estimate_and_the_needed_tokens_are_the_same_figure_and_close_to_the_real_one(): void {
 		$typical = Reranker::typical_estimate( 4, 'gemma3:4b', true );
 
-		$this->assertSame( $typical['tokens'], Reranker::worst_case_tokens( 4 ) );
+		$this->assertLessThan( Reranker::worst_case_tokens( 4 ), $typical['tokens'], 'El botón enseña lo típico; el tope diario se compara con la cota.' );
 		// Real con 4 candidatas: 846 + 148 = 994.
 		$this->assertGreaterThanOrEqual( 994, $typical['tokens'] );
 		$this->assertLessThanOrEqual( (int) round( 994 * 1.5 ), $typical['tokens'] );

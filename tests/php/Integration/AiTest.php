@@ -744,8 +744,8 @@ final class AiTest extends GraphTestCase {
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( Failure::TOO_SMALL, $result['reason'], 'Un tope menor que una petición no es «mañana».' );
-		$this->assertGreaterThan( 10, $result['needs'] );
-		$this->assertLessThan( RerankProtocol::MAX_OUTPUT_TOKENS, $result['needs'], 'La cifra es la estimación calibrada, no el tope de salida.' );
+		$this->assertGreaterThan( RerankProtocol::MAX_OUTPUT_TOKENS, $result['needs'], 'La cota incluye el tope de salida que se envía.' );
+		$this->assertLessThanOrEqual( Reranker::worst_case_tokens( 2 ), $result['needs'] );
 		$this->assertSame( 0, FakeAiProvider::$calls );
 	}
 
@@ -756,7 +756,7 @@ final class AiTest extends GraphTestCase {
 		$this->reply( '{"results":[{"candidato":1,"apto":true,"confianza":0.5},{"candidato":2,"apto":true,"confianza":0.5}]}' );
 		$reranker = $this->container( Reranker::class );
 
-		// El tope cubre una petición, pero lo gastado hoy (1.200) deja menos de lo que esta necesita.
+		// El tope cubre una petición, pero lo gastado hoy deja menos de lo que esta necesita.
 		$needs = Reranker::worst_case_tokens( 2 );
 		$this->container( Settings::class )->update( array( 'ai_daily_token_limit' => $needs + 500 ) );
 		$this->container( JobRepository::class )->record_ai(
@@ -764,7 +764,7 @@ final class AiTest extends GraphTestCase {
 				'type'        => 'ai_rerank',
 				'status'      => 'done',
 				'tokens_est'  => 0,
-				'tokens_real' => 1200,
+				'tokens_real' => $needs,
 				'cost_est'    => 0.0,
 				'cost_real'   => 0.0,
 				'provider'    => 'x',
@@ -780,6 +780,29 @@ final class AiTest extends GraphTestCase {
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( Failure::BUDGET, $result['reason'] );
 		$this->assertSame( 0, FakeAiProvider::$calls );
+	}
+
+	public function test_a_limit_equal_to_needs_lets_the_request_through_and_one_less_is_too_small_in_both_places(): void {
+		$this->needs_ai_client();
+		$this->corpus();
+		wp_set_current_user( $this->admin );
+		$this->reply( '{"results":[{"candidato":1,"apto":true,"confianza":0.5},{"candidato":2,"apto":true,"confianza":0.5}]}' );
+		$items    = array_slice( $this->items(), 0, 2 );
+		$needs    = Reranker::worst_case_tokens( 2 );
+		$settings = $this->container( Settings::class );
+
+		$settings->update( array( 'ai_daily_token_limit' => $needs - 1 ) );
+		$caps = $this->request( 'GET', '/ai/capabilities', array( 'count' => 2 ), $this->admin )->get_data();
+		$this->assertSame( 'too_small', $caps['budget'] );
+
+		$settings->update( array( 'ai_daily_token_limit' => $needs ) );
+		$caps = $this->request( 'GET', '/ai/capabilities', array( 'count' => 2 ), $this->admin )->get_data();
+		$this->assertSame( 'ok', $caps['budget'], 'Botón y petición coinciden: con el tope en `needs` hay sitio.' );
+
+		$result = $this->container( Reranker::class )->rerank( $this->source, $items );
+		$this->assertTrue( $result['ok'], 'Lo que dijo el botón no se contradice con la petición real.' );
+		$this->assertLessThanOrEqual( $needs, (int) $this->last_ai_row()['ai_tokens_est'], 'Lo guardado es la cota usada para el tope y cabe en `needs`.' );
+		$this->assertGreaterThan( RerankProtocol::MAX_OUTPUT_TOKENS, (int) $this->last_ai_row()['ai_tokens_est'] );
 	}
 
 	public function test_a_sentence_that_is_not_in_the_entry_is_never_sent(): void {
@@ -1031,7 +1054,8 @@ final class AiTest extends GraphTestCase {
 		$this->assertSame( 'gpt-4o-mini', $data['model'] );
 		$this->assertSame( 'Fake AI', $data['provider']['name'] );
 		$this->assertSame( 2180, $data['estimate']['tokens_in'] );
-		$this->assertSame( $data['estimate']['tokens'], $data['needs'], 'Botón y tope diario dicen lo mismo.' );
+		$this->assertGreaterThan( $data['estimate']['tokens'], $data['needs'], 'El botón enseña lo típico; `needs` es la cota con la que se compara el tope.' );
+		$this->assertSame( Reranker::worst_case_tokens( 10 ), $data['needs'] );
 		$this->assertGreaterThan( 0.0, $data['estimate']['cost'] );
 		$this->assertStringContainsString( 'options-connectors.php', $data['connectors_url'] );
 

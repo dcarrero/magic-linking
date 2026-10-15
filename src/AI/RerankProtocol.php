@@ -29,10 +29,26 @@ final class RerankProtocol {
 	public const MAX_CANDIDATES = 20;
 
 	/**
-	 * Tope de tokens de salida. No baja de ~2.000: un modelo de razonamiento con menos gasta todo pensando y
-	 * devuelve texto vacío sin error (05 §10).
+	 * Tope de tokens de salida que se envía en la petición, y el que cuenta la cota del tope diario. No baja de
+	 * ~2.000: un modelo de razonamiento con menos gasta todo pensando y devuelve texto vacío sin error (05 §10).
 	 */
-	public const MAX_OUTPUT_TOKENS = 2500;
+	public const MAX_OUTPUT_TOKENS = 2000;
+
+	/**
+	 * Caracteres del título del destino que se envían como máximo.
+	 */
+	public const TITLE_CHARS = 200;
+
+	/**
+	 * Caracteres del resumen del destino que se envían como máximo (el resumen ya sale recortado a 720).
+	 */
+	public const SUMMARY_CHARS = 760;
+
+	/**
+	 * Caracteres que puede ocupar una candidata en el prompt, con sus etiquetas: frase (500 más corchetes y puntos
+	 * suspensivos), título y resumen en su tope y el marco `<candidate>`. Con ella se calcula la cota de entrada.
+	 */
+	public const CANDIDATE_MAX_CHARS = 1600;
 
 	/**
 	 * Caracteres de la frase que se envían como máximo (con el ancla siempre dentro).
@@ -119,8 +135,8 @@ final class RerankProtocol {
 		foreach ( $candidates as $i => $candidate ) {
 			$lines[] = '<candidate n="' . ( $i + 1 ) . '">';
 			$lines[] = 'Sentence: ' . self::marked( $candidate['sentence'], $candidate['offset'], $candidate['anchor'] );
-			$lines[] = 'Target title: ' . self::flat( $candidate['title'] );
-			$lines[] = 'Target summary: ' . self::flat( $candidate['summary'] );
+			$lines[] = 'Target title: ' . mb_substr( self::flat( $candidate['title'] ), 0, self::TITLE_CHARS, 'UTF-8' );
+			$lines[] = 'Target summary: ' . mb_substr( self::flat( $candidate['summary'] ), 0, self::SUMMARY_CHARS, 'UTF-8' );
 			$lines[] = '</candidate>';
 		}
 

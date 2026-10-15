@@ -60,6 +60,11 @@ final class Reranker {
 	public const BASE_INPUT_TOKENS = 280;
 
 	/**
+	 * Caracteres del marco de la petición (línea de idioma y saltos) que se suman a la cota.
+	 */
+	public const FRAME_CHARS = 60;
+
+	/**
 	 * Tokens de entrada por candidata (frase, título y resumen de hasta {@see self::SUMMARY_WORDS} palabras).
 	 */
 	public const CANDIDATE_INPUT_TOKENS = 190;
@@ -117,19 +122,23 @@ final class Reranker {
 	}
 
 	/**
-	 * Tokens que necesita una petición de `$count` candidatas: es la misma cifra que enseña el botón (tipo), para
-	 * que el tope diario, el aviso de «tope demasiado pequeño» y la estimación guardada digan lo mismo. El tope de
-	 * tokens de la petición ({@see RerankProtocol::MAX_OUTPUT_TOKENS}) es mayor, pero solo lo gasta un modelo de
-	 * razonamiento, y ese gasto real sí se registra y cuenta para el tope de hoy.
+	 * Cota de lo que puede costar una petición de `$count` candidatas: es la cifra con la que se comprueba el tope
+	 * diario (regla 4), la que devuelve `GET /ai/capabilities` como `needs` y la del aviso «tope demasiado pequeño».
+	 * Entrada en el peor caso (todas las candidatas con frase, título y resumen en su tope) más el tope de salida
+	 * que la petición envía de verdad, así que cubre cualquier petición válida de esa cantidad de candidatas.
+	 * Lo que enseña el botón es la estimación típica ({@see self::typical_estimate()}), mucho más ajustada.
 	 *
 	 * @param int $count Candidatas.
 	 */
 	public static function worst_case_tokens( int $count ): int {
-		return self::typical_estimate( $count, null, true )['tokens'];
+		$count = max( 0, min( RerankProtocol::MAX_CANDIDATES, $count ) );
+		$chars = mb_strlen( RerankProtocol::system(), 'UTF-8' ) + self::FRAME_CHARS + $count * RerankProtocol::CANDIDATE_MAX_CHARS;
+
+		return (int) ceil( $chars / CostEstimator::CHARS_PER_TOKEN ) + RerankProtocol::MAX_OUTPUT_TOKENS;
 	}
 
 	/**
-	 * Tokens de salida previstos para `$count` candidatas (el tope de la petición es mayor, ver RerankProtocol).
+	 * Tokens de salida típicos para `$count` candidatas (el tope de la petición es mayor, ver RerankProtocol).
 	 *
 	 * @param int $count Candidatas.
 	 */
@@ -138,16 +147,16 @@ final class Reranker {
 	}
 
 	/**
-	 * Estimación de una petición ya montada: el texto real de entrada más la salida prevista.
+	 * Cota de una petición ya montada: el texto real de entrada más el tope de salida que se envía. Es lo que se
+	 * compara con el tope diario y lo que se guarda en `ai_tokens_est`; nunca pasa de {@see self::worst_case_tokens()}.
 	 *
 	 * @param string $system Instrucción de sistema.
 	 * @param string $prompt Petición.
-	 * @param int    $count  Candidatas.
 	 */
-	public static function request_tokens( string $system, string $prompt, int $count ): int {
+	public static function request_tokens( string $system, string $prompt ): int {
 		// Siempre con la medida de los idiomas que no son inglés (3,6): la instrucción va en inglés pero las frases
 		// y los resúmenes no tienen por qué, y el idioma declarado del sitio puede no ser el del contenido.
-		return CostEstimator::tokens( $system . "\n" . $prompt, 'es' ) + self::output_tokens( $count );
+		return CostEstimator::tokens( $system . "\n" . $prompt, 'es' ) + RerankProtocol::MAX_OUTPUT_TOKENS;
 	}
 
 	/**
@@ -209,7 +218,7 @@ final class Reranker {
 		$prompt = RerankProtocol::prompt( $candidates, $lang );
 		$system = RerankProtocol::system();
 		$count  = count( $candidates );
-		$tokens = self::request_tokens( $system, $prompt, $count );
+		$tokens = self::request_tokens( $system, $prompt );
 
 		// Un tope menor que una sola petición no se arregla esperando a mañana: se dice aparte.
 		if ( $this->budget->enabled() && $this->budget->limit() < $tokens ) {
