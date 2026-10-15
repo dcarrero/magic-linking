@@ -45,6 +45,22 @@ final class RerankProtocol {
 	public const ANCHOR_WORDS = 8;
 
 	/**
+	 * Palabras que admite un ancla mejorada por el modelo. Más baja que la del motor: los modelos pequeños
+	 * devuelven medias frases («reserva con tiempo los albergues de peregrinos») y un ancla es un sintagma.
+	 */
+	public const IMPROVED_ANCHOR_WORDS = 5;
+
+	/**
+	 * Palabras que puede añadir como máximo el ancla mejorada a la original.
+	 */
+	public const IMPROVED_ANCHOR_EXTRA = 3;
+
+	/**
+	 * Fracción de la frase (en caracteres) a partir de la cual un ancla mejorada se rechaza por cubrir casi todo.
+	 */
+	public const IMPROVED_ANCHOR_MAX_SHARE = 0.7;
+
+	/**
 	 * Esquema JSON de la respuesta.
 	 *
 	 * @return array<string, mixed>
@@ -84,7 +100,8 @@ final class RerankProtocol {
 			. 'would genuinely benefit from following that link from that anchor, false if it is off-topic, too generic or '
 			. 'forced), "confianza" (a number from 0 to 1) and, only if a different part of the SAME sentence that overlaps '
 			. 'the proposed anchor would be a clearly better anchor, "ancla_mejorada" (copy it exactly from the sentence, '
-			. 'without the brackets, at most ' . self::ANCHOR_WORDS . ' words). Answer with JSON only, in this shape: '
+			. 'without the brackets, a short noun phrase of at most ' . self::IMPROVED_ANCHOR_WORDS . ' words that adds at most '
+			. self::IMPROVED_ANCHOR_EXTRA . ' words to the proposed anchor, never a whole clause). Answer with JSON only, in this shape: '
 			. '{"results":[{"candidato":1,"apto":true,"confianza":0.8,"ancla_mejorada":"optional"}]}. Include every candidate once.';
 	}
 
@@ -313,7 +330,8 @@ final class RerankProtocol {
 	 * Ancla mejorada que propone el modelo, si es un tramo literal de la frase.
 	 *
 	 * Se acepta solo si: es texto de la frase tal cual (mayúsculas, tildes y espacios incluidos), empieza y acaba en
-	 * límite de palabra, tiene letras, no pasa de {@see self::ANCHOR_WORDS} palabras, no es la misma ancla y se
+	 * límite de palabra, tiene letras, no pasa de {@see self::IMPROVED_ANCHOR_WORDS} palabras ni añade más de {@see self::IMPROVED_ANCHOR_EXTRA} a
+	 * la original, no cubre más del 70 % de la frase, no es la misma ancla y se
 	 * solapa con la propuesta por el motor (una mejora, no otro sitio de la frase). Si el tramo sale varias veces,
 	 * se toma la aparición que se solapa con el ancla original.
 	 *
@@ -330,7 +348,16 @@ final class RerankProtocol {
 			return null;
 		}
 		$words = preg_split( '/\s+/u', $proposed, -1, PREG_SPLIT_NO_EMPTY );
-		if ( mb_strlen( $proposed, 'UTF-8' ) > 100 || false === $words || count( $words ) > self::ANCHOR_WORDS ) {
+		if ( mb_strlen( $proposed, 'UTF-8' ) > 100 || false === $words || count( $words ) > self::IMPROVED_ANCHOR_WORDS ) {
+			return null;
+		}
+
+		$original_words = preg_split( '/\s+/u', trim( $original ), -1, PREG_SPLIT_NO_EMPTY );
+		if ( false !== $original_words && count( $words ) > count( $original_words ) + self::IMPROVED_ANCHOR_EXTRA ) {
+			return null;
+		}
+		$sentence_length = mb_strlen( trim( $sentence ), 'UTF-8' );
+		if ( $sentence_length > 0 && mb_strlen( $proposed, 'UTF-8' ) / $sentence_length > self::IMPROVED_ANCHOR_MAX_SHARE ) {
 			return null;
 		}
 

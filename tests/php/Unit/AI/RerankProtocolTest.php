@@ -186,12 +186,12 @@ final class RerankProtocolTest extends TestCase {
 		$this->assertNull( RerankProtocol::improved_anchor( $sentence, 'energía solar', $offset, 'energia solar fotovoltaica' ), 'Sin tilde ya no es literal.' );
 	}
 
-	public function test_improved_anchor_has_at_most_eight_words_and_needs_letters(): void {
-		$sentence = 'uno dos tres cuatro cinco seis siete ocho nueve diez';
+	public function test_improved_anchor_has_at_most_five_words_and_needs_letters(): void {
+		$sentence = 'uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince';
 		$offset   = (int) strpos( $sentence, 'cinco' );
 
-		$this->assertNotNull( RerankProtocol::improved_anchor( $sentence, 'cinco', $offset, 'uno dos tres cuatro cinco seis siete ocho' ), 'Ocho palabras caben.' );
-		$this->assertNull( RerankProtocol::improved_anchor( $sentence, 'cinco', $offset, 'uno dos tres cuatro cinco seis siete ocho nueve' ), 'Nueve ya no.' );
+		$this->assertNotNull( RerankProtocol::improved_anchor( $sentence, 'cinco seis', $offset, 'tres cuatro cinco seis siete' ), 'Cinco palabras caben.' );
+		$this->assertNull( RerankProtocol::improved_anchor( $sentence, 'cinco seis', $offset, 'dos tres cuatro cinco seis siete' ), 'Seis ya no.' );
 
 		$this->assertNull( RerankProtocol::improved_anchor( 'Precio 2026 – 2027 ok', '2026', 7, '2026 – 2027' ), 'Sin letras no es un ancla.' );
 	}
@@ -310,5 +310,36 @@ final class RerankProtocolTest extends TestCase {
 	 */
 	private static function json( array $data ): string {
 		return (string) json_encode( $data, JSON_UNESCAPED_UNICODE ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Sin WordPress en las pruebas unitarias.
+	}
+
+	// ------------------------------------------------------------------ Ancla mejorada corta.
+
+	public function test_an_improved_anchor_of_more_than_five_words_is_rejected(): void {
+		$sentence = 'Reserva con tiempo los albergues de peregrinos antes de llegar a la ciudad del apóstol.';
+		$anchor   = 'albergues de peregrinos';
+		$offset   = (int) strpos( $sentence, $anchor );
+
+		$this->assertNull( RerankProtocol::improved_anchor( $sentence, $anchor, $offset, 'Reserva con tiempo los albergues de peregrinos' ) );
+		$this->assertSame( 'los albergues de peregrinos', RerankProtocol::improved_anchor( $sentence, $anchor, $offset, 'los albergues de peregrinos' )['anchor'] ?? null );
+	}
+
+	public function test_an_improved_anchor_adds_at_most_three_words_to_the_original(): void {
+		$sentence = 'Una bomba de calor muy eficiente reduce el consumo de la vivienda.';
+		$offset   = (int) strpos( $sentence, 'bomba' );
+
+		// Original de 1 palabra: 4 palabras es el máximo (1 + 3); 5 palabras ya sobran.
+		$this->assertNotNull( RerankProtocol::improved_anchor( $sentence, 'bomba', $offset, 'Una bomba de calor' ) );
+		$this->assertNull( RerankProtocol::improved_anchor( $sentence, 'bomba', $offset, 'Una bomba de calor muy' ) );
+	}
+
+	public function test_an_improved_anchor_that_covers_almost_the_whole_sentence_is_rejected(): void {
+		$sentence = 'Instalar bomba de calor hoy.';
+
+		$this->assertNull( RerankProtocol::improved_anchor( $sentence, 'bomba de calor', (int) strpos( $sentence, 'bomba' ), 'Instalar bomba de calor hoy' ) );
+	}
+
+	public function test_the_system_prompt_asks_for_short_anchors(): void {
+		$this->assertStringContainsString( 'at most 5 words', RerankProtocol::system() );
+		$this->assertStringContainsString( 'never a whole clause', RerankProtocol::system() );
 	}
 }
