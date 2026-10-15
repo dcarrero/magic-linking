@@ -47,11 +47,28 @@ class Client {
 	public const LOCAL_PROVIDERS = array( 'ollama' );
 
 	/**
+	 * Segundos mínimos que tienen que quedar para que merezca la pena un reintento.
+	 */
+	public const MIN_RETRY = 3;
+
+	/**
+	 * Margen, en segundos, que se deja a PHP después de la espera para tratar la respuesta y apuntar el gasto.
+	 */
+	public const PHP_MARGIN = 5;
+
+	/**
 	 * Espera antes del reintento, en milisegundos.
 	 *
 	 * @var int
 	 */
 	protected int $retry_wait_ms = 800;
+
+	/**
+	 * Modelos ya resueltos en el registro en esta petición PHP.
+	 *
+	 * @var array<string, object|null>
+	 */
+	private array $resolved = array();
 
 	/**
 	 * Constructor.
@@ -123,9 +140,11 @@ class Client {
 
 		$out = array();
 		try {
-			$groups = $registry_class::defaultRegistry()->findModelsMetadataForSupport(
+			$registry = $registry_class::defaultRegistry();
+			$groups   = $registry->findModelsMetadataForSupport(
 				new $requirements_class( array( $capability_class::textGeneration() ), array() )
 			);
+			$strict   = $this->strict_models( $registry );
 			foreach ( $groups as $group ) {
 				$provider = $group->getProvider();
 				foreach ( $group->getModels() as $model ) {
@@ -134,14 +153,58 @@ class Client {
 						'provider_name' => (string) $provider->getName(),
 						'model'         => (string) $model->getId(),
 						'name'          => (string) $model->getName(),
+						'strict'        => null === $strict || isset( $strict[ $provider->getId() . "\n" . $model->getId() ] ),
 					);
 				}
 			}
 		} catch ( Throwable $e ) {
 			return array();
-		}
+		}//end try
 
 		return $out;
+	}
+
+	/**
+	 * Modelos que declaran todo lo que pide el reordenado real (instrucción de sistema, tope de salida y salida JSON
+	 * con esquema), como mapa `proveedor\nmodelo` => true; null si no se puede averiguar (entonces todos valen).
+	 *
+	 * @param object $registry Registro de proveedores del cliente de IA.
+	 *
+	 * @return array<string, true>|null
+	 */
+	private function strict_models( object $registry ): ?array {
+		$requirements_class = '\\WordPress\\AiClient\\Providers\\Models\\DTO\\ModelRequirements';
+		$option_class       = '\\WordPress\\AiClient\\Providers\\Models\\DTO\\RequiredOption';
+		$option_enum        = '\\WordPress\\AiClient\\Providers\\Models\\Enums\\OptionEnum';
+		$capability_class   = '\\WordPress\\AiClient\\Providers\\Models\\Enums\\CapabilityEnum';
+		if ( ! class_exists( $option_class ) || ! class_exists( $option_enum ) ) {
+			return null;
+		}
+
+		try {
+			$groups = $registry->findModelsMetadataForSupport(
+				new $requirements_class(
+					array( $capability_class::textGeneration() ),
+					array(
+						new $option_class( $option_enum::systemInstruction(), 'x' ),
+						new $option_class( $option_enum::maxTokens(), RerankProtocol::MAX_OUTPUT_TOKENS ),
+						new $option_class( $option_enum::outputMimeType(), 'application/json' ),
+						new $option_class( $option_enum::outputSchema(), array( 'type' => 'object' ) ),
+					)
+				)
+			);
+		} catch ( Throwable $e ) {
+			return null;
+		}
+
+		$map = array();
+		foreach ( $groups as $group ) {
+			foreach ( $group->getModels() as $model ) {
+				$map[ $group->getProvider()->getId() . "\n" . $model->getId() ] = true;
+			}
+		}
+
+		return $map;
 	}
 
 	/**
@@ -194,21 +257,23 @@ class Client {
 			return new Failure( Failure::BUDGET, 'daily token limit' );
 		}
 
-		$started  = microtime( true );
+		$started  = $this->now();
+		$request  = $request->with_timeout( $this->fit_timeout( $request->timeout ) );
 		$attempts = 1;
-		$outcome  = $this->attempt( $request );
+		$outcome  = $this->attempt( $request, $started );
 
-		// Un reintento con espera ante red, 429 o 5xx, si cabe en el tiempo que se dio a la petición.
+		// Un reintento con espera ante red, 429 o 5xx, solo si cabe en el tiempo que se dio a la petición: tras
+		// agotar la espera no queda margen y no se reintenta. Un tiempo agotado (`timeout`) tampoco se repite.
 		if ( $outcome instanceof Failure && $outcome->retryable() ) {
-			$left = (int) floor( $request->timeout - ( microtime( true ) - $started ) - $this->retry_wait_ms / 1000 );
-			if ( $left >= 3 ) {
+			$left = (int) floor( $request->timeout - ( $this->now() - $started ) - $this->retry_wait_ms / 1000 );
+			if ( $left >= self::MIN_RETRY ) {
 				$this->wait( $this->retry_wait_ms );
 				++$attempts;
-				$outcome = $this->attempt( $request->with_timeout( $left ) );
+				$outcome = $this->attempt( $request->with_timeout( $left ), $this->now() );
 			}
 		}
 
-		$this->log( $request, $outcome, $attempts, (int) round( ( microtime( true ) - $started ) * 1000 ) );
+		$this->log( $request, $outcome, $attempts, (int) round( ( $this->now() - $started ) * 1000 ) );
 
 		return $outcome;
 	}
@@ -217,15 +282,22 @@ class Client {
 	 * Una vuelta al proveedor. Si el proveedor rechaza el esquema JSON (400 o 422), se repite sin esquema: el
 	 * reordenado valida la respuesta por su cuenta.
 	 *
+	 * La repetición sin esquema solo se hace con el tiempo que queda de lo dado a la petición (contando lo que tardó
+	 * el primer intento y la resolución del modelo, que puede pedir su lista a la red).
+	 *
 	 * @param Request $request Petición.
+	 * @param float   $started Instante en que empezó este intento.
 	 *
 	 * @return Response|Failure
 	 */
-	private function attempt( Request $request ): Response|Failure {
+	private function attempt( Request $request, float $started ): Response|Failure {
 		$outcome = $this->read( $this->run( $request ) );
 
 		if ( $outcome instanceof Failure && null !== $request->schema && in_array( $outcome->http, array( 400, 422 ), true ) ) {
-			$outcome = $this->read( $this->run( $request->without_schema() ) );
+			$left = (int) floor( $request->timeout - ( $this->now() - $started ) );
+			if ( $left >= self::MIN_RETRY ) {
+				$outcome = $this->read( $this->run( $request->without_schema()->with_timeout( $left ) ) );
+			}
 		}
 
 		return $outcome;
@@ -261,7 +333,12 @@ class Client {
 				$builder = $builder->using_provider( $request->provider );
 			}
 			if ( array() !== $request->models ) {
-				$builder = $builder->using_model_preference( ...$request->models );
+				// Una preferencia no obliga: si el modelo no declara todo lo que pide la petición (esquema JSON,
+				// instrucción de sistema, tope de salida), el cliente de IA la descarta en silencio y usa el primero
+				// que sí lo declara (en OpenRouter, el primero de 463; D-61 anexo 9). Con proveedor y modelo conocidos
+				// se pasa el modelo exacto, y si el proveedor no admite algo (400/422) falla con un motivo claro.
+				$model   = $this->exact_model( $request );
+				$builder = null === $model ? $builder->using_model_preference( ...$request->models ) : $builder->using_model( $model );
 			}
 			if ( null !== $request->schema ) {
 				$builder = $builder->as_json_response( $request->schema );
@@ -280,6 +357,30 @@ class Client {
 		} catch ( Throwable $e ) {
 			return new WP_Error( 'magiclinking_ai_exception', $e->getMessage(), array( 'status' => 500 ) );
 		}//end try
+	}
+
+	/**
+	 * El modelo exacto del registro del cliente de IA, o null si no se puede resolver (entonces vale la preferencia).
+	 *
+	 * @param Request $request Petición.
+	 */
+	protected function exact_model( Request $request ): ?object {
+		$registry = '\\WordPress\\AiClient\\AiClient';
+		if ( '' === $request->provider || ! isset( $request->models[0] ) || ! class_exists( $registry ) ) {
+			return null;
+		}
+
+		// Resolverlo puede pedir la lista de modelos a la red: una vez por petición PHP y proveedor/modelo.
+		$key = $request->provider . "\n" . $request->models[0];
+		if ( ! array_key_exists( $key, $this->resolved ) ) {
+			try {
+				$this->resolved[ $key ] = $registry::defaultRegistry()->getProviderModel( $request->provider, $request->models[0] );
+			} catch ( Throwable $e ) {
+				$this->resolved[ $key ] = null;
+			}
+		}
+
+		return $this->resolved[ $key ];
 	}
 
 	/**
@@ -340,8 +441,9 @@ class Client {
 			case 'prompt_prevented':
 				return new Failure( Failure::VETOED, $detail, $status );
 			case 'prompt_network_error':
+				return new Failure( preg_match( '/timed out|timeout|cURL error 28/i', $error->get_error_message() ) ? Failure::TIMEOUT : Failure::NETWORK, $detail, $status );
 			case 'prompt_upstream_server_error':
-				return new Failure( Failure::NETWORK, $detail, $status );
+				return new Failure( Failure::UPSTREAM, $detail, $status );
 			case 'prompt_client_error':
 				return new Failure( 429 === $status ? Failure::RATE_LIMIT : Failure::FAILED, $detail, $status );
 			case 'prompt_token_limit_reached':
@@ -349,6 +451,47 @@ class Client {
 			default:
 				return new Failure( Failure::FAILED, $detail, $status );
 		}
+	}
+
+	/**
+	 * Reloj en segundos; las pruebas lo sustituyen.
+	 */
+	protected function now(): float {
+		return microtime( true );
+	}
+
+	/**
+	 * Tiempo de espera que cabe de verdad: si `max_execution_time` es menor que la espera más el margen, se intenta
+	 * ampliarlo con `set_time_limit()` (puede estar desactivado) y, si no se puede, se reduce la espera a lo que
+	 * queda para que PHP no corte la petición antes que el proveedor.
+	 *
+	 * @param int $timeout Segundos pedidos.
+	 */
+	protected function fit_timeout( int $timeout ): int {
+		$max     = (int) ini_get( 'max_execution_time' );
+		$elapsed = isset( $_SERVER['REQUEST_TIME_FLOAT'] ) ? max( 0.0, $this->now() - (float) $_SERVER['REQUEST_TIME_FLOAT'] ) : 0.0; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Solo un reloj.
+		$can     = 0 !== $max && $max < $timeout + self::PHP_MARGIN + $elapsed
+			&& function_exists( 'set_time_limit' )
+			&& ! in_array( 'set_time_limit', array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) ), true )
+			&& @set_time_limit( $timeout + self::PHP_MARGIN ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- Puede estar desactivada; si falla se recorta la espera.
+
+		return self::fit_seconds( $timeout, $max, $elapsed, $can );
+	}
+
+	/**
+	 * Cálculo puro de `fit_timeout()`.
+	 *
+	 * @param int   $timeout  Segundos pedidos.
+	 * @param int   $max      `max_execution_time` de PHP (0 = sin límite).
+	 * @param float $elapsed  Segundos que lleva ya la petición PHP.
+	 * @param bool  $extended Si se consiguió ampliar el límite de PHP (el contador vuelve a cero).
+	 */
+	public static function fit_seconds( int $timeout, int $max, float $elapsed, bool $extended ): int {
+		if ( 0 === $max || $extended ) {
+			return max( 1, $timeout );
+		}
+
+		return max( 1, min( $timeout, (int) floor( $max - $elapsed - self::PHP_MARGIN ) ) );
 	}
 
 	/**
@@ -372,7 +515,15 @@ class Client {
 		$params = $request->params + array(
 			'attempts'   => $attempts,
 			'elapsed_ms' => $elapsed,
+			'timeout'    => $request->timeout,
 		);
+
+		$wanted = $request->models[0] ?? '';
+		if ( $outcome instanceof Response && '' !== $wanted && ! Models::same( $wanted, $outcome->model ) ) {
+			// Aviso: respondió otro modelo (u otro proveedor) distinto del pedido. Queda en `params` para el registro.
+			$params['model_requested'] = $wanted;
+			$params['model_mismatch']  = true;
+		}
 
 		if ( $outcome instanceof Response ) {
 			$this->budget->record(
@@ -409,8 +560,8 @@ class Client {
 				'provider'    => $outcome->provider,
 				'model'       => $outcome->model,
 				'user_id'     => get_current_user_id(),
-				'params'      => $params,
-				'error'       => substr( $outcome->code . ( '' !== $outcome->detail ? ': ' . $outcome->detail : '' ), 0, 500 ),
+				'params'      => $params + array( 'model_requested' => $request->models[0] ?? '' ),
+				'error'       => substr( $outcome->code . ( '' !== $outcome->detail ? ': ' . Failure::scrub( $outcome->detail ) : '' ), 0, 500 ),
 			)
 		);
 	}

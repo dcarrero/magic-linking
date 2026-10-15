@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { api } from '../api';
 import { engineText, money, tokensText } from '../editor/aiText';
 import { useLoad } from '../hooks';
-import type { AiStatus } from '../types';
+import type { AiLastFailure, AiStatus, AiStatusEntry } from '../types';
 import { SettingsSection, type SectionInfo } from './SettingsSection';
 
 interface Props {
@@ -80,56 +80,144 @@ export function AiSettingsCards( {
 					) }
 					disabled={ off }
 					value={ model }
-					options={ modelOptions( data, model ) }
 					onChange={ onModel }
-				/>
+				>
+					{ modelGroups( data, model ).map( ( group, index ) =>
+						group.label === '' ? (
+							group.options.map( ( o ) => (
+								<option key={ o.value } value={ o.value }>
+									{ o.label }
+								</option>
+							) )
+						) : (
+							<optgroup key={ index } label={ group.label }>
+								{ group.options.map( ( o ) => (
+									<option key={ o.value } value={ o.value }>
+										{ o.label }
+									</option>
+								) ) }
+							</optgroup>
+						)
+					) }
+				</SelectControl>
 				<p className="description" role="status">
 					{ budgetText( data ) }
 				</p>
 			</SettingsSection>
 			<SettingsSection section={ sections.aiUsage }>
 				<Usage status={ data } />
+				{ data.last_failure && (
+					<LastFailure failure={ data.last_failure } />
+				) }
 			</SettingsSection>
 		</>
 	);
 }
 
+interface ModelOption {
+	value: string;
+	label: string;
+}
+
+interface ModelGroup {
+	/** Vacío = opciones sueltas, sin grupo. */
+	label: string;
+	options: ModelOption[];
+}
+
 /**
- * Opciones del selector de modelo: automático, los modelos que ofrece el conector y, si el guardado ya no está,
- * ese mismo marcado como no disponible (para no perder el ajuste sin avisar).
+ * Precio de un modelo para el desplegable: «sin coste (local)», «0,15 $ / 0,60 $ por millón» o nada si no se conoce.
+ *
+ * @param entry Modelo del servidor.
+ */
+function priceText( entry: AiStatusEntry ): string {
+	if ( entry.local ) {
+		return __( 'no cost (local)', 'magic-linking' );
+	}
+	if ( ! entry.price ) {
+		return '';
+	}
+	return sprintf(
+		/* translators: 1: dollars per million input tokens, 2: dollars per million output tokens. */
+		__( '%1$s in / %2$s out per million', 'magic-linking' ),
+		money( entry.price[ 0 ] ),
+		money( entry.price[ 1 ] )
+	);
+}
+
+/**
+ * Etiqueta de un modelo: proveedor · modelo y, si se sabe, su precio.
+ *
+ * @param entry Modelo del servidor.
+ */
+function modelLabel( entry: AiStatusEntry ): string {
+	const price = priceText( entry );
+	const base = engineText( entry.provider_name, entry.model );
+	return price === '' ? base : `${ base } (${ price })`;
+}
+
+/**
+ * Grupos del selector de modelo: «Automático (recomendado)», los recomendados (el servidor decide cuáles y en qué
+ * orden; este código no repite esa lógica), todos los demás por nombre y, si el guardado ya no está, ese mismo marcado
+ * como no disponible (para no perder el ajuste sin avisar).
  *
  * @param status Estado de la IA.
  * @param saved  Modelo guardado.
  */
-export function modelOptions( status: AiStatus, saved: string ) {
-	const options: { value: string; label: string }[] = [
-		{
-			value: '',
-			label: __( 'Automatic (recommended)', 'magic-linking' ),
-		},
-	];
+export function modelGroups( status: AiStatus, saved: string ): ModelGroup[] {
 	const seen = new Set< string >();
+	const recommended: ModelOption[] = [];
+	const others: ModelOption[] = [];
 	status.models.forEach( ( entry ) => {
 		if ( seen.has( entry.model ) ) {
 			return;
 		}
 		seen.add( entry.model );
-		options.push( {
+		( entry.recommended ? recommended : others ).push( {
 			value: entry.model,
-			label: engineText( entry.provider_name, entry.model ),
+			label: modelLabel( entry ),
 		} );
 	} );
-	if ( saved !== '' && ! seen.has( saved ) ) {
-		options.push( {
-			value: saved,
-			label: sprintf(
-				/* translators: %s: model name. */
-				__( '%s (not available now)', 'magic-linking' ),
-				saved
-			),
+
+	const groups: ModelGroup[] = [
+		{
+			label: '',
+			options: [
+				{
+					value: '',
+					label: __( 'Automatic (recommended)', 'magic-linking' ),
+				},
+			],
+		},
+	];
+	if ( recommended.length > 0 ) {
+		groups.push( {
+			label: __( 'Recommended', 'magic-linking' ),
+			options: recommended,
 		} );
 	}
-	return options;
+	if ( others.length > 0 ) {
+		groups.push( {
+			label: __( 'All models', 'magic-linking' ),
+			options: others,
+		} );
+	}
+	if ( saved !== '' && ! seen.has( saved ) ) {
+		groups.push( {
+			label: '',
+			options: [
+				{
+					value: saved,
+					label: sprintf(
+						/* translators: %s: model name. */
+						__( '%s (not available now)', 'magic-linking' ),
+						saved
+					),
+				},
+			],
+		} );
+	}
+	return groups;
 }
 
 /**
@@ -381,4 +469,45 @@ function costCell( row: { local: boolean; cost: number | null } ): string {
 	return row.cost === null
 		? __( 'Price unknown', 'magic-linking' )
 		: money( row.cost );
+}
+
+/**
+ * Fecha y hora local de una marca ISO; si no se entiende, la marca tal cual.
+ *
+ * @param iso Fecha ISO 8601.
+ */
+function whenText( iso: string ): string {
+	const date = new Date( iso );
+	return Number.isNaN( date.getTime() ) ? iso : date.toLocaleString();
+}
+
+/**
+ * Última llamada fallida con el código y el mensaje técnico saneado por el servidor (sin claves ni texto de las
+ * entradas), para que el administrador pueda ver por qué «la IA no respondió».
+ *
+ * @param root0
+ * @param root0.failure
+ */
+export function LastFailure( { failure }: { failure: AiLastFailure } ) {
+	return (
+		<div className="magiclinking-ai-lastfailure">
+			<h4>{ __( 'Last failed request', 'magic-linking' ) }</h4>
+			<p>
+				{ sprintf(
+					/* translators: 1: date and time, 2: model name (may be empty), 3: error code. */
+					__( '%1$s · %2$s · code: %3$s', 'magic-linking' ),
+					whenText( failure.at ),
+					failure.model === ''
+						? __( 'unknown model', 'magic-linking' )
+						: failure.model,
+					failure.code
+				) }
+			</p>
+			{ failure.message !== '' && (
+				<p>
+					<code>{ failure.message }</code>
+				</p>
+			) }
+		</div>
+	);
 }

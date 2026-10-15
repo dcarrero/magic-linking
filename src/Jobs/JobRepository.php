@@ -276,6 +276,32 @@ final class JobRepository implements UsageStore {
 	}
 
 	/**
+	 * La última llamada de IA que falló, para que Ajustes enseñe el motivo (solo a quien administra).
+	 *
+	 * @return array{at: string, model: string, provider: string, error: string}|null
+	 */
+	public function last_ai_failure(): ?array {
+		$wpdb = $this->wpdb;
+		$row  = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb->prepare( 'SELECT created_at, ai_provider, ai_model, params, error FROM %i WHERE type LIKE %s AND status = %s ORDER BY id DESC LIMIT 1', $this->table, self::AI_LIKE, self::FAILED ),
+			ARRAY_A
+		);
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+
+		$params = json_decode( (string) $row['params'], true );
+		$model  = '' !== (string) $row['ai_model'] ? (string) $row['ai_model'] : (string) ( is_array( $params ) ? ( $params['model_requested'] ?? '' ) : '' );
+
+		return array(
+			'at'       => (string) $row['created_at'],
+			'model'    => $model,
+			'provider' => (string) $row['ai_provider'],
+			'error'    => (string) $row['error'],
+		);
+	}
+
+	/**
 	 * Gasto de IA de los últimos días, por proveedor y modelo (docs/05 §5.3).
 	 *
 	 * @param int $days Días hacia atrás desde ahora.

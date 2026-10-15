@@ -42,14 +42,21 @@ final class FakeAiDirectory implements ModelMetadataDirectoryInterface {
 			$id,
 			$id,
 			array( CapabilityEnum::textGeneration() ),
-			array(
-				new SupportedOption( OptionEnum::maxTokens() ),
-				new SupportedOption( OptionEnum::systemInstruction() ),
-				new SupportedOption( OptionEnum::outputMimeType() ),
-				new SupportedOption( OptionEnum::outputSchema() ),
-				new SupportedOption( OptionEnum::inputModalities() ),
-				new SupportedOption( OptionEnum::outputModalities() ),
-				new SupportedOption( OptionEnum::customOptions() ),
+			array_merge(
+				array(
+					new SupportedOption( OptionEnum::maxTokens() ),
+					new SupportedOption( OptionEnum::systemInstruction() ),
+				),
+				// Como los modelos de OpenRouter sin `response_format` en `supported_parameters`.
+				in_array( $id, FakeAiProvider::$without_schema, true ) ? array() : array(
+					new SupportedOption( OptionEnum::outputMimeType() ),
+					new SupportedOption( OptionEnum::outputSchema() ),
+				),
+				array(
+					new SupportedOption( OptionEnum::inputModalities() ),
+					new SupportedOption( OptionEnum::outputModalities() ),
+					new SupportedOption( OptionEnum::customOptions() ),
+				)
 			)
 		);
 	}

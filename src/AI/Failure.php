@@ -27,6 +27,12 @@ final class Failure {
 	/** Error de red o de servidor del proveedor, también tras el reintento. */
 	public const NETWORK = 'network';
 
+	/** La petición llegó pero el proveedor no contestó en el tiempo dado (no se reintenta: repetirla solo dobla la espera). */
+	public const TIMEOUT = 'timeout';
+
+	/** El servidor del proveedor falló (5xx), también tras el reintento. No es un problema de red del sitio. */
+	public const UPSTREAM = 'upstream';
+
 	/** El proveedor rechaza por límite de uso (429), también tras el reintento. */
 	public const RATE_LIMIT = 'rate_limit';
 
@@ -68,7 +74,27 @@ final class Failure {
 	 * Un reintento puede arreglarlo: red, servidor del proveedor y límite de uso.
 	 */
 	public function retryable(): bool {
-		return in_array( $this->code, array( self::NETWORK, self::RATE_LIMIT ), true );
+		return in_array( $this->code, array( self::NETWORK, self::UPSTREAM, self::RATE_LIMIT ), true );
+	}
+
+	/**
+	 * Detalle técnico sin claves ni direcciones con parámetros y recortado: es lo único del error que se enseña,
+	 * y solo a quien administra el sitio.
+	 *
+	 * @param string $detail Detalle tal como lo dio el cliente de IA.
+	 */
+	public static function scrub( string $detail ): string {
+		// Se ocultan las claves de Google, OpenAI, Anthropic y OpenRouter, y las parecidas.
+		$detail = (string) preg_replace( '/\bAIza[A-Za-z0-9_-]{20,}/', '[clave]', $detail );
+		$detail = (string) preg_replace( '/\b(?:sk|pk|rk)-[A-Za-z0-9_-]{8,}/i', '[clave]', $detail );
+		$detail = (string) preg_replace( '/(Bearer|Basic)\s+\S+/i', '$1 [clave]', $detail );
+		$detail = (string) preg_replace( '/([?&](?:key|api_key|apikey|token|access_token)=)[^&\s"\']+/i', '$1[clave]', $detail );
+		// Los proveedores citan trozos del texto enviado («near '…'», cuerpos JSON): nada entre comillas ni llaves
+		// llega a la pantalla, porque la interfaz promete que no se enseña texto de las entradas.
+		$detail = (string) preg_replace( '/(?<![\pL\pN])([\'"`])(?:(?!\1).)*\1|[“‘«][^”’»]*[”’»]|\{[^{}]*\}/us', '…', $detail );
+		$detail = (string) preg_replace( '/\s+/', ' ', strip_tags( $detail ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Sin WordPress en las pruebas unitarias.
+
+		return mb_substr( trim( $detail ), 0, 300, 'UTF-8' );
 	}
 
 	/**

@@ -545,6 +545,8 @@ export interface AiCapabilities {
 	provider: { id: string; name: string } | null;
 	model: string | null;
 	local: boolean;
+	/** Segundos que espera el servidor al modelo en esta petición. */
+	timeout: number;
 	estimate: AiEstimate;
 	connectors_url: string;
 }
@@ -617,6 +619,28 @@ export interface AiStatusModel {
 	cost: number | null;
 }
 
+export interface AiStatusEntry {
+	provider: string;
+	provider_name: string;
+	model: string;
+	name: string;
+	local: boolean;
+	/** Declara todo lo que pide el reordenado (esquema JSON, sistema, tope de salida). */
+	strict?: boolean;
+	/** Dólares por millón de tokens de entrada y de salida; null si no se conoce. */
+	price: [ number, number ] | null;
+	recommended: boolean;
+}
+
+export interface AiLastFailure {
+	/** Fecha ISO 8601 en UTC. */
+	at: string;
+	model: string;
+	provider: string;
+	code: string;
+	message: string;
+}
+
 /** Estado del conector, tope y gasto para Ajustes (`GET /ai/status`). */
 export interface AiStatus {
 	state: 'connected' | 'none' | 'unavailable';
@@ -626,12 +650,10 @@ export interface AiStatus {
 	local: boolean;
 	provider: { id: string; name: string } | null;
 	model: string | null;
-	models: {
-		provider: string;
-		provider_name: string;
-		model: string;
-		name: string;
-	}[];
+	/** Modelos sin `:batch`: los recomendados primero y el resto por nombre. */
+	models: AiStatusEntry[];
+	/** Última llamada fallida (solo administradores); null si no hay. */
+	last_failure: AiLastFailure | null;
 	connectors_url: string;
 	budget: {
 		limit: number;

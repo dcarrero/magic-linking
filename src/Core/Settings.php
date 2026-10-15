@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace MagicLinking\Core;
 
+use MagicLinking\AI\Models;
+
 use MagicLinking\AI\Budget;
 
 /**
@@ -257,7 +259,9 @@ final class Settings {
 	private static function clean_model( $value ): string {
 		$model = is_string( $value ) ? sanitize_text_field( $value ) : '';
 
-		return mb_substr( $model, 0, 120, 'UTF-8' );
+		// Un `:batch` (API por lotes, asíncrona) no sirve para el editor: la API REST lo rechaza con un mensaje; por
+		// cualquier otra vía (WP-CLI, código) se vuelve a automático.
+		return Models::allowed( $model ) ? mb_substr( $model, 0, 120, 'UTF-8' ) : '';
 	}
 
 	/**
