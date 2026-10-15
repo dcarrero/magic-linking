@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.21.0
+Stable tag: 0.21.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -229,6 +229,13 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 
 == Changelog ==
 
+= 0.21.1 =
+* Fixed: "Improve with AI" now uses exactly the model you choose. Before, with some providers such as OpenRouter, WordPress could silently send the request to another model and it ran out of time.
+* Fixed: model names from OpenRouter (such as "openai/gpt-4.1-mini") are recognized, so the automatic choice and the cost estimate work. Batch-only variants are never used.
+* Improved: the automatic choice now prefers small, cheap and fast models, and the model list in Settings > AI shows a "Recommended" group first, with prices.
+* Improved: Settings > AI shows the reason of the last failed AI request, without keys or text from your entries.
+* Improved: cloud providers get more time to answer (up to 50 seconds), and the editor panel says how long it may take.
+
 = 0.21.0 =
 * New: optional "Improve with AI" button in the editor panel. If your site has an AI connector (WordPress 7.0 or later, Settings > Connectors), one click sends the best suggestions to your AI provider in a single request: it puts the best ones first, marks the ones it does not recommend and may propose a shorter, better anchor text taken from the same sentence, only used if you accept it. Without a connector everything works as before.
 * New: before each request the button shows the provider, the model and an estimate of the tokens; local models such as Ollama are shown as free. A daily token limit (Settings > AI) is checked before anything is sent, and requests are limited to 10 per minute.
@@ -279,6 +286,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 0.21.1 =
+Fixes "Improve with AI" with OpenRouter and other providers with many models: the chosen model is used exactly, cheaper models are recommended and the reason of a failure is shown. The update does not touch your content.
 
 = 0.21.0 =
 Adds an optional "Improve with AI" button that uses the AI connector of WordPress 7.0 or later, with a token estimate and a daily limit checked before anything is sent. Nothing changes if you have no connector. The update does not touch your content.
