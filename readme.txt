@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.20.0
+Stable tag: 0.21.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -229,6 +229,13 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 
 == Changelog ==
 
+= 0.21.0 =
+* New: optional "Improve with AI" button in the editor panel. If your site has an AI connector (WordPress 7.0 or later, Settings > Connectors), one click sends the best suggestions to your AI provider in a single request: it puts the best ones first, marks the ones it does not recommend and may propose a shorter, better anchor text taken from the same sentence, only used if you accept it. Without a connector everything works as before.
+* New: before each request the button shows the provider, the model and an estimate of the tokens; local models such as Ollama are shown as free. A daily token limit (Settings > AI) is checked before anything is sent, and requests are limited to 10 per minute.
+* New: Settings > AI shows what your connector can do, lets you choose the model and the daily token limit (0 turns AI off), and lists the tokens used and the estimated cost per model. Only the date, user, provider, model, tokens and cost are stored, never the text sent.
+* New: if the AI does not answer, the panel says so and keeps the suggestions without AI.
+* Improved: the package no longer includes the JavaScript tests or the translation template.
+
 = 0.20.0 =
 * New: fix a broken internal link from the list, one by one: change its destination to another published entry, or remove the link and keep its text. The rest of the entry is verified unchanged, and you can undo it from History.
 * New: History also records the links you add from the editor panel, once you save the entry, and marks them as undone if you remove them and save. This adds two columns to the history table; the update runs by itself.
@@ -272,6 +279,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 0.21.0 =
+Adds an optional "Improve with AI" button that uses the AI connector of WordPress 7.0 or later, with a token estimate and a daily limit checked before anything is sent. Nothing changes if you have no connector. The update does not touch your content.
 
 = 0.20.0 =
 History now also records links added from the editor panel (two new columns in its table, updated automatically), and broken links can be fixed one by one. The update does not touch your content.

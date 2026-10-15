@@ -176,6 +176,13 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 
 ## 📝 Changelog
 
+### 0.21.0
+- Optional "Improve with AI" in the editor panel through the WordPress AI client (WordPress 7.0+, Settings > Connectors): reorders the best suggestions in one request, flags the ones it does not recommend and may propose a shorter anchor from the same sentence.
+- Token estimate before each request, daily token limit checked before sending, 10 requests per minute; local models (Ollama) shown as free.
+- Settings > AI: connector capabilities, preferred model, daily token limit (0 turns it off) and usage per model (no prompt text stored).
+- Falls back to the suggestions without AI if the provider does not answer.
+- Package without JavaScript tests or the `.pot` template.
+
 ### 0.20.0
 - Fix a broken internal link from the list: change its destination or remove the link keeping its text, with undo from History.
 - History records the links you add from the editor panel (schema 5; the update runs by itself) and marks them undone if you remove them and save.
