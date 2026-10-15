@@ -212,7 +212,7 @@ test.describe( 'AI through the connector', () => {
 		await expect( panel ).not.toContainText( 'Ordered by AI.' );
 	} );
 
-	test( 'editor: when the AI does not answer the panel keeps the lexical order and says so in plain words', async ( {
+	test( 'editor: when the AI provider fails the panel keeps the lexical order and says so in plain words', async ( {
 		page,
 	} ) => {
 		test.skip( ! hasAi, 'Necesita el cliente de IA de WordPress 7.0 o posterior.' );
@@ -227,7 +227,7 @@ test.describe( 'AI through the connector', () => {
 		await panel.getByRole( 'button', { name: 'Improve with AI' } ).click();
 
 		await expect( panel ).toContainText(
-			'The AI did not respond; showing suggestions without AI.'
+			'The AI provider had a problem on its side; showing suggestions without AI.'
 		);
 		expect(
 			await cards.locator( '.magiclinking-card__target' ).allTextContents()
