@@ -133,9 +133,11 @@ class Client {
 
 		$out = array();
 		try {
-			$groups = $registry_class::defaultRegistry()->findModelsMetadataForSupport(
+			$registry = $registry_class::defaultRegistry();
+			$groups   = $registry->findModelsMetadataForSupport(
 				new $requirements_class( array( $capability_class::textGeneration() ), array() )
 			);
+			$strict   = $this->strict_models( $registry );
 			foreach ( $groups as $group ) {
 				$provider = $group->getProvider();
 				foreach ( $group->getModels() as $model ) {
@@ -144,14 +146,58 @@ class Client {
 						'provider_name' => (string) $provider->getName(),
 						'model'         => (string) $model->getId(),
 						'name'          => (string) $model->getName(),
+						'strict'        => null === $strict || isset( $strict[ $provider->getId() . "\n" . $model->getId() ] ),
 					);
 				}
 			}
 		} catch ( Throwable $e ) {
 			return array();
-		}
+		}//end try
 
 		return $out;
+	}
+
+	/**
+	 * Modelos que declaran todo lo que pide el reordenado real (instrucción de sistema, tope de salida y salida JSON
+	 * con esquema), como mapa `proveedor\nmodelo` => true; null si no se puede averiguar (entonces todos valen).
+	 *
+	 * @param object $registry Registro de proveedores del cliente de IA.
+	 *
+	 * @return array<string, true>|null
+	 */
+	private function strict_models( object $registry ): ?array {
+		$requirements_class = '\\WordPress\\AiClient\\Providers\\Models\\DTO\\ModelRequirements';
+		$option_class       = '\\WordPress\\AiClient\\Providers\\Models\\DTO\\RequiredOption';
+		$option_enum        = '\\WordPress\\AiClient\\Providers\\Models\\Enums\\OptionEnum';
+		$capability_class   = '\\WordPress\\AiClient\\Providers\\Models\\Enums\\CapabilityEnum';
+		if ( ! class_exists( $option_class ) || ! class_exists( $option_enum ) ) {
+			return null;
+		}
+
+		try {
+			$groups = $registry->findModelsMetadataForSupport(
+				new $requirements_class(
+					array( $capability_class::textGeneration() ),
+					array(
+						new $option_class( $option_enum::systemInstruction(), 'x' ),
+						new $option_class( $option_enum::maxTokens(), RerankProtocol::MAX_OUTPUT_TOKENS ),
+						new $option_class( $option_enum::outputMimeType(), 'application/json' ),
+						new $option_class( $option_enum::outputSchema(), array( 'type' => 'object' ) ),
+					)
+				)
+			);
+		} catch ( Throwable $e ) {
+			return null;
+		}
+
+		$map = array();
+		foreach ( $groups as $group ) {
+			foreach ( $group->getModels() as $model ) {
+				$map[ $group->getProvider()->getId() . "\n" . $model->getId() ] = true;
+			}
+		}
+
+		return $map;
 	}
 
 	/**
@@ -273,7 +319,12 @@ class Client {
 				$builder = $builder->using_provider( $request->provider );
 			}
 			if ( array() !== $request->models ) {
-				$builder = $builder->using_model_preference( ...$request->models );
+				// Una preferencia no obliga: si el modelo no declara todo lo que pide la petición (esquema JSON,
+				// instrucción de sistema, tope de salida), el cliente de IA la descarta en silencio y usa el primero
+				// que sí lo declara (en OpenRouter, el primero de 463; D-61 anexo 9). Con proveedor y modelo conocidos
+				// se pasa el modelo exacto, y si el proveedor no admite algo (400/422) falla con un motivo claro.
+				$model   = $this->exact_model( $request );
+				$builder = null === $model ? $builder->using_model_preference( ...$request->models ) : $builder->using_model( $model );
 			}
 			if ( null !== $request->schema ) {
 				$builder = $builder->as_json_response( $request->schema );
@@ -292,6 +343,24 @@ class Client {
 		} catch ( Throwable $e ) {
 			return new WP_Error( 'magiclinking_ai_exception', $e->getMessage(), array( 'status' => 500 ) );
 		}//end try
+	}
+
+	/**
+	 * El modelo exacto del registro del cliente de IA, o null si no se puede resolver (entonces vale la preferencia).
+	 *
+	 * @param Request $request Petición.
+	 */
+	protected function exact_model( Request $request ): ?object {
+		$registry = '\\WordPress\\AiClient\\AiClient';
+		if ( '' === $request->provider || ! isset( $request->models[0] ) || ! class_exists( $registry ) ) {
+			return null;
+		}
+
+		try {
+			return $registry::defaultRegistry()->getProviderModel( $request->provider, $request->models[0] );
+		} catch ( Throwable $e ) {
+			return null;
+		}
 	}
 
 	/**
@@ -428,6 +497,13 @@ class Client {
 			'elapsed_ms' => $elapsed,
 			'timeout'    => $request->timeout,
 		);
+
+		$wanted = $request->models[0] ?? '';
+		if ( $outcome instanceof Response && '' !== $wanted && ! Models::same( $wanted, $outcome->model ) ) {
+			// Aviso: respondió otro modelo (u otro proveedor) distinto del pedido. Queda en `params` para el registro.
+			$params['model_requested'] = $wanted;
+			$params['model_mismatch']  = true;
+		}
 
 		if ( $outcome instanceof Response ) {
 			$this->budget->record(

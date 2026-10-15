@@ -541,6 +541,54 @@ final class AiTest extends GraphTestCase {
 		$this->assertSame( Reranker::CLOUD_TIMEOUT, $data['timeout'] );
 	}
 
+	public function test_the_exact_model_is_used_even_if_it_does_not_declare_json_schema(): void {
+		$this->needs_ai_client();
+		FakeAiProvider::$models         = array( 'aaa-first', 'gpt-4o-mini' );
+		FakeAiProvider::$without_schema = array( 'gpt-4o-mini' );
+		$this->reply( '{"ok":true}' );
+		$request = new Request( 'hola', 'sistema', array( 'type' => 'object' ), 2000, 20, array( 'gpt-4o-mini' ), 100, 'ai_rerank', array(), false, FakeAiProvider::ID );
+
+		$outcome = $this->quick_client()->generate( $request );
+
+		$this->assertInstanceOf( Response::class, $outcome );
+		$this->assertSame( array( 'gpt-4o-mini' ), FakeAiProvider::$used, 'Una preferencia habría caído en el primero de la lista.' );
+		$this->assertSame( 'gpt-4o-mini', $outcome->model );
+	}
+
+	public function test_a_different_model_answering_is_logged_as_a_mismatch(): void {
+		$this->needs_ai_client();
+		FakeAiProvider::$models         = array( 'aaa-first', 'gpt-4o-mini' );
+		FakeAiProvider::$without_schema = array( 'gpt-4o-mini' );
+		$this->reply( '{"ok":true}' );
+		// Sin proveedor no hay modelo exacto: manda la preferencia, que el cliente descarta (esquema no declarado).
+		$request = new Request( 'hola', 'sistema', array( 'type' => 'object' ), 2000, 20, array( 'gpt-4o-mini' ), 100, 'ai_rerank' );
+
+		$outcome = $this->quick_client()->generate( $request );
+
+		$this->assertInstanceOf( Response::class, $outcome );
+		$this->assertSame( 'aaa-first', $outcome->model );
+		$params = json_decode( (string) $this->last_ai_row()['params'], true );
+		$this->assertTrue( $params['model_mismatch'] );
+		$this->assertSame( 'gpt-4o-mini', $params['model_requested'] );
+		$this->assertSame( 'aaa-first', $this->last_ai_row()['ai_model'], 'Se apunta el que respondió de verdad.' );
+	}
+
+	public function test_automatic_choice_skips_models_that_do_not_declare_what_the_request_needs(): void {
+		$this->needs_ai_client();
+		FakeAiProvider::$models         = array( 'gpt-4o-mini', 'gpt-4.1-mini' );
+		FakeAiProvider::$without_schema = array( 'gpt-4o-mini' );
+
+		$caps = $this->container( Capabilities::class )->detect( true );
+
+		$this->assertSame( 'gpt-4.1-mini', $caps['model'], 'El barato no declara esquema: el siguiente que sí.' );
+		$this->assertTrue( $caps['strict'] );
+
+		$this->container( Settings::class )->update( array( 'ai_model' => 'gpt-4o-mini' ) );
+		$pinned = $this->container( Capabilities::class )->detect( true );
+		$this->assertSame( 'gpt-4o-mini', $pinned['model'], 'Lo fijado por el usuario manda.' );
+		$this->assertFalse( $pinned['strict'], 'Y entonces la petición va sin esquema.' );
+	}
+
 	public function test_a_429_is_retried_and_ends_as_a_rate_limit_error(): void {
 		$this->needs_ai_client();
 		FakeAiProvider::$reply = new ClientException( 'Too Many Requests (429)', 429 );

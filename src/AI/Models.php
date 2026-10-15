@@ -77,6 +77,19 @@ final class Models {
 	);
 
 	/**
+	 * Si dos identificadores son el mismo modelo (uno puede traer fecha, proveedor o variante que el otro no).
+	 *
+	 * @param string $a Un identificador.
+	 * @param string $b Otro.
+	 */
+	public static function same( string $a, string $b ): bool {
+		$a = self::normalize( $a );
+		$b = self::normalize( $b );
+
+		return '' !== $a && '' !== $b && ( str_starts_with( $a, $b ) || str_starts_with( $b, $a ) );
+	}
+
+	/**
 	 * Sufijos de variante de OpenRouter (`modelo:sufijo`). Solo estos se quitan al normalizar: los demás dos puntos
 	 * son parte del nombre (`llama3.2:3b` de Ollama).
 	 */

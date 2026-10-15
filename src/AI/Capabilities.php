@@ -22,7 +22,7 @@ use MagicLinking\Core\Settings;
  *
  * En WordPress anterior a 7.0 (sin `wp_ai_client_prompt()`) todo es falso y el plugin sigue con el motor léxico.
  *
- * @phpstan-type Detected array{text: bool, json: bool, models: list<array{provider: string, provider_name: string, model: string, name: string}>, checked_at: int}
+ * @phpstan-type Detected array{text: bool, json: bool, models: list<array{provider: string, provider_name: string, model: string, name: string, strict?: bool}>, checked_at: int}
  */
 final class Capabilities implements Module {
 
@@ -128,13 +128,22 @@ final class Capabilities implements Module {
 	 *
 	 * @param bool $refresh Ignora lo guardado y vuelve a comprobar.
 	 *
-	 * @return array{text: bool, json: bool, local: bool, provider: array{id: string, name: string}|null, model: string|null, models: list<array{provider: string, provider_name: string, model: string, name: string}>, checked_at: int}
+	 * @return array{text: bool, json: bool, local: bool, provider: array{id: string, name: string}|null, model: string|null, strict: bool, models: list<array{provider: string, provider_name: string, model: string, name: string, strict?: bool}>, checked_at: int}
 	 */
 	public function detect( bool $refresh = false ): array {
 		$found = $this->found( $refresh );
 
-		$ids    = array_values( array_unique( array_column( $found['models'], 'model' ) ) );
-		$chosen = Models::pick( $ids, $this->settings->ai_model() );
+		// Solo se elige en automático entre los modelos que declaran todo lo que pide el reordenado (esquema JSON,
+		// instrucción de sistema, tope de salida); si ninguno lo declara, entre todos. El fijado por el usuario manda.
+		$all    = array_values( array_unique( array_column( $found['models'], 'model' ) ) );
+		$strict = array();
+		foreach ( $found['models'] as $model ) {
+			if ( $model['strict'] ?? true ) {
+				$strict[] = $model['model'];
+			}
+		}
+		$pinned = $this->settings->ai_model();
+		$chosen = '' !== $pinned && Models::pick( $all, $pinned ) === $pinned ? $pinned : Models::pick( array_values( array_unique( array() === $strict ? $all : $strict ) ) );
 		$match  = null;
 		foreach ( $found['models'] as $model ) {
 			if ( $model['model'] === $chosen ) {
@@ -152,6 +161,7 @@ final class Capabilities implements Module {
 				'name' => $match['provider_name'],
 			),
 			'model'      => $chosen,
+			'strict'     => null === $match || ( $match['strict'] ?? true ),
 			'models'     => $found['models'],
 			'checked_at' => $found['checked_at'],
 		);

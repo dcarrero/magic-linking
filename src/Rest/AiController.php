@@ -436,8 +436,8 @@ final class AiController implements Module {
 			$rows[]              = $m;
 		}
 
-		$ids    = array_column( $rows, 'model' );
-		$recom  = Models::recommended( $ids );
+		$ids    = array_column( array_filter( $rows, static fn( array $m ): bool => $m['strict'] ?? true ), 'model' );
+		$recom  = Models::recommended( array() === $ids ? array_column( $rows, 'model' ) : $ids );
 		$rank   = array_flip( $recom );
 		$sorted = $rows;
 		usort(
@@ -456,6 +456,7 @@ final class AiController implements Module {
 				'provider_name' => $m['provider_name'],
 				'model'         => $m['model'],
 				'name'          => $m['name'],
+				'strict'        => $m['strict'] ?? true,
 				'local'         => $this->client->is_local( $m['provider'] ),
 				'price'         => Models::price( $m['model'] ),
 				'recommended'   => isset( $rank[ $m['model'] ] ),

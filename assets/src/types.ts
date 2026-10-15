@@ -625,6 +625,8 @@ export interface AiStatusEntry {
 	model: string;
 	name: string;
 	local: boolean;
+	/** Declara todo lo que pide el reordenado (esquema JSON, sistema, tope de salida). */
+	strict?: boolean;
 	/** Dólares por millón de tokens de entrada y de salida; null si no se conoce. */
 	price: [ number, number ] | null;
 	recommended: boolean;

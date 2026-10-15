@@ -35,6 +35,13 @@ final class FakeAiProvider extends AbstractProvider {
 	public static array $models = array( 'gpt-4o-mini', 'unpriced-model' );
 
 	/**
+	 * Modelos que no declaran salida JSON con esquema.
+	 *
+	 * @var list<string>
+	 */
+	public static array $without_schema = array();
+
+	/**
 	 * Está configurado (hay «conector»).
 	 *
 	 * @var bool
@@ -92,13 +99,14 @@ final class FakeAiProvider extends AbstractProvider {
 	 * Estado inicial entre pruebas.
 	 */
 	public static function reset(): void {
-		self::$models  = array( 'gpt-4o-mini', 'unpriced-model' );
-		self::$enabled = true;
-		self::$reply   = '';
-		self::$usage   = array( 1000, 200 );
-		self::$calls   = 0;
-		self::$sent    = array();
-		self::$used    = array();
+		self::$models         = array( 'gpt-4o-mini', 'unpriced-model' );
+		self::$without_schema = array();
+		self::$enabled        = true;
+		self::$reply          = '';
+		self::$usage          = array( 1000, 200 );
+		self::$calls          = 0;
+		self::$sent           = array();
+		self::$used           = array();
 	}
 
 	/**

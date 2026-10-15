@@ -253,7 +253,7 @@ final class Reranker {
 		$request = new Request(
 			$prompt,
 			$system,
-			$caps['json'] ? RerankProtocol::schema() : null,
+			$caps['json'] && $caps['strict'] ? RerankProtocol::schema() : null,
 			RerankProtocol::MAX_OUTPUT_TOKENS,
 			self::timeout( $caps['local'] ),
 			null === $caps['model'] ? array() : array( $caps['model'] ),
@@ -276,7 +276,7 @@ final class Reranker {
 			);
 		}
 
-		$usage = $this->usage( $response );
+		$usage = $this->usage( $response, (string) $caps['model'] );
 		$rows  = RerankProtocol::parse( $response->text, $candidates );
 		if ( null === $rows ) {
 			return array(
@@ -313,21 +313,23 @@ final class Reranker {
 	/**
 	 * Gasto de la llamada, con el modelo que respondió.
 	 *
-	 * @param Response $response Respuesta.
+	 * @param Response $response  Respuesta.
+	 * @param string   $requested Modelo que se pidió (para avisar si respondió otro).
 	 *
 	 * @return array<string, mixed>
 	 */
-	private function usage( Response $response ): array {
+	private function usage( Response $response, string $requested ): array {
 		return array(
-			'tokens_in'     => $response->tokens_in,
-			'tokens_out'    => $response->tokens_out,
-			'tokens'        => $response->tokens(),
-			'cost'          => $response->cost,
-			'local'         => $response->local,
-			'provider'      => $response->provider,
-			'provider_name' => $response->provider_name,
-			'model'         => $response->model,
-			'prices_date'   => Models::PRICES_DATE,
+			'tokens_in'      => $response->tokens_in,
+			'tokens_out'     => $response->tokens_out,
+			'tokens'         => $response->tokens(),
+			'cost'           => $response->cost,
+			'local'          => $response->local,
+			'provider'       => $response->provider,
+			'provider_name'  => $response->provider_name,
+			'model'          => $response->model,
+			'prices_date'    => Models::PRICES_DATE,
+			'model_mismatch' => '' !== $requested && ! Models::same( $requested, $response->model ),
 		);
 	}
 
