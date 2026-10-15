@@ -44,3 +44,5 @@
 /assets/src/**/test/
 *.test.ts
 *.test.tsx
+# La plantilla .pot no la lee WordPress ni hace falta en el paquete (wordpress.org genera la suya).
+/languages/*.pot

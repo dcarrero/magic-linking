@@ -13,6 +13,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import { useLoad } from '../hooks';
 import type { SettingsValues, StatusResponse } from '../types';
+import { AiSettingsCards } from './AiSettingsCards';
 import { Maintenance, useMaintenance } from './Maintenance';
 import { SettingsSection, settingsSections } from './SettingsSection';
 import { parseHash, TAB_FIELDS, type SettingsTabName } from './settingsTabs';
@@ -51,7 +52,8 @@ type NumberKey =
 	| 'same_anchor_max'
 	| 'outbound_shown'
 	| 'inbound_per_page'
-	| 'low_inbound_threshold';
+	| 'low_inbound_threshold'
+	| 'ai_daily_token_limit';
 
 /** Límites y valor de respaldo de cada campo numérico (los mismos que aplica el servidor). */
 const NUMBER_RULES: Record<
@@ -63,6 +65,7 @@ const NUMBER_RULES: Record<
 	outbound_shown: { fallback: 15, min: 1, max: 50 },
 	inbound_per_page: { fallback: 10, min: 5, max: 50 },
 	low_inbound_threshold: { fallback: 2, min: 1, max: 20 },
+	ai_daily_token_limit: { fallback: 2000000, min: 0, max: 1000000000 },
 };
 const NUMBER_KEYS = Object.keys( NUMBER_RULES ) as NumberKey[];
 
@@ -317,7 +320,12 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		}
 	};
 
-	const number = ( key: NumberKey, label: string, help: string ) => {
+	const number = (
+		key: NumberKey,
+		label: string,
+		help: string,
+		disabled = false
+	) => {
 		const { fallback, min, max } = NUMBER_RULES[ key ];
 		const text = draft.numbers[ key ];
 		const valid = isValidNumber( key, text );
@@ -329,6 +337,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 				type="number"
 				min={ min }
 				max={ max }
+				disabled={ disabled }
 				label={ label }
 				aria-invalid={ ! valid }
 				help={
@@ -427,6 +436,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		[ 'general', __( 'General', 'magic-linking' ) ],
 		[ 'suggestions', __( 'Suggestions', 'magic-linking' ) ],
 		[ 'links', __( 'Links', 'magic-linking' ) ],
+		[ 'ai', __( 'AI', 'magic-linking' ) ],
 		[ 'data', __( 'History and data', 'magic-linking' ) ],
 	];
 	const tabs = labels.map( ( [ name, label ] ) => ( {
@@ -611,6 +621,28 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 							/>
 						</SettingsSection>
 					</>
+				);
+			case 'ai':
+				return (
+					<AiSettingsCards
+						sections={ sections }
+						model={ values.ai_model }
+						onModel={ ( value ) => set( 'ai_model', value ) }
+						limitField={ ( disabled ) =>
+							number(
+								'ai_daily_token_limit',
+								__(
+									'Daily AI limit (tokens)',
+									'magic-linking'
+								),
+								__(
+									'The most tokens Magic Linking may use through your connector in a day. 0 turns AI off. When the limit is reached, AI pauses until tomorrow and the suggestions use the lexical engine.',
+									'magic-linking'
+								),
+								disabled
+							)
+						}
+					/>
 				);
 			case 'data':
 				return (

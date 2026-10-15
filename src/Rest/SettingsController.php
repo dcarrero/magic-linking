@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Rest;
 
+use MagicLinking\AI\Capabilities;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
@@ -45,6 +46,13 @@ final class SettingsController implements Module {
 	private ?Language $language;
 
 	/**
+	 * Capacidades del conector de IA (docs/05 §3).
+	 *
+	 * @var Capabilities|null
+	 */
+	private ?Capabilities $capabilities;
+
+	/**
 	 * Metadato de usuario donde se guarda que el asistente de arranque se cerró para siempre (docs/07 §2, regla 7).
 	 */
 	public const WIZARD_META = 'magiclinking_wizard_dismissed';
@@ -62,14 +70,16 @@ final class SettingsController implements Module {
 	/**
 	 * Constructor.
 	 *
-	 * @param Settings      $settings Ajustes.
-	 * @param Jobs          $jobs     Procesos.
-	 * @param Language|null $language Idioma (para el asistente).
+	 * @param Settings          $settings Ajustes.
+	 * @param Jobs              $jobs     Procesos.
+	 * @param Language|null     $language Idioma (para el asistente).
+	 * @param Capabilities|null $capabilities Capacidades del conector de IA (para el asistente).
 	 */
-	public function __construct( Settings $settings, Jobs $jobs, ?Language $language = null ) {
-		$this->settings = $settings;
-		$this->jobs     = $jobs;
-		$this->language = $language;
+	public function __construct( Settings $settings, Jobs $jobs, ?Language $language = null, ?Capabilities $capabilities = null ) {
+		$this->settings     = $settings;
+		$this->jobs         = $jobs;
+		$this->language     = $language;
+		$this->capabilities = $capabilities;
 	}
 
 	/**
@@ -157,6 +167,12 @@ final class SettingsController implements Module {
 							'type'  => 'array',
 							'items' => array( 'type' => 'string' ),
 						),
+						'ai_daily_token_limit'         => array(
+							'type' => 'integer',
+						),
+						'ai_model'                     => array(
+							'type' => 'string',
+						),
 					),
 				),
 			)
@@ -204,26 +220,8 @@ final class SettingsController implements Module {
 			'dismissed'    => (bool) get_user_meta( get_current_user_id(), self::wizard_meta_key(), true ),
 			'language'     => $label,
 			'multilingual' => null !== $this->language && $this->language->plugin_active(),
-			'ai'           => self::ai_state(),
+			'ai'           => null === $this->capabilities ? 'unavailable' : $this->capabilities->state(),
 		);
-	}
-
-	/**
-	 * Estado del conector de IA de WordPress, sin hacer ninguna llamada de red (docs/05 §2): `connected` si el
-	 * cliente de IA puede generar texto, `none` si no hay ninguno conectado y `unavailable` si WordPress no lo trae.
-	 */
-	public static function ai_state(): string {
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			return 'unavailable';
-		}
-
-		try {
-			$builder = wp_ai_client_prompt( 'ping' );
-
-			return method_exists( $builder, 'is_supported_for_text_generation' ) && $builder->is_supported_for_text_generation() ? 'connected' : 'none';
-		} catch ( \Throwable $e ) {
-			return 'none';
-		}
 	}
 
 	/**

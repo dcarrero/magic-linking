@@ -843,3 +843,51 @@
 		overflow-wrap: anywhere;
 	}
 }
+
+// Pestaña IA de Ajustes (docs/05 §5.3 y §6, docs/07 §8).
+.magiclinking-ai-facts {
+	display: grid;
+	gap: 8px 16px;
+	grid-template-columns: max-content 1fr;
+	margin: 0 0 12px;
+
+	div {
+		display: contents;
+	}
+
+	dt {
+		color: #50575e;
+	}
+
+	dd {
+		margin: 0;
+		overflow-wrap: anywhere;
+	}
+}
+
+.magiclinking-ai-privacy {
+	border-left: 4px solid var(--wp-admin-theme-color, #2271b1);
+	margin: 0 0 12px;
+	padding: 4px 12px;
+}
+
+.magiclinking-ai-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+}
+
+.magiclinking-ai-usage {
+	margin: 8px 0;
+
+	th,
+	td {
+		text-align: left;
+	}
+}
+
+.magiclinking-ai-notice {
+	margin: 12px 0;
+}

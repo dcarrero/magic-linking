@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import type { ReportFilter, StatusResponse, Summary } from '../types';
+import { AiNotice } from './AiNotice';
 import { BrokenTab } from './BrokenTab';
 import { HistoryTab } from './HistoryTab';
 import { IndexStatus } from './IndexStatus';
@@ -163,6 +164,8 @@ export function App( {
 					} }
 				/>
 			) }
+
+			{ canManage && tab === 'report' && ! wizardOpen && <AiNotice /> }
 
 			<IndexStatus
 				hideIntro={ wizardOpen && tab === 'report' }

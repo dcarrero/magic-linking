@@ -161,6 +161,10 @@ export interface SettingsValues {
 	same_anchor_max: number;
 	ignored_urls: string[];
 	ignored_words: string[];
+	/** Tope diario de tokens de IA; 0 = sin IA (docs/05 §5.3). */
+	ai_daily_token_limit: number;
+	/** Modelo de texto preferido; vacío = automático (docs/05 §4). */
+	ai_model: string;
 }
 
 export interface WizardResponse {
@@ -508,4 +512,142 @@ export interface EditorLinkResult {
 export interface EditorHistoryResponse {
 	batch_id: string | null;
 	results: EditorLinkResult[];
+}
+
+/** Estimación de una llamada a la IA (`CostEstimator`); `cost` es nulo si el modelo no está en la tabla de precios. */
+export interface AiEstimate {
+	tokens_in: number;
+	tokens_out: number;
+	tokens: number;
+	cost: number | null;
+	prices_date: string;
+}
+
+/** Lo que el botón «Mejorar con IA» necesita saber (`GET /ai/capabilities`). */
+export interface AiCapabilities {
+	/** WordPress trae el cliente de IA (7.0 o posterior). */
+	available: boolean;
+	/** Hay un conector que genera texto. */
+	text: boolean;
+	/** El tope diario no es cero. */
+	enabled: boolean;
+	/** Se puede usar ahora: hay conector y no se ha alcanzado el tope de hoy. */
+	ready: boolean;
+	/**
+	 * Tope diario: `ok` cabe una petición; `exhausted` hoy ya no cabe; `too_small` el tope es menor que una sola
+	 * petición; `off` el tope es 0.
+	 */
+	budget: 'ok' | 'exhausted' | 'too_small' | 'off';
+	/** Tope diario fijado, en tokens. */
+	limit: number;
+	/** Lo máximo que puede costar una petición, en tokens. */
+	needs: number;
+	provider: { id: string; name: string } | null;
+	model: string | null;
+	local: boolean;
+	estimate: AiEstimate;
+	connectors_url: string;
+}
+
+/** Sugerencia saliente tal como se envía a `POST /suggestions/rerank`. */
+export interface RerankItem {
+	target_id: number;
+	sentence: string;
+	anchor: string;
+	offset: number;
+}
+
+/** Ancla mejor que propone la IA: un tramo literal de la frase, ya localizado. */
+export interface RerankImproved {
+	anchor: string;
+	offset: number;
+	before: string;
+	after: string;
+	anchor_start: number;
+	anchor_end: number;
+}
+
+export interface RerankResult {
+	/** Posición de la sugerencia en la petición. */
+	index: number;
+	target_id: number;
+	/** Nulo si la IA no la valoró. */
+	fit: boolean | null;
+	confidence: number | null;
+	improved: RerankImproved | null;
+}
+
+/** Gasto de una llamada, con el modelo que respondió. */
+export interface AiUsage {
+	tokens_in: number;
+	tokens_out: number;
+	tokens: number;
+	/** Nulo si el modelo no está en la tabla de precios. */
+	cost: number | null;
+	local: boolean;
+	provider: string;
+	provider_name: string;
+	model: string;
+	prices_date: string;
+}
+
+export type RerankResponse =
+	| {
+			ok: true;
+			/** En el orden nuevo. */
+			items: RerankResult[];
+			/** Posiciones que no se enviaron (destino no publicado, otro idioma…). */
+			skipped: number[];
+			usage: AiUsage;
+	  }
+	| {
+			ok: false;
+			reason: string;
+			/** Texto breve y sin detalles técnicos, en el idioma del usuario. */
+			message: string;
+			usage?: AiUsage;
+	  };
+
+export interface AiStatusModel {
+	provider: string;
+	model: string;
+	calls: number;
+	tokens: number;
+	local: boolean;
+	cost: number | null;
+}
+
+/** Estado del conector, tope y gasto para Ajustes (`GET /ai/status`). */
+export interface AiStatus {
+	state: 'connected' | 'none' | 'unavailable';
+	available: boolean;
+	text: boolean;
+	json: boolean;
+	local: boolean;
+	provider: { id: string; name: string } | null;
+	model: string | null;
+	models: {
+		provider: string;
+		provider_name: string;
+		model: string;
+		name: string;
+	}[];
+	connectors_url: string;
+	budget: {
+		limit: number;
+		used: number;
+		remaining: number;
+		exhausted: boolean;
+	};
+	usage: {
+		days: number;
+		calls: number;
+		failed: number;
+		tokens: number;
+		cost: number;
+		cost_partial: boolean;
+		models: AiStatusModel[];
+		prices_date: string;
+	};
+	notice_dismissed: boolean;
 }

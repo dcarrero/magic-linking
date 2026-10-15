@@ -84,6 +84,30 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 				'magic-linking'
 			),
 		},
+		aiConnector: {
+			...SECTION_META.aiConnector,
+			title: __( 'AI connector', 'magic-linking' ),
+			description: __(
+				'Magic Linking uses the AI you connect in WordPress. It never asks for a key of its own.',
+				'magic-linking'
+			),
+		},
+		aiLimits: {
+			...SECTION_META.aiLimits,
+			title: __( 'Daily limit and model', 'magic-linking' ),
+			description: __(
+				'You decide how much AI can be used each day and, if you want, which model.',
+				'magic-linking'
+			),
+		},
+		aiUsage: {
+			...SECTION_META.aiUsage,
+			title: __( 'AI use in the last 30 days', 'magic-linking' ),
+			description: __(
+				'What Magic Linking has used through your connector. Your provider is the one that charges you.',
+				'magic-linking'
+			),
+		},
 		history: {
 			...SECTION_META.history,
 			title: __( 'History of changes', 'magic-linking' ),

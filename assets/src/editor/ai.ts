@@ -1,0 +1,187 @@
+// Lógica pura del «Mejorar con IA» del panel (docs/04 §9): qué se envía, cómo se recoloca la lista con la respuesta y
+// cómo se aplica un ancla mejorada. Sin WordPress ni React, para poder probarla.
+import type {
+	RerankImproved,
+	RerankItem,
+	RerankResponse,
+	Suggestion,
+} from '../types';
+import { suggestionKey } from './keys';
+
+/** Candidatas que se envían como máximo (las 20 mejores del motor). */
+export const MAX_CANDIDATES = 20;
+
+/** Lo que la IA opina de una sugerencia. */
+export interface AiMark {
+	/** Nulo si la IA no la valoró. */
+	fit: boolean | null;
+	confidence: number | null;
+	improved: RerankImproved | null;
+}
+
+/** Una tarjeta ya recolocada: la sugerencia que se enseña, la original (su identidad en la lista) y lo que opina la IA. */
+export interface AiView {
+	item: Suggestion;
+	original: Suggestion;
+	mark?: AiMark;
+}
+
+/** Resultado de una llamada: orden nuevo (claves de las originales) y opinión sobre cada una. */
+export interface AiOutcome {
+	order: string[];
+	marks: Record< string, AiMark >;
+}
+
+/**
+ * Sugerencias que se pueden enviar: las 20 primeras que no tienen estado (ni enlazadas, ni descartadas, ni con error).
+ *
+ * @param items  Salientes en orden léxico.
+ * @param isBusy Dice si la sugerencia ya tiene un estado propio en el panel.
+ */
+export function candidates(
+	items: Suggestion[],
+	isBusy: ( suggestion: Suggestion ) => boolean
+): Suggestion[] {
+	return items
+		.filter( ( item ) => ! isBusy( item ) )
+		.slice( 0, MAX_CANDIDATES );
+}
+
+/**
+ * Cuerpo de la petición: solo lo que el servidor necesita, nada más.
+ *
+ * @param sent Sugerencias que se envían.
+ */
+export function rerankItems( sent: Suggestion[] ): RerankItem[] {
+	return sent.map( ( suggestion ) => ( {
+		target_id: suggestion.target.id,
+		sentence: suggestion.sentence,
+		anchor: suggestion.anchor,
+		offset: suggestion.offset,
+	} ) );
+}
+
+/**
+ * Orden y opiniones de una respuesta correcta. Una posición que el servidor no devuelve (no se envió) no entra: sigue
+ * en su sitio detrás de las valoradas. Una posición que no existe o repetida se ignora.
+ *
+ * @param sent     Sugerencias enviadas, en el orden de la petición.
+ * @param response Respuesta con `ok: true`.
+ */
+export function outcomeOf(
+	sent: Suggestion[],
+	response: Extract< RerankResponse, { ok: true } >
+): AiOutcome {
+	const order: string[] = [];
+	const marks: Record< string, AiMark > = {};
+
+	for ( const result of response.items ) {
+		const original = sent[ result.index ];
+		if ( ! original ) {
+			continue;
+		}
+		const key = suggestionKey( original );
+		if ( marks[ key ] ) {
+			continue;
+		}
+		order.push( key );
+		marks[ key ] = {
+			fit: result.fit,
+			confidence: result.confidence,
+			improved: result.improved,
+		};
+	}
+
+	return { order, marks };
+}
+
+/**
+ * La misma sugerencia con otra ancla (un tramo de la misma frase): se pinta y se inserta con ella.
+ *
+ * @param suggestion Sugerencia original.
+ * @param improved   Ancla mejor que propone la IA.
+ */
+export function withAnchor(
+	suggestion: Suggestion,
+	improved: RerankImproved
+): Suggestion {
+	return {
+		...suggestion,
+		anchor: improved.anchor,
+		offset: improved.offset,
+		before: improved.before,
+		after: improved.after,
+		anchor_start: improved.anchor_start,
+		anchor_end: improved.anchor_end,
+		insert: suggestion.insert && {
+			...suggestion.insert,
+			anchor: improved.anchor,
+			offset: improved.offset,
+		},
+	};
+}
+
+/**
+ * La lista tal como se enseña: primero lo que la IA ordenó, después el resto en su orden; cada tarjeta con su opinión y,
+ * si el usuario aceptó el ancla mejorada, con esa ancla.
+ *
+ * @param items     Salientes en orden léxico.
+ * @param outcome   Resultado de la última llamada, o null si no hay.
+ * @param overrides Sugerencias con el ancla mejorada ya aceptada, por clave de la original.
+ */
+export function arrange(
+	items: Suggestion[],
+	outcome: AiOutcome | null,
+	overrides: Record< string, Suggestion >
+): AiView[] {
+	const views = items.map( ( original ) => {
+		const key = suggestionKey( original );
+		const mark = outcome?.marks[ key ];
+		const replaced = overrides[ key ];
+		return {
+			key,
+			view: {
+				item: replaced ?? original,
+				original,
+				// Con el ancla aceptada ya no hay nada que proponer.
+				mark: mark && replaced ? { ...mark, improved: null } : mark,
+			} as AiView,
+		};
+	} );
+
+	if ( ! outcome ) {
+		return views.map( ( entry ) => entry.view );
+	}
+
+	const rank = new Map(
+		outcome.order.map( ( key, index ) => [ key, index ] )
+	);
+	return views
+		.map( ( entry, index ) => ( { ...entry, index } ) )
+		.sort( ( a, b ) => {
+			const ra = rank.get( a.key );
+			const rb = rank.get( b.key );
+			if ( ra !== undefined && rb !== undefined ) {
+				return ra - rb;
+			}
+			if ( ra !== undefined ) {
+				return -1;
+			}
+			if ( rb !== undefined ) {
+				return 1;
+			}
+			return a.index - b.index;
+		} )
+		.map( ( entry ) => entry.view );
+}
+
+/**
+ * Cuántas sugerencias de la lista marca la IA como no aptas.
+ *
+ * @param outcome Resultado de la llamada.
+ */
+export function unfitCount( outcome: AiOutcome ): number {
+	return Object.values( outcome.marks ).filter(
+		( mark ) => mark.fit === false
+	).length;
+}

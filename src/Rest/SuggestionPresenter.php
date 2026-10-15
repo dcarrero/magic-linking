@@ -58,20 +58,19 @@ final class SuggestionPresenter {
 	 * @return array<string, mixed>
 	 */
 	public function present( Suggestion $suggestion, bool $nested = false ): array {
-		$before = substr( $suggestion->sentence, 0, $suggestion->offset );
-		$start  = self::utf16( $before );
-		$can    = current_user_can( 'edit_post', $suggestion->source );
+		$can = current_user_can( 'edit_post', $suggestion->source );
 
-		$item = array(
-			'anchor'       => $suggestion->anchor,
-			'sentence'     => $suggestion->sentence,
-			'offset'       => $suggestion->offset,
-			'before'       => $before,
-			'after'        => substr( $suggestion->sentence, $suggestion->offset + strlen( $suggestion->anchor ) ),
-			'anchor_start' => $start,
-			'anchor_end'   => $start + self::utf16( $suggestion->anchor ),
-			'paragraph'    => $suggestion->paragraph,
-			'score'        => round( $suggestion->score->value, 3 ),
+		$item = array_merge(
+			array( 'anchor' => $suggestion->anchor ),
+			array(
+				'sentence' => $suggestion->sentence,
+				'offset'   => $suggestion->offset,
+			),
+			self::span( $suggestion->sentence, $suggestion->offset, $suggestion->anchor ),
+			array(
+				'paragraph' => $suggestion->paragraph,
+				'score'     => round( $suggestion->score->value, 3 ),
+			)
 		);
 
 		// Sin permiso sobre el origen no hay nada que enviar: la tarjeta se enseña sin botón de enlazar.
@@ -102,6 +101,27 @@ final class SuggestionPresenter {
 				'reasons'      => array_map( array( $this, 'reason' ), $suggestion->reasons ),
 				'alternatives' => array_map( fn( Suggestion $alternative ): array => $this->present( $alternative, true ), $suggestion->alternatives ),
 			)
+		);
+	}
+
+	/**
+	 * El ancla localizada en la frase: lo que la tarjeta necesita para pintarla sin contar bytes.
+	 *
+	 * @param string $sentence Frase.
+	 * @param int    $offset   Byte donde empieza el ancla.
+	 * @param string $anchor   Ancla.
+	 *
+	 * @return array{before: string, after: string, anchor_start: int, anchor_end: int}
+	 */
+	public static function span( string $sentence, int $offset, string $anchor ): array {
+		$before = substr( $sentence, 0, $offset );
+		$start  = self::utf16( $before );
+
+		return array(
+			'before'       => $before,
+			'after'        => substr( $sentence, $offset + strlen( $anchor ) ),
+			'anchor_start' => $start,
+			'anchor_end'   => $start + self::utf16( $anchor ),
 		);
 	}
 

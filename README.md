@@ -9,7 +9,7 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 
 *Enlazado interno para WordPress que funciona gratis de verdad, con la IA que ya tiene tu WordPress y sin vender créditos.*
 
-> **Status: version 0.20 ([0.11 is the latest on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It does not use AI yet; it works entirely on your server (see the [Roadmap](#-roadmap)).
+> **Status: version 0.20 ([0.11 is the latest on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
 
 ## 🚀 Features
 
@@ -33,7 +33,7 @@ Only when you press **Link** on a suggestion, and only by adding that link. It n
 
 ### What it does not do (yet)
 
-- It does not use AI and does not call any external service. When AI arrives it will be only through the WordPress AI client (**Settings → Connectors**), optional and with a cost estimate first.
+- It does not need AI and has no servers or keys of its own. If your site has an AI connector (**Settings → Connectors**, WordPress 7.0+), the **Improve with AI** button in the editor panel sends the best 20 suggestions to your provider in one request, only when you press it, with a cost estimate first and a daily token cap you set. Semantic suggestions (embeddings) wait for WordPress 7.2.
 - It does not check links over the network: a link is "broken" when it points to an address of your own site that leads nowhere, according to WordPress. Links to other sites are counted, not checked.
 
 ## 🛠️ Installation
@@ -108,7 +108,8 @@ Legend: ✅ done · 🔜 planned. No dates and no prices; the order can change.
 - 🔜 Several phrases per destination and adjustable anchor text
 - 🔜 Automatic rules (phrase → URL), unlimited, applied on save
 - 🔜 Remove or change broken links one by one
-- 🔜 Optional AI through the WordPress AI client (**Settings → Connectors**), with cost estimate and a daily cap you set
+- ✅ Optional AI through the WordPress AI client (**Settings → Connectors**): *Improve with AI* reorders the suggestions, flags the ones it does not recommend and may propose a better anchor, with cost estimate and a daily cap you set
+- 🔜 Suggestions by meaning (embeddings) when WordPress 7.2 provides them
 - 🔜 Pillar content (own flag, Yoast or Rank Math) and Ignore / Consider / Require filters by post type, category and tag
 - 🔜 Your own target phrases per entry
 
@@ -127,7 +128,7 @@ A separate add-on that hooks into the free plugin without unlocking or expanding
 Only when you press *Link* on a suggestion. Outbound: the link is inserted in the editor and you save when you want. Inbound: the link is written into the other entry on the server, verifying that the rest of it stays identical, with a WordPress revision and undo in History. It never touches an entry that is open in an editor.
 
 **Does it need AI, an API key or an account?**
-No. It works entirely on your server and does not use AI in this version. When AI arrives it will be only through the WordPress AI client, never with keys of its own.
+No. It works entirely on your server. AI is an optional extra through the WordPress AI client (**Settings → Connectors**), never with keys of its own; the text is only sent when you press *Improve with AI*, to the provider you configured (nothing leaves your server with a local model such as Ollama).
 
 **Why does my home page appear as an orphan?**
 Because no other entry links to it from its content. Menu links are not counted.

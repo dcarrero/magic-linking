@@ -12,6 +12,10 @@ namespace MagicLinking\Core;
 use LogicException;
 use MagicLinking\Admin\EditorPanel;
 use MagicLinking\Admin\Screen;
+use MagicLinking\AI\Budget;
+use MagicLinking\AI\Capabilities;
+use MagicLinking\AI\Client;
+use MagicLinking\AI\Reranker;
 use MagicLinking\Cli\CliModule;
 use MagicLinking\Cli\Command;
 use MagicLinking\Content\Destination;
@@ -44,6 +48,7 @@ use MagicLinking\I18n\TextDomain;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
+use MagicLinking\Rest\AiController;
 use MagicLinking\Rest\DismissalsController;
 use MagicLinking\Rest\EditorHistoryController;
 use MagicLinking\Rest\FixController;
@@ -84,6 +89,8 @@ final class Plugin {
 		DismissalsController::class,
 		JobsController::class,
 		SettingsController::class,
+		Capabilities::class,
+		AiController::class,
 		ExportHandler::class,
 		CliModule::class,
 		Screen::class,
@@ -297,6 +304,27 @@ final class Plugin {
 				$c->get( JobRepository::class ),
 				$c->get( Settings::class )
 			),
+			Budget::class                  => static fn( Container $c ): Budget => new Budget(
+				$c->get( JobRepository::class ),
+				static fn(): int => $c->get( Settings::class )->ai_daily_token_limit()
+			),
+			Client::class                  => static fn( Container $c ): Client => new Client( $c->get( Budget::class ) ),
+			Capabilities::class            => static fn( Container $c ): Capabilities => new Capabilities( $c->get( Client::class ), $c->get( Settings::class ) ),
+			Reranker::class                => static fn( Container $c ): Reranker => new Reranker(
+				$c->get( Client::class ),
+				$c->get( Capabilities::class ),
+				$c->get( PostSource::class ),
+				$c->get( Destination::class ),
+				$c->get( Language::class ),
+				$c->get( Budget::class )
+			),
+			AiController::class            => static fn( Container $c ): AiController => new AiController(
+				$c->get( Reranker::class ),
+				$c->get( Capabilities::class ),
+				$c->get( Client::class ),
+				$c->get( Budget::class ),
+				$c->get( JobRepository::class )
+			),
 			JobRepository::class           => static function (): JobRepository {
 				global $wpdb;
 				return new JobRepository( $wpdb );
@@ -320,7 +348,7 @@ final class Plugin {
 				$c->get( BrokenRepository::class )
 			),
 			JobsController::class          => static fn( Container $c ): JobsController => new JobsController( $c->get( Jobs::class ) ),
-			SettingsController::class      => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ) ),
+			SettingsController::class      => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ), $c->get( Capabilities::class ) ),
 			ExportHandler::class           => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ) ),
 			CliModule::class               => static fn( Container $c ): CliModule => new CliModule(
 				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) )
