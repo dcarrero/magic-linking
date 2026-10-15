@@ -36,9 +36,11 @@ rm "${BUILD}/composer.lock"
 # Comprobación final: nada oculto ni de desarrollo dentro de <slug>/.
 HIDDEN="$(unzip -Z1 "dist/${SLUG}.zip" | grep -E "^${SLUG}/(.*/)?\.[^/]" || true)"
 DEVDIRS="$(unzip -Z1 "dist/${SLUG}.zip" | grep -E "^${SLUG}/(tests|node_modules|bin|dist)(/|$)" || true)"
-if [ -n "${HIDDEN}${DEVDIRS}" ]; then
+# Las pruebas de JavaScript viven junto al código en assets/src; no son código fuente del plugin.
+JSTESTS="$(unzip -Z1 "dist/${SLUG}.zip" | grep -E "^${SLUG}/assets/src/(.*/)?(test/|[^/]*\.test\.[jt]sx?$)" || true)"
+if [ -n "${HIDDEN}${DEVDIRS}${JSTESTS}" ]; then
 	echo "El ZIP contiene ficheros ocultos o de desarrollo:" >&2
-	printf '%s\n%s\n' "${HIDDEN}" "${DEVDIRS}" | sed '/^$/d' | head -20 >&2
+	printf '%s\n%s\n%s\n' "${HIDDEN}" "${DEVDIRS}" "${JSTESTS}" | sed '/^$/d' | head -20 >&2
 	exit 1
 fi
 
