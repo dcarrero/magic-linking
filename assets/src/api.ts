@@ -3,6 +3,8 @@
  */
 import apiFetch from '@wordpress/api-fetch';
 import type {
+	AiCapabilities,
+	AiStatus,
 	BrokenResponse,
 	BrokenTargetsResponse,
 	FixResponse,
@@ -22,6 +24,8 @@ import type {
 	InsertLink,
 	InsertResponse,
 	OutboundResponse,
+	RerankItem,
+	RerankResponse,
 	RunResponse,
 	Job,
 	ReportFilter,
@@ -356,6 +360,60 @@ export const api = {
 		apiFetch< DismissalResponse >( {
 			path: path( `/suggestions/dismissals/${ sourceId }/${ targetId }` ),
 			method: 'DELETE',
+		} ),
+	/**
+	 * Lo que necesita el botón «Mejorar con IA»: si hay conector, el modelo previsto y una estimación. No llama al modelo.
+	 *
+	 * @param count  Sugerencias que se enviarían (para la estimación).
+	 * @param signal Para cancelar.
+	 */
+	aiCapabilities: ( count: number, signal?: AbortSignal ) =>
+		apiFetch< AiCapabilities >( {
+			path: path( '/ai/capabilities', { count } ),
+			signal,
+		} ),
+	/**
+	 * Reordena con IA las salientes de la entrada abierta. Una sola llamada al modelo por petición; un fallo de la IA
+	 * llega como `ok: false` con un texto, no como error HTTP.
+	 *
+	 * @param postId  Entrada que se edita.
+	 * @param items   Sugerencias, en orden léxico (máximo 20).
+	 * @param content Contenido que el editor tiene ahora (puede no estar guardado): el servidor comprueba que las frases son de él.
+	 * @param signal  Para cancelar.
+	 */
+	rerank: (
+		postId: number,
+		items: RerankItem[],
+		content: string,
+		signal?: AbortSignal
+	) =>
+		apiFetch< RerankResponse >( {
+			path: path( '/suggestions/rerank' ),
+			method: 'POST',
+			data: { post_id: postId, items, content },
+			signal,
+		} ),
+	/**
+	 * Estado del conector, tope diario y gasto de 30 días (Ajustes).
+	 *
+	 * @param refresh Vuelve a comprobar el conector en vez de usar lo guardado.
+	 * @param signal  Para cancelar.
+	 */
+	aiStatus: ( refresh = false, signal?: AbortSignal ) =>
+		apiFetch< AiStatus >( {
+			path: path( '/ai/status', { refresh: refresh ? 1 : 0 } ),
+			signal,
+		} ),
+	/**
+	 * Cierra para siempre (para este usuario) el aviso «Sin conector de IA», o lo vuelve a abrir.
+	 *
+	 * @param dismissed Cerrarlo.
+	 */
+	setAiNoticeDismissed: ( dismissed: boolean ) =>
+		apiFetch< { dismissed: boolean } >( {
+			path: path( '/ai/notice' ),
+			method: 'POST',
+			data: { dismissed },
 		} ),
 	settings: () =>
 		apiFetch< SettingsResponse >( { path: path( '/settings' ) } ),

@@ -14,7 +14,7 @@ Internal link suggestions in the editor. Link in one click, check that nothing e
 
 Magic Linking suggests internal links while you write, adds the one you choose without touching anything else, and keeps a history so you can undo it. It also reports which of your entries are orphans, under-linked, over-linked or have broken internal links.
 
-It works entirely on your server, with no artificial intelligence, no account, no key, no external service and no limits.
+It works entirely on your server, with no account, no key and no limits. Artificial intelligence is optional: it only runs if you have connected an AI provider in WordPress (Settings > Connectors) and press *Improve with AI* in the panel.
 
 **In the editor**
 
@@ -23,6 +23,7 @@ It works entirely on your server, with no artificial intelligence, no account, n
 * **Inbound suggestions**: the same panel lists other entries whose text mentions the one you are editing and could link to it. Pressing *Link* writes the link in that other entry, see "How and when it changes your content".
 * Only the entries and block types where a link can be inserted safely are proposed. Paragraphs and lists are always used; headings, quotes and tables are left alone unless you turn them on in Settings (or a developer allows them with a filter).
 * **Dismiss**: a suggestion you do not want can be dismissed for good, from either side, and restored with *Undo*.
+* **Improve with AI (optional)**: if your site has an AI connector (WordPress 7.0 or later, Settings > Connectors), the *Outbound* tab shows an *Improve with AI* button. One click sends the best 20 suggestions to your AI provider in a single request; it puts the best ones first, marks the ones it does not recommend and may propose a better anchor text (always a stretch of the same sentence, and only used if you accept it). It shows what that request cost. See "AI and your privacy".
 
 **How and when it changes your content**
 
@@ -55,11 +56,11 @@ It works entirely on your server, with no artificial intelligence, no account, n
 * **Multilingual**: the language of each entry comes from WPML, Polylang or, if you use neither, from the site language. Suggestions never link entries of different languages.
 * **Made for big sites**: the analysis and the index of suggestions are built in the background in small batches with Action Scheduler (bundled), and every entry is updated when you save it. Suggestions for an entry are calculated in a few milliseconds even with thousands of entries.
 * **Light**: no scripts, no styles and no database queries from this plugin on your public pages.
-* **Private**: no external services, no telemetry, no cookies, no email requests, no notices outside its own screens.
+* **Private**: no telemetry, no cookies, no email requests, no notices outside its own screens, and nothing leaves your server unless you press *Improve with AI* with an AI connector (see "AI and your privacy").
 
 **What it does not do (in this version)**
 
-* It does not use artificial intelligence. When it does, it will be only through the AI client and the *Connectors* screen that WordPress itself provides, never with keys or credit of its own, and always optional.
+* It does not need artificial intelligence. Everything works without it. When you use it, it is only through the AI client and the *Connectors* screen that WordPress itself provides, never with keys or credit of its own.
 * It does not check links over the network: a link is "broken" when it points to an address on your own site that leads nowhere, according to WordPress. Links to other sites are counted, not checked.
 * It does not suggest or add links automatically while you are away. Every link is a click of yours.
 
@@ -71,9 +72,17 @@ It works entirely on your server, with no artificial intelligence, no account, n
 * Category, tag, author, date and search pages, the home page and feeds are valid destinations and are never reported as broken.
 * Tracking parameters (`utm_*`, `gclid`, `fbclid`…) and anchors (`#…`) are ignored when matching a link to an entry.
 
+**AI and your privacy**
+
+* Magic Linking has no AI of its own and asks for no key. It uses the AI client and the *Connectors* screen of WordPress 7.0 or later. On WordPress 6.9 the AI options are turned off and the plugin works as usual.
+* Nothing is sent until you press *Improve with AI*. Finding out whether a connector exists does not call any model.
+* What is sent, in that one request: the sentence of the entry you are editing with the anchor text marked, and for each of the 20 suggestions the title and a short summary (about 200 tokens) of the destination, made of its title, headings and the beginning of its text. Only clean text: no metadata, authors, email addresses or comments. Private, password-protected and draft entries are never sent as destinations.
+* Where it goes: to the AI provider you configured in Settings > Connectors. If your connector is a local model (for example Ollama), the text does not leave your server.
+* You set a daily limit of tokens (2,000,000 by default; 0 turns AI off). When it is reached, AI pauses until the next day and the suggestions use the built-in engine. Settings > AI shows the connector, the limit and what was used in the last 30 days. Costs are estimates with public list prices; your provider is the one that charges you.
+
 **Roadmap**
 
-Next: several phrases per destination and adjustable anchor text, automatic rules and, optionally, help from the AI connectors that WordPress already provides. None of that is in this version.
+Next: several phrases per destination and adjustable anchor text, automatic rules and, with the AI connectors that WordPress already provides, suggestions by meaning (when WordPress offers embeddings).
 
 == Installation ==
 
@@ -103,11 +112,19 @@ Right after adding it, press *Undo* on the card. Later, open **Magic Linking > H
 
 = Does it need AI, an API key or an account? =
 
-No. It works entirely on your server, with no key, no account and no credit. It does not use artificial intelligence in this version.
+No. It works entirely on your server, with no key, no account and no credit. AI is an optional extra: if you connect a provider in Settings > Connectors (WordPress 7.0 or later), the *Improve with AI* button appears. Magic Linking never asks for an API key of its own and does not sell credit; your provider charges you for what you use.
 
 = Does it send my content anywhere? =
 
-No. It does not connect to any external service.
+Not by itself. The only time text leaves your server is when you press *Improve with AI*, and then it goes to the AI provider you set up in Settings > Connectors, as described in "AI and your privacy" and "External services". With a local model such as Ollama it does not leave your server.
+
+= How much does *Improve with AI* cost? =
+
+The button shows an estimate before you press it and the real number of tokens afterwards. A request uses a few thousand tokens, which with a small model costs a fraction of a cent. You can set a daily token limit in Settings > AI. A local model costs nothing.
+
+= Why is there no AI button? =
+
+Because the site has no AI connector (add one in Settings > Connectors), WordPress is older than 7.0, the daily limit in Settings > AI is 0, or the site blocks AI requests.
 
 = Why does the panel say there are no suggestions? =
 
@@ -169,6 +186,8 @@ Each site of a network has its own report, history and settings.
 * `magiclinking_internal_hosts`: extra hosts that count as your site.
 * `magiclinking_resolve_link`: say where an internal address leads.
 * `magiclinking_post_html`: add HTML that a builder keeps outside the content.
+* `magiclinking_before_ai_request`: filter to veto or change a request to the AI connector before it is sent (return false to veto). The WordPress filter `wp_ai_client_prevent_prompt` is respected too.
+* `magiclinking_local_ai_providers`: filter for the AI providers that count as local (the text does not leave your server).
 * `magiclinking_is_multilingual`: tell the plugin whether the site is multilingual.
 * `magiclinking_batch_max_entries` and `magiclinking_batch_time_budget`: size and time of each background batch.
 
@@ -179,7 +198,7 @@ Each site of a network has its own report, history and settings.
 3. Inbound suggestions: other entries that could link to the one you are editing.
 4. History: changes grouped by entry, with date, filters, and undo and redo.
 5. The report: totals for analyzed entries, orphans, internal links and broken links, with filters, search and sorting.
-6. Settings in tabs (General, Suggestions, Links, History and data) with a save bar that stays in view.
+6. Settings in tabs (General, Suggestions, Links, AI, History and data) with a save bar that stays in view.
 
 == Support and documentation ==
 
@@ -189,11 +208,20 @@ Questions and bug reports: use the support forum of this plugin on WordPress.org
 
 == External services ==
 
-Magic Linking does not connect to any external service.
+Magic Linking does not connect to any external service by itself and has no servers of its own. It has no API keys, no accounts and no telemetry.
+
+The only exception is the optional **Improve with AI** button, which exists only if you have connected an AI provider to WordPress yourself. Magic Linking does not call any provider directly: it uses the AI client that WordPress 7.0 and later provide (`wp_ai_client_prompt()`), which sends the request to the provider you configured on the **Settings > Connectors** screen of your site (`wp-admin/options-connectors.php`), for example OpenAI, Google, Anthropic or a local Ollama.
+
+* **What is sent**: the sentence of the entry you are editing, with the anchor text marked, and, for each of the best 20 suggestions, the title and a summary of about 200 tokens of the destination entry (its title, headings and the start of its text). Only clean text. No metadata, authors, email addresses, comments or private fields. Private, password-protected and draft entries are never sent as destinations. The entry you are editing is sent only because you pressed the button.
+* **When**: only when you press *Improve with AI*, once per press. Never in the background, never on page load and never on the public side of your site.
+* **To whom**: to the provider you configured in Settings > Connectors. Their terms and privacy policy apply to that request, for example OpenAI (https://openai.com/policies), Google (https://policies.google.com) or Anthropic (https://www.anthropic.com/legal). If you use a local model, nothing leaves your server.
+* **Control**: you choose the provider, you can set a daily token limit (0 turns it off) in Magic Linking > Settings > AI, and a site can veto requests with the `wp_ai_client_prevent_prompt` filter.
+
+Magic Linking stores the number of tokens used, the provider and the model of each request (not the text) to show your usage in Settings > AI.
 
 == Privacy ==
 
-Magic Linking does not collect, store or send personal data. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added or fixed, including those you add from the editor panel (which user, when, which entry and the text of the paragraph that changed, so it can be undone). The pairs (entry, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies.
+Magic Linking does not collect personal data and sends nothing anywhere on its own. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added or fixed, including those you add from the editor panel (which user, when, which entry and the text of the paragraph that changed, so it can be undone). The pairs (entry, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies. For the optional AI button it also stores, for each request, the date, the user, the provider, the model, the tokens used and an estimated cost, never the text that was sent; and, for an hour, the result of checking what your AI connector can do. See "External services" for what is sent when you press that button.
 
 == Third-party libraries ==
 

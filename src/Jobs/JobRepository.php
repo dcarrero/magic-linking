@@ -9,13 +9,16 @@ declare(strict_types=1);
 
 namespace MagicLinking\Jobs;
 
+use DateTimeImmutable;
+use DateTimeZone;
+use MagicLinking\AI\UsageStore;
 use MagicLinking\Core\Schema;
 use wpdb;
 
 /**
  * Estado de los procesos largos.
  */
-final class JobRepository {
+final class JobRepository implements UsageStore {
 
 	public const QUEUED    = 'queued';
 	public const RUNNING   = 'running';
@@ -23,6 +26,11 @@ final class JobRepository {
 	public const DONE      = 'done';
 	public const FAILED    = 'failed';
 	public const CANCELLED = 'cancelled';
+
+	/**
+	 * Patrón LIKE de los apuntes de gasto de IA (`ai_rerank`…): su tipo empieza por `ai_`.
+	 */
+	public const AI_LIKE = 'ai\\_%';
 
 	/**
 	 * Patrón LIKE de los procesos del sistema (`params.system` a true, ver Jobs::start_index()).
@@ -212,6 +220,125 @@ final class JobRepository {
 			array( '%d', '%d', '%s', '%s' ),
 			array( '%d' )
 		);
+	}
+
+	/**
+	 * Tokens gastados hoy (día del sitio) en acciones con IA: la suma de `ai_tokens_real` de los apuntes de hoy.
+	 *
+	 * @return int
+	 */
+	public function ai_tokens_today(): int {
+		$wpdb = $this->wpdb;
+		$sum  = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia; el tope diario no admite datos viejos.
+			$wpdb->prepare( 'SELECT COALESCE(SUM(ai_tokens_real), 0) FROM %i WHERE type LIKE %s AND created_at >= %s', $this->table, self::AI_LIKE, self::day_start() )
+		);
+
+		return (int) $sum;
+	}
+
+	/**
+	 * Apunta el gasto de una petición de IA (docs/05 §5.3). Los datos son solo cifras, proveedor y modelo: nunca
+	 * texto de las entradas.
+	 *
+	 * @param array $row Datos de la petición.
+	 *
+	 * @phpstan-param array{type: string, status: string, tokens_est: int, tokens_real: int, cost_est: float, cost_real: float, provider: string, model: string, user_id: int, params: array<string, mixed>, error: string} $row
+	 *
+	 * @return int
+	 */
+	public function record_ai( array $row ): int {
+		$wpdb = $this->wpdb;
+		$now  = current_time( 'mysql', true );
+
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Tabla propia.
+			$this->table,
+			array(
+				'type'           => substr( $row['type'], 0, 30 ),
+				'status'         => self::DONE === $row['status'] ? self::DONE : self::FAILED,
+				'total'          => 1,
+				'done'           => self::DONE === $row['status'] ? 1 : 0,
+				'params'         => (string) wp_json_encode( $row['params'] ),
+				'ai_tokens_est'  => max( 0, $row['tokens_est'] ),
+				'ai_tokens_real' => max( 0, $row['tokens_real'] ),
+				'ai_cost_est'    => number_format( max( 0.0, $row['cost_est'] ), 6, '.', '' ),
+				'ai_cost_real'   => number_format( max( 0.0, $row['cost_real'] ), 6, '.', '' ),
+				'ai_provider'    => substr( $row['provider'], 0, 80 ),
+				'ai_model'       => substr( $row['model'], 0, 80 ),
+				'error'          => '' === $row['error'] ? null : $row['error'],
+				'created_by'     => $row['user_id'],
+				'created_at'     => $now,
+				'updated_at'     => $now,
+			),
+			array( '%s', '%s', '%d', '%d', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
+		);
+
+		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * Gasto de IA de los últimos días, por proveedor y modelo (docs/05 §5.3).
+	 *
+	 * @param int $days Días hacia atrás desde ahora.
+	 *
+	 * @return array{calls: int, failed: int, tokens: int, models: list<array{provider: string, model: string, calls: int, tokens: int, cost: float}>}
+	 */
+	public function ai_usage( int $days ): array {
+		$wpdb  = $this->wpdb;
+		$since = gmdate( 'Y-m-d H:i:s', time() - max( 1, $days ) * DAY_IN_SECONDS );
+
+		$rows = (array) $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb->prepare(
+				'SELECT status, ai_provider, ai_model, COUNT(*) AS calls, COALESCE(SUM(ai_tokens_real), 0) AS tokens, COALESCE(SUM(ai_cost_real), 0) AS cost FROM %i WHERE type LIKE %s AND created_at >= %s GROUP BY status, ai_provider, ai_model',
+				$this->table,
+				self::AI_LIKE,
+				$since
+			),
+			ARRAY_A
+		);
+
+		$out    = array(
+			'calls'  => 0,
+			'failed' => 0,
+			'tokens' => 0,
+			'models' => array(),
+		);
+		$models = array();
+		foreach ( $rows as $row ) {
+			$calls          = (int) $row['calls'];
+			$out['calls']  += $calls;
+			$out['tokens'] += (int) $row['tokens'];
+			if ( self::FAILED === $row['status'] ) {
+				$out['failed'] += $calls;
+			}
+			if ( '' === (string) $row['ai_model'] ) {
+				continue;
+			}
+			$key                       = $row['ai_provider'] . "\n" . $row['ai_model'];
+			$models[ $key ]            = ( $models[ $key ] ?? array(
+				'provider' => (string) $row['ai_provider'],
+				'model'    => (string) $row['ai_model'],
+				'calls'    => 0,
+				'tokens'   => 0,
+				'cost'     => 0.0,
+			) );
+			$models[ $key ]['calls']  += $calls;
+			$models[ $key ]['tokens'] += (int) $row['tokens'];
+			$models[ $key ]['cost']   += (float) $row['cost'];
+		}//end foreach
+
+		usort( $models, static fn( array $a, array $b ): int => $b['tokens'] <=> $a['tokens'] );
+		$out['models'] = array_slice( $models, 0, 10 );
+
+		return $out;
+	}
+
+	/**
+	 * Inicio del día del sitio, en UTC, con el formato de `created_at`.
+	 */
+	public static function day_start(): string {
+		$start = new DateTimeImmutable( 'today', wp_timezone() );
+
+		return $start->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
 	}
 
 	/**

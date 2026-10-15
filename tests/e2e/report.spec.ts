@@ -185,12 +185,13 @@ test.describe( 'Internal links', () => {
 		await page.goto( SCREEN_SETTINGS );
 		const root = page.locator( '#magiclinking-root' );
 
-		// Cuatro pestañas reales, y no hay índice de anclas.
+		// Cinco pestañas reales, y no hay índice de anclas.
 		await expect( root.getByRole( 'tablist' ) ).toBeVisible();
 		await expect( root.getByRole( 'tab' ) ).toHaveText( [
 			'General',
 			'Suggestions',
 			'Links',
+			'AI',
 			'History and data',
 		] );
 		await expect( root.getByRole( 'tab', { name: 'General' } ) ).toHaveAttribute(
@@ -200,7 +201,7 @@ test.describe( 'Internal links', () => {
 		await expect( root.getByRole( 'navigation' ) ).toHaveCount( 0 );
 
 		// Cada pestaña, con sus tarjetas (h2).
-		const groups: [ 'General' | 'Suggestions' | 'Links' | 'History and data', string[] ][] = [
+		const groups: [ 'General' | 'Suggestions' | 'Links' | 'AI' | 'History and data', string[] ][] = [
 			[ 'General', [ 'Content analyzed', 'Maintenance' ] ],
 			[
 				'Suggestions',
@@ -217,6 +218,10 @@ test.describe( 'Internal links', () => {
 					'How links are inserted',
 					'Exclusions',
 				],
+			],
+			[
+				'AI',
+				[ 'AI connector', 'Daily limit and model', 'AI use in the last 30 days' ],
 			],
 			[
 				'History and data',
@@ -843,7 +848,7 @@ test.describe( 'Internal links', () => {
 		} );
 	}
 	// Cada pestaña de Ajustes, abierta por su dirección, también con un cambio sin guardar y un campo inválido.
-	for ( const tab of [ 'general', 'suggestions', 'links', 'data' ] ) {
+	for ( const tab of [ 'general', 'suggestions', 'links', 'ai', 'data' ] ) {
 		test( `axe finds no WCAG A/AA violations in the settings ${ tab } tab`, async ( {
 			page,
 		} ) => {
@@ -869,6 +874,7 @@ test.describe( 'Internal links', () => {
 					general: 'General',
 					suggestions: 'Suggestions',
 					links: 'Links',
+					ai: 'AI',
 					data: 'History and data',
 				} as const )[ tab as 'general' ]
 			);
