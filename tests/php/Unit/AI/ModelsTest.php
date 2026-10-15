@@ -43,7 +43,9 @@ final class ModelsTest extends TestCase {
 		$this->assertSame( 'gpt-4o-mini-2024-07-18', Models::pick( array( 'gpt-4o', 'gpt-4o-mini-2024-07-18', 'o3' ) ) );
 		$this->assertSame( 'models/gemini-2.5-flash', Models::pick( array( 'models/gemini-2.5-pro', 'models/gemini-2.5-flash' ) ) );
 		$this->assertSame( 'llama3.2:3b', Models::pick( array( 'granite-embedding:278m', 'llama3.2:3b' ) ) );
-		$this->assertSame( 'gpt-4.1-mini', Models::pick( array( 'gpt-4o-mini', 'gpt-4.1-mini' ) ), 'Manda el orden de la lista, no el de llegada.' );
+		$this->assertSame( 'gpt-4o-mini', Models::pick( array( 'gpt-4.1-mini', 'gpt-4o-mini' ) ), 'Manda el orden de la lista (el más barato primero), no el de llegada.' );
+		$this->assertSame( 'gpt-4.1-nano', Models::pick( array( 'gpt-4o-mini', 'gpt-4.1-nano', 'gemini-2.5-flash' ) ) );
+		$this->assertSame( 'models/gemini-2.5-flash-lite', Models::pick( array( 'gpt-4.1-nano', 'models/gemini-2.5-flash', 'models/gemini-2.5-flash-lite' ) ) );
 	}
 
 	public function test_pick_falls_back_to_the_cheapest_priced_model_then_to_the_first(): void {
@@ -88,8 +90,9 @@ final class ModelsTest extends TestCase {
 	}
 
 	public function test_pick_with_the_openrouter_list(): void {
-		$this->assertSame( 'openai/gpt-4.1-mini', Models::pick( self::openrouter() ) );
-		$this->assertSame( 'openai/gpt-4.1-mini', Models::pick( array_reverse( self::openrouter() ) ) );
+		$this->assertSame( 'openai/gpt-4o-mini-2024-07-18', Models::pick( self::openrouter() ), 'El barato: 4o-mini (0,15 $) antes que 4.1-mini (0,40 $).' );
+		$this->assertSame( 'openai/gpt-4o-mini-2024-07-18', Models::pick( array_reverse( self::openrouter() ) ) );
+		$this->assertSame( 'openai/gpt-4.1-mini', Models::pick( array_diff( self::openrouter(), array( 'openai/gpt-4o-mini-2024-07-18' ) ) ) );
 	}
 
 	public function test_pick_never_returns_batch_or_free_variants(): void {
@@ -99,12 +102,38 @@ final class ModelsTest extends TestCase {
 	}
 
 	public function test_pick_ignores_a_pinned_batch_model_but_keeps_other_pinned_ones(): void {
-		$this->assertSame( 'openai/gpt-4.1-mini', Models::pick( self::openrouter(), 'openai/gpt-4.1-mini:batch' ) );
+		$this->assertSame( 'openai/gpt-4o-mini-2024-07-18', Models::pick( self::openrouter(), 'openai/gpt-4.1-mini:batch' ) );
+		$this->assertSame( 'nvidia/nemotron-3-super:free', Models::pick( self::openrouter(), 'nvidia/nemotron-3-super:free' ), 'Un :free fijado a sabiendas se respeta.' );
 		$this->assertSame( 'anthropic/claude-haiku-4.5', Models::pick( self::openrouter(), 'anthropic/claude-haiku-4.5' ) );
 	}
 
 	public function test_pick_falls_back_to_cheapest_priced_with_openrouter_ids(): void {
 		$this->assertSame( 'openai/gpt-4.1-nano', Models::pick( array( 'meta/muse-spark-open', 'openai/gpt-4.1', 'openai/gpt-4.1-nano' ) ) );
 		$this->assertSame( 'meta/muse-spark-open', Models::pick( array( 'meta/muse-spark-open', 'x/y:batch' ) ), 'Sin precios, el primero utilizable.' );
+	}
+
+	public function test_the_text_order_is_cheapest_first_and_reasoning_models_last(): void {
+		$cloud = array_slice( Models::TEXT, 0, 8 );
+		$this->assertSame( array( 'gemini-2.5-flash-lite', 'gpt-4.1-nano', 'gpt-4o-mini', 'gemini-2.0-flash', 'gpt-4.1-mini', 'gemini-2.5-flash', 'claude-haiku-4-5', 'claude-3-5-haiku' ), $cloud );
+		$this->assertSame( array( 'gpt-5-nano', 'gpt-5-mini' ), array_slice( Models::TEXT, -2 ) );
+		foreach ( $cloud as $model ) {
+			$this->assertNotNull( Models::price( $model ), $model );
+		}
+	}
+
+	public function test_recommended_are_the_best_of_each_family_in_order_without_batch(): void {
+		$this->assertSame(
+			array( 'openai/gpt-4o-mini-2024-07-18', 'openai/gpt-4.1-mini', 'anthropic/claude-haiku-4.5' ),
+			Models::recommended( self::openrouter() )
+		);
+		$this->assertSame( array(), Models::recommended( array( 'x/y:batch', 'openai/gpt-4.1-mini:batch' ) ) );
+		$many = array( 'gemini-2.5-flash-lite', 'gpt-4.1-nano', 'gpt-4o-mini', 'gemini-2.0-flash', 'gpt-4.1-mini', 'gemini-2.5-flash' );
+		$this->assertCount( Models::RECOMMENDED_MAX, Models::recommended( $many ) );
+	}
+
+	public function test_a_batch_model_is_never_allowed_but_other_variants_are(): void {
+		$this->assertFalse( Models::allowed( 'openai/gpt-4.1-mini:batch' ) );
+		$this->assertTrue( Models::allowed( 'nvidia/x:free' ) );
+		$this->assertTrue( Models::allowed( 'llama3.2:3b' ) );
 	}
 }

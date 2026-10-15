@@ -279,6 +279,10 @@ final class AiController implements Module {
 				return __( 'AI is turned off for this action on this site; showing suggestions without AI.', 'magic-linking' );
 			case Failure::BUDGET:
 				return __( 'The daily AI limit you set has been reached; showing suggestions without AI. It will be available again tomorrow.', 'magic-linking' );
+			case Failure::TIMEOUT:
+				return __( 'The AI provider took too long to answer; showing suggestions without AI. Try again, or pick a faster model in Settings → AI.', 'magic-linking' );
+			case Failure::UPSTREAM:
+				return __( 'The AI provider had a problem on its side; showing suggestions without AI. Try again in a moment.', 'magic-linking' );
 			case Failure::RATE_LIMIT:
 				return __( 'Your AI provider is limiting requests right now; showing suggestions without AI. Try again in a moment.', 'magic-linking' );
 			case Reranker::NOTHING:
@@ -323,6 +327,7 @@ final class AiController implements Module {
 				'provider'       => $base['provider'],
 				'model'          => $base['model'],
 				'local'          => $caps['local'],
+				'timeout'        => Reranker::timeout( $caps['local'] ),
 				'estimate'       => $estimate + array( 'prices_date' => Models::PRICES_DATE ),
 				'connectors_url' => $base['connectors_url'],
 			)
@@ -370,15 +375,8 @@ final class AiController implements Module {
 				'local'            => $caps['local'],
 				'provider'         => $base['provider'],
 				'model'            => $base['model'],
-				'models'           => array_map(
-					static fn( array $m ): array => array(
-						'provider'      => $m['provider'],
-						'provider_name' => $m['provider_name'],
-						'model'         => $m['model'],
-						'name'          => $m['name'],
-					),
-					$caps['models']
-				),
+				'models'           => $this->model_list( $caps['models'] ),
+				'last_failure'     => $this->last_failure(),
 				'connectors_url'   => $base['connectors_url'],
 				'budget'           => array(
 					'limit'     => $this->budget->limit(),
@@ -414,6 +412,79 @@ final class AiController implements Module {
 		}
 
 		return new WP_REST_Response( array( 'dismissed' => (bool) get_user_meta( get_current_user_id(), self::notice_meta_key(), true ) ) );
+	}
+
+	/**
+	 * Modelos para el selector de Ajustes: sin `:batch`, con los recomendados primero (en el orden de preferencia) y
+	 * después el resto por nombre, cada uno con su precio por millón de tokens y si es local. Se calcula aquí para que
+	 * el JavaScript no repita la lógica de `Models`.
+	 *
+	 * @param array $models Modelos de `Capabilities::detect()`.
+	 *
+	 * @phpstan-param list<array{provider: string, provider_name: string, model: string, name: string}> $models
+	 *
+	 * @return list<array{provider: string, provider_name: string, model: string, name: string, local: bool, price: array{0: float, 1: float}|null, recommended: bool}>
+	 */
+	private function model_list( array $models ): array {
+		$seen = array();
+		$rows = array();
+		foreach ( $models as $m ) {
+			if ( isset( $seen[ $m['model'] ] ) || ! Models::allowed( $m['model'] ) ) {
+				continue;
+			}
+			$seen[ $m['model'] ] = true;
+			$rows[]              = $m;
+		}
+
+		$ids    = array_column( $rows, 'model' );
+		$recom  = Models::recommended( $ids );
+		$rank   = array_flip( $recom );
+		$sorted = $rows;
+		usort(
+			$sorted,
+			static function ( array $a, array $b ) use ( $rank ): int {
+				$ra = $rank[ $a['model'] ] ?? PHP_INT_MAX;
+				$rb = $rank[ $b['model'] ] ?? PHP_INT_MAX;
+
+				return $ra === $rb ? strcasecmp( $a['model'], $b['model'] ) : $ra <=> $rb;
+			}
+		);
+
+		return array_map(
+			fn( array $m ): array => array(
+				'provider'      => $m['provider'],
+				'provider_name' => $m['provider_name'],
+				'model'         => $m['model'],
+				'name'          => $m['name'],
+				'local'         => $this->client->is_local( $m['provider'] ),
+				'price'         => Models::price( $m['model'] ),
+				'recommended'   => isset( $rank[ $m['model'] ] ),
+			),
+			$sorted
+		);
+	}
+
+	/**
+	 * Última llamada de IA fallida con su detalle técnico saneado (solo `manage_options`, esta ruta lo exige).
+	 *
+	 * @return array{at: string, model: string, provider: string, code: string, message: string}|null
+	 */
+	private function last_failure(): ?array {
+		$row = $this->jobs->last_ai_failure();
+		if ( null === $row ) {
+			return null;
+		}
+
+		$code = strstr( $row['error'], ': ', true );
+		$code = false === $code ? $row['error'] : $code;
+
+		return array(
+			'at'       => str_replace( ' ', 'T', $row['at'] ) . 'Z',
+			'model'    => $row['model'],
+			'provider' => $row['provider'],
+			'code'     => $code,
+			'message'  => Failure::scrub( (string) substr( $row['error'], strlen( $code ) > 0 ? strlen( $code ) + 2 : 0 ) ),
+		);
 	}
 
 	/**

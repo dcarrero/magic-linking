@@ -27,8 +27,11 @@ import {
 } from './ai';
 import { suggestionKey } from './keys';
 
-/** Tiempo máximo de espera de la llamada, en milisegundos: el servidor ya corta a los 20 s, con un margen. */
-const CLIENT_TIMEOUT = 30000;
+/** Segundos que el navegador espera de más sobre lo que espera el servidor al modelo. */
+const CLIENT_MARGIN = 10;
+
+/** Si no se sabe cuánto espera el servidor, se supone el tope de un proveedor local. */
+const DEFAULT_SERVER_TIMEOUT = 20;
 
 /** Lo que dice el panel cuando la IA no responde (docs/05 §8). */
 export const NO_RESPONSE = () =>
@@ -36,6 +39,22 @@ export const NO_RESPONSE = () =>
 		'The AI did not respond; showing suggestions without AI.',
 		'magic-linking'
 	);
+
+/**
+ * Lo que se dice (y se enseña) mientras se espera al modelo: que sigue pensando y cuánto puede tardar como máximo.
+ *
+ * @param seconds Segundos que espera el servidor; sin dato, no se dice cifra.
+ */
+export function waitingText( seconds?: number ): string {
+	if ( ! seconds ) {
+		return __( 'Asking the AI…', 'magic-linking' );
+	}
+	return sprintf(
+		/* translators: %d: maximum number of seconds the wait can last. */
+		__( 'Asking the AI… it can take up to %d seconds.', 'magic-linking' ),
+		seconds
+	);
+}
 
 export type AiPhase = 'idle' | 'loading' | 'done' | 'failed';
 
@@ -167,7 +186,9 @@ export function useAiRerank(
 		running.current = controller;
 		const timer = window.setTimeout(
 			() => controller.abort(),
-			CLIENT_TIMEOUT
+			( ( capabilities?.timeout ?? DEFAULT_SERVER_TIMEOUT ) +
+				CLIENT_MARGIN ) *
+				1000
 		);
 		const failed = ( text: string ) => {
 			setPhase( 'failed' );
@@ -178,10 +199,7 @@ export function useAiRerank(
 
 		setPhase( 'loading' );
 		setMessage( '' );
-		speak(
-			__( 'Improving the suggestions with AI…', 'magic-linking' ),
-			'polite'
-		);
+		speak( waitingText( capabilities?.timeout ), 'polite' );
 
 		api.rerank(
 			postId,
@@ -223,7 +241,7 @@ export function useAiRerank(
 				}
 			} )
 			.finally( () => window.clearTimeout( timer ) );
-	}, [ items, phase, busy, postId, getContent ] );
+	}, [ items, phase, busy, postId, getContent, capabilities ] );
 
 	const reset = useCallback( () => {
 		setPhase( 'idle' );

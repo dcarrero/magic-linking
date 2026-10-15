@@ -54,6 +54,7 @@ const caps: AiCapabilities = {
 	provider: { id: 'p', name: 'P' },
 	model: 'm',
 	local: false,
+	timeout: 50,
 	estimate: {
 		tokens_in: 1,
 		tokens_out: 1,

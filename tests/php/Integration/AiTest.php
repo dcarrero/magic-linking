@@ -434,11 +434,111 @@ final class AiTest extends GraphTestCase {
 		$outcome = $this->quick_client()->generate( $this->simple_request() );
 
 		$this->assertInstanceOf( Failure::class, $outcome );
-		$this->assertSame( Failure::NETWORK, $outcome->code );
+		$this->assertSame( Failure::UPSTREAM, $outcome->code, 'Un 5xx del proveedor no es un fallo de red.' );
 		$this->assertSame( 2, FakeAiProvider::$calls, 'Un intento más, no más.' );
 		$row = $this->last_ai_row();
 		$this->assertSame( 'failed', $row['status'] );
-		$this->assertStringContainsString( Failure::NETWORK, (string) $row['error'] );
+		$this->assertStringContainsString( Failure::UPSTREAM, (string) $row['error'] );
+	}
+
+	public function test_classify_separates_timeout_network_and_upstream(): void {
+		$this->assertSame( Failure::TIMEOUT, Client::classify( new \WP_Error( 'prompt_network_error', 'cURL error 28: Operation timed out after 20001 milliseconds' ) )->code );
+		$this->assertSame( Failure::NETWORK, Client::classify( new \WP_Error( 'prompt_network_error', 'cURL error 6: Could not resolve host' ) )->code );
+		$this->assertSame( Failure::UPSTREAM, Client::classify( new \WP_Error( 'prompt_upstream_server_error', 'Bad gateway', array( 'status' => 502 ) ) )->code );
+	}
+
+	/**
+	 * Cliente con reloj propio: cada intento del proveedor falso avanza `$clock->t` los segundos que indique la prueba.
+	 *
+	 * @param \stdClass $clock Reloj.
+	 */
+	private function clocked_client( \stdClass $clock ): Client {
+		return new class( $this->container( Budget::class ), $clock ) extends Client {
+			public function __construct( Budget $budget, private \stdClass $clock ) {
+				parent::__construct( $budget );
+			}
+
+			protected function wait( int $milliseconds ): void {
+			}
+
+			protected function now(): float {
+				return $this->clock->t;
+			}
+		};
+	}
+
+	public function test_no_retry_when_the_first_attempt_used_up_the_time(): void {
+		$this->needs_ai_client();
+		$clock                 = new \stdClass();
+		$clock->t              = 0.0;
+		FakeAiProvider::$reply = static function () use ( $clock ) {
+			$clock->t += 19.0;
+
+			return new ServerException( 'Bad gateway', 502 );
+		};
+
+		$outcome = $this->clocked_client( $clock )->generate( $this->simple_request() );
+
+		$this->assertInstanceOf( Failure::class, $outcome );
+		$this->assertSame( 1, FakeAiProvider::$calls, 'Quedaba 1 s de 20: no cabe un reintento.' );
+	}
+
+	public function test_a_quick_failure_is_retried_with_the_time_that_is_left(): void {
+		$this->needs_ai_client();
+		$clock                 = new \stdClass();
+		$clock->t              = 0.0;
+		FakeAiProvider::$reply = static function ( int $call ) use ( $clock ) {
+			$clock->t += 1.0;
+
+			return 1 === $call ? new ServerException( 'Bad gateway', 502 ) : 'ya está';
+		};
+
+		$outcome = $this->clocked_client( $clock )->generate( $this->simple_request()->with_timeout( 50 ) );
+
+		$this->assertInstanceOf( Response::class, $outcome );
+		$this->assertSame( 2, FakeAiProvider::$calls );
+	}
+
+	public function test_a_failed_request_keeps_the_requested_model_and_a_scrubbed_detail(): void {
+		$this->needs_ai_client();
+		FakeAiProvider::$reply = new ClientException( 'Incorrect API key sk-abc123def456ghi789 for gpt-4o-mini', 401 );
+
+		$this->quick_client()->generate( $this->simple_request()->with_models( array( 'gpt-4o-mini' ) ) );
+
+		$failure = $this->container( JobRepository::class )->last_ai_failure();
+		$this->assertSame( 'gpt-4o-mini', $failure['model'], 'Una llamada fallida sin gasto sigue sabiendo a qué modelo se pidió.' );
+		$this->assertStringNotContainsString( 'abc123def456', $failure['error'] );
+		$this->assertStringStartsWith( Failure::FAILED, $failure['error'] );
+	}
+
+	public function test_rest_status_returns_the_last_failure_and_recommended_models_without_batch(): void {
+		$this->needs_ai_client();
+		wp_set_current_user( $this->admin );
+		FakeAiProvider::$models = array( 'openai/gpt-4.1-mini:batch', 'openai/gpt-4.1-mini', 'zzz/unknown', 'openai/gpt-4o-mini-2024-07-18', 'anthropic/claude-haiku-4.5' );
+		FakeAiProvider::$reply  = new ClientException( 'Unauthorized sk-abc123def456ghi789', 401 );
+		$this->quick_client()->generate( $this->simple_request()->with_models( array( 'openai/gpt-4.1-mini' ) ) );
+
+		$data = $this->request( 'GET', '/ai/status', array( 'refresh' => true ) )->get_data();
+
+		$ids = array_column( $data['models'], 'model' );
+		$this->assertNotContains( 'openai/gpt-4.1-mini:batch', $ids );
+		$this->assertSame( array( 'openai/gpt-4o-mini-2024-07-18', 'openai/gpt-4.1-mini', 'anthropic/claude-haiku-4.5', 'zzz/unknown' ), $ids, 'Primero los recomendados en orden de preferencia y después el resto.' );
+		$this->assertSame( array( true, true, true, false ), array_column( $data['models'], 'recommended' ) );
+		$this->assertSame( array( 0.40, 1.60 ), $data['models'][1]['price'] );
+		$this->assertNull( $data['models'][3]['price'] );
+		$this->assertSame( 'openai/gpt-4.1-mini', $data['last_failure']['model'] );
+		$this->assertSame( Failure::FAILED, $data['last_failure']['code'] );
+		$this->assertStringNotContainsString( 'abc123def456', $data['last_failure']['message'] );
+		$this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $data['last_failure']['at'] );
+	}
+
+	public function test_rest_capabilities_say_how_long_the_server_waits(): void {
+		$this->needs_ai_client();
+		wp_set_current_user( $this->admin );
+
+		$data = $this->request( 'GET', '/ai/capabilities', array( 'count' => 3 ) )->get_data();
+
+		$this->assertSame( Reranker::CLOUD_TIMEOUT, $data['timeout'] );
 	}
 
 	public function test_a_429_is_retried_and_ends_as_a_rate_limit_error(): void {

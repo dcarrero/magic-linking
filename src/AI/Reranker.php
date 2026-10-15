@@ -40,6 +40,27 @@ final class Reranker {
 	public const SUMMARY_CHARS = 720;
 
 	/**
+	 * Segundos de espera al modelo en el editor con un proveedor local (Ollama): el de siempre (05 §8).
+	 */
+	public const LOCAL_TIMEOUT = 20;
+
+	/**
+	 * Segundos de espera con un proveedor en la nube: con OpenRouter y `gpt-4.1-mini` el reordenado tardó ~25 s
+	 * (D-61 anexo 9) y 20 s cortaba una petición que sí terminaba. `Client` lo recorta si `max_execution_time` de PHP
+	 * es menor.
+	 */
+	public const CLOUD_TIMEOUT = 50;
+
+	/**
+	 * Tiempo de espera según el proveedor.
+	 *
+	 * @param bool $local El proveedor es local.
+	 */
+	public static function timeout( bool $local ): int {
+		return $local ? self::LOCAL_TIMEOUT : self::CLOUD_TIMEOUT;
+	}
+
+	/**
 	 * Motivo cuando ninguna sugerencia se puede enviar al modelo (destino no publicado, de otro idioma…).
 	 */
 	public const NOTHING = 'nothing';
@@ -234,7 +255,7 @@ final class Reranker {
 			$system,
 			$caps['json'] ? RerankProtocol::schema() : null,
 			RerankProtocol::MAX_OUTPUT_TOKENS,
-			20,
+			self::timeout( $caps['local'] ),
 			null === $caps['model'] ? array() : array( $caps['model'] ),
 			$tokens,
 			'ai_rerank',

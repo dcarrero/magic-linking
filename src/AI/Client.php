@@ -47,6 +47,16 @@ class Client {
 	public const LOCAL_PROVIDERS = array( 'ollama' );
 
 	/**
+	 * Segundos mínimos que tienen que quedar para que merezca la pena un reintento.
+	 */
+	public const MIN_RETRY = 3;
+
+	/**
+	 * Margen, en segundos, que se deja a PHP después de la espera para tratar la respuesta y apuntar el gasto.
+	 */
+	public const PHP_MARGIN = 5;
+
+	/**
 	 * Espera antes del reintento, en milisegundos.
 	 *
 	 * @var int
@@ -194,21 +204,23 @@ class Client {
 			return new Failure( Failure::BUDGET, 'daily token limit' );
 		}
 
-		$started  = microtime( true );
+		$started  = $this->now();
+		$request  = $request->with_timeout( $this->fit_timeout( $request->timeout ) );
 		$attempts = 1;
 		$outcome  = $this->attempt( $request );
 
-		// Un reintento con espera ante red, 429 o 5xx, si cabe en el tiempo que se dio a la petición.
+		// Un reintento con espera ante red, 429 o 5xx, solo si cabe en el tiempo que se dio a la petición: tras
+		// agotar la espera no queda margen y no se reintenta. Un tiempo agotado (`timeout`) tampoco se repite.
 		if ( $outcome instanceof Failure && $outcome->retryable() ) {
-			$left = (int) floor( $request->timeout - ( microtime( true ) - $started ) - $this->retry_wait_ms / 1000 );
-			if ( $left >= 3 ) {
+			$left = (int) floor( $request->timeout - ( $this->now() - $started ) - $this->retry_wait_ms / 1000 );
+			if ( $left >= self::MIN_RETRY ) {
 				$this->wait( $this->retry_wait_ms );
 				++$attempts;
 				$outcome = $this->attempt( $request->with_timeout( $left ) );
 			}
 		}
 
-		$this->log( $request, $outcome, $attempts, (int) round( ( microtime( true ) - $started ) * 1000 ) );
+		$this->log( $request, $outcome, $attempts, (int) round( ( $this->now() - $started ) * 1000 ) );
 
 		return $outcome;
 	}
@@ -340,8 +352,9 @@ class Client {
 			case 'prompt_prevented':
 				return new Failure( Failure::VETOED, $detail, $status );
 			case 'prompt_network_error':
+				return new Failure( preg_match( '/timed out|timeout|cURL error 28/i', $error->get_error_message() ) ? Failure::TIMEOUT : Failure::NETWORK, $detail, $status );
 			case 'prompt_upstream_server_error':
-				return new Failure( Failure::NETWORK, $detail, $status );
+				return new Failure( Failure::UPSTREAM, $detail, $status );
 			case 'prompt_client_error':
 				return new Failure( 429 === $status ? Failure::RATE_LIMIT : Failure::FAILED, $detail, $status );
 			case 'prompt_token_limit_reached':
@@ -349,6 +362,47 @@ class Client {
 			default:
 				return new Failure( Failure::FAILED, $detail, $status );
 		}
+	}
+
+	/**
+	 * Reloj en segundos; las pruebas lo sustituyen.
+	 */
+	protected function now(): float {
+		return microtime( true );
+	}
+
+	/**
+	 * Tiempo de espera que cabe de verdad: si `max_execution_time` es menor que la espera más el margen, se intenta
+	 * ampliarlo con `set_time_limit()` (puede estar desactivado) y, si no se puede, se reduce la espera a lo que
+	 * queda para que PHP no corte la petición antes que el proveedor.
+	 *
+	 * @param int $timeout Segundos pedidos.
+	 */
+	protected function fit_timeout( int $timeout ): int {
+		$max     = (int) ini_get( 'max_execution_time' );
+		$elapsed = isset( $_SERVER['REQUEST_TIME_FLOAT'] ) ? max( 0.0, $this->now() - (float) $_SERVER['REQUEST_TIME_FLOAT'] ) : 0.0; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Solo un reloj.
+		$can     = 0 !== $max && $max < $timeout + self::PHP_MARGIN + $elapsed
+			&& function_exists( 'set_time_limit' )
+			&& ! in_array( 'set_time_limit', array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) ), true )
+			&& @set_time_limit( $timeout + self::PHP_MARGIN ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- Puede estar desactivada; si falla se recorta la espera.
+
+		return self::fit_seconds( $timeout, $max, $elapsed, $can );
+	}
+
+	/**
+	 * Cálculo puro de `fit_timeout()`.
+	 *
+	 * @param int   $timeout  Segundos pedidos.
+	 * @param int   $max      `max_execution_time` de PHP (0 = sin límite).
+	 * @param float $elapsed  Segundos que lleva ya la petición PHP.
+	 * @param bool  $extended Si se consiguió ampliar el límite de PHP (el contador vuelve a cero).
+	 */
+	public static function fit_seconds( int $timeout, int $max, float $elapsed, bool $extended ): int {
+		if ( 0 === $max || $extended ) {
+			return max( 1, $timeout );
+		}
+
+		return max( 1, min( $timeout, (int) floor( $max - $elapsed - self::PHP_MARGIN ) ) );
 	}
 
 	/**
@@ -372,6 +426,7 @@ class Client {
 		$params = $request->params + array(
 			'attempts'   => $attempts,
 			'elapsed_ms' => $elapsed,
+			'timeout'    => $request->timeout,
 		);
 
 		if ( $outcome instanceof Response ) {
@@ -409,8 +464,8 @@ class Client {
 				'provider'    => $outcome->provider,
 				'model'       => $outcome->model,
 				'user_id'     => get_current_user_id(),
-				'params'      => $params,
-				'error'       => substr( $outcome->code . ( '' !== $outcome->detail ? ': ' . $outcome->detail : '' ), 0, 500 ),
+				'params'      => $params + array( 'model_requested' => $request->models[0] ?? '' ),
+				'error'       => substr( $outcome->code . ( '' !== $outcome->detail ? ': ' . Failure::scrub( $outcome->detail ) : '' ), 0, 500 ),
 			)
 		);
 	}

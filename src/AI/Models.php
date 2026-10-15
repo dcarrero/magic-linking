@@ -24,15 +24,19 @@ final class Models {
 	public const PRICES_DATE = '2026-10-15';
 
 	/**
-	 * Modelos de texto en orden de preferencia: pequeños y rápidos (familias «mini», «flash», «haiku») y sus
-	 * equivalentes de Ollama. Se evitan los modelos de razonamiento, que con un tope de salida bajo devuelven texto
-	 * vacío y tardan más que el límite del editor (05 §10); los de razonamiento solo entran al final.
+	 * Modelos de texto en orden de preferencia, de más barato y rápido a menos: primero los pequeños sin
+	 * razonamiento de la nube por precio (`gemini-2.5-flash-lite`, `gpt-4.1-nano`, `gpt-4o-mini`, `gemini-2.0-flash`,
+	 * `gpt-4.1-mini`, `gemini-2.5-flash`, «haiku»), después los de Ollama (si el proveedor es local el orden de los
+	 * locales no cambia) y al final los de razonamiento. Estos tardan más que el límite del editor y con un tope de
+	 * salida bajo devuelven texto vacío (05 §10). Decidido por el usuario el 15-10-2026 (D-61 anexo 9): el
+	 * automático es el barato.
 	 */
 	public const TEXT = array(
-		'gpt-4.1-mini',
-		'gpt-4o-mini',
 		'gemini-2.5-flash-lite',
+		'gpt-4.1-nano',
+		'gpt-4o-mini',
 		'gemini-2.0-flash',
+		'gpt-4.1-mini',
 		'gemini-2.5-flash',
 		'claude-haiku-4-5',
 		'claude-3-5-haiku',
@@ -51,8 +55,10 @@ final class Models {
 	/**
 	 * Dólares por millón de tokens de entrada y de salida, por prefijo de modelo.
 	 *
-	 * Son precios de lista públicos; los usa solo la estimación que se enseña al usuario. El importe real lo
-	 * cobra su proveedor.
+	 * Son precios de lista públicos (páginas de precios de OpenAI, Google AI y Anthropic; OpenRouter cobra casi lo
+	 * mismo), fechados en `PRICES_DATE` y **sin verificar contra las páginas** en la última revisión (D-61 anexo
+	 * 9): revisar antes de publicar. Los usa solo la estimación que se enseña al usuario. El importe real lo cobra
+	 * su proveedor.
 	 */
 	public const PRICES = array(
 		'gpt-4.1-nano'          => array( 0.10, 0.40 ),
@@ -82,6 +88,11 @@ final class Models {
 	 * con coste propio; `free` y `extended` tienen precio o límites que la tabla no recoge.
 	 */
 	private const AVOID = array( 'batch', 'free', 'thinking', 'online', 'extended', 'beta' );
+
+	/**
+	 * Cuántos modelos se recomiendan como máximo en Ajustes.
+	 */
+	public const RECOMMENDED_MAX = 5;
 
 	/**
 	 * Identificador sin proveedor delante, sin variante, en minúsculas y con versiones de Claude con guion.
@@ -129,7 +140,17 @@ final class Models {
 	}
 
 	/**
-	 * Si el modelo puede usarse para una petición síncrona del editor (no es `:batch`, `:free`…).
+	 * Si se puede fijar a mano: todo salvo `:batch`, que es asíncrono y no sirve para el editor (el usuario puede
+	 * querer un `:free` o un `:thinking` a sabiendas).
+	 *
+	 * @param string $model Identificador del modelo.
+	 */
+	public static function allowed( string $model ): bool {
+		return 'batch' !== self::variant( $model );
+	}
+
+	/**
+	 * Si el modelo puede elegirse en automático (no es `:batch`, `:free`…).
 	 *
 	 * @param string $model Identificador del modelo.
 	 */
@@ -168,8 +189,8 @@ final class Models {
 	/**
 	 * Elige el modelo de texto de entre los disponibles.
 	 *
-	 * Los `:batch` y demás variantes no síncronas (`usable()`) quedan fuera siempre, también si el usuario las fijó
-	 * (se ignora el valor y se elige en automático). Orden: el fijado por el usuario si está disponible; el primero
+	 * Los `:batch` quedan fuera siempre, también si el usuario lo fijó (se ignora y se elige en automático); el
+	 * automático descarta además `:free`, `:thinking`, `:online`, `:extended` y `:beta` (`usable()`). Orden: el fijado por el usuario si está disponible; el primero
 	 * de TEXT que lo esté (a igualdad, el identificador exacto antes que los de fecha, y luego el más corto); el más
 	 * barato de la tabla de precios; el primero de los utilizables (sin precio la estimación enseña solo tokens y la
 	 * confirmación sigue siendo obligatoria, regla 4). Null si no hay ninguno utilizable.
@@ -180,26 +201,17 @@ final class Models {
 	 * @phpstan-param list<string> $available
 	 */
 	public static function pick( array $available, string $chosen = '' ): ?string {
+		if ( '' !== $chosen && self::allowed( $chosen ) && in_array( $chosen, $available, true ) ) {
+			return $chosen;
+		}
+
 		$available = array_values( array_filter( $available, array( self::class, 'usable' ) ) );
 		if ( array() === $available ) {
 			return null;
 		}
 
-		if ( '' !== $chosen && in_array( $chosen, $available, true ) ) {
-			return $chosen;
-		}
-
 		foreach ( self::TEXT as $wanted ) {
-			$best = null;
-			foreach ( $available as $id ) {
-				$base = self::normalize( $id );
-				if ( ! str_starts_with( $base, $wanted ) ) {
-					continue;
-				}
-				if ( null === $best || self::rank( $id, $wanted ) < self::rank( $best, $wanted ) ) {
-					$best = $id;
-				}
-			}
+			$best = self::best_for( $available, $wanted );
 			if ( null !== $best ) {
 				return $best;
 			}
@@ -216,6 +228,54 @@ final class Models {
 		}
 
 		return $cheapest ?? $available[0];
+	}
+
+	/**
+	 * Modelos que se recomiendan en Ajustes: para cada familia de `TEXT`, en ese orden, el mejor identificador
+	 * utilizable de los disponibles; como mucho `RECOMMENDED_MAX`, sin repetir. Es el mismo criterio de `pick()`.
+	 *
+	 * @param array $available Identificadores disponibles.
+	 *
+	 * @phpstan-param list<string> $available
+	 *
+	 * @return list<string>
+	 */
+	public static function recommended( array $available ): array {
+		$available = array_values( array_filter( $available, array( self::class, 'usable' ) ) );
+		$out       = array();
+		foreach ( self::TEXT as $wanted ) {
+			$best = self::best_for( $available, $wanted );
+			if ( null !== $best && ! in_array( $best, $out, true ) ) {
+				$out[] = $best;
+				if ( count( $out ) >= self::RECOMMENDED_MAX ) {
+					break;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * El mejor identificador de una familia de `TEXT` entre los disponibles; null si no hay.
+	 *
+	 * @param array  $available Identificadores.
+	 * @param string $wanted    Familia (un valor de `TEXT`).
+	 *
+	 * @phpstan-param list<string> $available
+	 */
+	private static function best_for( array $available, string $wanted ): ?string {
+		$best = null;
+		foreach ( $available as $id ) {
+			if ( ! str_starts_with( self::normalize( $id ), $wanted ) ) {
+				continue;
+			}
+			if ( null === $best || self::rank( $id, $wanted ) < self::rank( $best, $wanted ) ) {
+				$best = $id;
+			}
+		}
+
+		return $best;
 	}
 
 	/**

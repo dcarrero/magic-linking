@@ -2,7 +2,7 @@ import { Button } from '@wordpress/components';
 import { useInstanceId } from '@wordpress/compose';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { estimateText, tokensText, usageText } from './aiText';
-import type { AiRerank } from './useAiRerank';
+import { waitingText, type AiRerank } from './useAiRerank';
 
 /**
  * Botón «Mejorar con IA» de las salientes, con a quién se envía y cuánto costaría, y el resultado de la última
@@ -61,6 +61,12 @@ export function AiBar( { ai }: { ai: AiRerank } ) {
 			<p id={ hintId } className="magiclinking-panel__hint">
 				{ hint }
 			</p>
+			{ loading && (
+				// El lector de pantalla ya lo oye por `speak()` al empezar; aquí es solo el texto visible.
+				<p className="magiclinking-panel__hint magiclinking-ai__waiting">
+					{ waitingText( caps.timeout ) }
+				</p>
+			) }
 
 			{ ai.phase === 'done' && (
 				<p className="magiclinking-ai__result">
