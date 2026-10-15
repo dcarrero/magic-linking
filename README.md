@@ -176,6 +176,13 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 
 ## 📝 Changelog
 
+### 0.21.1
+- "Improve with AI" uses exactly the chosen model (`using_model()`), records the model that answered and only picks models that declare the request's requirements; fixes OpenRouter sending requests to other models.
+- OpenRouter model IDs (`provider/model`, `:batch`, `:free`…) recognized for picking and pricing; batch variants never used and rejected in Settings.
+- Automatic choice prefers cheap, fast models; "Recommended" group with prices in Settings > AI.
+- Last failed AI request shown in Settings > AI (keys and quoted text redacted).
+- Cloud timeout up to 50 s (within PHP's limit); progress text in the editor panel.
+
 ### 0.21.0
 - Optional "Improve with AI" in the editor panel through the WordPress AI client (WordPress 7.0+, Settings > Connectors): reorders the best suggestions in one request, flags the ones it does not recommend and may propose a shorter anchor from the same sentence.
 - Token estimate before each request, daily token limit checked before sending, 10 requests per minute; local models (Ollama) shown as free.
