@@ -1,12 +1,18 @@
 // Pestañas de Ajustes y su relación con la dirección (sin dependencias de WordPress, para poder probarlo).
 import type { SettingsValues } from '../types';
 
-export type SettingsTabName = 'general' | 'suggestions' | 'links' | 'data';
+export type SettingsTabName =
+	| 'general'
+	| 'suggestions'
+	| 'links'
+	| 'ai'
+	| 'data';
 
 export const TAB_NAMES: SettingsTabName[] = [
 	'general',
 	'suggestions',
 	'links',
+	'ai',
 	'data',
 ];
 
@@ -17,6 +23,9 @@ export type SectionKey =
 	| 'underlinked'
 	| 'insertion'
 	| 'manner'
+	| 'aiConnector'
+	| 'aiLimits'
+	| 'aiUsage'
 	| 'exclusions'
 	| 'history'
 	| 'uninstall'
@@ -35,6 +44,9 @@ export const SECTION_META: Record<
 	insertion: { id: 'magiclinking-s-insertion', tab: 'links' },
 	manner: { id: 'magiclinking-s-manner', tab: 'links' },
 	exclusions: { id: 'magiclinking-s-exclusions', tab: 'links' },
+	aiConnector: { id: 'magiclinking-s-ai-connector', tab: 'ai' },
+	aiLimits: { id: 'magiclinking-s-ai-limits', tab: 'ai' },
+	aiUsage: { id: 'magiclinking-s-ai-usage', tab: 'ai' },
 	history: { id: 'magiclinking-s-data', tab: 'data' },
 	uninstall: { id: 'magiclinking-s-uninstall', tab: 'data' },
 };
@@ -67,6 +79,8 @@ const TAB_OF: Record< keyof SettingsValues, SettingsTabName > = {
 	extra_rel: 'links',
 	ignored_urls: 'links',
 	ignored_words: 'links',
+	ai_daily_token_limit: 'ai',
+	ai_model: 'ai',
 	history_retention_days: 'data',
 	delete_data_on_uninstall: 'data',
 };

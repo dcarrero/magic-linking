@@ -1,0 +1,414 @@
+<?php
+/**
+ * Rutas REST de la IA: reordenar, estado del conector y gasto.
+ *
+ * @package MagicLinking
+ */
+
+declare(strict_types=1);
+
+namespace MagicLinking\Rest;
+
+use MagicLinking\AI\Budget;
+use MagicLinking\AI\Capabilities;
+use MagicLinking\AI\Client;
+use MagicLinking\AI\Failure;
+use MagicLinking\AI\Models;
+use MagicLinking\AI\RerankProtocol;
+use MagicLinking\AI\Reranker;
+use MagicLinking\Core\Module;
+use MagicLinking\Jobs\JobRepository;
+use WP_Error;
+use WP_Post;
+use WP_REST_Request;
+use WP_REST_Response;
+use WP_REST_Server;
+
+/**
+ * `POST /suggestions/rerank`, `GET /ai/capabilities`, `GET /ai/status` y `POST /ai/notice` (docs/03 §6, docs/05).
+ *
+ * Permisos: reordenar y consultar las capacidades piden `edit_posts` y, para reordenar, `edit_post` sobre la entrada
+ * que se edita (la única cuyo texto se envía al modelo, y solo al pulsar el botón). El estado completo, el gasto y
+ * el aviso son de quien administra el plugin (`manage_options`). Un fallo de la IA no es un error HTTP: la respuesta
+ * lleva `ok: false`, el motivo y un texto breve y sin detalles técnicos, y el panel sigue con el orden léxico.
+ */
+final class AiController implements Module {
+
+	/**
+	 * Metadato de usuario donde se guarda que el aviso «Sin conector de IA» se cerró para siempre (docs/02 §5, regla 7).
+	 */
+	public const NOTICE_META = 'magiclinking_ai_notice_dismissed';
+
+	/**
+	 * Días del gasto que se enseña en Ajustes.
+	 */
+	public const USAGE_DAYS = 30;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param Reranker      $reranker     Reordenado.
+	 * @param Capabilities  $capabilities Capacidades del conector.
+	 * @param Client        $client       Cliente de IA.
+	 * @param Budget        $budget       Tope diario.
+	 * @param JobRepository $jobs        Registro del gasto.
+	 */
+	public function __construct(
+		private Reranker $reranker,
+		private Capabilities $capabilities,
+		private Client $client,
+		private Budget $budget,
+		private JobRepository $jobs
+	) {
+	}
+
+	/**
+	 * Clave del metadato del aviso en este sitio. Lleva el prefijo de las tablas (como el del asistente): en una red
+	 * cada sitio cierra el suyo y al desinstalar se borra solo la clave de ese sitio.
+	 */
+	public static function notice_meta_key(): string {
+		global $wpdb;
+
+		return $wpdb->get_blog_prefix() . self::NOTICE_META;
+	}
+
+	/**
+	 * Engancha el registro de rutas.
+	 */
+	public function register(): void {
+		add_action( 'rest_api_init', array( $this, 'routes' ) );
+	}
+
+	/**
+	 * Registra las rutas.
+	 */
+	public function routes(): void {
+		$ns = ReportController::NAMESPACE;
+
+		register_rest_route(
+			$ns,
+			'/suggestions/rerank',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'rerank' ),
+				'permission_callback' => array( $this, 'can_edit_post' ),
+				'args'                => array(
+					'post_id' => array(
+						'type'     => 'integer',
+						'minimum'  => 1,
+						'required' => true,
+					),
+					'items'   => array(
+						'type'              => 'array',
+						'required'          => true,
+						'minItems'          => 1,
+						'maxItems'          => RerankProtocol::MAX_CANDIDATES,
+						'validate_callback' => 'rest_validate_request_arg',
+						'items'             => array(
+							'type'       => 'object',
+							'required'   => array( 'target_id', 'sentence', 'anchor', 'offset' ),
+							'properties' => array(
+								'target_id' => array(
+									'type'    => 'integer',
+									'minimum' => 1,
+								),
+								'sentence'  => array(
+									'type'      => 'string',
+									'minLength' => 1,
+									'maxLength' => 5000,
+								),
+								'anchor'    => array(
+									'type'      => 'string',
+									'minLength' => 1,
+									'maxLength' => 500,
+								),
+								'offset'    => array(
+									'type'    => 'integer',
+									'minimum' => 0,
+								),
+							),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/ai/capabilities',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_capabilities' ),
+				'permission_callback' => array( $this, 'can_edit_posts' ),
+				'args'                => array(
+					'count' => array(
+						'type'    => 'integer',
+						'default' => RerankProtocol::MAX_CANDIDATES,
+						'minimum' => 1,
+						'maximum' => RerankProtocol::MAX_CANDIDATES,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/ai/status',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_status' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'refresh' => array( 'type' => 'boolean' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/ai/notice',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'update_notice' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+				'args'                => array(
+					'dismissed' => array(
+						'type'     => 'boolean',
+						'required' => true,
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Permiso base: editar entradas.
+	 */
+	public function can_edit_posts(): bool {
+		return current_user_can( 'edit_posts' );
+	}
+
+	/**
+	 * Permiso: administrar el plugin.
+	 */
+	public function can_manage(): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * Permiso: editar entradas y, si la entrada existe, editar esa (una que no existe da 404 en la ruta).
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	public function can_edit_post( WP_REST_Request $request ): bool {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			return false;
+		}
+
+		$id = (int) $request['post_id'];
+
+		return ! get_post( $id ) instanceof WP_Post || current_user_can( 'edit_post', $id );
+	}
+
+	/**
+	 * POST /suggestions/rerank: reordena con IA las salientes de la entrada abierta.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function rerank( WP_REST_Request $request ) {
+		$post_id = (int) $request['post_id'];
+		if ( ! get_post( $post_id ) instanceof WP_Post ) {
+			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
+		}
+
+		$items = array();
+		foreach ( (array) $request['items'] as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			$items[] = array(
+				'target_id' => (int) ( $item['target_id'] ?? 0 ),
+				'sentence'  => (string) ( $item['sentence'] ?? '' ),
+				'anchor'    => (string) ( $item['anchor'] ?? '' ),
+				'offset'    => (int) ( $item['offset'] ?? 0 ),
+			);
+		}
+
+		$result = $this->reranker->rerank( $post_id, $items );
+		if ( ! $result['ok'] ) {
+			$result['message'] = self::failure_message( (string) $result['reason'] );
+		}
+
+		return new WP_REST_Response( $result );
+	}
+
+	/**
+	 * Texto breve, sin detalles técnicos, para cada motivo por el que no hubo reordenado (docs/05 §8).
+	 *
+	 * @param string $reason Motivo (`Failure::*` o `Reranker::NOTHING`).
+	 */
+	public static function failure_message( string $reason ): string {
+		switch ( $reason ) {
+			case Failure::UNAVAILABLE:
+				return __( 'There is no AI connected on this site, so the suggestions are shown without AI.', 'magic-linking' );
+			case Failure::VETOED:
+				return __( 'AI is turned off for this action on this site; showing suggestions without AI.', 'magic-linking' );
+			case Failure::BUDGET:
+				return __( 'The daily AI limit you set has been reached; showing suggestions without AI. It will be available again tomorrow.', 'magic-linking' );
+			case Failure::RATE_LIMIT:
+				return __( 'Your AI provider is limiting requests right now; showing suggestions without AI. Try again in a moment.', 'magic-linking' );
+			case Reranker::NOTHING:
+				return __( 'None of these suggestions can be sent to AI; showing them as they are.', 'magic-linking' );
+			default:
+				return __( 'The AI did not respond; showing suggestions without AI.', 'magic-linking' );
+		}
+	}
+
+	/**
+	 * GET /ai/capabilities: lo que necesita el botón del panel (sin llamar al modelo).
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	public function get_capabilities( WP_REST_Request $request ): WP_REST_Response {
+		$caps = $this->capabilities->detect();
+		$base = $this->base( $caps );
+
+		$estimate = Reranker::typical_estimate( (int) $request['count'], $caps['model'], $caps['local'] );
+
+		return new WP_REST_Response(
+			array(
+				'available'      => $base['available'],
+				'text'           => $caps['text'],
+				'enabled'        => $this->budget->enabled(),
+				'ready'          => $caps['text'] && ! $this->budget->exhausted(),
+				'budget_spent'   => $caps['text'] && $this->budget->enabled() && $this->budget->exhausted(),
+				'provider'       => $base['provider'],
+				'model'          => $base['model'],
+				'local'          => $caps['local'],
+				'estimate'       => $estimate + array( 'prices_date' => Models::PRICES_DATE ),
+				'connectors_url' => $base['connectors_url'],
+			)
+		);
+	}
+
+	/**
+	 * GET /ai/status: estado del conector, tope y gasto de los últimos 30 días para Ajustes.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	public function get_status( WP_REST_Request $request ): WP_REST_Response {
+		$caps = $this->capabilities->detect( (bool) $request['refresh'] );
+		$base = $this->base( $caps );
+
+		$usage  = $this->jobs->ai_usage( self::USAGE_DAYS );
+		$models = array();
+		$total  = 0.0;
+		$part   = false;
+		foreach ( $usage['models'] as $row ) {
+			$local  = $this->client->is_local( $row['provider'] );
+			$priced = $local || null !== Models::price( $row['model'] );
+			$cost   = $priced ? ( $local ? 0.0 : $row['cost'] ) : null;
+			if ( null === $cost ) {
+				$part = true;
+			} else {
+				$total += $cost;
+			}
+			$models[] = array(
+				'provider' => $row['provider'],
+				'model'    => $row['model'],
+				'calls'    => $row['calls'],
+				'tokens'   => $row['tokens'],
+				'local'    => $local,
+				'cost'     => $cost,
+			);
+		}
+
+		return new WP_REST_Response(
+			array(
+				'state'            => $this->state( $caps ),
+				'available'        => $base['available'],
+				'text'             => $caps['text'],
+				'json'             => $caps['json'],
+				'local'            => $caps['local'],
+				'provider'         => $base['provider'],
+				'model'            => $base['model'],
+				'models'           => array_map(
+					static fn( array $m ): array => array(
+						'provider' => $m['provider'],
+						'model'    => $m['model'],
+						'name'     => $m['name'],
+					),
+					$caps['models']
+				),
+				'connectors_url'   => $base['connectors_url'],
+				'budget'           => array(
+					'limit'     => $this->budget->limit(),
+					'used'      => $this->budget->used_today(),
+					'remaining' => $this->budget->remaining(),
+					'exhausted' => $this->budget->exhausted(),
+				),
+				'usage'            => array(
+					'days'         => self::USAGE_DAYS,
+					'calls'        => $usage['calls'],
+					'failed'       => $usage['failed'],
+					'tokens'       => $usage['tokens'],
+					'cost'         => $total,
+					'cost_partial' => $part,
+					'models'       => $models,
+					'prices_date'  => Models::PRICES_DATE,
+				),
+				'notice_dismissed' => (bool) get_user_meta( get_current_user_id(), self::notice_meta_key(), true ),
+			)
+		);
+	}
+
+	/**
+	 * POST /ai/notice: cierra para siempre (para este usuario) el aviso «Sin conector de IA», o lo vuelve a abrir.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	public function update_notice( WP_REST_Request $request ): WP_REST_Response {
+		if ( filter_var( $request['dismissed'], FILTER_VALIDATE_BOOLEAN ) ) {
+			update_user_meta( get_current_user_id(), self::notice_meta_key(), '1' );
+		} else {
+			delete_user_meta( get_current_user_id(), self::notice_meta_key() );
+		}
+
+		return new WP_REST_Response( array( 'dismissed' => (bool) get_user_meta( get_current_user_id(), self::notice_meta_key(), true ) ) );
+	}
+
+	/**
+	 * Estado del conector: `unavailable`, `connected` o `none`.
+	 *
+	 * @param array $caps Resultado de `Capabilities::detect()`.
+	 *
+	 * @phpstan-param array{text: bool, ...} $caps
+	 */
+	private function state( array $caps ): string {
+		if ( ! $this->client->available() ) {
+			return 'unavailable';
+		}
+
+		return $caps['text'] ? 'connected' : 'none';
+	}
+
+	/**
+	 * Campos comunes de las dos respuestas.
+	 *
+	 * @param array $caps Resultado de `Capabilities::detect()`.
+	 *
+	 * @phpstan-param array{provider: array{id: string, name: string}|null, model: string|null, ...} $caps
+	 *
+	 * @return array{available: bool, provider: array{id: string, name: string}|null, model: string|null, connectors_url: string}
+	 */
+	private function base( array $caps ): array {
+		return array(
+			'available'      => $this->client->available(),
+			'provider'       => $caps['provider'],
+			'model'          => $caps['model'],
+			'connectors_url' => admin_url( 'options-connectors.php' ),
+		);
+	}
+}

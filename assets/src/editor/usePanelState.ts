@@ -3,6 +3,7 @@ import { api } from '../api';
 import type { Suggestion, InboundResponse, OutboundResponse } from '../types';
 import type { EditorAdapter } from './adapters/types';
 import type { CardStatus } from './SuggestionCard';
+import { useAiRerank, type AiRerank } from './useAiRerank';
 import { createInsertionLog, shortKey } from './insertions';
 import { InsertionSync } from './sync';
 import { suggestionKey } from './keys';
@@ -32,6 +33,8 @@ export interface PanelState {
 	trackInsertion: ( suggestion: Suggestion, anchor: string ) => string;
 	/** Deja de contar un enlace que se deshizo en el editor antes de guardar. */
 	forgetInsertion: ( insertionId: string ) => void;
+	/** «Mejorar con IA»: reordena las salientes con el modelo del conector (docs/04 §9). */
+	ai: AiRerank;
 }
 
 /**
@@ -118,6 +121,14 @@ export function usePanelState(
 		[ sync ]
 	);
 
+	// Una sugerencia con estado propio (enlazada, descartada, con error) no se envía a la IA.
+	const isBusy = useCallback(
+		( suggestion: Suggestion ) =>
+			statuses[ suggestionKey( suggestion ) ] !== undefined,
+		[ statuses ]
+	);
+	const ai = useAiRerank( adapter.postId, outbound.data, isBusy );
+
 	const { refresh } = outbound;
 	const refreshOutbound = useCallback( () => {
 		setStatuses( {} );
@@ -196,5 +207,6 @@ export function usePanelState(
 		refreshOutbound,
 		trackInsertion,
 		forgetInsertion,
+		ai,
 	};
 }

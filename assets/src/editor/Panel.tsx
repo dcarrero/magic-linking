@@ -3,6 +3,7 @@ import { Button, TabPanel } from '@wordpress/components';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
+import { AiBar } from './AiBar';
 import type { Suggestion } from '../types';
 import type { ApplyFailure, EditorAdapter } from './adapters/types';
 import type { EditorBoot } from './boot';
@@ -386,6 +387,7 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 									) }
 								</span>
 							</div>
+							<AiBar ai={ state.ai } />
 							{ outbound.error && (
 								<ErrorState
 									message={ outbound.error }
@@ -407,37 +409,73 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 								) : (
 									<ul
 										className="magiclinking-panel__cards"
-										aria-busy={ outbound.loading }
+										aria-busy={
+											outbound.loading ||
+											state.ai.phase === 'loading'
+										}
 									>
-										{ outbound.data.items.map( ( item ) => (
-											<SuggestionCard
-												key={ suggestionKey( item ) }
-												suggestion={ item }
-												direction="outbound"
-												status={
-													statuses[
-														suggestionKey( item )
-													]
-												}
-												historyUrl={ boot.historyUrl }
-												onLink={ linkOutbound }
-												onDismiss={ ( card ) =>
-													dismiss( card, 'outbound' )
-												}
-												onRestore={ ( card ) =>
-													restore( card, 'outbound' )
-												}
-												onUndo={ undo }
-												focusRequested={
-													focusKey ===
-													suggestionKey( item )
-												}
-												onFocusDone={ clearFocusKey }
-												onHighlight={
-													adapter.highlight
-												}
-											/>
-										) ) }
+										{ state.ai
+											.view( outbound.data.items )
+											.map(
+												( {
+													item,
+													original,
+													mark,
+												} ) => (
+													<SuggestionCard
+														key={ suggestionKey(
+															original
+														) }
+														suggestion={ item }
+														ai={ mark }
+														onUseAnchor={ (
+															improved
+														) =>
+															state.ai.acceptAnchor(
+																original,
+																improved
+															)
+														}
+														direction="outbound"
+														status={
+															statuses[
+																suggestionKey(
+																	item
+																)
+															]
+														}
+														historyUrl={
+															boot.historyUrl
+														}
+														onLink={ linkOutbound }
+														onDismiss={ ( card ) =>
+															dismiss(
+																card,
+																'outbound'
+															)
+														}
+														onRestore={ ( card ) =>
+															restore(
+																card,
+																'outbound'
+															)
+														}
+														onUndo={ undo }
+														focusRequested={
+															focusKey ===
+															suggestionKey(
+																item
+															)
+														}
+														onFocusDone={
+															clearFocusKey
+														}
+														onHighlight={
+															adapter.highlight
+														}
+													/>
+												)
+											) }
 									</ul>
 								) ) }
 						</div>

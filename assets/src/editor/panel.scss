@@ -227,3 +227,47 @@
 		color: HighlightText;
 	}
 }
+
+// «Mejorar con IA» (docs/07 §3). Lo que la IA opina lleva siempre texto, no solo color.
+.magiclinking-ai {
+	margin: 0 0 12px;
+
+	.magiclinking-panel__hint {
+		margin: 6px 0 0;
+	}
+}
+
+.magiclinking-ai__result,
+.magiclinking-ai__failed {
+	color: #1e1e1e;
+	font-size: 12px;
+	margin: 8px 0 0;
+}
+
+.magiclinking-ai__failed {
+	border-left: 4px solid #996800;
+	padding-left: 8px;
+}
+
+.magiclinking-card__ai {
+	margin: 0 0 6px;
+
+	p {
+		font-size: 12px;
+		margin: 0 0 4px;
+	}
+}
+
+.magiclinking-card__ai-fit.is-unfit {
+	color: #8a2424;
+	font-weight: 600;
+}
+
+.magiclinking-card__ai-fit.is-fit {
+	color: #1e6b2e;
+}
+
+.magiclinking-card__ai-anchor:focus {
+	outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+	outline-offset: 2px;
+}

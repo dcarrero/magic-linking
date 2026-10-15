@@ -1,0 +1,350 @@
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { speak } from '@wordpress/a11y';
+import { api } from '../../api';
+import type {
+	AiCapabilities,
+	OutboundResponse,
+	RerankResponse,
+	Suggestion,
+} from '../../types';
+import { suggestionKey } from '../keys';
+import { useAiRerank, type AiRerank } from '../useAiRerank';
+
+jest.mock( '@wordpress/a11y', () => ( { speak: jest.fn() } ) );
+jest.mock( '../../api', () => ( {
+	api: { aiCapabilities: jest.fn(), rerank: jest.fn() },
+} ) );
+
+(
+	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+ ).IS_REACT_ACT_ENVIRONMENT = true;
+
+const mocked = api as unknown as {
+	aiCapabilities: jest.Mock;
+	rerank: jest.Mock;
+};
+
+const suggestion = ( id: number ): Suggestion =>
+	( {
+		source: { id: 1 },
+		target: { id, title: `Destino ${ id }` },
+		can_insert: true,
+		reasons: [],
+		alternatives: [],
+		anchor: 'bomba de calor',
+		sentence: 'Una bomba de calor reduce el consumo.',
+		offset: 4,
+		before: 'Una ',
+		after: ' reduce el consumo.',
+		anchor_start: 4,
+		anchor_end: 18,
+		paragraph: 0,
+		score: 0.5,
+	} ) as Suggestion;
+
+const caps: AiCapabilities = {
+	available: true,
+	text: true,
+	enabled: true,
+	ready: true,
+	budget_spent: false,
+	provider: { id: 'p', name: 'P' },
+	model: 'm',
+	local: false,
+	estimate: {
+		tokens_in: 1,
+		tokens_out: 1,
+		tokens: 2,
+		cost: 0.001,
+		prices_date: '2026-10-15',
+	},
+	connectors_url: 'options-connectors.php',
+};
+
+const usage = {
+	tokens_in: 100,
+	tokens_out: 50,
+	tokens: 150,
+	cost: 0.0004,
+	local: false,
+	provider: 'p',
+	provider_name: 'P',
+	model: 'm',
+	prices_date: '2026-10-15',
+};
+
+const data = ( ...ids: number[] ): OutboundResponse => ( {
+	ready: true,
+	state: 'ok',
+	total: ids.length,
+	items: ids.map( suggestion ),
+} );
+
+let root: Root;
+let current: AiRerank;
+
+function Probe( {
+	payload,
+	busy,
+}: {
+	payload: OutboundResponse | null;
+	busy: ( s: Suggestion ) => boolean;
+} ) {
+	current = useAiRerank( 7, payload, busy );
+	return null;
+}
+
+const never = () => false;
+const mount = async (
+	payload: OutboundResponse | null,
+	busy: ( s: Suggestion ) => boolean = never
+) => {
+	await act( async () => {
+		root.render( <Probe payload={ payload } busy={ busy } /> );
+	} );
+};
+
+beforeEach( () => {
+	root = createRoot( document.createElement( 'div' ) );
+	mocked.aiCapabilities.mockReset().mockResolvedValue( caps );
+	mocked.rerank.mockReset();
+	( speak as jest.Mock ).mockClear();
+} );
+afterEach( () => {
+	act( () => root.unmount() );
+} );
+
+describe( 'useAiRerank', () => {
+	it( 'asks what the connector can do without calling the model', async () => {
+		await mount( data( 1, 2, 3 ) );
+
+		expect( mocked.aiCapabilities ).toHaveBeenCalledWith(
+			3,
+			expect.any( AbortSignal )
+		);
+		expect( current.capabilities ).toEqual( caps );
+		expect( mocked.rerank ).not.toHaveBeenCalled();
+		expect( current.phase ).toBe( 'idle' );
+	} );
+
+	it( 'has no capabilities, and so no button, when the request fails', async () => {
+		mocked.aiCapabilities.mockRejectedValue( new Error( 'x' ) );
+
+		await mount( data( 1 ) );
+
+		expect( current.capabilities ).toBeNull();
+	} );
+
+	it( 'does not ask anything when there are no suggestions', async () => {
+		await mount( data() );
+
+		expect( mocked.aiCapabilities ).not.toHaveBeenCalled();
+	} );
+
+	it( 'reorders on a good answer and keeps the cost of the call', async () => {
+		const response: RerankResponse = {
+			ok: true,
+			skipped: [],
+			usage,
+			items: [
+				{
+					index: 1,
+					target_id: 2,
+					fit: true,
+					confidence: 0.9,
+					improved: null,
+				},
+				{
+					index: 0,
+					target_id: 1,
+					fit: false,
+					confidence: 0.2,
+					improved: null,
+				},
+			],
+		};
+		mocked.rerank.mockResolvedValue( response );
+		const payload = data( 1, 2 );
+		await mount( payload );
+
+		await act( async () => current.run() );
+
+		expect( mocked.rerank ).toHaveBeenCalledTimes( 1 );
+		expect( mocked.rerank.mock.calls[ 0 ][ 0 ] ).toBe( 7 );
+		expect( mocked.rerank.mock.calls[ 0 ][ 1 ] ).toHaveLength( 2 );
+		expect( current.phase ).toBe( 'done' );
+		expect( current.usage ).toEqual( usage );
+		expect( current.unfit ).toBe( 1 );
+		expect(
+			current.view( payload.items ).map( ( v ) => v.item.target.id )
+		).toEqual( [ 2, 1 ] );
+		expect( speak ).toHaveBeenCalled();
+	} );
+
+	it( 'falls back to the lexical order with the plain message when the AI does not answer', async () => {
+		mocked.rerank.mockResolvedValue( {
+			ok: false,
+			reason: 'network',
+			message: 'The AI did not respond; showing suggestions without AI.',
+		} );
+		const payload = data( 1, 2 );
+		await mount( payload );
+
+		await act( async () => current.run() );
+
+		expect( current.phase ).toBe( 'failed' );
+		expect( current.message ).toBe(
+			'The AI did not respond; showing suggestions without AI.'
+		);
+		expect(
+			current.view( payload.items ).map( ( v ) => v.item.target.id )
+		).toEqual( [ 1, 2 ] );
+	} );
+
+	it( 'treats a thrown error like no answer and never shows its text', async () => {
+		mocked.rerank.mockRejectedValue(
+			new Error( 'HTTP 500 secret detail' )
+		);
+		await mount( data( 1 ) );
+
+		await act( async () => current.run() );
+
+		expect( current.phase ).toBe( 'failed' );
+		expect( current.message ).toBe(
+			'The AI did not respond; showing suggestions without AI.'
+		);
+	} );
+
+	it( 'does not send the suggestions that already have a state', async () => {
+		mocked.rerank.mockResolvedValue( {
+			ok: true,
+			skipped: [],
+			usage,
+			items: [],
+		} );
+		const payload = data( 1, 2, 3 );
+		const linked = suggestionKey( payload.items[ 0 ] as Suggestion );
+		await mount( payload, ( s ) => suggestionKey( s ) === linked );
+
+		await act( async () => current.run() );
+
+		const sent = mocked.rerank.mock.calls[ 0 ][ 1 ] as {
+			target_id: number;
+		}[];
+		expect( sent.map( ( s ) => s.target_id ) ).toEqual( [ 2, 3 ] );
+	} );
+
+	it( 'sends one request only while another is running', async () => {
+		let finish: ( value: RerankResponse ) => void = () => undefined;
+		mocked.rerank.mockReturnValue(
+			new Promise< RerankResponse >( ( resolve ) => {
+				finish = resolve;
+			} )
+		);
+		await mount( data( 1 ) );
+
+		await act( async () => current.run() );
+		expect( current.phase ).toBe( 'loading' );
+		await act( async () => current.run() );
+
+		expect( mocked.rerank ).toHaveBeenCalledTimes( 1 );
+		await act( async () =>
+			finish( { ok: true, skipped: [], usage, items: [] } )
+		);
+		expect( current.phase ).toBe( 'done' );
+	} );
+
+	it( 'forgets the result when the suggestions are asked again', async () => {
+		mocked.rerank.mockResolvedValue( {
+			ok: true,
+			skipped: [],
+			usage,
+			items: [
+				{
+					index: 1,
+					target_id: 2,
+					fit: true,
+					confidence: 0.9,
+					improved: null,
+				},
+			],
+		} );
+		await mount( data( 1, 2 ) );
+		await act( async () => current.run() );
+		expect( current.phase ).toBe( 'done' );
+
+		await mount( data( 1, 2 ) );
+
+		expect( current.phase ).toBe( 'idle' );
+		expect( current.unfit ).toBe( 0 );
+	} );
+
+	it( 'goes back to the original order on request', async () => {
+		mocked.rerank.mockResolvedValue( {
+			ok: true,
+			skipped: [],
+			usage,
+			items: [
+				{
+					index: 1,
+					target_id: 2,
+					fit: true,
+					confidence: 0.9,
+					improved: null,
+				},
+			],
+		} );
+		const payload = data( 1, 2 );
+		await mount( payload );
+		await act( async () => current.run() );
+
+		act( () => current.reset() );
+
+		expect(
+			current.view( payload.items ).map( ( v ) => v.item.target.id )
+		).toEqual( [ 1, 2 ] );
+	} );
+
+	it( 'accepts an improved anchor only when asked', async () => {
+		const improved = {
+			anchor: 'bomba de calor reduce',
+			offset: 4,
+			before: 'Una ',
+			after: ' el consumo.',
+			anchor_start: 4,
+			anchor_end: 25,
+		};
+		mocked.rerank.mockResolvedValue( {
+			ok: true,
+			skipped: [],
+			usage,
+			items: [
+				{
+					index: 0,
+					target_id: 1,
+					fit: true,
+					confidence: 0.9,
+					improved,
+				},
+			],
+		} );
+		const payload = data( 1 );
+		await mount( payload );
+		await act( async () => current.run() );
+
+		const before = current.view( payload.items )[ 0 ];
+		expect( before?.item.anchor ).toBe( 'bomba de calor' );
+		expect( before?.mark?.improved?.anchor ).toBe(
+			'bomba de calor reduce'
+		);
+
+		act( () =>
+			current.acceptAnchor( payload.items[ 0 ] as Suggestion, improved )
+		);
+
+		const after = current.view( payload.items )[ 0 ];
+		expect( after?.item.anchor ).toBe( 'bomba de calor reduce' );
+		expect( after?.mark?.improved ).toBeNull();
+	} );
+} );

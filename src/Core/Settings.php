@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace MagicLinking\Core;
 
+use MagicLinking\AI\Budget;
+
 /**
  * Lee y guarda la opción magiclinking_settings, la única en autoload.
  *
@@ -39,6 +41,8 @@ final class Settings {
 		'ignored_urls'                 => array(),
 		'ignored_words'                => array(),
 		'ignored_ids'                  => array(),
+		'ai_daily_token_limit'         => Budget::DEFAULT_LIMIT,
+		'ai_model'                     => '',
 	);
 
 	/**
@@ -60,6 +64,8 @@ final class Settings {
 		'outbound_shown'        => array( 1, 50 ),
 		'inbound_per_page'      => array( 5, 50 ),
 		'same_anchor_max'       => array( 1, 50 ),
+		// Tope diario de tokens de IA (docs/05 §5.3): 0 = sin IA.
+		'ai_daily_token_limit'  => array( 0, Budget::MAX_LIMIT ),
 	);
 
 	/**
@@ -84,6 +90,20 @@ final class Settings {
 		$stored = get_option( Installer::SETTINGS_OPTION, array() );
 
 		return $this->sanitize( is_array( $stored ) ? $stored : array(), self::DEFAULTS );
+	}
+
+	/**
+	 * Tope diario de tokens de IA; 0 = sin IA (docs/05 §5.3).
+	 */
+	public function ai_daily_token_limit(): int {
+		return $this->all()['ai_daily_token_limit'];
+	}
+
+	/**
+	 * Modelo de texto que el usuario prefiere para la IA; vacío = automático (docs/05 §4).
+	 */
+	public function ai_model(): string {
+		return $this->all()['ai_model'];
 	}
 
 	/**
@@ -215,6 +235,8 @@ final class Settings {
 			$out[ $key ] = filter_var( $input[ $key ] ?? $base[ $key ] ?? false, FILTER_VALIDATE_BOOLEAN );
 		}
 
+		$out['ai_model'] = self::clean_model( $input['ai_model'] ?? $base['ai_model'] ?? '' );
+
 		$out['extra_rel'] = self::clean_rel( $input['extra_rel'] ?? $base['extra_rel'] ?? '' );
 
 		foreach ( self::LIST_LIMITS as $key => $limit ) {
@@ -225,6 +247,17 @@ final class Settings {
 		$out['ignored_ids'] = array_values( array_map( 'intval', (array) ( $input['ignored_ids'] ?? $base['ignored_ids'] ?? array() ) ) );
 
 		return $out;
+	}
+
+	/**
+	 * Identificador de modelo válido: letras, números y los signos que usan los proveedores (`. : _ / -`); vacío = automático.
+	 *
+	 * @param mixed $value Texto recibido.
+	 */
+	private static function clean_model( $value ): string {
+		$model = trim( is_string( $value ) ? $value : '' );
+
+		return 1 === preg_match( '/^[A-Za-z0-9][A-Za-z0-9._:\/-]{0,79}$/', $model ) ? $model : '';
 	}
 
 	/**

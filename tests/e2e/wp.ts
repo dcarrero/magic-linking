@@ -114,11 +114,11 @@ export async function openHistoryByBatch( page: Page ): Promise< void > {
  * Abre una pestaña de Ajustes por su nombre visible (la pestaña puede llevar la marca «(unsaved changes)»).
  *
  * @param page Página.
- * @param name Nombre de la pestaña: General, Suggestions, Links o History and data.
+ * @param name Nombre de la pestaña: General, Suggestions, Links, AI o History and data.
  */
 export async function openSettingsTab(
 	page: Page,
-	name: 'General' | 'Suggestions' | 'Links' | 'History and data'
+	name: 'General' | 'Suggestions' | 'Links' | 'AI' | 'History and data'
 ): Promise< void > {
 	const tab = page.getByRole( 'tab', { name: new RegExp( `^${ name }` ) } );
 	await tab.click();

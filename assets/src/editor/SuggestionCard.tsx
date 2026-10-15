@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { __, _x, sprintf } from '@wordpress/i18n';
-import type { Suggestion } from '../types';
+import type { RerankImproved, Suggestion } from '../types';
+import type { AiMark } from './ai';
 
 /** Estado de una tarjeta después de pulsar «Enlazar». */
 export type CardStatus =
@@ -38,6 +39,10 @@ interface Props {
 	onFocusDone?: () => void;
 	/** Resalta la frase en el lienzo (solo salientes). */
 	onHighlight?: ( suggestion: Suggestion | null ) => void;
+	/** Lo que la IA opina de esta sugerencia tras «Mejorar con IA» (solo salientes). */
+	ai?: AiMark;
+	/** Acepta el ancla mejor que propone la IA. */
+	onUseAnchor?: ( improved: RerankImproved ) => void;
 }
 
 /**
@@ -54,6 +59,8 @@ interface Props {
  * @param root0.onHighlight
  * @param root0.focusRequested
  * @param root0.onFocusDone
+ * @param root0.ai
+ * @param root0.onUseAnchor
  */
 export function SuggestionCard( {
 	suggestion,
@@ -67,6 +74,8 @@ export function SuggestionCard( {
 	onHighlight,
 	focusRequested,
 	onFocusDone,
+	ai,
+	onUseAnchor,
 }: Props ) {
 	// Al plegarse (enlazada o descartada) el botón pulsado desaparece: el foco pasa a la fila, que se lee entera.
 	// Solo en el cambio de estado, no al montarse ya plegada (volver de otra pestaña no roba el foco).
@@ -297,6 +306,14 @@ export function SuggestionCard( {
 				</p>
 			) }
 
+			{ ai && direction === 'outbound' && (
+				<AiNote
+					mark={ ai }
+					anchor={ suggestion.anchor }
+					onUseAnchor={ onUseAnchor }
+				/>
+			) }
+
 			{ ! suggestion.can_insert && (
 				<p className="magiclinking-card__note">
 					{ __(
@@ -361,5 +378,103 @@ export function SuggestionCard( {
 				) }
 			</div>
 		</li>
+	);
+}
+
+interface AiNoteProps {
+	mark: AiMark;
+	/** Ancla que se enseña ahora en la tarjeta. */
+	anchor: string;
+	onUseAnchor?: ( improved: RerankImproved ) => void;
+}
+
+/**
+ * Lo que la IA opina de una sugerencia: si la ve apta (con texto, no solo color) y, a veces, un ancla mejor que el
+ * usuario puede aceptar. El ancla nunca se cambia sola.
+ *
+ * @param root0
+ * @param root0.mark
+ * @param root0.anchor
+ * @param root0.onUseAnchor
+ */
+function AiNote( { mark, anchor, onUseAnchor }: AiNoteProps ) {
+	const [ accepted, setAccepted ] = useState( '' );
+	const acceptedRef = useRef< HTMLParagraphElement >( null );
+
+	// Al aceptar el ancla el botón desaparece: el foco pasa a la frase que lo confirma.
+	useEffect( () => {
+		if ( accepted !== '' ) {
+			acceptedRef.current?.focus();
+		}
+	}, [ accepted ] );
+
+	return (
+		<div className="magiclinking-card__ai">
+			{ mark.fit === false && (
+				<p className="magiclinking-card__ai-fit is-unfit">
+					<span aria-hidden="true">✕ </span>
+					{ __(
+						'The AI does not see this as a good link.',
+						'magic-linking'
+					) }
+				</p>
+			) }
+			{ mark.fit === true && (
+				<p className="magiclinking-card__ai-fit is-fit">
+					<span aria-hidden="true">✓ </span>
+					{ mark.confidence === null
+						? __( 'Recommended by the AI.', 'magic-linking' )
+						: sprintf(
+								/* translators: %d: confidence of the AI, from 0 to 100. */
+								__(
+									'Recommended by the AI (confidence %d%%).',
+									'magic-linking'
+								),
+								Math.round( mark.confidence * 100 )
+						  ) }
+				</p>
+			) }
+			{ mark.improved && onUseAnchor && accepted === '' && (
+				<p className="magiclinking-card__ai-anchor">
+					{ sprintf(
+						/* translators: %s: anchor text the AI proposes. */
+						__(
+							'The AI suggests this anchor: “%s”.',
+							'magic-linking'
+						),
+						mark.improved.anchor
+					) }{ ' ' }
+					<Button
+						variant="link"
+						onClick={ () => {
+							if ( mark.improved ) {
+								setAccepted( mark.improved.anchor );
+								onUseAnchor( mark.improved );
+							}
+						} }
+						aria-label={ sprintf(
+							/* translators: %s: anchor text the AI proposes. */
+							__( 'Use the anchor “%s”', 'magic-linking' ),
+							mark.improved.anchor
+						) }
+					>
+						{ __( 'Use this anchor', 'magic-linking' ) }
+					</Button>
+				</p>
+			) }
+			{ accepted !== '' && (
+				<p
+					className="magiclinking-card__ai-anchor"
+					ref={ acceptedRef }
+					tabIndex={ -1 }
+				>
+					{ sprintf(
+						/* translators: %s: new anchor text. */
+						__( 'Anchor changed to “%s”.', 'magic-linking' ),
+						anchor
+					) }
+				</p>
+			) }
+		</div>
 	);
 }

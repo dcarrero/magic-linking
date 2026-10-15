@@ -372,6 +372,8 @@ final class InstallerTest extends WP_UnitTestCase {
 		global $wpdb;
 		$user = self::factory()->user->create();
 		update_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_wizard_dismissed', '1' );
+		update_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed', '1' );
+		set_transient( 'magiclinking_ai_capabilities', array( 'text' => true ) );
 		update_user_meta( $user, 'magiclinking_pro_something', 'keep' );
 		update_user_meta( $user, 'other_plugin_user_meta', 'keep' );
 		get_user_meta( $user );
@@ -380,6 +382,8 @@ final class InstallerTest extends WP_UnitTestCase {
 		Installer::uninstall_everywhere();
 
 		$this->assertSame( '', get_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_wizard_dismissed', true ), 'El asistente cerrado se borra con los datos, también de la caché.' );
+		$this->assertSame( '', get_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed', true ), 'El aviso de IA cerrado también.' );
+		$this->assertFalse( get_transient( 'magiclinking_ai_capabilities' ), 'Lo que la IA guarda de los conectores, también.' );
 		$this->assertSame( 'keep', get_user_meta( $user, 'magiclinking_pro_something', true ), 'Solo se borran las claves propias exactas.' );
 		$this->assertSame( 'keep', get_user_meta( $user, 'other_plugin_user_meta', true ) );
 		$this->assertCount( 8, $installer->missing_tables() );
