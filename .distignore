@@ -40,3 +40,7 @@
 # Las traducciones viajan compiladas (.mo para PHP y .json para JavaScript); los .po son su fuente
 # y WordPress no los lee. Quitarlos ahorra unos 80 KB del ZIP con seis idiomas.
 /languages/*.po
+# Las pruebas de JavaScript (Jest) viven junto al código en assets/src, pero no son fuente del plugin.
+/assets/src/**/test/
+*.test.ts
+*.test.tsx
