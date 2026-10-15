@@ -651,6 +651,21 @@ final class AiTest extends GraphTestCase {
 		$this->assertSame( 0, substr_count( $sent, '@' ), 'Ni un solo correo.' );
 	}
 
+	public function test_the_prompt_carries_the_language_of_the_entry_not_a_fixed_one(): void {
+		$this->needs_ai_client();
+		$this->corpus();
+		$this->reply( '{"results":[{"candidato":1,"apto":true,"confianza":0.5},{"candidato":2,"apto":true,"confianza":0.5}]}' );
+		// La misma detección de la regla 9 (WPML, Polylang o el sitio); aquí la fija el filtro de la entrada.
+		$fix = static fn() => 'es';
+		add_filter( 'magiclinking_post_language', $fix );
+
+		$this->container( Reranker::class )->rerank( $this->source, $this->items() );
+		remove_filter( 'magiclinking_post_language', $fix, 10 );
+
+		$this->assertStringContainsString( 'Content language: es.', FakeAiProvider::$sent[0] );
+		$this->assertSame( 'es', $this->last_ai_row()['params'] ? json_decode( $this->last_ai_row()['params'], true )['lang'] : null );
+	}
+
 	public function test_invalid_json_empty_text_and_a_failing_provider_fall_back_to_lexical_order(): void {
 		$this->needs_ai_client();
 		$this->corpus();
@@ -729,18 +744,19 @@ final class AiTest extends GraphTestCase {
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( Failure::TOO_SMALL, $result['reason'], 'Un tope menor que una petición no es «mañana».' );
-		$this->assertGreaterThan( RerankProtocol::MAX_OUTPUT_TOKENS, $result['needs'] );
+		$this->assertGreaterThan( 10, $result['needs'] );
+		$this->assertLessThan( RerankProtocol::MAX_OUTPUT_TOKENS, $result['needs'], 'La cifra es la estimación calibrada, no el tope de salida.' );
 		$this->assertSame( 0, FakeAiProvider::$calls );
 	}
 
-	public function test_the_daily_limit_counts_the_largest_answer_the_request_allows(): void {
+	public function test_the_daily_limit_counts_what_the_request_needs_on_top_of_todays_spend(): void {
 		$this->needs_ai_client();
 		$this->corpus();
 		wp_set_current_user( $this->admin );
 		$this->reply( '{"results":[{"candidato":1,"apto":true,"confianza":0.5},{"candidato":2,"apto":true,"confianza":0.5}]}' );
 		$reranker = $this->container( Reranker::class );
 
-		// Hay sitio para la entrada y la salida típica (~1.300) pero no para las 2.500 que la petición permite.
+		// El tope cubre una petición, pero lo gastado hoy (1.200) deja menos de lo que esta necesita.
 		$needs = Reranker::worst_case_tokens( 2 );
 		$this->container( Settings::class )->update( array( 'ai_daily_token_limit' => $needs + 500 ) );
 		$this->container( JobRepository::class )->record_ai(
@@ -1014,7 +1030,8 @@ final class AiTest extends GraphTestCase {
 		$this->assertSame( 'ok', $data['budget'] );
 		$this->assertSame( 'gpt-4o-mini', $data['model'] );
 		$this->assertSame( 'Fake AI', $data['provider']['name'] );
-		$this->assertSame( 3300, $data['estimate']['tokens_in'] );
+		$this->assertSame( 2180, $data['estimate']['tokens_in'] );
+		$this->assertSame( $data['estimate']['tokens'], $data['needs'], 'Botón y tope diario dicen lo mismo.' );
 		$this->assertGreaterThan( 0.0, $data['estimate']['cost'] );
 		$this->assertStringContainsString( 'options-connectors.php', $data['connectors_url'] );
 
