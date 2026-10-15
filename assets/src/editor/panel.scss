@@ -230,18 +230,35 @@
 
 // «Mejorar con IA» (docs/07 §3). Lo que la IA opina lleva siempre texto, no solo color.
 .magiclinking-ai {
-	margin: 0 0 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin: 0 0 16px;
 
 	.magiclinking-panel__hint {
-		margin: 6px 0 0;
+		// En columna, el `flex: 1 1 140px` de la barra de herramientas estiraría el texto en vertical.
+		flex: none;
+		margin: 0;
 	}
+
+	// El botón no se estira.
+	.components-button {
+		align-self: flex-start;
+	}
+}
+
+// El emoji (decorativo, `aria-hidden`) y el texto van separados por un hueco propio, no por un espacio pegado.
+.magiclinking-ai__label {
+	align-items: center;
+	display: inline-flex;
+	gap: 6px;
 }
 
 .magiclinking-ai__result,
 .magiclinking-ai__failed {
 	color: #1e1e1e;
 	font-size: 12px;
-	margin: 8px 0 0;
+	margin: 0;
 }
 
 .magiclinking-ai__failed {
@@ -270,4 +287,9 @@
 .magiclinking-card__ai-anchor:focus {
 	outline: 2px solid var(--wp-admin-theme-color, #3858e9);
 	outline-offset: 2px;
+}
+
+// En la barra lateral de Gutenberg el contenido llega sin margen: se le da el de las demás secciones de Gutenberg.
+.magiclinking-sidebar .magiclinking-panel__list {
+	padding-inline: 16px;
 }

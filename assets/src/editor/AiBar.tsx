@@ -49,10 +49,14 @@ export function AiBar( { ai }: { ai: AiRerank } ) {
 				aria-describedby={ hintId }
 				onClick={ ai.run }
 			>
-				<span aria-hidden="true">✨ </span>
-				{ loading
-					? __( 'Improving…', 'magic-linking' )
-					: __( 'Improve with AI', 'magic-linking' ) }
+				<span className="magiclinking-ai__label">
+					<span aria-hidden="true">✨</span>
+					<span>
+						{ loading
+							? __( 'Improving…', 'magic-linking' )
+							: __( 'Improve with AI', 'magic-linking' ) }
+					</span>
+				</span>
 			</Button>
 			<p id={ hintId } className="magiclinking-panel__hint">
 				{ hint }
