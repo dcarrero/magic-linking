@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\History;
 
 use MagicLinking\Content\OpenTag;
+use MagicLinking\Core\PostTitle;
 use Generator;
 use WP_Post;
 
@@ -231,7 +232,7 @@ final class Reader {
 			$items[] = array(
 				'id'           => $change['id'],
 				'post_id'      => $change['post_id'],
-				'post_title'   => $post instanceof WP_Post ? get_the_title( $post ) : null,
+				'post_title'   => $post instanceof WP_Post ? PostTitle::of( $post ) : null,
 				'edit_url'     => is_string( $edit ) ? $edit : null,
 				'kind'         => $change['action'],
 				'origin'       => $origin,
@@ -296,7 +297,7 @@ final class Reader {
 
 			$items[] = array(
 				'post_id'    => $post_id,
-				'post_title' => $post instanceof WP_Post ? get_the_title( $post ) : null,
+				'post_title' => $post instanceof WP_Post ? PostTitle::of( $post ) : null,
 				'edit_url'   => $post instanceof WP_Post ? $this->edit_link( $post ) : null,
 				'view_url'   => $post instanceof WP_Post && 'publish' === $post->post_status ? (string) get_permalink( $post ) : null,
 				'total'      => $group['total'],
@@ -370,7 +371,7 @@ final class Reader {
 					$change['action'],
 					null === $change['undone_at'] ? 'active' : 'undone',
 					$change['post_id'],
-					$post instanceof WP_Post ? $post->post_title : '',
+					$post instanceof WP_Post ? PostTitle::of( $post ) : '',
 					'' !== $view['url'] ? $view['url'] : (string) $view['previous_url'],
 					$view['anchor'],
 					self::export_origin( $change ),
@@ -615,7 +616,7 @@ final class Reader {
 		foreach ( $ids as $url => $id ) {
 			$post = get_post( $id );
 			if ( $post instanceof WP_Post && 'publish' === $post->post_status && current_user_can( 'read_post', $id ) ) {
-				$this->targets[ $url ] = get_the_title( $post );
+				$this->targets[ $url ] = PostTitle::of( $post );
 			}
 		}
 	}
@@ -761,7 +762,7 @@ final class Reader {
 		$titles = array();
 		foreach ( array_slice( array_keys( $posts ), 0, 3 ) as $post_id ) {
 			$post     = get_post( $post_id );
-			$titles[] = $post instanceof WP_Post ? get_the_title( $post ) : '';
+			$titles[] = $post instanceof WP_Post ? PostTitle::of( $post ) : '';
 		}
 
 		$first = $rows[0];

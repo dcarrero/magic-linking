@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Rest;
 
+use MagicLinking\Core\PostTitle;
 use MagicLinking\Engine\Reason;
 use MagicLinking\Engine\Suggestion;
 use MagicLinking\I18n\Language;
@@ -142,7 +143,7 @@ final class SuggestionPresenter {
 
 		return array(
 			'id'         => $id,
-			'title'      => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+			'title'      => PostTitle::of( $post ),
 			'url'        => (string) get_permalink( $post ),
 			'type'       => $post->post_type,
 			'type_label' => null === $type ? $post->post_type : $type->labels->singular_name,

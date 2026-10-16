@@ -176,6 +176,10 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 
 ## 📝 Changelog
 
+### Unreleased
+- Link inside the Classic block of the block editor (`core/freeform`): the link is inserted on the block's raw HTML string (only `<a …>` and `</a>`, verified before writing, rest byte for byte) with the same rules as the server; new failure reasons (`unsupported`, `crosses_format`, `unsafe`) replace the misleading "the text has changed".
+- History titles are plain text (no HTML entities), also in the CSV export and the WP-CLI export.
+
 ### 0.21.1
 - "Improve with AI" uses exactly the chosen model (`using_model()`), records the model that answered and only picks models that declare the request's requirements; fixes OpenRouter sending requests to other models.
 - OpenRouter model IDs (`provider/model`, `:batch`, `:free`…) recognized for picking and pricing; batch variants never used and rejected in Settings.

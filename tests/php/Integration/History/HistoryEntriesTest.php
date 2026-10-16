@@ -113,6 +113,27 @@ final class HistoryEntriesTest extends HistoryTestCase {
 
 	// ------------------------------------------------------------------ Lectura agrupada.
 
+	public function test_titles_come_out_as_plain_text_without_entities(): void {
+		$destination = self::factory()->post->create(
+			array(
+				'post_title'   => 'Ver Brujas en un día&#8230; desde las alturas',
+				'post_name'    => 'ver-brujas-alturas',
+				'post_content' => $this->p( 'Guía del destino.' ),
+			)
+		);
+		$a           = $this->two_slot_post( array( 'post_title' => 'Tom &amp; Jerry’s <b>día</b>...' ) );
+		$this->assertStringContainsString( '&#8230;', get_post( $destination )->post_title, 'El título guardado lleva entidades.' );
+		Plugin::container()->get( Inserter::class )->insert(
+			new InsertRequest( $a, (string) get_permalink( $destination ), 'aire acondicionado', 'Compra ', ' ya.' )
+		);
+
+		$data  = $this->request( 'GET', '/history', array( 'group' => 'post' ) )->get_data();
+		$entry = $this->group_for( $data['items'], $a );
+
+		$this->assertSame( 'Tom & Jerry’s día...', $entry['post_title'] );
+		$this->assertSame( 'Ver Brujas en un día… desde las alturas', $entry['changes'][0]['target_title'] );
+	}
+
 	public function test_groups_the_changes_by_entry_newest_activity_first_with_counts(): void {
 		$s = $this->seed();
 

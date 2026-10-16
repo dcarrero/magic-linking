@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Graph;
 
+use MagicLinking\Core\PostTitle;
 use Generator;
 use MagicLinking\Core\Schema;
 use MagicLinking\Core\Settings;
@@ -286,7 +287,7 @@ final class ReportRepository {
 		$words    = (int) $row['word_count'];
 		$type     = (string) $row['post_type'];
 		$object   = get_post_type_object( $type );
-		$title    = html_entity_decode( wp_strip_all_tags( (string) $row['post_title'] ), ENT_QUOTES, 'UTF-8' );
+		$title    = PostTitle::plain( (string) $row['post_title'] );
 		$can_edit = current_user_can( 'edit_post', $id );
 
 		return array(

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Index;
 
+use MagicLinking\Core\PostTitle;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Schema;
 use MagicLinking\Engine\Analyzer;
@@ -766,7 +767,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			$id,
 			(string) $row['post_type'],
 			(string) $row['lang'],
-			html_entity_decode( wp_strip_all_tags( $post->post_title ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+			PostTitle::of( $post ),
 			$post->post_name,
 			false === $date ? 0 : $date,
 			(int) $row['word_count'],
