@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test:js": "wp-scripts test-unit-js --roots=assets/src",
     "env": "wp-env",
-    "plugin-check": "npm run zip && wp-env run cli bash -c \"ln -sfn /var/www/html/wp-content/plugins/magiclinking-wordpress-plugin/dist/magic-linking /var/www/html/wp-content/plugins/magic-linking && (wp plugin is-installed plugin-check || wp plugin install plugin-check) && wp plugin activate plugin-check --quiet && wp plugin check magic-linking\"",
+    "plugin-check": "bash bin/plugin-check.sh",
     "zip": "bash bin/zip.sh",
     "test:e2e": "playwright test"
   },

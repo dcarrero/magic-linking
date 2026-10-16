@@ -233,12 +233,10 @@ final class Undo {
 		$check = Verifier::for_action( (string) $change['action'], $content, $next, $range, true );
 		if ( ! $check->ok ) {
 			PostWriter::log( sprintf( 'Verificación fallida al deshacer el cambio %d: %s.', (int) $change['id'], $check->reason ) );
-			throw new InsertionException(
-				InsertionException::VERIFY_FAILED,
-				ChangeRepository::INSERT === $change['action']
-					? __( 'The change could not be confirmed as only removing the link; nothing was written.', 'magic-linking' )
-					: __( 'The change could not be confirmed as only restoring the link; nothing was written.', 'magic-linking' )
-			); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
+			$message = ChangeRepository::INSERT === $change['action']
+				? __( 'The change could not be confirmed as only removing the link; nothing was written.', 'magic-linking' )
+				: __( 'The change could not be confirmed as only restoring the link; nothing was written.', 'magic-linking' );
+			throw new InsertionException( InsertionException::VERIFY_FAILED, $message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
 
 		$user = $user_id ?? get_current_user_id();
