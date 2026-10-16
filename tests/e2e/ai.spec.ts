@@ -1,7 +1,15 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-import { login, openSettingsTab, SCREEN, SCREEN_SETTINGS, wp } from './wp';
+import {
+	login,
+	openHistoryByBatch,
+	openSettingsTab,
+	SCREEN,
+	SCREEN_HISTORY,
+	SCREEN_SETTINGS,
+	wp,
+} from './wp';
 
 /**
  * IA vía conector (F1-14): botón «Improve with AI» del panel, pestaña IA de Ajustes y aviso «sin conector».
@@ -110,6 +118,58 @@ async function openSidebar( page: Page ): Promise< Locator > {
 	return panel;
 }
 
+async function save( page: Page ): Promise< void > {
+	await page.evaluate( () =>
+		// @ts-expect-error wp lo pone WordPress.
+		window.wp.data.dispatch( 'core/editor' ).savePost()
+	);
+	await page.waitForFunction(
+		() =>
+			// @ts-expect-error wp lo pone WordPress.
+			! window.wp.data.select( 'core/editor' ).isSavingPost() &&
+			// @ts-expect-error wp lo pone WordPress.
+			! window.wp.data.select( 'core/editor' ).isEditedPostDirty()
+	);
+}
+
+/**
+ * Lo que el Historial guardó de la IA para una entrada: filas del editor, recomendadas, con su ancla y modelos.
+ * @param id
+ */
+/**
+ * Celdas de origen de una entrada del Historial cuyo texto cumple el patrón.
+ * @param entry
+ * @param pattern
+ */
+const sources = ( entry: Locator, pattern: RegExp ) =>
+	entry.locator( 'td[data-label="Source"]' ).filter( { hasText: pattern } );
+
+function aiRows( id: number ): {
+	total: number;
+	recommended: number;
+	anchor: number;
+	models: string[];
+} {
+	return JSON.parse(
+		wp(
+			'eval',
+			`
+			global $wpdb;
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT ai_recommended, ai_anchor, ai_model FROM {$wpdb->prefix}magiclinking_changes WHERE post_id = %d AND action = 'insert' AND origin = 'editor'", ${ id } ), ARRAY_A );
+			echo wp_json_encode( array(
+				'total' => count( $rows ),
+				'recommended' => count( array_filter( $rows, static fn( $r ) => '1' === (string) $r['ai_recommended'] ) ),
+				'anchor' => count( array_filter( $rows, static fn( $r ) => '1' === (string) $r['ai_anchor'] ) ),
+				'models' => array_values( array_unique( array_filter( array_column( $rows, 'ai_model' ) ) ) ),
+			) );
+			`
+		)
+			.trim()
+			.split( '\n' )
+			.pop() ?? '{}'
+	);
+}
+
 const canvas = ( page: Page ) =>
 	page.frameLocator( 'iframe[name="editor-canvas"]' );
 
@@ -210,6 +270,132 @@ test.describe( 'AI through the connector', () => {
 		// Volver al orden del motor.
 		await panel.getByRole( 'button', { name: 'Back to the original order' } ).click();
 		await expect( panel ).not.toContainText( 'Ordered by AI.' );
+	} );
+
+	test( 'history: links added from cards the AI recommended are marked in the History, filtered and accessible', async ( {
+		page,
+	} ) => {
+		test.skip(
+			! hasAi,
+			'Necesita el cliente de IA de WordPress 7.0 o posterior.'
+		);
+		await login( page );
+		await openBlockEditor( page, origen );
+		const panel = await openSidebar( page );
+		const cards = panel.locator( '.magiclinking-card' );
+		await expect( cards.first() ).toBeVisible();
+		await panel.getByRole( 'button', { name: 'Improve with AI' } ).click();
+		await expect( panel ).toContainText( 'Ordered by AI.' );
+
+		// Se enlazan todas las tarjetas: las que la IA recomienda (una con su ancla aceptada) y la que no.
+		const total = await cards.count();
+		expect( total ).toBeGreaterThanOrEqual( 2 );
+		let recommended = 0;
+		let withAnchor = 0;
+		for ( let i = 0; i < total; i++ ) {
+			const card = cards.nth( i );
+			const text = ( await card.textContent() ) ?? '';
+			if ( text.includes( 'Recommended by the AI' ) ) {
+				recommended++;
+				const use = card.getByRole( 'button', {
+					name: /^Use the anchor/,
+				} );
+				if ( ( await use.count() ) > 0 ) {
+					await use.click();
+					withAnchor++;
+				}
+			}
+			await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		}
+		expect( recommended ).toBeGreaterThanOrEqual( 1 );
+		expect( recommended ).toBeLessThan( total );
+		await expect( canvas( page ).locator( 'a[href]' ) ).toHaveCount(
+			total
+		);
+
+		await save( page );
+		await expect.poll( () => aiRows( origen ).total ).toBe( total );
+		expect( aiRows( origen ) ).toEqual( {
+			total,
+			recommended,
+			anchor: withAnchor,
+			models: [ 'gpt-4o-mini' ],
+		} );
+
+		// Por entrada: «Editor panel · AI» con el modelo, y «Editor panel» a secas en el que no recomendó la IA.
+		await page.goto( SCREEN_HISTORY );
+		const entry = page.locator( '.magiclinking-entry' );
+		await expect( entry ).toHaveCount( 1 );
+		const rows = entry.locator( 'tbody tr' );
+		await expect( rows ).toHaveCount( total );
+		await expect( sources( entry, /^Editor panel · AI/ ) ).toHaveCount(
+			recommended
+		);
+		await expect( sources( entry, /^Editor panel(?! · AI)/ ) ).toHaveCount(
+			total - recommended
+		);
+		await expect( entry.getByText( 'AI model: gpt-4o-mini' ) ).toHaveCount(
+			recommended
+		);
+		await expect(
+			entry.getByText( 'Anchor suggested by the AI' )
+		).toHaveCount( withAnchor );
+		await expectAccessible( page, '.magiclinking-wrap' );
+
+		// El filtro deja solo los recomendados y lo dice con texto.
+		await page.getByLabel( 'Source' ).selectOption( 'ai' );
+		await expect( rows ).toHaveCount( recommended );
+		await expect( sources( entry, /^Editor panel · AI/ ) ).toHaveCount(
+			recommended
+		);
+		await expect( sources( entry, /^Editor panel(?! · AI)/ ) ).toHaveCount(
+			0
+		);
+		await expectAccessible( page, '.magiclinking-wrap' );
+
+		// Por lote, la tarjeta cuenta cuántos recomendó la IA.
+		await openHistoryByBatch( page );
+		await expect( page.locator( '.magiclinking-batch' ) ).toContainText(
+			recommended === 1
+				? '1 link recommended by the AI'
+				: `${ recommended } links recommended by the AI`
+		);
+		await expectAccessible( page, '.magiclinking-wrap' );
+	} );
+
+	test( 'history: a link the AI did not recommend stays a plain editor link', async ( {
+		page,
+	} ) => {
+		test.skip(
+			! hasAi,
+			'Necesita el cliente de IA de WordPress 7.0 o posterior.'
+		);
+		await login( page );
+		await openBlockEditor( page, origen );
+		const panel = await openSidebar( page );
+		const cards = panel.locator( '.magiclinking-card' );
+		await expect( cards.first() ).toBeVisible();
+
+		// Sin pulsar «Improve with AI» no hay nada que anotar.
+		await cards
+			.first()
+			.getByRole( 'button', { name: /^Link to/ } )
+			.click();
+		await save( page );
+		await expect.poll( () => aiRows( origen ).total ).toBe( 1 );
+		expect( aiRows( origen ) ).toEqual( {
+			total: 1,
+			recommended: 0,
+			anchor: 0,
+			models: [],
+		} );
+
+		await page.goto( SCREEN_HISTORY );
+		const entry = page.locator( '.magiclinking-entry' );
+		await expect( sources( entry, /^Editor panel(?! · AI)/ ) ).toHaveCount(
+			1
+		);
+		await expect( entry ).not.toContainText( 'AI model' );
 	} );
 
 	test( 'editor: when the AI provider fails the panel keeps the lexical order and says so in plain words', async ( {
