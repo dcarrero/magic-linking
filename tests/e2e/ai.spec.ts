@@ -356,9 +356,7 @@ test.describe( 'AI through the connector', () => {
 		// Por lote, la tarjeta cuenta cuántos recomendó la IA.
 		await openHistoryByBatch( page );
 		await expect( page.locator( '.magiclinking-batch' ) ).toContainText(
-			recommended === 1
-				? '1 link recommended by the AI'
-				: `${ recommended } links recommended by the AI`
+			`${ recommended } of ${ total } links recommended by the AI`
 		);
 		await expectAccessible( page, '.magiclinking-wrap' );
 

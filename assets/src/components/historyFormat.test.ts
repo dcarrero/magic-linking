@@ -91,7 +91,11 @@ describe( 'AI marks', () => {
 	it( 'counts the links of a batch that the AI recommended', () => {
 		expect( batchAiLabel( 0 ) ).toBe( '' );
 		expect( batchAiLabel() ).toBe( '' );
-		expect( batchAiLabel( 1 ) ).toBe( '1 link recommended by the AI' );
-		expect( batchAiLabel( 3 ) ).toBe( '3 links recommended by the AI' );
+		expect( batchAiLabel( 1, 1 ) ).toBe(
+			'1 of 1 link recommended by the AI'
+		);
+		expect( batchAiLabel( 2, 3 ) ).toBe(
+			'2 of 3 links recommended by the AI'
+		);
 	} );
 } );

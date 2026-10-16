@@ -34,11 +34,6 @@ final class HistoryAiTest extends HistoryTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		// Una prueba que cambia el esquema no puede dejar a las demás sin columnas.
-		if ( ! Plugin::container()->get( ChangeRepository::class )->has_ai_columns() ) {
-			$this->restore_ai_columns();
-		}
-
 		$this->author     = self::factory()->user->create( array( 'role' => 'author' ) );
 		$this->subscriber = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
@@ -554,86 +549,38 @@ final class HistoryAiTest extends HistoryTestCase {
 
 	// ------------------------------------------------------------------ Revisión de código del PR 36.
 
-	/**
-	 * Quita las columnas `ai_*` a mano dejando la versión del esquema en 6 (un ALTER que falló en silencio).
-	 */
-	private function drop_ai_columns(): void {
-		global $wpdb;
-		$table = Schema::table( $wpdb->prefix, 'changes' );
-		$wpdb->query( "ALTER TABLE {$table} DROP COLUMN ai_recommended, DROP COLUMN ai_anchor, DROP COLUMN ai_model" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
-		Plugin::container()->get( ChangeRepository::class )->forget_columns();
-	}
-
-	private function restore_ai_columns(): void {
-		global $wpdb;
-		( new Installer( $wpdb, MAGICLINKING_DB_VERSION ) )->create_tables();
-		Plugin::container()->get( ChangeRepository::class )->forget_columns();
-	}
-
-	public function test_version_6_without_the_real_columns_degrades_like_schema_5(): void {
-		$with_ai = $this->saved_with_link();
-		$this->notify( $with_ai, array( $this->client_link( $this->recommended() ) ) );
-		$this->drop_ai_columns();
-
-		try {
-			$this->assertSame( '6', (string) get_option( Installer::DB_VERSION_OPTION ) );
-			$this->assertFalse( Plugin::container()->get( ChangeRepository::class )->has_ai_columns() );
-
-			$post     = $this->saved_with_link();
-			$response = $this->notify( $post, array( $this->client_link( $this->recommended() ) ) );
-			$this->assertSame( 'recorded', $response->get_data()['results'][0]['status'], 'El enlace se guarda sin marca.' );
-
-			$inserted = $this->request( 'POST', '/links', $this->insert_body( $this->post(), $this->recommended() ) );
-			$this->assertSame( 1, $inserted->get_data()['inserted'] );
-
-			$list = $this->request( 'GET', '/history', array( 'group' => 'post' ) );
-			$this->assertSame( 200, $list->get_status() );
-			$this->assertNotEmpty( $list->get_data()['items'] );
-			$this->assertSame( 200, $this->request( 'GET', '/history' )->get_status() );
-			$this->assertNull( $this->request( 'GET', '/history/posts/' . $post )->get_data()['entry']['changes'][0]['ai'] );
-
-			$filtered = $this->request(
-				'GET',
-				'/history',
-				array(
-					'group' => 'post',
-					'ai'    => 1,
-				)
-			);
-			$this->assertSame( 200, $filtered->get_status() );
-			$this->assertSame( array(), $filtered->get_data()['items'] );
-
-			$id = Plugin::container()->get( ChangeRepository::class )->record( 'B1', 0, 'insert', null, 'a', 'b', sha1( 'x' ), 1, ChangeRepository::ORIGIN_PLUGIN, null, new AiOrigin( true, 'm' ) );
-			$this->assertGreaterThan( 0, $id, 'Sin columnas, el cambio se guarda igual.' );
-		} finally {
-			$this->restore_ai_columns();
-		}
-	}
-
-	public function test_the_upgrade_does_not_store_version_6_while_the_columns_are_missing(): void {
-		global $wpdb;
-		$installer = new Installer( $wpdb, MAGICLINKING_DB_VERSION );
-		$installer->maybe_upgrade();
-		$this->drop_ai_columns();
+	public function test_with_schema_5_the_link_is_saved_without_the_mark_as_before(): void {
+		// Una actualización automática deja el código nuevo con el esquema 5 hasta la siguiente visita al administrador.
 		update_option( Installer::DB_VERSION_OPTION, 5, false );
 
-		// Un dbDelta que no consigue el ALTER (sin permiso, tiempo agotado): la sentencia no trae las columnas nuevas.
-		$strip = static fn( array $queries ): array => array_map( static fn( string $sql ): string => ! str_contains( $sql, 'origin_key' ) ? $sql : (string) preg_replace( '/^\s*ai_(recommended|anchor|model) [^\n]*\n/m', '', $sql ), $queries );
-		add_filter( 'dbdelta_create_queries', $strip );
-		try {
-			$this->assertFalse( ( new Installer( $wpdb, MAGICLINKING_DB_VERSION ) )->upgrade( 5 ) );
-			$this->assertSame( 5, (int) get_option( Installer::DB_VERSION_OPTION ), 'Se reintenta en la siguiente carga.' );
-		} finally {
-			remove_filter( 'dbdelta_create_queries', $strip );
-		}
+		$post     = $this->saved_with_link();
+		$response = $this->notify( $post, array( $this->client_link( $this->recommended() ) ) );
+		$this->assertSame( 'recorded', $response->get_data()['results'][0]['status'] );
+		$this->assertSame( '0', (string) $this->rows_of( $post )[0]['ai_recommended'], 'Sin el esquema 6 no se escribe la marca.' );
 
-		$this->assertTrue( ( new Installer( $wpdb, MAGICLINKING_DB_VERSION ) )->upgrade( 5 ) );
-		$this->assertSame( 6, (int) get_option( Installer::DB_VERSION_OPTION ) );
-		Plugin::container()->get( ChangeRepository::class )->forget_columns();
-		$this->assertTrue( Plugin::container()->get( ChangeRepository::class )->has_ai_columns() );
+		$inserted = $this->request( 'POST', '/links', $this->insert_body( $this->post(), $this->recommended() ) );
+		$this->assertSame( 1, $inserted->get_data()['inserted'] );
+
+		$this->assertSame( 200, $this->request( 'GET', '/history', array( 'group' => 'post' ) )->get_status() );
+		$this->assertSame( 200, $this->request( 'GET', '/history' )->get_status() );
+		$this->assertNull( $this->request( 'GET', '/history/posts/' . $post )->get_data()['entry']['changes'][0]['ai'] );
+
+		$filtered = $this->request(
+			'GET',
+			'/history',
+			array(
+				'group' => 'post',
+				'ai'    => 1,
+			)
+		);
+		$this->assertSame( 200, $filtered->get_status() );
+		$this->assertSame( array(), $filtered->get_data()['items'] );
+
+		$id = Plugin::container()->get( ChangeRepository::class )->record( 'B1', 0, 'insert', null, 'a', 'b', sha1( 'x' ), 1, ChangeRepository::ORIGIN_PLUGIN, null, new AiOrigin( true, 'm' ) );
+		$this->assertGreaterThan( 0, $id );
 	}
 
-	public function test_the_batch_counts_only_the_ai_links_still_in_place(): void {
+	public function test_the_batch_counts_the_ai_links_over_the_same_set_as_its_total(): void {
 		$href = (string) get_permalink( $this->target );
 		$post = $this->post( array( 'post_content' => $this->p( 'Compra <a href="' . $href . '">aire acondicionado</a> ya.' ) . "\n\n" . $this->p( 'Mira el <a href="' . $href . '">ventilador industrial</a> hoy.' ) ) );
 		$data = $this->notify(
@@ -649,7 +596,7 @@ final class HistoryAiTest extends HistoryTestCase {
 
 		$group = Plugin::container()->get( Reader::class )->group( (string) $data['batch_id'], $this->admin );
 		$this->assertSame( 2, $group['links'] );
-		$this->assertSame( 1, $group['ai_links'], 'El deshecho ya no cuenta.' );
+		$this->assertSame( 2, $group['ai_links'], 'Cuenta el mismo conjunto que links, deshechos incluidos.' );
 	}
 
 	public function test_the_ai_filter_combines_with_the_origin(): void {

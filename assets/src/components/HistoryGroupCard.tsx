@@ -36,7 +36,7 @@ const DETAILS_PER_PAGE = 50;
  * @param root0.onChange
  */
 export function HistoryGroupCard( { group, onChange }: Props ) {
-	const aiLabel = batchAiLabel( group.ai_links );
+	const aiLabel = batchAiLabel( group.ai_links, group.links );
 	const [ expanded, setExpanded ] = useState( false );
 	const [ details, setDetails ] = useState< HistoryChange[] >( [] );
 	const [ total, setTotal ] = useState( 0 );

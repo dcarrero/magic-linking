@@ -393,6 +393,10 @@ final class SuggestionsController implements Module {
 	 * Responde 200 con un resultado por enlace (`inserted` o `failed` con `reason` y `message`) y el `batch_id`
 	 * para deshacer. 403 sin tocar nada si el usuario no puede editar alguna de las entradas.
 	 *
+	 * Cada enlace puede traer `ai_recommended`, `ai_anchor` y `ai_model` (F1-38). Hoy el panel de entrantes no usa la IA y la
+	 * interfaz no los envía aquí (las salientes los mandan en el aviso de guardado); queda listo el servidor para cuando la
+	 * IA reordene también las entrantes. La marca la declara el cliente: es informativa.
+	 *
 	 * @param WP_REST_Request $request Petición.
 	 *
 	 * @return WP_REST_Response|WP_Error

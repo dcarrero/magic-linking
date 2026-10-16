@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-16T05:41:26+00:00\n"
+"POT-Creation-Date: 2026-10-16T07:09:48+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Português do Brasil\n"
@@ -173,7 +173,7 @@ msgstr "Ação desconhecida. Use: list, pause, resume ou cancel."
 msgid "There is no such process."
 msgstr "Esse processo não existe."
 
-#: src/Cli/Command.php:496 src/Rest/HistoryController.php:461
+#: src/Cli/Command.php:496 src/Rest/HistoryController.php:477
 #: src/Rest/JobsController.php:170 src/Rest/JobsController.php:185
 msgid "That process cannot be changed in its current state."
 msgstr "Esse processo não pode ser alterado no estado atual."
@@ -195,18 +195,18 @@ msgid "Unknown action. Use: list, undo, redo or purge."
 msgstr "Ação desconhecida. Use: list, undo, redo ou purge."
 
 #: src/Cli/Command.php:618 src/Cli/Command.php:652
-#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:777
-#: src/Rest/SuggestionsController.php:425
+#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:794
+#: src/Rest/SuggestionsController.php:433
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Você não tem permissão para editar um dos conteúdos envolvidos."
 
 #: src/Cli/Command.php:623 src/History/Redo.php:65 src/History/Undo.php:165
-#: src/Rest/HistoryController.php:770
+#: src/Rest/HistoryController.php:787
 msgid "That change does not exist."
 msgstr "Essa alteração não existe."
 
 #: src/Cli/Command.php:627 src/Cli/Command.php:647
-#: src/Rest/HistoryController.php:756
+#: src/Rest/HistoryController.php:773
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr "Este lote está sendo processado em segundo plano. Aguarde até que termine ou cancele-o."
 
@@ -257,7 +257,7 @@ msgstr[1] "%d linhas do histórico excluídas."
 #: src/Cli/Command.php:748 src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
-#: src/Rest/SuggestionsController.php:581
+#: src/Rest/SuggestionsController.php:589
 msgid "That entry does not exist."
 msgstr "Esse conteúdo não existe."
 
@@ -483,11 +483,11 @@ msgstr "Excesso de links"
 msgid "OK"
 msgstr "OK"
 
-#: src/History/Reader.php:744
+#: src/History/Reader.php:749
 msgid "Automatic"
 msgstr "Automático"
 
-#: src/History/Reader.php:749
+#: src/History/Reader.php:754
 msgid "Deleted user"
 msgstr "Usuário excluído"
 
@@ -571,7 +571,7 @@ msgstr "Este conteúdo foi editado depois; remova o link manualmente."
 msgid "You are not allowed to export this data."
 msgstr "Você não tem permissão para exportar estes dados."
 
-#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:247
+#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:251
 msgid "The content is too long to analyze."
 msgstr "O conteúdo é longo demais para ser analisado."
 
@@ -638,11 +638,11 @@ msgstr "Não foi possível corrigir o link; nada foi alterado."
 msgid "That link does not exist."
 msgstr "Esse link não existe."
 
-#: src/Rest/HistoryController.php:591 src/Rest/HistoryController.php:670
+#: src/Rest/HistoryController.php:607 src/Rest/HistoryController.php:687
 msgid "Another large undo is already running. Wait for it to finish."
 msgstr "Outra operação grande de desfazer já está em execução. Aguarde até que termine."
 
-#: src/Rest/HistoryController.php:763
+#: src/Rest/HistoryController.php:780
 msgid "Send either a group or a single change."
 msgstr "Envie um grupo ou uma única alteração."
 
@@ -676,11 +676,11 @@ msgstr "O destino é órfão (0 links de entrada)"
 msgid "Very similar in meaning"
 msgstr "Muito parecido em significado"
 
-#: src/Rest/SuggestionsController.php:417
+#: src/Rest/SuggestionsController.php:425
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Cada link precisa do conteúdo, do destino, da frase, da posição e da âncora."
 
-#: src/Rest/SuggestionsController.php:472
+#: src/Rest/SuggestionsController.php:480
 msgid "The link could not be saved; nothing was changed."
 msgstr "Não foi possível salvar o link; nada foi alterado."
 
@@ -1217,7 +1217,7 @@ msgstr "Pesquisar links quebrados"
 msgid "Broken internal links"
 msgstr "Links internos quebrados"
 
-#: assets/build/index.js:10 assets/build/index.js:19
+#: assets/build/index.js:10 assets/build/index.js:18
 msgid "Edit entry"
 msgstr "Editar conteúdo"
 
@@ -1247,7 +1247,7 @@ msgstr "(conteúdo excluído)"
 msgid "Destination changed"
 msgstr "Destino alterado"
 
-#: assets/build/index.js:12 assets/build/index.js:14
+#: assets/build/index.js:12 assets/build/index.js:13
 msgid "Link removed"
 msgstr "Link removido"
 
@@ -1289,104 +1289,104 @@ msgstr "Modelo de IA: %s"
 msgid "Anchor suggested by the AI"
 msgstr "Texto âncora sugerido pela IA"
 
-#. translators: %s: number of links in the batch that the AI recommended.
-#: assets/build/index.js:14
-msgid "%s link recommended by the AI"
-msgid_plural "%s links recommended by the AI"
-msgstr[0] "%s link recomendado pela IA"
-msgstr[1] "%s links recomendados pela IA"
-
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Added from the editor panel"
 msgstr "Adicionado pelo painel do editor"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Added from another entry's panel"
 msgstr "Adicionado pelo painel de outro conteúdo"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Fixed from Broken links"
 msgstr "Corrigido em Links quebrados"
 
-#: assets/build/index.js:14 assets/build/index.js:19 assets/build/index.js:20
+#: assets/build/index.js:13 assets/build/index.js:19 assets/build/index.js:20
 #: assets/build/index.js:47
 msgid "Undone"
 msgstr "Desfeito"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Link put back"
 msgstr "Link restaurado"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Already gone"
 msgstr "Já não existe"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Already undone"
 msgstr "Já desfeito"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Added again"
 msgstr "Adicionado novamente"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Needs your attention"
 msgstr "Precisa da sua atenção"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Not changed"
 msgstr "Não alterado"
 
 #. translators: %s: number of links.
-#: assets/build/index.js:15
+#: assets/build/index.js:14
 msgid "%s link added again."
 msgid_plural "%s links added again."
 msgstr[0] "%s link adicionado novamente."
 msgstr[1] "%s links adicionados novamente."
 
 #. translators: %s: number of links.
-#: assets/build/index.js:16
+#: assets/build/index.js:15
 msgid "%s link undone."
 msgid_plural "%s links undone."
 msgstr[0] "%s link desfeito."
 msgstr[1] "%s links desfeitos."
 
 #. translators: 1: links added again, 2: links that need attention.
-#: assets/build/index.js:17
+#: assets/build/index.js:16
 msgid "Added again: %1$s. Need your attention: %2$s."
 msgstr "Adicionados novamente: %1$s. Precisam da sua atenção: %2$s."
 
 #. translators: 1: links undone, 2: links that need attention.
-#: assets/build/index.js:18
+#: assets/build/index.js:17
 msgid "Undone: %1$s. Need your attention: %2$s."
 msgstr "Desfeitos: %1$s. Precisam da sua atenção: %2$s."
 
 #. translators: 1: changes done, 2: total changes.
-#: assets/build/index.js:19
+#: assets/build/index.js:18
 msgid "Working in the background: %1$s of %2$s."
 msgstr "Trabalhando em segundo plano: %1$s de %2$s."
 
-#: assets/build/index.js:19
+#: assets/build/index.js:18
 msgid "This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running."
 msgstr "Isso está demorando mais do que o esperado. As tarefas em segundo plano precisam que o WP-Cron ou o Action Scheduler esteja em execução."
 
-#: assets/build/index.js:19 assets/build/index.js:56
+#: assets/build/index.js:18 assets/build/index.js:56
 msgid "Resume"
 msgstr "Retomar"
 
-#: assets/build/index.js:19
+#: assets/build/index.js:18
 msgid "Cancel process"
 msgstr "Cancelar processo"
 
-#: assets/build/index.js:19
+#: assets/build/index.js:18
 msgid "Could not read the progress of the process."
 msgstr "Não foi possível ler o progresso do processo."
 
-#: assets/build/index.js:19 assets/build/index.js:23 assets/build/index.js:33
+#: assets/build/index.js:18 assets/build/index.js:23 assets/build/index.js:33
 #: assets/build/index.js:54 assets/build/index.js:72 assets/build/index.js:74
 #: assets/build/index.js:76
 msgid "That did not work. Try again."
 msgstr "Isso não funcionou. Tente novamente."
+
+#. translators: 1: number of links in the batch that the AI recommended, 2: number of links in the batch.
+#: assets/build/index.js:19
+msgid "%1$s of %2$s link recommended by the AI"
+msgid_plural "%1$s of %2$s links recommended by the AI"
+msgstr[0] "%1$s de %2$s link recomendado pela IA"
+msgstr[1] "%1$s de %2$s links recomendados pela IA"
 
 #: assets/build/index.js:19
 msgid "Could not load the links of this batch."
@@ -1441,6 +1441,11 @@ msgstr "Data"
 #: assets/build/index.js:50
 msgid "Links to"
 msgstr "Aponta para"
+
+#: assets/build/index.js:20 assets/build/index.js:41 assets/build/index.js:47
+#: assets/build/index.js:50
+msgid "Source"
+msgstr "Origem"
 
 #: assets/build/index.js:20 assets/build/index.js:41 assets/build/index.js:47
 #: assets/build/index.js:50 assets/build/index.js:61
@@ -1671,10 +1676,6 @@ msgstr "Alterações em “%s”, da mais recente para a mais antiga"
 #: assets/build/index.js:41 assets/build/index.js:45 assets/build/index.js:50
 msgid "Change"
 msgstr "Alteração"
-
-#: assets/build/index.js:41 assets/build/index.js:47 assets/build/index.js:50
-msgid "Source"
-msgstr "Origem"
 
 #: assets/build/index.js:41 assets/build/index.js:47 assets/build/index.js:50
 msgid "User"

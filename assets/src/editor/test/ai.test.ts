@@ -288,3 +288,76 @@ describe( 'aiLinkInfo', () => {
 		expect( aiLinkInfo( { ...base, fit: null }, false ) ).toBeNull();
 	} );
 } );
+
+describe( 'aiAnchor', () => {
+	const first = {
+		anchor: 'bomba de calor reduce',
+		offset: 4,
+		before: 'Una ',
+		after: ' el consumo.',
+		anchor_start: 4,
+		anchor_end: 25,
+	};
+
+	const run = ( original: Suggestion, improved: typeof first | null ) =>
+		outcomeOf(
+			[ original ],
+			ok( [
+				{
+					index: 0,
+					target_id: 5,
+					fit: true,
+					confidence: 0.8,
+					improved,
+				},
+			] )
+		);
+
+	it( 'is true when the accepted anchor is the one the current answer proposed', () => {
+		const original = make( 5 );
+		const key = suggestionKey( original );
+
+		const views = arrange( [ original ], run( original, first ), {
+			[ key ]: withAnchor( original, first ),
+		} );
+
+		expect( at( views, 0 ).aiAnchor ).toBe( true );
+	} );
+
+	it( 'is false when the changed anchor comes from an earlier run', () => {
+		const original = make( 5 );
+		const key = suggestionKey( original );
+		const second = {
+			...first,
+			anchor: 'una bomba de calor',
+			anchor_end: 18,
+		};
+
+		// Se aceptó el ancla de la primera ejecución y la segunda propone otra (o ninguna).
+		const views = arrange( [ original ], run( original, second ), {
+			[ key ]: withAnchor( original, first ),
+		} );
+		const none = arrange( [ original ], run( original, null ), {
+			[ key ]: withAnchor( original, first ),
+		} );
+
+		expect( at( views, 0 ).aiAnchor ).toBe( false );
+		expect( at( none, 0 ).aiAnchor ).toBe( false );
+	} );
+
+	it( 'does not mark the AI at all once the original order is restored', () => {
+		const original = make( 5 );
+		const key = suggestionKey( original );
+
+		// «Volver al orden original»: sin respuesta vigente no hay marca, aunque quede un ancla aceptada.
+		const view = at(
+			arrange( [ original ], null, {
+				[ key ]: withAnchor( original, first ),
+			} ),
+			0
+		);
+
+		expect( view.aiAnchor ).toBe( false );
+		expect( aiLinkInfo( view.mark, view.aiAnchor ) ).toBeNull();
+	} );
+} );

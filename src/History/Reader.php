@@ -673,7 +673,7 @@ final class Reader {
 		$ai     = 0;
 		foreach ( $slots as $slot ) {
 			$posts[ $slot['post_id'] ] = true;
-			if ( ! empty( $slot['ai'] ) && null === $slot['undone_at'] ) {
+			if ( ! empty( $slot['ai'] ) ) {
 				++$ai;
 			}
 			if ( null !== $slot['undone_at'] ) {

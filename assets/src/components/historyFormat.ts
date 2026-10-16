@@ -143,20 +143,23 @@ export function aiDetails( ai: { model: string; anchor: boolean } ): string[] {
 }
 
 /**
- * Cuántos enlaces de un lote recomendó la IA, para la tarjeta del lote (vacío si ninguno).
+ * Cuántos enlaces de un lote recomendó la IA, dicho como parte del total («2 de 3 enlaces recomendados por la IA»);
+ * vacío si ninguno. Cuenta los mismos enlaces que el lote, estén puestos o deshechos.
  * @param aiLinks Enlaces del lote que recomendó la IA.
+ * @param links   Enlaces del lote.
  */
-export function batchAiLabel( aiLinks = 0 ): string {
+export function batchAiLabel( aiLinks = 0, links = 0 ): string {
 	return aiLinks > 0
 		? sprintf(
-				/* translators: %s: number of links in the batch that the AI recommended. */
+				/* translators: 1: number of links in the batch that the AI recommended, 2: number of links in the batch. */
 				_n(
-					'%s link recommended by the AI',
-					'%s links recommended by the AI',
-					aiLinks,
+					'%1$s of %2$s link recommended by the AI',
+					'%1$s of %2$s links recommended by the AI',
+					links,
 					'magic-linking'
 				),
-				aiLinks.toLocaleString()
+				aiLinks.toLocaleString(),
+				links.toLocaleString()
 		  )
 		: '';
 }

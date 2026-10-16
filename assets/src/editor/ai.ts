@@ -26,6 +26,8 @@ export interface AiView {
 	item: Suggestion;
 	original: Suggestion;
 	mark?: AiMark;
+	/** El ancla que se enseña es la que propuso la respuesta vigente de la IA (no la de una ejecución anterior). */
+	aiAnchor: boolean;
 }
 
 /** Resultado de una llamada: orden nuevo (claves de las originales) y opinión sobre cada una. */
@@ -174,6 +176,14 @@ export function arrange(
 		const key = suggestionKey( original );
 		const mark = outcome?.marks[ key ];
 		const replaced = overrides[ key ];
+		// Solo cuenta si el ancla aceptada es la que propone esta misma respuesta: un ancla de una ejecución anterior
+		// ya no es de la IA vigente.
+		const aiAnchor =
+			!! mark &&
+			!! replaced &&
+			!! mark.improved &&
+			replaced.anchor === mark.improved.anchor &&
+			replaced.offset === mark.improved.offset;
 		return {
 			key,
 			view: {
@@ -181,6 +191,7 @@ export function arrange(
 				original,
 				// Con el ancla aceptada ya no hay nada que proponer.
 				mark: mark && replaced ? { ...mark, improved: null } : mark,
+				aiAnchor,
 			} as AiView,
 		};
 	} );

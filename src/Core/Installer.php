@@ -223,22 +223,24 @@ final class Installer implements Module {
 			return false;
 		}
 
-		foreach ( $this->migrations as $version => $migration ) {
-			if ( $version > $from && $version <= $this->target_version ) {
-				$migration( $this->wpdb );
+		// Paso a paso: cada versión que termina bien se guarda, así un reintento no repite migraciones ya hechas (la 3
+		// vacía las huellas del índice léxico).
+		for ( $version = $from + 1; $version <= $this->target_version; $version++ ) {
+			if ( isset( $this->migrations[ $version ] ) ) {
+				$this->migrations[ $version ]( $this->wpdb );
 			}
-		}
 
-		// La versión solo se guarda con el esquema completo: si el `ALTER` de dbDelta falló (sin permiso, tiempo agotado)
-		// no se da por migrado y se reintenta, pero no en cada carga del administrador.
-		if ( $this->target_version >= self::AI_COLUMNS_SCHEMA && ! $this->has_column( 'changes', 'ai_recommended' ) ) {
-			set_transient( self::RETRY_TRANSIENT, 1, self::RETRY_SECONDS );
+			// El paso 6 solo vale si dbDelta consiguió las tres columnas: sin permiso ALTER o con el tiempo agotado se
+			// queda en el 5 y se reintenta, pero con un respiro, no en cada carga del administrador.
+			if ( self::AI_COLUMNS_SCHEMA === $version && ! Schema::has_columns( $this->wpdb, 'changes', Schema::AI_COLUMNS ) ) {
+				set_transient( self::RETRY_TRANSIENT, 1, self::RETRY_SECONDS );
 
-			return false;
+				return false;
+			}
+
+			update_option( self::DB_VERSION_OPTION, $version, false );
 		}
 		delete_transient( self::RETRY_TRANSIENT );
-
-		update_option( self::DB_VERSION_OPTION, $this->target_version, false );
 
 		// Una actualización (no una instalación nueva) puede dejar el índice léxico sin construir.
 		if ( $from > 0 ) {
@@ -259,18 +261,6 @@ final class Installer implements Module {
 		$statements = Schema::create_statements( $this->wpdb->prefix, $this->wpdb->get_charset_collate() );
 
 		return dbDelta( array_values( $statements ) );
-	}
-
-	/**
-	 * Si una tabla del plugin tiene una columna.
-	 *
-	 * @param string $table  Tabla sin prefijo.
-	 * @param string $column Columna.
-	 */
-	private function has_column( string $table, string $column ): bool {
-		$name = Schema::table( $this->wpdb->prefix, $table );
-
-		return null !== $this->wpdb->get_var( $this->wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $name, $column ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Comprobación del esquema, no hay nada que cachear.
 	}
 
 	/**

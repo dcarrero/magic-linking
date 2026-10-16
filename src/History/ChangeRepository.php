@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\History;
 
+use MagicLinking\Core\Installer;
 use MagicLinking\Core\Schema;
 use wpdb;
 
@@ -72,13 +73,6 @@ final class ChangeRepository {
 	private array $memo = array();
 
 	/**
-	 * Si la tabla tiene las columnas `ai_*`; null = sin comprobar en esta petición.
-	 *
-	 * @var bool|null
-	 */
-	private ?bool $ai_columns = null;
-
-	/**
 	 * Constructor.
 	 *
 	 * @param wpdb $wpdb Conexión.
@@ -139,23 +133,11 @@ final class ChangeRepository {
 	}
 
 	/**
-	 * Si la tabla tiene de verdad las columnas `ai_*` (F1-38). No basta con la versión del esquema: un `ALTER` que falló
-	 * (sin permiso, tiempo agotado) deja la versión sin las columnas. Se pregunta a la base de datos una vez por petición.
+	 * Si el esquema instalado tiene las columnas `ai_*` (F1-38). El instalador solo guarda la versión 6 cuando las tres
+	 * existen, así que basta con la opción (ya en caché); hasta que se migre, todo funciona sin la marca.
 	 */
 	public function has_ai_columns(): bool {
-		if ( null === $this->ai_columns ) {
-			$found            = $this->wpdb->get_var( $this->wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $this->table, 'ai_recommended' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Comprobación del esquema, no hay nada que cachear.
-			$this->ai_columns = null !== $found;
-		}
-
-		return $this->ai_columns;
-	}
-
-	/**
-	 * Olvida si hay columnas `ai_*` (tras migrar el esquema o en las pruebas).
-	 */
-	public function forget_columns(): void {
-		$this->ai_columns = null;
+		return (int) get_option( Installer::DB_VERSION_OPTION, 0 ) >= Installer::AI_COLUMNS_SCHEMA;
 	}
 
 	/**

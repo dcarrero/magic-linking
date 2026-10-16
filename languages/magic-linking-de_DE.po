@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-16T05:41:26+00:00\n"
+"POT-Creation-Date: 2026-10-16T07:09:48+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Deutsch\n"
@@ -173,7 +173,7 @@ msgstr "Unbekannte Aktion. Verwenden Sie: list, pause, resume oder cancel."
 msgid "There is no such process."
 msgstr "Diesen Vorgang gibt es nicht."
 
-#: src/Cli/Command.php:496 src/Rest/HistoryController.php:461
+#: src/Cli/Command.php:496 src/Rest/HistoryController.php:477
 #: src/Rest/JobsController.php:170 src/Rest/JobsController.php:185
 msgid "That process cannot be changed in its current state."
 msgstr "Dieser Vorgang lässt sich in seinem aktuellen Zustand nicht ändern."
@@ -195,18 +195,18 @@ msgid "Unknown action. Use: list, undo, redo or purge."
 msgstr "Unbekannte Aktion. Verwenden Sie: list, undo, redo oder purge."
 
 #: src/Cli/Command.php:618 src/Cli/Command.php:652
-#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:777
-#: src/Rest/SuggestionsController.php:425
+#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:794
+#: src/Rest/SuggestionsController.php:433
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Sie haben keine Berechtigung, einen der betroffenen Beiträge zu bearbeiten."
 
 #: src/Cli/Command.php:623 src/History/Redo.php:65 src/History/Undo.php:165
-#: src/Rest/HistoryController.php:770
+#: src/Rest/HistoryController.php:787
 msgid "That change does not exist."
 msgstr "Diese Änderung existiert nicht."
 
 #: src/Cli/Command.php:627 src/Cli/Command.php:647
-#: src/Rest/HistoryController.php:756
+#: src/Rest/HistoryController.php:773
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr "Dieser Durchgang wird gerade im Hintergrund verarbeitet. Warten Sie, bis er abgeschlossen ist, oder brechen Sie ihn ab."
 
@@ -257,7 +257,7 @@ msgstr[1] "%d Verlaufseinträge gelöscht."
 #: src/Cli/Command.php:748 src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
-#: src/Rest/SuggestionsController.php:581
+#: src/Rest/SuggestionsController.php:589
 msgid "That entry does not exist."
 msgstr "Dieser Beitrag existiert nicht."
 
@@ -483,11 +483,11 @@ msgstr "Überverlinkt"
 msgid "OK"
 msgstr "OK"
 
-#: src/History/Reader.php:744
+#: src/History/Reader.php:749
 msgid "Automatic"
 msgstr "Automatisch"
 
-#: src/History/Reader.php:749
+#: src/History/Reader.php:754
 msgid "Deleted user"
 msgstr "Gelöschter Benutzer"
 
@@ -571,7 +571,7 @@ msgstr "Dieser Beitrag wurde danach bearbeitet; entfernen Sie den Link von Hand.
 msgid "You are not allowed to export this data."
 msgstr "Sie dürfen diese Daten nicht exportieren."
 
-#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:247
+#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:251
 msgid "The content is too long to analyze."
 msgstr "Der Inhalt ist zu lang für die Analyse."
 
@@ -638,11 +638,11 @@ msgstr "Der Link ließ sich nicht korrigieren; es wurde nichts geändert."
 msgid "That link does not exist."
 msgstr "Diesen Link gibt es nicht."
 
-#: src/Rest/HistoryController.php:591 src/Rest/HistoryController.php:670
+#: src/Rest/HistoryController.php:607 src/Rest/HistoryController.php:687
 msgid "Another large undo is already running. Wait for it to finish."
 msgstr "Ein anderes umfangreiches Rückgängigmachen läuft bereits. Warten Sie, bis es abgeschlossen ist."
 
-#: src/Rest/HistoryController.php:763
+#: src/Rest/HistoryController.php:780
 msgid "Send either a group or a single change."
 msgstr "Senden Sie entweder eine Gruppe oder eine einzelne Änderung."
 
@@ -676,11 +676,11 @@ msgstr "Das Ziel ist verwaist (0 eingehende Links)"
 msgid "Very similar in meaning"
 msgstr "Inhaltlich sehr ähnlich"
 
-#: src/Rest/SuggestionsController.php:417
+#: src/Rest/SuggestionsController.php:425
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Jeder Link braucht den Beitrag, das Ziel, den Satz, die Position und den Ankertext."
 
-#: src/Rest/SuggestionsController.php:472
+#: src/Rest/SuggestionsController.php:480
 msgid "The link could not be saved; nothing was changed."
 msgstr "Der Link konnte nicht gespeichert werden; es wurde nichts geändert."
 
@@ -1217,7 +1217,7 @@ msgstr "Defekte Links durchsuchen"
 msgid "Broken internal links"
 msgstr "Defekte interne Links"
 
-#: assets/build/index.js:10 assets/build/index.js:19
+#: assets/build/index.js:10 assets/build/index.js:18
 msgid "Edit entry"
 msgstr "Beitrag bearbeiten"
 
@@ -1247,7 +1247,7 @@ msgstr "(gelöschter Beitrag)"
 msgid "Destination changed"
 msgstr "Ziel geändert"
 
-#: assets/build/index.js:12 assets/build/index.js:14
+#: assets/build/index.js:12 assets/build/index.js:13
 msgid "Link removed"
 msgstr "Link entfernt"
 
@@ -1289,104 +1289,104 @@ msgstr "KI-Modell: %s"
 msgid "Anchor suggested by the AI"
 msgstr "Von der KI vorgeschlagener Ankertext"
 
-#. translators: %s: number of links in the batch that the AI recommended.
-#: assets/build/index.js:14
-msgid "%s link recommended by the AI"
-msgid_plural "%s links recommended by the AI"
-msgstr[0] "%s Link von der KI empfohlen"
-msgstr[1] "%s Links von der KI empfohlen"
-
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Added from the editor panel"
 msgstr "Aus dem Editor-Bereich hinzugefügt"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Added from another entry's panel"
 msgstr "Aus dem Bereich eines anderen Beitrags hinzugefügt"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Fixed from Broken links"
 msgstr "Aus “Defekte Links” korrigiert"
 
-#: assets/build/index.js:14 assets/build/index.js:19 assets/build/index.js:20
+#: assets/build/index.js:13 assets/build/index.js:19 assets/build/index.js:20
 #: assets/build/index.js:47
 msgid "Undone"
 msgstr "Rückgängig gemacht"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Link put back"
 msgstr "Link wieder eingesetzt"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Already gone"
 msgstr "Bereits entfernt"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Already undone"
 msgstr "Bereits rückgängig gemacht"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Added again"
 msgstr "Wieder eingefügt"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Needs your attention"
 msgstr "Braucht Ihre Aufmerksamkeit"
 
-#: assets/build/index.js:14
+#: assets/build/index.js:13
 msgid "Not changed"
 msgstr "Nicht geändert"
 
 #. translators: %s: number of links.
-#: assets/build/index.js:15
+#: assets/build/index.js:14
 msgid "%s link added again."
 msgid_plural "%s links added again."
 msgstr[0] "%s Link wieder eingefügt."
 msgstr[1] "%s Links wieder eingefügt."
 
 #. translators: %s: number of links.
-#: assets/build/index.js:16
+#: assets/build/index.js:15
 msgid "%s link undone."
 msgid_plural "%s links undone."
 msgstr[0] "%s Link rückgängig gemacht."
 msgstr[1] "%s Links rückgängig gemacht."
 
 #. translators: 1: links added again, 2: links that need attention.
-#: assets/build/index.js:17
+#: assets/build/index.js:16
 msgid "Added again: %1$s. Need your attention: %2$s."
 msgstr "Wieder eingefügt: %1$s. Brauchen Ihre Aufmerksamkeit: %2$s."
 
 #. translators: 1: links undone, 2: links that need attention.
-#: assets/build/index.js:18
+#: assets/build/index.js:17
 msgid "Undone: %1$s. Need your attention: %2$s."
 msgstr "Rückgängig gemacht: %1$s. Brauchen Ihre Aufmerksamkeit: %2$s."
 
 #. translators: 1: changes done, 2: total changes.
-#: assets/build/index.js:19
+#: assets/build/index.js:18
 msgid "Working in the background: %1$s of %2$s."
 msgstr "Läuft im Hintergrund: %1$s von %2$s."
 
-#: assets/build/index.js:19
+#: assets/build/index.js:18
 msgid "This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running."
 msgstr "Das dauert länger als erwartet. Hintergrundaufgaben brauchen ein laufendes WP-Cron oder Action Scheduler."
 
-#: assets/build/index.js:19 assets/build/index.js:56
+#: assets/build/index.js:18 assets/build/index.js:56
 msgid "Resume"
 msgstr "Fortsetzen"
 
-#: assets/build/index.js:19
+#: assets/build/index.js:18
 msgid "Cancel process"
 msgstr "Vorgang abbrechen"
 
-#: assets/build/index.js:19
+#: assets/build/index.js:18
 msgid "Could not read the progress of the process."
 msgstr "Der Fortschritt des Vorgangs konnte nicht gelesen werden."
 
-#: assets/build/index.js:19 assets/build/index.js:23 assets/build/index.js:33
+#: assets/build/index.js:18 assets/build/index.js:23 assets/build/index.js:33
 #: assets/build/index.js:54 assets/build/index.js:72 assets/build/index.js:74
 #: assets/build/index.js:76
 msgid "That did not work. Try again."
 msgstr "Das hat nicht geklappt. Versuchen Sie es erneut."
+
+#. translators: 1: number of links in the batch that the AI recommended, 2: number of links in the batch.
+#: assets/build/index.js:19
+msgid "%1$s of %2$s link recommended by the AI"
+msgid_plural "%1$s of %2$s links recommended by the AI"
+msgstr[0] "%1$s von %2$s Link von der KI empfohlen"
+msgstr[1] "%1$s von %2$s Links von der KI empfohlen"
 
 #: assets/build/index.js:19
 msgid "Could not load the links of this batch."
@@ -1441,6 +1441,11 @@ msgstr "Datum"
 #: assets/build/index.js:50
 msgid "Links to"
 msgstr "Verlinkt auf"
+
+#: assets/build/index.js:20 assets/build/index.js:41 assets/build/index.js:47
+#: assets/build/index.js:50
+msgid "Source"
+msgstr "Quelle"
 
 #: assets/build/index.js:20 assets/build/index.js:41 assets/build/index.js:47
 #: assets/build/index.js:50 assets/build/index.js:61
@@ -1671,10 +1676,6 @@ msgstr "Änderungen in “%s”, neueste zuerst"
 #: assets/build/index.js:41 assets/build/index.js:45 assets/build/index.js:50
 msgid "Change"
 msgstr "Änderung"
-
-#: assets/build/index.js:41 assets/build/index.js:47 assets/build/index.js:50
-msgid "Source"
-msgstr "Quelle"
 
 #: assets/build/index.js:41 assets/build/index.js:47 assets/build/index.js:50
 msgid "User"

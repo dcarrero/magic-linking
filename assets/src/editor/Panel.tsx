@@ -429,6 +429,7 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 													item,
 													original,
 													mark,
+													aiAnchor,
 												} ) => (
 													<SuggestionCard
 														key={ suggestionKey(
@@ -461,8 +462,7 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 																// Si la IA la recomendaba, se anota para el Historial (F1-38).
 																aiLinkInfo(
 																	mark,
-																	item !==
-																		original
+																	aiAnchor
 																)
 															)
 														}
