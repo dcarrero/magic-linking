@@ -1,6 +1,6 @@
 {
   "name": "magic-linking",
-  "version": "0.21.1",
+  "version": "0.22.0",
   "private": true,
   "description": "Internal links report for WordPress: orphan pages, under-linked and over-linked entries, broken internal links.",
   "license": "GPL-2.0-or-later",

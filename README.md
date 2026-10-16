@@ -176,6 +176,11 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 
 ## 📝 Changelog
 
+### 0.22.0
+- History marks the links the AI recommended ("Editor panel · AI"), with the model and whether its anchor was used; separate `ai=1` filter combinable with the origin. Schema 6: three columns in `magiclinking_changes`, saved step by step and only once all three exist.
+- History export to CSV (button and `wp magic-linking history export --format=csv|json`), with the on-screen filters and no row limit.
+- Smaller ZIP (`zip -9 -X -D`, no Action Scheduler readme); `npm run plugin-check` now fails on any Plugin Check ERROR.
+
 ### 0.21.1
 - "Improve with AI" uses exactly the chosen model (`using_model()`), records the model that answered and only picks models that declare the request's requirements; fixes OpenRouter sending requests to other models.
 - OpenRouter model IDs (`provider/model`, `:batch`, `:free`…) recognized for picking and pricing; batch variants never used and rejected in Settings.

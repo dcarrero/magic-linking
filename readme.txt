@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.21.1
+Stable tag: 0.22.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -230,9 +230,10 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 
 == Changelog ==
 
-= Unreleased =
+= 0.22.0 =
 * New: History marks the links the AI recommended ("Editor panel · AI"), with the model and whether its anchor text was used, and you can filter by them. This adds three columns to the history table; the update runs by itself.
 * New: export the History to CSV (button and `wp magic-linking history export`), one row per change, with the filters you have on screen.
+* Improved: the download package is smaller.
 
 = 0.21.1 =
 * Fixed: "Improve with AI" now uses exactly the model you choose. Before, with some providers such as OpenRouter, WordPress could silently send the request to another model and it ran out of time.
@@ -291,6 +292,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 0.22.0 =
+History now marks the links the AI recommended and can be exported to CSV. The update adds three columns to the history table by itself and does not touch your content.
 
 = 0.21.1 =
 Fixes "Improve with AI" with OpenRouter and other providers with many models: the chosen model is used exactly, cheaper models are recommended and the reason of a failure is shown. The update does not touch your content.
