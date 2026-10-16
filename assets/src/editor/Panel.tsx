@@ -35,6 +35,21 @@ function failureText( reason: ApplyFailure ): string {
 			);
 		case 'already_linked':
 			return __( 'This text is already a link.', 'magic-linking' );
+		case 'unsupported':
+			return __(
+				'This sentence is somewhere the panel cannot add a link (a block it does not edit, or a heading, quote, table or shortcode). Add the link by hand.',
+				'magic-linking'
+			);
+		case 'crosses_format':
+			return __(
+				'The anchor crosses bold, italics or other formatting, so the link would break it. Add the link by hand.',
+				'magic-linking'
+			);
+		case 'unsafe':
+			return __(
+				'The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand.',
+				'magic-linking'
+			);
 		case 'text_mode':
 			return __(
 				'Switch to the Visual tab to add the link, or add it by hand.',

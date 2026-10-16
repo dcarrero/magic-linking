@@ -231,6 +231,8 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 == Changelog ==
 
 = Unreleased =
+* Fixed: in an entry whose whole content is a Classic block inside the block editor, the Link button now adds the link (it said "the text has changed"). Only the link is added: the rest of the block's HTML stays byte for byte as it was. When the sentence is somewhere the panel cannot link (a heading, quote or table you have not allowed, or a shortcode), it now says so instead of claiming the text changed.
+* Fixed: History shows the titles of entries as text (no "&#8230;" or "&amp;"), also in the CSV export.
 * New: History marks the links the AI recommended ("Editor panel · AI"), with the model and whether its anchor text was used, and you can filter by them. This adds three columns to the history table; the update runs by itself.
 * New: export the History to CSV (button and `wp magic-linking history export`), one row per change, with the filters you have on screen.
 

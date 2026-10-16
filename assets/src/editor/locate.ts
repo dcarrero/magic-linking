@@ -18,6 +18,11 @@ export const CONTEXT = 30;
 export interface TextUnit {
 	key: string;
 	text: string;
+	/**
+	 * Si la aparición en [start, end) del texto de la unidad se puede enlazar. Las que no, no cuentan (como en el
+	 * servidor, que solo cuenta las apariciones enlazables): un encabezado igual al párrafo no lo hace ambiguo.
+	 */
+	accepts?: ( start: number, end: number ) => boolean;
 }
 
 /** La frase de una sugerencia, con el ancla en medio. */
@@ -99,16 +104,16 @@ export function locate( units: TextUnit[], target: Target ): Located {
 			if ( at === -1 ) {
 				break;
 			}
-			count++;
 			const first = at + before.length;
 			const last = first + anchor.length - 1;
-			found = {
-				status: 'found',
-				key: unit.key,
-				start: map[ first ] ?? 0,
-				end: ( map[ last ] ?? 0 ) + 1,
-			};
 			from = at + 1;
+			const start = map[ first ] ?? 0;
+			const end = ( map[ last ] ?? 0 ) + 1;
+			if ( unit.accepts && ! unit.accepts( start, end ) ) {
+				continue;
+			}
+			count++;
+			found = { status: 'found', key: unit.key, start, end };
 		}
 	}
 

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Rest;
 
 use MagicLinking\Core\Module;
+use MagicLinking\Core\PostTitle;
 use MagicLinking\Core\Settings;
 use MagicLinking\History\BatchJob;
 use MagicLinking\History\ChangeRepository;
@@ -728,7 +729,7 @@ final class HistoryController implements Module {
 		return array(
 			'change_id'  => $result->change_id,
 			'post_id'    => $result->post_id,
-			'post_title' => $post instanceof WP_Post ? get_the_title( $post ) : null,
+			'post_title' => $post instanceof WP_Post ? PostTitle::of( $post ) : null,
 			'status'     => $result->status,
 			'message'    => $result->message,
 			'edit_url'   => $result->edit_url,

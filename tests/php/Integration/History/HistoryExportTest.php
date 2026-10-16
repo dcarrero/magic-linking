@@ -98,7 +98,7 @@ final class HistoryExportTest extends HistoryTestCase {
 		$this->assertSame( 'insert', $row['action'] );
 		$this->assertSame( 'active', $row['state'] );
 		$this->assertSame( (string) $ai['post'], $row['post_id'] );
-		$this->assertSame( get_the_title( $ai['post'] ), $row['post_title'] );
+		$this->assertSame( \MagicLinking\Core\PostTitle::of( $ai['post'] ), $row['post_title'] );
 		$this->assertSame( (string) get_permalink( $this->target ), $row['target_url'] );
 		$this->assertSame( 'aire acondicionado', $row['anchor'] );
 		$this->assertSame( "Another entry's panel", $row['origin'], 'La etiqueta de la pantalla, sin traducir.' );

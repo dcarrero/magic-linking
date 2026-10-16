@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-16T07:33:51+00:00\n"
+"POT-Creation-Date: 2026-10-16T08:57:14+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -184,7 +184,7 @@ msgid "There is no such process."
 msgstr ""
 
 #: src/Cli/Command.php:496
-#: src/Rest/HistoryController.php:477
+#: src/Rest/HistoryController.php:478
 #: src/Rest/JobsController.php:170
 #: src/Rest/JobsController.php:185
 msgid "That process cannot be changed in its current state."
@@ -206,72 +206,72 @@ msgstr ""
 msgid "Unknown action. Use: list, undo, redo, purge or export."
 msgstr ""
 
-#: src/Cli/Command.php:675
-#: src/Cli/Command.php:709
+#: src/Cli/Command.php:674
+#: src/Cli/Command.php:708
 #: src/Rest/EditorHistoryController.php:98
-#: src/Rest/HistoryController.php:794
+#: src/Rest/HistoryController.php:795
 #: src/Rest/SuggestionsController.php:433
 msgid "You do not have permission to edit one of the entries involved."
 msgstr ""
 
-#: src/Cli/Command.php:680
+#: src/Cli/Command.php:679
 #: src/History/Redo.php:65
 #: src/History/Undo.php:165
-#: src/Rest/HistoryController.php:787
+#: src/Rest/HistoryController.php:788
 msgid "That change does not exist."
 msgstr ""
 
-#: src/Cli/Command.php:684
-#: src/Cli/Command.php:704
-#: src/Rest/HistoryController.php:773
+#: src/Cli/Command.php:683
+#: src/Cli/Command.php:703
+#: src/Rest/HistoryController.php:774
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr ""
 
-#: src/Cli/Command.php:700
+#: src/Cli/Command.php:699
 msgid "There is no such group in the history (or you cannot edit all of its entries)."
 msgstr ""
 
 #. translators: %d: number of changes.
-#: src/Cli/Command.php:745
+#: src/Cli/Command.php:744
 #, php-format
 msgid "%d change could not be applied by itself."
 msgid_plural "%d changes could not be applied by themselves."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:752
+#: src/Cli/Command.php:751
 msgid "Group redone."
 msgstr ""
 
-#: src/Cli/Command.php:752
+#: src/Cli/Command.php:751
 msgid "Group undone."
 msgstr ""
 
-#: src/Cli/Command.php:763
+#: src/Cli/Command.php:762
 msgid "The history never expires with the current setting; nothing to delete."
 msgstr ""
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:772
+#: src/Cli/Command.php:771
 #, php-format
 msgid "%d history row has expired."
 msgid_plural "%d history rows have expired."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:781
+#: src/Cli/Command.php:780
 msgid "Nothing has expired."
 msgstr ""
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:791
+#: src/Cli/Command.php:790
 #, php-format
 msgid "%d history row deleted."
 msgid_plural "%d history rows deleted."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:805
+#: src/Cli/Command.php:804
 #: src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
@@ -279,23 +279,23 @@ msgstr[1] ""
 msgid "That entry does not exist."
 msgstr ""
 
-#: src/Cli/Command.php:812
+#: src/Cli/Command.php:811
 msgid "Entry analyzed."
 msgstr ""
 
-#: src/Cli/Command.php:815
+#: src/Cli/Command.php:814
 msgid "Nothing changed since the last analysis. Use --force to analyze it again."
 msgstr ""
 
-#: src/Cli/Command.php:818
+#: src/Cli/Command.php:817
 msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
 msgstr ""
 
-#: src/Cli/Command.php:821
+#: src/Cli/Command.php:820
 msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
 msgstr ""
 
-#: src/Cli/Command.php:834
+#: src/Cli/Command.php:833
 msgid "Could not open the output."
 msgstr ""
 
@@ -360,7 +360,7 @@ msgstr ""
 #: src/Content/Inserter.php:226
 #: src/Content/Repairer.php:117
 #: src/History/Redo.php:273
-#: src/History/Undo.php:256
+#: src/History/Undo.php:254
 msgid "The change history could not be saved; nothing was written."
 msgstr ""
 
@@ -438,8 +438,8 @@ msgid "Another change is being applied to this post; try again in a moment."
 msgstr ""
 
 #: src/Content/PostWriter.php:227
-#: src/History/BatchJob.php:383
-#: src/History/BatchJob.php:453
+#: src/History/BatchJob.php:384
+#: src/History/BatchJob.php:454
 #: src/History/Redo.php:193
 #: src/History/Undo.php:117
 msgid "WordPress could not save the post; nothing was changed."
@@ -520,11 +520,11 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: src/History/Reader.php:826
+#: src/History/Reader.php:827
 msgid "Automatic"
 msgstr ""
 
-#: src/History/Reader.php:831
+#: src/History/Reader.php:832
 msgid "Deleted user"
 msgstr ""
 
@@ -572,35 +572,35 @@ msgstr ""
 msgid "The link is no longer in the post."
 msgstr ""
 
-#: src/History/Undo.php:239
+#: src/History/Undo.php:237
 msgid "The change could not be confirmed as only removing the link; nothing was written."
 msgstr ""
 
-#: src/History/Undo.php:240
+#: src/History/Undo.php:238
 msgid "The change could not be confirmed as only restoring the link; nothing was written."
 msgstr ""
 
-#: src/History/Undo.php:397
+#: src/History/Undo.php:395
 msgid "Destination restored."
 msgstr ""
 
-#: src/History/Undo.php:399
+#: src/History/Undo.php:397
 msgid "Link put back."
 msgstr ""
 
-#: src/History/Undo.php:401
+#: src/History/Undo.php:399
 msgid "Link undone."
 msgstr ""
 
-#: src/History/Undo.php:413
+#: src/History/Undo.php:411
 msgid "This post was edited afterwards; restore the link address by hand."
 msgstr ""
 
-#: src/History/Undo.php:415
+#: src/History/Undo.php:413
 msgid "This post was edited afterwards; put the link back by hand."
 msgstr ""
 
-#: src/History/Undo.php:417
+#: src/History/Undo.php:415
 msgid "This post was edited afterwards; remove the link by hand."
 msgstr ""
 
@@ -678,12 +678,12 @@ msgstr ""
 msgid "That link does not exist."
 msgstr ""
 
-#: src/Rest/HistoryController.php:607
-#: src/Rest/HistoryController.php:687
+#: src/Rest/HistoryController.php:608
+#: src/Rest/HistoryController.php:688
 msgid "Another large undo is already running. Wait for it to finish."
 msgstr ""
 
-#: src/Rest/HistoryController.php:780
+#: src/Rest/HistoryController.php:781
 msgid "Send either a group or a single change."
 msgstr ""
 
@@ -1152,6 +1152,21 @@ msgstr ""
 #: assets/build/classic.js:26
 #: assets/build/editor.js:26
 msgid "This text is already a link."
+msgstr ""
+
+#: assets/build/classic.js:26
+#: assets/build/editor.js:26
+msgid "This sentence is somewhere the panel cannot add a link (a block it does not edit, or a heading, quote, table or shortcode). Add the link by hand."
+msgstr ""
+
+#: assets/build/classic.js:26
+#: assets/build/editor.js:26
+msgid "The anchor crosses bold, italics or other formatting, so the link would break it. Add the link by hand."
+msgstr ""
+
+#: assets/build/classic.js:26
+#: assets/build/editor.js:26
+msgid "The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand."
 msgstr ""
 
 #: assets/build/classic.js:26
