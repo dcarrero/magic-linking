@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Graph;
 
+use MagicLinking\Core\PostTitle;
 use Generator;
 use MagicLinking\Core\Schema;
 use wpdb;
@@ -136,7 +137,7 @@ final class BrokenRepository {
 		$items = array();
 		foreach ( (array) $rows as $row ) {
 			$source = (int) $row['source_id'];
-			$title  = html_entity_decode( wp_strip_all_tags( (string) $row['post_title'] ), ENT_QUOTES, 'UTF-8' );
+			$title  = PostTitle::plain( (string) $row['post_title'] );
 			$code   = (int) $row['is_broken'];
 
 			$items[] = array(

@@ -12,6 +12,7 @@ namespace MagicLinking\History;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
+use MagicLinking\Core\PostTitle;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use Throwable;
@@ -516,7 +517,7 @@ final class BatchJob implements Module {
 			$issues[] = array(
 				'change_id'  => $result->change_id,
 				'post_id'    => $result->post_id,
-				'post_title' => get_post( $result->post_id ) instanceof WP_Post ? get_the_title( $result->post_id ) : null,
+				'post_title' => get_post( $result->post_id ) instanceof WP_Post ? PostTitle::of( $result->post_id ) : null,
 				'status'     => $result->status,
 				'message'    => $result->message,
 				'edit_url'   => $result->edit_url,

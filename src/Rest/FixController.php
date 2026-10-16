@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Rest;
 
+use MagicLinking\Core\PostTitle;
 use MagicLinking\Content\Destination;
 use MagicLinking\Content\FixRequest;
 use MagicLinking\Content\InsertionException;
@@ -200,7 +201,7 @@ final class FixController implements Module {
 					}
 
 					$type    = get_post_type_object( $post->post_type );
-					$title   = html_entity_decode( wp_strip_all_tags( get_the_title( $post ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+					$title   = PostTitle::of( $post );
 					$items[] = array(
 						'id'         => $post->ID,
 						'title'      => '' !== trim( $title ) ? $title : __( '(no title)', 'magic-linking' ),

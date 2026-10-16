@@ -5,7 +5,8 @@
  * el texto de cada bloque (o párrafo del editor clásico). Como en el servidor (docs/06 §3, D-48), manda el
  * contexto —30 caracteres a cada lado— y debe aparecer exactamente una vez: si no, no se toca nada.
  * Las secuencias de espacios (también `&nbsp;`) cuentan como uno solo, con la misma clase de espacios que el
- * servidor (`[\s\x{00A0}]` de PCRE: espacio, tabulador, saltos y NBSP; no U+2028, U+2029 ni otros espacios Unicode),
+ * servidor (`[\s\x{00A0}]` con el modificador `u` de PCRE, que en PHP activa Unicode: espacio, tabulador, saltos, NBSP,
+ * U+202F, U+2028, U+2003…; comprobado en `EditorsTest`),
  * y los caracteres invisibles U+FEFF y U+200B no cuentan.
  *
  * Todas las posiciones son unidades UTF-16, como los índices de `String.prototype.slice`.
@@ -18,6 +19,11 @@ export const CONTEXT = 30;
 export interface TextUnit {
 	key: string;
 	text: string;
+	/**
+	 * Si la aparición en [start, end) del texto de la unidad se puede enlazar. Las que no, no cuentan (como en el
+	 * servidor, que solo cuenta las apariciones enlazables): un encabezado igual al párrafo no lo hace ambiguo.
+	 */
+	accepts?: ( start: number, end: number ) => boolean;
 }
 
 /** La frase de una sugerencia, con el ancla en medio. */
@@ -40,7 +46,7 @@ interface Normalized {
 }
 
 /** Espacios que el servidor colapsa: ASCII y NBSP (docs/06 §3). */
-const SPACE = /[ \t\n\v\f\r\u00a0]/;
+const SPACE = /[\s\u0085]/;
 /** Invisibles que se ignoran. */
 const INVISIBLE = /[\ufeff\u200b]/;
 
@@ -74,41 +80,59 @@ export function normalize( text: string ): Normalized {
 }
 
 /**
+ * Apariciones de la frase de una sugerencia en un texto, en posiciones del texto original (con el mapa de
+ * `normalize()`). Las solapadas también cuentan.
+ *
+ * @param text   Texto donde buscar.
+ * @param target Frase y ancla de la sugerencia.
+ * @return Tramos [start, end) del ancla.
+ */
+export function occurrences(
+	text: string,
+	target: Target
+): Array< { start: number; end: number } > {
+	const anchor = normalize( target.anchor ).norm;
+	if ( anchor.trim() === '' ) {
+		return [];
+	}
+	const before = normalize( target.before ).norm.slice( -CONTEXT );
+	const after = normalize( target.after ).norm.slice( 0, CONTEXT );
+	const pattern = before + anchor + after;
+	const { norm, map } = normalize( text );
+	const found: Array< { start: number; end: number } > = [];
+	let from = 0;
+	for (;;) {
+		const at = norm.indexOf( pattern, from );
+		if ( at === -1 ) {
+			return found;
+		}
+		const first = at + before.length;
+		const last = first + anchor.length - 1;
+		found.push( {
+			start: map[ first ] ?? 0,
+			end: ( map[ last ] ?? 0 ) + 1,
+		} );
+		from = at + 1;
+	}
+}
+
+/**
  * Busca el ancla en las unidades de texto.
  *
  * @param units  Dónde buscar.
  * @param target Frase y ancla de la sugerencia.
  */
 export function locate( units: TextUnit[], target: Target ): Located {
-	const anchor = normalize( target.anchor ).norm;
-	if ( anchor.trim() === '' ) {
-		return { status: 'not_found' };
-	}
-	const before = normalize( target.before ).norm.slice( -CONTEXT );
-	const after = normalize( target.after ).norm.slice( 0, CONTEXT );
-	const pattern = before + anchor + after;
-
 	let found: Located = { status: 'not_found' };
 	let count = 0;
 
 	for ( const unit of units ) {
-		const { norm, map } = normalize( unit.text );
-		let from = 0;
-		for (;;) {
-			const at = norm.indexOf( pattern, from );
-			if ( at === -1 ) {
-				break;
+		for ( const { start, end } of occurrences( unit.text, target ) ) {
+			if ( unit.accepts && ! unit.accepts( start, end ) ) {
+				continue;
 			}
 			count++;
-			const first = at + before.length;
-			const last = first + anchor.length - 1;
-			found = {
-				status: 'found',
-				key: unit.key,
-				start: map[ first ] ?? 0,
-				end: ( map[ last ] ?? 0 ) + 1,
-			};
-			from = at + 1;
+			found = { status: 'found', key: unit.key, start, end };
 		}
 	}
 

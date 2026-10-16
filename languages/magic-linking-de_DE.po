@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-16T07:33:51+00:00\n"
+"POT-Creation-Date: 2026-10-16T10:45:56+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Deutsch\n"
@@ -173,7 +173,7 @@ msgstr "Unbekannte Aktion. Verwenden Sie: list, pause, resume oder cancel."
 msgid "There is no such process."
 msgstr "Diesen Vorgang gibt es nicht."
 
-#: src/Cli/Command.php:496 src/Rest/HistoryController.php:477
+#: src/Cli/Command.php:496 src/Rest/HistoryController.php:478
 #: src/Rest/JobsController.php:170 src/Rest/JobsController.php:185
 msgid "That process cannot be changed in its current state."
 msgstr "Dieser Vorgang lässt sich in seinem aktuellen Zustand nicht ändern."
@@ -194,90 +194,90 @@ msgstr "Es gibt weitere Durchgänge. Fahren Sie fort mit: wp magic-linking histo
 msgid "Unknown action. Use: list, undo, redo, purge or export."
 msgstr "Unbekannte Aktion. Verwende: list, undo, redo, purge oder export."
 
-#: src/Cli/Command.php:675 src/Cli/Command.php:709
-#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:794
-#: src/Rest/SuggestionsController.php:433
+#: src/Cli/Command.php:674 src/Cli/Command.php:708
+#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
+#: src/Rest/SuggestionsController.php:434
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Sie haben keine Berechtigung, einen der betroffenen Beiträge zu bearbeiten."
 
-#: src/Cli/Command.php:680 src/History/Redo.php:65 src/History/Undo.php:165
-#: src/Rest/HistoryController.php:787
+#: src/Cli/Command.php:679 src/History/Redo.php:65 src/History/Undo.php:165
+#: src/Rest/HistoryController.php:788
 msgid "That change does not exist."
 msgstr "Diese Änderung existiert nicht."
 
-#: src/Cli/Command.php:684 src/Cli/Command.php:704
-#: src/Rest/HistoryController.php:773
+#: src/Cli/Command.php:683 src/Cli/Command.php:703
+#: src/Rest/HistoryController.php:774
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr "Dieser Durchgang wird gerade im Hintergrund verarbeitet. Warten Sie, bis er abgeschlossen ist, oder brechen Sie ihn ab."
 
-#: src/Cli/Command.php:700
+#: src/Cli/Command.php:699
 msgid "There is no such group in the history (or you cannot edit all of its entries)."
 msgstr "Diese Gruppe gibt es im Verlauf nicht (oder Sie dürfen nicht alle ihre Beiträge bearbeiten)."
 
 #. translators: %d: number of changes.
-#: src/Cli/Command.php:745
+#: src/Cli/Command.php:744
 #, php-format
 msgid "%d change could not be applied by itself."
 msgid_plural "%d changes could not be applied by themselves."
 msgstr[0] "%d Änderung konnte nicht einzeln angewendet werden."
 msgstr[1] "%d Änderungen konnten nicht einzeln angewendet werden."
 
-#: src/Cli/Command.php:752
+#: src/Cli/Command.php:751
 msgid "Group redone."
 msgstr "Gruppe wiederhergestellt."
 
-#: src/Cli/Command.php:752
+#: src/Cli/Command.php:751
 msgid "Group undone."
 msgstr "Gruppe rückgängig gemacht."
 
-#: src/Cli/Command.php:763
+#: src/Cli/Command.php:762
 msgid "The history never expires with the current setting; nothing to delete."
 msgstr "Mit der aktuellen Einstellung läuft der Verlauf nie ab; es gibt nichts zu löschen."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:772
+#: src/Cli/Command.php:771
 #, php-format
 msgid "%d history row has expired."
 msgid_plural "%d history rows have expired."
 msgstr[0] "%d Verlaufseintrag ist abgelaufen."
 msgstr[1] "%d Verlaufseinträge sind abgelaufen."
 
-#: src/Cli/Command.php:781
+#: src/Cli/Command.php:780
 msgid "Nothing has expired."
 msgstr "Nichts ist abgelaufen."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:791
+#: src/Cli/Command.php:790
 #, php-format
 msgid "%d history row deleted."
 msgid_plural "%d history rows deleted."
 msgstr[0] "%d Verlaufseintrag gelöscht."
 msgstr[1] "%d Verlaufseinträge gelöscht."
 
-#: src/Cli/Command.php:805 src/Rest/AiController.php:225
+#: src/Cli/Command.php:804 src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
-#: src/Rest/SuggestionsController.php:589
+#: src/Rest/SuggestionsController.php:590
 msgid "That entry does not exist."
 msgstr "Dieser Beitrag existiert nicht."
 
-#: src/Cli/Command.php:812
+#: src/Cli/Command.php:811
 msgid "Entry analyzed."
 msgstr "Beitrag analysiert."
 
-#: src/Cli/Command.php:815
+#: src/Cli/Command.php:814
 msgid "Nothing changed since the last analysis. Use --force to analyze it again."
 msgstr "Seit der letzten Analyse hat sich nichts geändert. Verwenden Sie --force, um ihn erneut zu analysieren."
 
-#: src/Cli/Command.php:818
+#: src/Cli/Command.php:817
 msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
 msgstr "Der Beitrag ist nicht veröffentlicht oder gehört zu keinem ausgewählten Inhaltstyp: Er wurde aus dem Bericht entfernt."
 
-#: src/Cli/Command.php:821
+#: src/Cli/Command.php:820
 msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
 msgstr "Der Beitrag ist nicht veröffentlicht oder gehört zu keinem ausgewählten Inhaltstyp und wird daher nicht analysiert."
 
-#: src/Cli/Command.php:834
+#: src/Cli/Command.php:833
 msgid "Could not open the output."
 msgstr "Die Ausgabe konnte nicht geöffnet werden."
 
@@ -311,7 +311,7 @@ msgid "The post contains markup (script, styles…) that cannot be scanned safel
 msgstr "Der Beitrag enthält Markup (Skripte, Styles …), das sich nicht sicher durchsuchen lässt."
 
 #: src/Content/Destination.php:43 src/Content/Destination.php:51
-#: src/Rest/FixController.php:251
+#: src/Rest/FixController.php:252
 msgid "The destination is not a published entry that can be linked."
 msgstr "Das Ziel ist kein veröffentlichter Beitrag, auf den verlinkt werden kann."
 
@@ -333,7 +333,7 @@ msgid "The change could not be confirmed as only the link; nothing was written."
 msgstr "Es ließ sich nicht bestätigen, dass die Änderung nur den Link betrifft; es wurde nichts geschrieben."
 
 #: src/Content/Inserter.php:226 src/Content/Repairer.php:117
-#: src/History/Redo.php:273 src/History/Undo.php:256
+#: src/History/Redo.php:273 src/History/Undo.php:254
 msgid "The change history could not be saved; nothing was written."
 msgstr "Der Änderungsverlauf konnte nicht gespeichert werden; es wurde nichts geschrieben."
 
@@ -409,8 +409,8 @@ msgstr "Sie haben keine Berechtigung, diesen Beitrag zu bearbeiten."
 msgid "Another change is being applied to this post; try again in a moment."
 msgstr "An diesem Beitrag wird gerade eine andere Änderung vorgenommen; versuchen Sie es gleich noch einmal."
 
-#: src/Content/PostWriter.php:227 src/History/BatchJob.php:383
-#: src/History/BatchJob.php:453 src/History/Redo.php:193
+#: src/Content/PostWriter.php:227 src/History/BatchJob.php:384
+#: src/History/BatchJob.php:454 src/History/Redo.php:193
 #: src/History/Undo.php:117
 msgid "WordPress could not save the post; nothing was changed."
 msgstr "WordPress konnte den Beitrag nicht speichern; es wurde nichts geändert."
@@ -459,8 +459,8 @@ msgstr "Der Zielbeitrag ist nicht veröffentlicht (Entwurf, ausstehend oder gepl
 msgid "The destination entry is private."
 msgstr "Der Zielbeitrag ist privat."
 
-#: src/Graph/BrokenRepository.php:145 src/Graph/ReportRepository.php:294
-#: src/Rest/FixController.php:206 assets/build/classic.js:12
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:295
+#: src/Rest/FixController.php:207 assets/build/classic.js:12
 #: assets/build/editor.js:12 assets/build/index.js:12
 msgid "(no title)"
 msgstr "(kein Titel)"
@@ -483,11 +483,11 @@ msgstr "Überverlinkt"
 msgid "OK"
 msgstr "OK"
 
-#: src/History/Reader.php:826
+#: src/History/Reader.php:827
 msgid "Automatic"
 msgstr "Automatisch"
 
-#: src/History/Reader.php:831
+#: src/History/Reader.php:832
 msgid "Deleted user"
 msgstr "Gelöschter Benutzer"
 
@@ -535,35 +535,35 @@ msgstr "Der Beitrag wurde danach bearbeitet: Nur dieser Link wurde wieder so her
 msgid "The link is no longer in the post."
 msgstr "Der Link ist nicht mehr im Beitrag."
 
-#: src/History/Undo.php:239
+#: src/History/Undo.php:237
 msgid "The change could not be confirmed as only removing the link; nothing was written."
 msgstr "Es ließ sich nicht bestätigen, dass die Änderung nur den Link entfernt; es wurde nichts geschrieben."
 
-#: src/History/Undo.php:240
+#: src/History/Undo.php:238
 msgid "The change could not be confirmed as only restoring the link; nothing was written."
 msgstr "Es ließ sich nicht bestätigen, dass die Änderung nur den Link wiederherstellt; es wurde nichts geschrieben."
 
-#: src/History/Undo.php:397
+#: src/History/Undo.php:395
 msgid "Destination restored."
 msgstr "Ziel wiederhergestellt."
 
-#: src/History/Undo.php:399
+#: src/History/Undo.php:397
 msgid "Link put back."
 msgstr "Link wieder eingesetzt."
 
-#: src/History/Undo.php:401
+#: src/History/Undo.php:399
 msgid "Link undone."
 msgstr "Link rückgängig gemacht."
 
-#: src/History/Undo.php:413
+#: src/History/Undo.php:411
 msgid "This post was edited afterwards; restore the link address by hand."
 msgstr "Dieser Beitrag wurde danach bearbeitet; stellen Sie die Linkadresse von Hand wieder her."
 
-#: src/History/Undo.php:415
+#: src/History/Undo.php:413
 msgid "This post was edited afterwards; put the link back by hand."
 msgstr "Dieser Beitrag wurde danach bearbeitet; setzen Sie den Link von Hand wieder ein."
 
-#: src/History/Undo.php:417
+#: src/History/Undo.php:415
 msgid "This post was edited afterwards; remove the link by hand."
 msgstr "Dieser Beitrag wurde danach bearbeitet; entfernen Sie den Link von Hand."
 
@@ -571,7 +571,7 @@ msgstr "Dieser Beitrag wurde danach bearbeitet; entfernen Sie den Link von Hand.
 msgid "You are not allowed to export this data."
 msgstr "Sie dürfen diese Daten nicht exportieren."
 
-#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:251
+#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:252
 msgid "The content is too long to analyze."
 msgstr "Der Inhalt ist zu lang für die Analyse."
 
@@ -626,23 +626,23 @@ msgstr "Ein Beitrag kann nicht auf sich selbst verlinken."
 msgid "The change could not be saved. Try again."
 msgstr "Die Änderung konnte nicht gespeichert werden. Versuche es erneut."
 
-#: src/Rest/FixController.php:240
+#: src/Rest/FixController.php:241
 msgid "This link is no longer broken. Reload the list."
 msgstr "Dieser Link ist nicht mehr defekt. Laden Sie die Liste neu."
 
-#: src/Rest/FixController.php:264 assets/build/index.js:6
+#: src/Rest/FixController.php:265 assets/build/index.js:6
 msgid "The link could not be fixed; nothing was changed."
 msgstr "Der Link ließ sich nicht korrigieren; es wurde nichts geändert."
 
-#: src/Rest/FixController.php:333
+#: src/Rest/FixController.php:334
 msgid "That link does not exist."
 msgstr "Diesen Link gibt es nicht."
 
-#: src/Rest/HistoryController.php:607 src/Rest/HistoryController.php:687
+#: src/Rest/HistoryController.php:608 src/Rest/HistoryController.php:688
 msgid "Another large undo is already running. Wait for it to finish."
 msgstr "Ein anderes umfangreiches Rückgängigmachen läuft bereits. Warten Sie, bis es abgeschlossen ist."
 
-#: src/Rest/HistoryController.php:780
+#: src/Rest/HistoryController.php:781
 msgid "Send either a group or a single change."
 msgstr "Senden Sie entweder eine Gruppe oder eine einzelne Änderung."
 
@@ -655,32 +655,32 @@ msgid "That model works in batches, not live, so it cannot be used in the editor
 msgstr "Dieses Modell arbeitet im Stapelbetrieb, nicht live, und eignet sich daher nicht für den Editor. Wähle ein anderes oder lasse es auf automatisch."
 
 #. translators: %s: comma-separated list of shared terms.
-#: src/Rest/SuggestionPresenter.php:166
+#: src/Rest/SuggestionPresenter.php:167
 #, php-format
 msgid "They share: %s"
 msgstr "Gemeinsame Begriffe: %s"
 
-#: src/Rest/SuggestionPresenter.php:169
+#: src/Rest/SuggestionPresenter.php:170
 msgid "The anchor matches the title of the destination"
 msgstr "Der Ankertext entspricht dem Titel des Ziels"
 
-#: src/Rest/SuggestionPresenter.php:172
+#: src/Rest/SuggestionPresenter.php:173
 msgid "The anchor matches the focus keyword of the destination"
 msgstr "Der Ankertext entspricht dem Fokus-Keyword des Ziels"
 
-#: src/Rest/SuggestionPresenter.php:175
+#: src/Rest/SuggestionPresenter.php:176
 msgid "The destination is an orphan (0 inbound links)"
 msgstr "Das Ziel ist verwaist (0 eingehende Links)"
 
-#: src/Rest/SuggestionPresenter.php:178
+#: src/Rest/SuggestionPresenter.php:179
 msgid "Very similar in meaning"
 msgstr "Inhaltlich sehr ähnlich"
 
-#: src/Rest/SuggestionsController.php:425
+#: src/Rest/SuggestionsController.php:426
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Jeder Link braucht den Beitrag, das Ziel, den Satz, die Position und den Ankertext."
 
-#: src/Rest/SuggestionsController.php:480
+#: src/Rest/SuggestionsController.php:481
 msgid "The link could not be saved; nothing was changed."
 msgstr "Der Link konnte nicht gespeichert werden; es wurde nichts geändert."
 
@@ -1010,6 +1010,26 @@ msgstr "Dieser Satz kommt mehrmals vor, daher ist die richtige Stelle unklar. F�
 #: assets/build/classic.js:26 assets/build/editor.js:26
 msgid "This text is already a link."
 msgstr "Dieser Text ist bereits ein Link."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "This sentence is somewhere the panel cannot add a link (a block it does not edit, or a heading, quote, table or shortcode). Add the link by hand."
+msgstr "Dieser Satz steht an einer Stelle, an der das Panel keinen Link setzen kann (ein Block, den es nicht bearbeitet, oder eine Überschrift, ein Zitat, eine Tabelle oder ein Shortcode). Fügen Sie den Link von Hand ein."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "The anchor crosses bold, italics or other formatting, so the link would break it. Add the link by hand."
+msgstr "Der Ankertext erstreckt sich über Fett, Kursiv oder eine andere Formatierung, der Link würde sie also zerstören. Fügen Sie den Link von Hand ein."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand."
+msgstr "Der Link ließ sich nicht hinzufügen, ohne den Rest des Blocks zu gefährden, daher wurde nichts geändert. Fügen Sie ihn von Hand ein."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "The address of the destination is not valid, so the link was not added."
+msgstr "Die Adresse des Ziels ist nicht gültig, daher wurde der Link nicht hinzugefügt."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "The Classic block has changes that are not applied yet. Save or leave the block and try again."
+msgstr "Der Classic-Block hat Änderungen, die noch nicht übernommen wurden. Speichern Sie oder verlassen Sie den Block und versuchen Sie es erneut."
 
 #: assets/build/classic.js:26 assets/build/editor.js:26
 msgid "Switch to the Visual tab to add the link, or add it by hand."

@@ -176,7 +176,9 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 
 ## 📝 Changelog
 
-### 0.22.0
+### 0.22.1
+- Link inside the Classic block of the block editor (`core/freeform`): the link is inserted on the block's raw HTML string (only `<a …>` and `</a>`, verified before writing, rest byte for byte) with the same rules as the server; new failure reasons (`unsupported`, `crosses_format`, `unsafe`) replace the misleading "the text has changed".
+- History titles are plain text (no HTML entities), also in the CSV export and the WP-CLI export.
 - History marks the links the AI recommended ("Editor panel · AI"), with the model and whether its anchor was used; separate `ai=1` filter combinable with the origin. Schema 6: three columns in `magiclinking_changes`, saved step by step and only once all three exist.
 - History export to CSV (button and `wp magic-linking history export --format=csv|json`), with the on-screen filters and no row limit.
 - Smaller ZIP (`zip -9 -X -D`, no Action Scheduler readme); `npm run plugin-check` now fails on any Plugin Check ERROR.

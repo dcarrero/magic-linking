@@ -66,7 +66,7 @@ describe( 'locate', () => {
 		}
 	} );
 
-	it( 'ignora U+FEFF y U+200B y no trata U+2028 como espacio, igual que el servidor', () => {
+	it( 'ignora U+FEFF y U+200B', () => {
 		const text =
 			'La instalación de una bom\ufeffba de\u200b calor reduce el consumo.';
 		const result = locate( [ { key: 'x', text } ], target );
@@ -76,18 +76,16 @@ describe( 'locate', () => {
 				'bom\ufeffba de\u200b calor'
 			);
 		}
-		// U+2028 no es un espacio para el servidor: no se colapsa con el espacio de al lado.
-		expect(
-			locate(
-				[
-					{
-						key: 'y',
-						text: 'La instalación de una bomba de calor\u2028 reduce el consumo.',
-					},
-				],
-				target
-			).status
-		).toBe( 'not_found' );
+	} );
+
+	it( 'colapsa los espacios Unicode (U+202F, U+2028…) como el servidor', () => {
+		for ( const space of [ '\u202f', '\u2028', '\u2003', '\u0085' ] ) {
+			const text = `La instalación de una bomba de calor${ space } reduce el consumo.`;
+			expect( locate( [ { key: 'y', text } ], target ).status ).toBe(
+				'found'
+			);
+		}
+		expect( normalize( 'a\u202f?' ).norm ).toBe( 'a ?' );
 	} );
 
 	it( 'normaliza recordando las posiciones originales', () => {

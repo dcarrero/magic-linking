@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Rest;
 
+use MagicLinking\Core\PostTitle;
 use MagicLinking\Content\Destination;
 use MagicLinking\Content\InsertionException;
 use MagicLinking\Content\Inserter;
@@ -579,7 +580,7 @@ final class SuggestionsController implements Module {
 	private function title( int $post_id ): ?string {
 		$post = get_post( $post_id );
 
-		return $post instanceof WP_Post ? html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) : null;
+		return $post instanceof WP_Post ? PostTitle::of( $post ) : null;
 	}
 
 	/**

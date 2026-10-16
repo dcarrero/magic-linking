@@ -64,6 +64,31 @@ final class EditorsTest extends TestCase {
 
 	// -------------------------------------------------------------- docs/06 §8, los 15 casos.
 
+	public function test_los_espacios_unicode_se_colapsan_como_un_espacio(): void {
+		// El modificador `u` de PCRE activa Unicode en `\s`: U+202F (francés antes de «?»), U+2028 y U+2003 cuentan como espacio.
+		// El cliente (`rawHtml.ts` y `locate.ts`) se alinea con esto.
+		$content = $this->p( "Un aire\u{202F}acondicionado\u{2028}fijo\u{2003}gasta menos." );
+
+		$edit = $this->insert( $content, $this->req( 'aire acondicionado', 'Un ', ' fijo gasta' ) );
+
+		$this->assertSame( $this->p( 'Un ' . $this->a( "aire\u{202F}acondicionado" ) . "\u{2028}fijo\u{2003}gasta menos." ), $edit->content );
+
+		$classic = ( new ClassicEditor() )->insert( "Pregunta\u{202F}? Un aire\u{202F}acondicionado fijo.", $this->req( 'aire acondicionado', 'Un ', ' fijo.' ) );
+		$this->assertSame( "Pregunta\u{202F}? Un " . $this->a( "aire\u{202F}acondicionado" ) . ' fijo.', $classic->content );
+	}
+
+	public function test_un_comentario_html_corta_el_texto_y_el_enlace_no_lo_envuelve(): void {
+		// `<!--more-->` y `<!--nextpage-->` parten la entrada: un ancla que los cruce no es enlazable.
+		foreach ( array( '<!--more-->', '<!--nextpage-->', '<!-- otro -->' ) as $comment ) {
+			$content = "Mira el aire{$comment} acondicionado de la sala.";
+			$this->refused( InsertionException::TEXT_CHANGED, $content, $this->req( 'aire acondicionado', 'Mira el ', ' de la sala.' ), true );
+		}
+
+		// Pegado a un comentario, sí; y el comentario queda fuera del enlace.
+		$edit = ( new ClassicEditor() )->insert( 'Mira el aire acondicionado<!--more--> de la sala.', $this->req( 'aire acondicionado', 'Mira el ', '' ) );
+		$this->assertSame( 'Mira el ' . $this->a( 'aire acondicionado' ) . '<!--more--> de la sala.', $edit->content );
+	}
+
 	public function test_caso_01_parrafo_simple(): void {
 		$content = $this->doc(
 			$this->p( 'Primero.' ),
