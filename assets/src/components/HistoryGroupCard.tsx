@@ -9,6 +9,7 @@ import {
 	formatDate,
 	formatFullDate,
 	parseServerDate,
+	batchAiLabel,
 	batchOriginLabel,
 } from './historyFormat';
 import { JobProgress, OutcomeSummary } from './HistoryJobParts';
@@ -218,6 +219,9 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 				>
 					{ batchOriginLabel( group.origin, group.kind ) }
 				</span>
+				{ batchAiLabel( group.ai_links ) && (
+					<> · { batchAiLabel( group.ai_links ) }</>
+				) }
 			</p>
 			{ ! expanded && (
 				<p className="magiclinking-batch__entries">

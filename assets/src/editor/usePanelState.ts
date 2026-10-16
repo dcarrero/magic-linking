@@ -4,6 +4,7 @@ import type { Suggestion, InboundResponse, OutboundResponse } from '../types';
 import type { EditorAdapter } from './adapters/types';
 import type { CardStatus } from './SuggestionCard';
 import { useAiRerank, type AiRerank } from './useAiRerank';
+import type { AiLinkInfo } from './ai';
 import { createInsertionLog, shortKey } from './insertions';
 import { InsertionSync } from './sync';
 import { suggestionKey } from './keys';
@@ -30,7 +31,11 @@ export interface PanelState {
 	 * Apunta un enlace que el panel acaba de poner en el editor; al guardar la entrada se avisa al servidor para que
 	 * lo registre en el Historial (F1-34). Devuelve el identificador de la inserción.
 	 */
-	trackInsertion: ( suggestion: Suggestion, anchor: string ) => string;
+	trackInsertion: (
+		suggestion: Suggestion,
+		anchor: string,
+		ai?: AiLinkInfo | null
+	) => string;
 	/** Deja de contar un enlace que se deshizo en el editor antes de guardar. */
 	forgetInsertion: ( insertionId: string ) => void;
 	/** «Mejorar con IA»: reordena las salientes con el modelo del conector (docs/04 §9). */
@@ -108,11 +113,12 @@ export function usePanelState(
 	}, [ sync ] );
 
 	const trackInsertion = useCallback(
-		( suggestion: Suggestion, anchor: string ) =>
+		( suggestion: Suggestion, anchor: string, ai?: AiLinkInfo | null ) =>
 			sync.add( {
 				suggestion: shortKey( suggestionKey( suggestion ) ),
 				target_id: suggestion.target.id,
 				anchor,
+				...( ai ?? {} ),
 			} ),
 		[ sync ]
 	);

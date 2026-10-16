@@ -17,6 +17,8 @@ export interface AiMark {
 	fit: boolean | null;
 	confidence: number | null;
 	improved: RerankImproved | null;
+	/** Modelo que respondió en la llamada de la que sale (F1-38). */
+	model: string;
 }
 
 /** Una tarjeta ya recolocada: la sugerencia que se enseña, la original (su identidad en la lista) y lo que opina la IA. */
@@ -89,10 +91,40 @@ export function outcomeOf(
 			fit: result.fit,
 			confidence: result.confidence,
 			improved: result.improved,
+			model: response.usage.model,
 		};
 	}
 
 	return { order, marks };
+}
+
+/** Lo que el panel avisa al servidor de un enlace que recomendó la IA. */
+export interface AiLinkInfo {
+	ai_recommended: true;
+	ai_anchor: boolean;
+	ai_model: string;
+}
+
+/**
+ * Lo que se anota de la IA cuando el usuario pulsa *Enlazar* en una tarjeta de salientes (F1-38): solo si la IA la
+ * valoró como apta. Si no la recomendó (no apta, sin valorar, sin llamada o con el orden original) no se anota nada.
+ *
+ * @param mark         Opinión de la IA sobre la tarjeta, si la hay.
+ * @param usedImproved Si el enlace usa el ancla que propuso la IA y el usuario aceptó.
+ * @return La marca, o null si la IA no recomendaba el enlace.
+ */
+export function aiLinkInfo(
+	mark: AiMark | undefined,
+	usedImproved: boolean
+): AiLinkInfo | null {
+	if ( ! mark || mark.fit !== true ) {
+		return null;
+	}
+	return {
+		ai_recommended: true,
+		ai_anchor: usedImproved,
+		ai_model: mark.model,
+	};
 }
 
 /**

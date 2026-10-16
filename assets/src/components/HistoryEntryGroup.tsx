@@ -6,6 +6,7 @@ import { api, errorMessage } from '../api';
 import type { ChangeResult, HistoryEntry, HistoryEntryChange } from '../types';
 import { ConfirmModal } from './ConfirmModal';
 import {
+	aiDetails,
 	actionLabel,
 	entryTitle,
 	formatDate,
@@ -554,7 +555,16 @@ function ChangeRow( { change, title, disabled, onRun }: RowProps ) {
 				) }
 			</td>
 			<td data-label={ __( 'Source', 'magic-linking' ) }>
-				{ sourceLabel( change.origin, change.kind ) }
+				{ sourceLabel( change.origin, change.kind, !! change.ai ) }
+				{ change.ai &&
+					aiDetails( change.ai ).map( ( line ) => (
+						<span
+							key={ line }
+							className="magiclinking-change__note"
+						>
+							{ line }
+						</span>
+					) ) }
 			</td>
 			<td data-label={ __( 'User', 'magic-linking' ) }>
 				{ change.user_name }

@@ -1,4 +1,4 @@
-import { __, _x } from '@wordpress/i18n';
+import { __, _n, _x, sprintf } from '@wordpress/i18n';
 import type { ChangeKind, HistoryOrigin } from '../types';
 
 /**
@@ -85,23 +85,80 @@ export function originKey(
 
 /**
  * De dónde viene un cambio, dicho sin dirección (en la vista por entrada todas las filas son enlaces escritos en
- * esa entrada): el panel del editor, el panel de otra entrada o el arreglo de enlaces rotos.
+ * esa entrada): el panel del editor, el panel de otra entrada o el arreglo de enlaces rotos. Si la IA recomendó el
+ * enlace (F1-38) lo dice con texto, no solo con color: «Panel del editor · IA».
  * @param origin Origen.
  * @param kind   Acción.
+ * @param ai     Si la IA recomendó el enlace.
  */
-export function sourceLabel( origin: HistoryOrigin, kind: ChangeKind ): string {
+export function sourceLabel(
+	origin: HistoryOrigin,
+	kind: ChangeKind,
+	ai = false
+): string {
 	switch ( originKey( origin, kind ) ) {
 		case 'panel':
-			return _x( 'Editor panel', 'history origin', 'magic-linking' );
+			return ai
+				? _x( 'Editor panel · AI', 'history origin', 'magic-linking' )
+				: _x( 'Editor panel', 'history origin', 'magic-linking' );
 		case 'other_panel':
-			return _x(
-				"Another entry's panel",
-				'history origin',
-				'magic-linking'
-			);
+			return ai
+				? _x(
+						"Another entry's panel · AI",
+						'history origin',
+						'magic-linking'
+				  )
+				: _x(
+						"Another entry's panel",
+						'history origin',
+						'magic-linking'
+				  );
 		default:
 			return _x( 'Broken links', 'history origin', 'magic-linking' );
 	}
+}
+
+/**
+ * Detalle de un enlace que recomendó la IA: el modelo (si se registró) y si se usó su ancla.
+ * @param ai        Lo que se sabe de la IA en el cambio.
+ * @param ai.model
+ * @param ai.anchor
+ * @return Líneas de texto, en orden; vacío si no hay nada que añadir.
+ */
+export function aiDetails( ai: { model: string; anchor: boolean } ): string[] {
+	const lines: string[] = [];
+	if ( ai.model ) {
+		lines.push(
+			sprintf(
+				/* translators: %s: exact identifier of the AI model that recommended the link. */
+				__( 'AI model: %s', 'magic-linking' ),
+				ai.model
+			)
+		);
+	}
+	if ( ai.anchor ) {
+		lines.push( __( 'Anchor suggested by the AI', 'magic-linking' ) );
+	}
+	return lines;
+}
+
+/**
+ * Cuántos enlaces de un lote recomendó la IA, para la tarjeta del lote (vacío si ninguno).
+ * @param aiLinks Enlaces del lote que recomendó la IA.
+ */
+export function batchAiLabel( aiLinks = 0 ): string {
+	return aiLinks > 0
+		? sprintf(
+				/* translators: %s: number of links in the batch that the AI recommended. */
+				_n(
+					'%s link recommended by the AI',
+					'%s links recommended by the AI',
+					aiLinks,
+					'magic-linking'
+				),
+				aiLinks.toLocaleString()
+		  )
+		: '';
 }
 
 /**

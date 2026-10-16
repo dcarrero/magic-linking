@@ -1,5 +1,6 @@
 import type { RerankResponse, Suggestion } from '../../types';
 import {
+	aiLinkInfo,
 	arrange,
 	candidates,
 	MAX_CANDIDATES,
@@ -229,5 +230,49 @@ describe( 'withAnchor', () => {
 		expect( at( views, 0 ).original ).toBe( original );
 		expect( at( views, 0 ).mark?.improved ).toBeNull();
 		expect( at( views, 0 ).mark?.fit ).toBe( true );
+	} );
+} );
+
+describe( 'aiLinkInfo', () => {
+	const improved = {
+		anchor: 'bomba de calor reduce',
+		offset: 4,
+		before: 'Una ',
+		after: ' el consumo.',
+		anchor_start: 4,
+		anchor_end: 25,
+	};
+
+	it( 'records the model of the call on every rated card', () => {
+		const original = make( 5 );
+		const outcome = outcomeOf(
+			[ original ],
+			ok( [
+				{
+					index: 0,
+					target_id: 5,
+					fit: true,
+					confidence: 0.8,
+					improved,
+				},
+			] )
+		);
+		const mark = outcome.marks[ suggestionKey( original ) ];
+
+		expect( mark?.model ).toBe( 'm' );
+		expect( aiLinkInfo( mark, false ) ).toEqual( {
+			ai_recommended: true,
+			ai_anchor: false,
+			ai_model: 'm',
+		} );
+		expect( aiLinkInfo( mark, true )?.ai_anchor ).toBe( true );
+	} );
+
+	it( 'says nothing when the AI did not recommend the card', () => {
+		const base = { confidence: 0.5, improved: null, model: 'm' };
+
+		expect( aiLinkInfo( undefined, false ) ).toBeNull();
+		expect( aiLinkInfo( { ...base, fit: false }, true ) ).toBeNull();
+		expect( aiLinkInfo( { ...base, fit: null }, false ) ).toBeNull();
 	} );
 } );

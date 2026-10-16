@@ -1,4 +1,6 @@
 import {
+	aiDetails,
+	batchAiLabel,
 	batchOriginLabel,
 	originKey,
 	parseServerDate,
@@ -57,5 +59,39 @@ describe( 'batchOriginLabel', () => {
 		expect( batchOriginLabel( 'plugin', 'unlink' ) ).toBe(
 			'Fixed from Broken links'
 		);
+	} );
+} );
+
+describe( 'AI marks', () => {
+	it( 'adds the AI to the source with text, not only colour', () => {
+		expect( sourceLabel( 'editor', 'insert', true ) ).toBe(
+			'Editor panel · AI'
+		);
+		expect( sourceLabel( 'plugin', 'insert', true ) ).toBe(
+			"Another entry's panel · AI"
+		);
+		expect( sourceLabel( 'editor', 'insert', false ) ).toBe(
+			'Editor panel'
+		);
+		expect( sourceLabel( 'plugin', 'unlink', true ) ).toBe(
+			'Broken links'
+		);
+	} );
+
+	it( 'details the model and the anchor of the AI', () => {
+		expect(
+			aiDetails( { model: 'openai/gpt-4.1-mini', anchor: true } )
+		).toEqual( [
+			'AI model: openai/gpt-4.1-mini',
+			'Anchor suggested by the AI',
+		] );
+		expect( aiDetails( { model: '', anchor: false } ) ).toEqual( [] );
+	} );
+
+	it( 'counts the links of a batch that the AI recommended', () => {
+		expect( batchAiLabel( 0 ) ).toBe( '' );
+		expect( batchAiLabel() ).toBe( '' );
+		expect( batchAiLabel( 1 ) ).toBe( '1 link recommended by the AI' );
+		expect( batchAiLabel( 3 ) ).toBe( '3 links recommended by the AI' );
 	} );
 } );

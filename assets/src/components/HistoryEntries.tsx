@@ -189,6 +189,13 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 							'magic-linking'
 						) }
 					</option>
+					<option value="ai">
+						{ _x(
+							'Recommended by the AI',
+							'history origin filter',
+							'magic-linking'
+						) }
+					</option>
 				</select>
 				<div role="search" className="magiclinking-toolbar__search">
 					<label
