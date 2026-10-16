@@ -43,7 +43,7 @@
 		"test:integration": "npx wp-env run tests-cli --env-cwd=wp-content/plugins/magiclinking-wordpress-plugin vendor/bin/phpunit --testsuite integration",
 		"lint": [
 			"phpcs",
-			"phpstan analyse --memory-limit=1G --no-progress"
+			"phpstan analyse --memory-limit=2G --no-progress"
 		],
 		"lint:fix": "phpcbf"
 	}
