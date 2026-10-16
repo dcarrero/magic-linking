@@ -28,6 +28,7 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 	const [ page, setPage ] = useState( 1 );
 	const [ status, setStatus ] = useState< HistoryStatusFilter >( 'all' );
 	const [ origin, setOrigin ] = useState( '' );
+	const [ ai, setAi ] = useState( false );
 	const [ search, setSearch ] = useState( '' );
 	const [ version, setVersion ] = useState( 0 );
 	const debounced = useDebounced( search );
@@ -37,10 +38,17 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 	const { data, loading, error } = useLoad(
 		( signal ) =>
 			api.historyEntries(
-				{ page, perPage: PER_PAGE, status, origin, search: debounced },
+				{
+					page,
+					perPage: PER_PAGE,
+					status,
+					origin,
+					ai,
+					search: debounced,
+				},
 				signal
 			),
-		[ page, status, origin, debounced, version ],
+		[ page, status, origin, ai, debounced, version ],
 		__( 'Could not load the history.', 'magic-linking' )
 	);
 
@@ -128,7 +136,8 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 	const items = local?.items ?? [];
 	const total = local?.total ?? 0;
 	const totalPages = local?.total_pages ?? 1;
-	const filtered = status !== 'all' || origin !== '' || debounced !== '';
+	const filtered =
+		status !== 'all' || origin !== '' || ai || debounced !== '';
 
 	const toolbar = (
 		<div className="magiclinking-toolbar">
@@ -189,14 +198,22 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 							'magic-linking'
 						) }
 					</option>
-					<option value="ai">
-						{ _x(
-							'Recommended by the AI',
-							'history origin filter',
-							'magic-linking'
-						) }
-					</option>
 				</select>
+				<label htmlFor="magiclinking-history-ai">
+					<input
+						type="checkbox"
+						id="magiclinking-history-ai"
+						checked={ ai }
+						onChange={ ( event ) =>
+							filter( setAi )( event.target.checked )
+						}
+					/>{ ' ' }
+					{ _x(
+						'Recommended by the AI',
+						'history origin filter',
+						'magic-linking'
+					) }
+				</label>
 				<div role="search" className="magiclinking-toolbar__search">
 					<label
 						htmlFor="magiclinking-history-search"
@@ -284,6 +301,7 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 						key={ entry.post_id }
 						entry={ entry }
 						origin={ origin }
+						ai={ ai }
 						onChange={ onEntry }
 					/>
 				) ) }

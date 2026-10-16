@@ -343,7 +343,7 @@ test.describe( 'AI through the connector', () => {
 		await expectAccessible( page, '.magiclinking-wrap' );
 
 		// El filtro deja solo los recomendados y lo dice con texto.
-		await page.getByLabel( 'Source' ).selectOption( 'ai' );
+		await page.getByLabel( 'Recommended by the AI' ).check();
 		await expect( rows ).toHaveCount( recommended );
 		await expect( sources( entry, /^Editor panel · AI/ ) ).toHaveCount(
 			recommended
@@ -359,6 +359,21 @@ test.describe( 'AI through the connector', () => {
 			recommended === 1
 				? '1 link recommended by the AI'
 				: `${ recommended } links recommended by the AI`
+		);
+		await expectAccessible( page, '.magiclinking-wrap' );
+
+		// Las filas desplegadas del lote llevan la misma marca, con el modelo.
+		await page
+			.locator( '.magiclinking-batch' )
+			.locator( 'button[aria-controls^="magiclinking-details-"]' )
+			.click();
+		const batchRows = page.locator( '.magiclinking-batch tbody tr' );
+		await expect( batchRows ).toHaveCount( total );
+		await expect(
+			batchRows.locator( 'td', { hasText: /^Editor panel · AI/ } )
+		).toHaveCount( recommended );
+		await expect( page.locator( '.magiclinking-batch' ) ).toContainText(
+			'AI model: gpt-4o-mini'
 		);
 		await expectAccessible( page, '.magiclinking-wrap' );
 	} );

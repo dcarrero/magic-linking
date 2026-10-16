@@ -140,6 +140,7 @@ export const api = {
 	 * @param query.perPage Entradas por página.
 	 * @param query.status  Estado de los cambios.
 	 * @param query.origin  Origen (editor, plugin o vacío).
+	 * @param query.ai      Solo los enlaces que recomendó la IA.
 	 * @param query.search  Texto del título de la entrada.
 	 * @param signal        Para cancelar.
 	 */
@@ -149,6 +150,7 @@ export const api = {
 			perPage: number;
 			status: HistoryStatusFilter;
 			origin: string;
+			ai: boolean;
 			search: string;
 		},
 		signal?: AbortSignal
@@ -160,13 +162,17 @@ export const api = {
 				per_page: query.perPage,
 				status: query.status === 'all' ? '' : query.status,
 				origin: query.origin,
+				ai: query.ai ? 1 : 0,
 				search: query.search,
 			} ),
 			signal,
 		} ),
-	historyEntry: ( postId: number, origin = '' ) =>
+	historyEntry: ( postId: number, origin = '', ai = false ) =>
 		apiFetch< { entry: HistoryEntry } >( {
-			path: path( `/history/posts/${ postId }`, { origin } ),
+			path: path( `/history/posts/${ postId }`, {
+				origin,
+				ai: ai ? 1 : 0,
+			} ),
 		} ),
 	/**
 	 * Más cambios de una entrada, con cursor: solo los anteriores al último mostrado.
@@ -175,18 +181,21 @@ export const api = {
 	 * @param before  Id del último cambio mostrado.
 	 * @param perPage Cambios por petición.
 	 * @param origin  Filtro de origen (vacío = todos).
+	 * @param ai      Solo los enlaces que recomendó la IA.
 	 */
 	historyEntryChanges: (
 		postId: number,
 		before: number,
 		perPage: number,
-		origin = ''
+		origin = '',
+		ai = false
 	) =>
 		apiFetch< HistoryEntryChangesResponse >( {
 			path: path( `/history/posts/${ postId }/changes`, {
 				before,
 				per_page: perPage,
 				origin,
+				ai: ai ? 1 : 0,
 			} ),
 		} ),
 	/**
@@ -198,11 +207,12 @@ export const api = {
 	 * @param options           Qué cambios.
 	 * @param options.changeIds Cambios concretos de esa entrada.
 	 * @param options.origin    Filtro de origen.
+	 * @param options.ai        Solo los enlaces que recomendó la IA.
 	 */
 	runHistoryEntry: (
 		mode: 'undo' | 'redo',
 		postId: number,
-		options: { changeIds?: number[]; origin?: string } = {}
+		options: { changeIds?: number[]; origin?: string; ai?: boolean } = {}
 	) =>
 		apiFetch< EntryRunResponse >( {
 			path: path( `/${ mode }` ),
@@ -213,6 +223,7 @@ export const api = {
 					? { change_ids: options.changeIds }
 					: {} ),
 				...( options.origin ? { origin: options.origin } : {} ),
+				...( options.ai ? { ai: true } : {} ),
 			},
 		} ),
 	historyGroup: ( batchId: string ) =>

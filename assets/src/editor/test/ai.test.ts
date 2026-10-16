@@ -4,6 +4,7 @@ import {
 	arrange,
 	candidates,
 	MAX_CANDIDATES,
+	MODEL_MAX,
 	outcomeOf,
 	rerankItems,
 	unfitCount,
@@ -266,6 +267,17 @@ describe( 'aiLinkInfo', () => {
 			ai_model: 'm',
 		} );
 		expect( aiLinkInfo( mark, true )?.ai_anchor ).toBe( true );
+	} );
+
+	it( 'cuts a model id longer than the server accepts', () => {
+		const mark = {
+			fit: true,
+			confidence: 0.5,
+			improved: null,
+			model: 'x'.repeat( MODEL_MAX + 40 ),
+		};
+
+		expect( aiLinkInfo( mark, false )?.ai_model ).toHaveLength( MODEL_MAX );
 	} );
 
 	it( 'says nothing when the AI did not recommend the card', () => {

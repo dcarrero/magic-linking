@@ -98,6 +98,9 @@ export function outcomeOf(
 	return { order, marks };
 }
 
+/** Longitud máxima del identificador del modelo que acepta el servidor. */
+export const MODEL_MAX = 100;
+
 /** Lo que el panel avisa al servidor de un enlace que recomendó la IA. */
 export interface AiLinkInfo {
 	ai_recommended: true;
@@ -123,7 +126,8 @@ export function aiLinkInfo(
 	return {
 		ai_recommended: true,
 		ai_anchor: usedImproved,
-		ai_model: mark.model,
+		// El servidor guarda como mucho 100 caracteres (AiOrigin::MODEL_MAX) y rechaza más en POST /links.
+		ai_model: mark.model.slice( 0, MODEL_MAX ),
 	};
 }
 
