@@ -85,10 +85,29 @@ jest.mock( '@wordpress/rich-text', () => {
 		removeFormat: jest.fn(),
 	};
 } );
+jest.mock( '../highlight', () => ( {
+	clearHighlight: jest.fn(),
+	showHighlight: jest.fn(),
+} ) );
 jest.mock( '@wordpress/editor', () => ( { store: 'core/editor' } ) );
 
 // eslint-disable-next-line import/first
 import { gutenbergAdapter } from '../adapters/gutenberg';
+// eslint-disable-next-line import/first
+import { clearHighlight, showHighlight } from '../highlight';
+
+/** Como `RichTextData` de WordPress 6.5: un objeto que se convierte en HTML con `toString()`. */
+class FakeRichText {
+	html: string;
+
+	constructor( html: string ) {
+		this.html = html;
+	}
+
+	toString() {
+		return this.html;
+	}
+}
 
 const options = {
 	linkIn: { headings: false, quotes: false, tables: false },
@@ -243,7 +262,7 @@ describe( 'motivos de fallo en los demás bloques', () => {
 	it( 'un encabezado con encabezados desactivados es «unsupported»', () => {
 		mockBlocks = [
 			block( 'h1', 'core/heading', {
-				content: 'Una sección interesante',
+				content: new FakeRichText( 'Una sección interesante' ),
 			} ),
 		];
 		expect(
@@ -257,7 +276,9 @@ describe( 'motivos de fallo en los demás bloques', () => {
 		mockBlocks = [
 			block( 'q1', 'core/quote', {}, [
 				block( 'p1', 'core/paragraph', {
-					content: 'Una cita muy conocida de alguien.',
+					content: new FakeRichText(
+						'Una cita muy conocida de alguien.'
+					),
 				} ),
 			] ),
 		];
@@ -281,5 +302,117 @@ describe( 'motivos de fallo en los demás bloques', () => {
 		expect( String( mockUpdates[ 0 ]?.[ 1 ].content ) ).toContain(
 			'<a href="https://ejemplo.test/destino/"'
 		);
+	} );
+} );
+
+describe( 'texto enriquecido (RichTextData) fuera de lo enlazable', () => {
+	it( 'una cita destacada con la cita desactivada es «unsupported»', () => {
+		mockBlocks = [
+			block( 'pq', 'core/pullquote', {
+				value: new FakeRichText(
+					'Una frase célebre de alguien famoso'
+				),
+			} ),
+		];
+		expect(
+			gutenbergAdapter( 1, options ).apply(
+				suggestion( 'Una frase ', 'célebre', ' de alguien' )
+			)
+		).toEqual( { ok: false, reason: 'unsupported' } );
+	} );
+
+	it( 'la cita de una cita (citation) también', () => {
+		mockBlocks = [
+			block( 'q', 'core/quote', {
+				citation: new FakeRichText( 'Autora muy conocida del siglo' ),
+			} ),
+		];
+		expect(
+			gutenbergAdapter( 1, options ).apply(
+				suggestion( 'Autora ', 'muy conocida', ' del siglo' )
+			)
+		).toEqual( { ok: false, reason: 'unsupported' } );
+	} );
+
+	it( 'si la frase no está en ninguna parte sigue siendo not_found', () => {
+		mockBlocks = [
+			block( 'h1', 'core/heading', {
+				content: new FakeRichText( 'Otro titular distinto' ),
+			} ),
+		];
+		expect(
+			gutenbergAdapter( 1, options ).apply(
+				suggestion( 'Una ', 'sección interesante', '' )
+			)
+		).toEqual( { ok: false, reason: 'not_found' } );
+	} );
+} );
+
+describe( 'deshacer con un enlace manual idéntico', () => {
+	it( 'quita el suyo aunque ya hubiera otro con el mismo destino y atributos', () => {
+		const manual =
+			'<a href="https://ejemplo.test/destino/" target="_blank" rel="noopener">otra cosa</a>';
+		mockBlocks = [
+			block( 'c1', 'core/freeform', {
+				content: `Ya está ${ manual } y aquí una frase nueva que enlazar hoy.`,
+			} ),
+		];
+		const result = gutenbergAdapter( 1, options ).apply(
+			suggestion( 'aquí una ', 'frase nueva', ' que enlazar' )
+		);
+		expect( result.ok ).toBe( true );
+		if ( result.ok ) {
+			expect( result.undo() ).toBe( true );
+			expect( mockFind( mockBlocks, 'c1' )?.attributes.content ).toBe(
+				`Ya está ${ manual } y aquí una frase nueva que enlazar hoy.`
+			);
+		}
+	} );
+} );
+
+describe( 'resaltado: mismo criterio que enlazar', () => {
+	const show = (
+		html: string,
+		sentence: [ string, string, string ],
+		inner = html
+	) => {
+		mockBlocks = [ block( 'c1', 'core/freeform', { content: html } ) ];
+		document.body.innerHTML = `<div data-block="c1"><div contenteditable="true">${ inner }</div></div>`;
+		( showHighlight as jest.Mock ).mockClear();
+		( clearHighlight as jest.Mock ).mockClear();
+		gutenbergAdapter( 1, options ).highlight( suggestion( ...sentence ) );
+	};
+
+	it( 'una aparición dentro de un <a> no cuenta: se resalta la enlazable', () => {
+		show(
+			'Mira <a href="https://x.test">la frase buena</a> y también la frase buena aquí.',
+			[ '', 'frase buena', '' ]
+		);
+		expect( showHighlight ).toHaveBeenCalledTimes( 1 );
+		const range = ( showHighlight as jest.Mock ).mock
+			.calls[ 0 ][ 0 ] as Range;
+		expect( range.toString() ).toBe( 'frase buena' );
+		expect( range.startContainer.textContent ).toContain( 'también' );
+	} );
+
+	it( 'una aparición en un encabezado desactivado no cuenta', () => {
+		show(
+			'<h2>Aerotermia eficiente</h2>\nLa aerotermia eficiente ahorra.',
+			[ '', 'eficiente', '' ]
+		);
+		expect( showHighlight ).toHaveBeenCalledTimes( 1 );
+		const range = ( showHighlight as jest.Mock ).mock
+			.calls[ 0 ][ 0 ] as Range;
+		expect( range.startContainer.textContent ).toContain( 'ahorra' );
+	} );
+
+	it( 'si no se puede enlazar en ningún sitio, no resalta', () => {
+		show( '<h2>Aerotermia eficiente</h2>\nOtro texto.', [
+			'',
+			'eficiente',
+			'',
+		] );
+		expect( showHighlight ).not.toHaveBeenCalled();
+		expect( clearHighlight ).toHaveBeenCalled();
 	} );
 } );

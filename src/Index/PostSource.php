@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Index;
 
+use MagicLinking\Core\PostTitle;
 use MagicLinking\Core\Settings;
 use MagicLinking\Engine\ContentExtractor;
 use MagicLinking\Engine\Document;
@@ -122,7 +123,7 @@ final class PostSource implements DocumentSource {
 	 */
 	public function from_post( WP_Post $post, ?string $html = null ): Document {
 		$content = $this->extractor->extract( $html ?? self::html_of( $post ) );
-		$title   = html_entity_decode( wp_strip_all_tags( $post->post_title ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$title   = PostTitle::of( $post );
 		$date    = strtotime( $post->post_modified_gmt . ' UTC' );
 
 		return new Document(

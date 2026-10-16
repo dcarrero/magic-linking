@@ -14,7 +14,7 @@ import {
 	toHTMLString,
 } from '@wordpress/rich-text';
 import type { Suggestion } from '../../types';
-import { locate, rangeFromOffsets } from '../locate';
+import { locate, occurrences, rangeFromOffsets } from '../locate';
 import type { TextUnit } from '../locate';
 import { ownEditable } from '../dom';
 import { clearHighlight, showHighlight } from '../highlight';
@@ -203,10 +203,96 @@ function tableTargets( block: Block, out: Target[] ): void {
 	} );
 }
 
-function linkable( scope: AdapterOptions[ 'linkIn' ] ): Target[] {
-	const blocks = select( blockEditorStore ).getBlocks() as unknown as Block[];
-	return collect( blocks, scope, classicDocument( blocks ) );
+/** Qué tramos se pueden enlazar ahora mismo y en qué elementos no se enlaza: la misma selección para enlazar y resaltar. */
+interface Plan {
+	blocks: Block[];
+	targets: Target[];
+	/** Elementos HTML dentro de los cuales no se enlaza (`rawHtml.forbidden()`). */
+	noLink: string[];
 }
+
+function plan( scope: AdapterOptions[ 'linkIn' ] ): Plan {
+	const blocks = select( blockEditorStore ).getBlocks() as unknown as Block[];
+	return {
+		blocks,
+		targets: collect( blocks, scope, classicDocument( blocks ) ),
+		noLink: forbidden( scope ),
+	};
+}
+
+/**
+ * El bloque tal como está ahora en el editor.
+ * @param target
+ */
+function blockOf( target: Target ): Block | null {
+	return select( blockEditorStore ).getBlock(
+		target.clientId
+	) as Block | null;
+}
+
+interface Prepared {
+	units: TextUnit[];
+	/** Valor de rich-text de los tramos con formato. */
+	values: Map< string, ReturnType< typeof create > >;
+	/** Vista de texto de los tramos de HTML en bruto. */
+	views: Map< string, RawView >;
+}
+
+/**
+ * Los tramos como unidades de texto para `locate()`. Los de HTML en bruto llevan el filtro de enlazables, como el
+ * servidor, y los que tienen marcas que no se recorren con seguridad (`<script>`…) se dejan fuera.
+ *
+ * @param selection Tramos y zonas excluidas.
+ */
+function prepare( selection: Plan ): Prepared {
+	const values = new Map< string, ReturnType< typeof create > >();
+	const views = new Map< string, RawView >();
+	const units: TextUnit[] = [];
+	for ( const target of selection.targets ) {
+		const block = blockOf( target );
+		if ( ! block ) {
+			continue;
+		}
+		if ( ! target.raw ) {
+			const value = create( { html: target.read( block ) } );
+			values.set( target.key, value );
+			units.push( { key: target.key, text: value.text } );
+			continue;
+		}
+		const view = buildView( target.read( block ) );
+		views.set( target.key, view );
+		if ( view.unsafe === null ) {
+			units.push( {
+				key: target.key,
+				text: view.text,
+				accepts: ( start, end ) =>
+					blocker( view, start, end, selection.noLink ) === null,
+			} );
+		}
+	}
+	return { units, values, views };
+}
+
+/**
+ * Texto de un atributo de texto enriquecido: una cadena, o un `RichTextData` (desde WordPress 6.5 lo son
+ * `content`, `value` y `citation` de párrafos, encabezados, listas y citas), que se convierte con `String()`.
+ *
+ * @param value Valor del atributo.
+ * @return HTML del atributo, o null si no es texto.
+ */
+function richText( value: unknown ): string | null {
+	if ( typeof value === 'string' ) {
+		return value;
+	}
+	if ( value !== null && typeof value === 'object' ) {
+		const text = String( value );
+		return text === '[object Object]' ? null : text;
+	}
+	return null;
+}
+
+/** Atributos de texto de los bloques donde el panel no inserta. */
+const TEXT_ATTRIBUTES = [ 'content', 'value', 'citation' ];
 
 /**
  * El texto de los bloques donde el panel no inserta (encabezados, citas y tablas desactivados en Ajustes, HTML
@@ -225,13 +311,20 @@ function elsewhere(
 	out: TextUnit[] = []
 ): TextUnit[] {
 	for ( const block of blocks ) {
-		const content = block.attributes.content;
-		if ( typeof content === 'string' && ! claimed.has( block.clientId ) ) {
+		for ( const name of TEXT_ATTRIBUTES ) {
+			const html = richText( block.attributes[ name ] );
+			if (
+				html === null ||
+				( name === 'content' && claimed.has( block.clientId ) )
+			) {
+				continue;
+			}
 			out.push( {
-				key: block.clientId,
-				text: RAW.includes( block.name )
-					? buildView( content ).text
-					: create( { html: content } ).text,
+				key: `${ block.clientId }:${ name }`,
+				text:
+					name === 'content' && RAW.includes( block.name )
+						? buildView( html ).text
+						: create( { html } ).text,
 			} );
 		}
 		if ( block.name === 'core/table' && ! scope.tables ) {
@@ -286,56 +379,10 @@ export function gutenbergAdapter(
 			} ),
 
 		apply: ( suggestion: Suggestion ): ApplyResult => {
-			const blocks = select(
-				blockEditorStore
-			).getBlocks() as unknown as Block[];
-			const targets = collect(
-				blocks,
-				options.linkIn,
-				classicDocument( blocks )
-			);
-			const current = ( target: Target ): Block | null =>
-				select( blockEditorStore ).getBlock(
-					target.clientId
-				) as Block | null;
-			const values = new Map< string, ReturnType< typeof create > >();
-			const views = new Map< string, RawView >();
-			for ( const target of targets ) {
-				const block = current( target );
-				if ( ! block ) {
-					continue;
-				}
-				if ( target.raw ) {
-					views.set( target.key, buildView( target.read( block ) ) );
-				} else {
-					values.set(
-						target.key,
-						create( { html: target.read( block ) } )
-					);
-				}
-			}
-			// Un tramo de HTML en bruto con marcas que no se recorren con seguridad (`<script>`…) no se toca.
-			const usable = ( target: Target ): boolean =>
-				! target.raw || views.get( target.key )?.unsafe === null;
-			const noLink = forbidden( options.linkIn );
-			const units: TextUnit[] = targets
-				.filter( usable )
-				.map( ( target ): TextUnit => {
-					const view = views.get( target.key );
-					if ( view ) {
-						return {
-							key: target.key,
-							text: view.text,
-							// Como el servidor, solo cuentan las apariciones que se pueden enlazar.
-							accepts: ( start, end ) =>
-								blocker( view, start, end, noLink ) === null,
-						};
-					}
-					return {
-						key: target.key,
-						text: values.get( target.key )?.text ?? '',
-					};
-				} );
+			const selection = plan( options.linkIn );
+			const { targets } = selection;
+			const prepared = prepare( selection );
+			const { units, values, views } = prepared;
 
 			const found = locate( units, suggestion );
 			if ( found.status !== 'found' ) {
@@ -346,16 +393,14 @@ export function gutenbergAdapter(
 							? 'ambiguous'
 							: whyNot(
 									suggestion,
-									blocks,
-									targets,
-									units,
-									views,
+									selection,
+									prepared,
 									options.linkIn
 							  ),
 				};
 			}
 			const target = targets.find( ( t ) => t.key === found.key );
-			const block = target ? current( target ) : null;
+			const block = target ? blockOf( target ) : null;
 			if ( ! target || ! block ) {
 				return { ok: false, reason: 'not_found' };
 			}
@@ -456,30 +501,39 @@ export function gutenbergAdapter(
 				clearHighlight();
 				return;
 			}
-			const doc = canvas();
-			const units: TextUnit[] = [];
-			const elements = new Map< string, Element >();
-			for ( const target of linkable( options.linkIn ) ) {
-				// Solo el texto propio del tramo: un `li` padre incluiría el de sus listas anidadas.
-				const editable = target.element( doc );
-				if ( editable ) {
-					elements.set( target.key, editable );
-					units.push( {
-						key: target.key,
-						text: editable.textContent ?? '',
-					} );
-				}
-			}
+			// Dónde está la frase lo decide lo mismo que decide dónde se enlazará (mismos tramos y mismo filtro de
+			// enlazables); el DOM solo sirve para situar el rango.
+			const selection = plan( options.linkIn );
+			const { units } = prepare( selection );
 			const found = locate( units, suggestion );
-			const element =
-				found.status === 'found' ? elements.get( found.key ) : null;
-			if ( found.status !== 'found' || ! element ) {
+			const target =
+				found.status === 'found'
+					? selection.targets.find( ( t ) => t.key === found.key )
+					: undefined;
+			// Solo el texto propio del tramo: un `li` padre incluiría el de sus listas anidadas.
+			const element = target?.element( canvas() );
+			const unit =
+				found.status === 'found'
+					? units.find( ( u ) => u.key === found.key )
+					: undefined;
+			if ( found.status !== 'found' || ! element || ! unit ) {
 				clearHighlight();
 				return;
 			}
-			const range = rangeFromOffsets( element, found.start, found.end );
+			// La aparición con el mismo número de orden en el texto del DOM (que no tiene los cortes ni los
+			// separadores del texto de datos).
+			const inData = occurrences( unit.text, suggestion );
+			const inDom = occurrences( element.textContent ?? '', suggestion );
+			const at = inData.findIndex( ( o ) => o.start === found.start );
+			const place =
+				inDom.length === inData.length ? inDom[ at ] : undefined;
+			const range = place
+				? rangeFromOffsets( element, place.start, place.end )
+				: null;
 			if ( range ) {
 				showHighlight( range );
+			} else {
+				clearHighlight();
 			}
 		},
 	};
@@ -490,39 +544,40 @@ export function gutenbergAdapter(
  * `already_linked` si es un enlace que ya está); `not_found` solo si de verdad ya no está.
  *
  * @param suggestion Sugerencia.
- * @param blocks     Bloques del editor.
- * @param targets    Tramos donde se inserta.
- * @param units      Los mismos como unidades de texto (con su filtro de enlazables).
- * @param views      Vista de texto de los tramos en bruto.
+ * @param selection  Tramos donde se inserta y zonas excluidas.
+ * @param prepared   Los mismos como unidades de texto.
  * @param scope      Dónde más se enlaza.
  */
 function whyNot(
 	suggestion: Suggestion,
-	blocks: Block[],
-	targets: Target[],
-	units: TextUnit[],
-	views: Map< string, RawView >,
+	selection: Plan,
+	prepared: Prepared,
 	scope: AdapterOptions[ 'linkIn' ]
 ): ApplyFailure {
+	const { units, views } = prepared;
 	const claimed = new Set( units.map( ( unit ) => unit.key ) );
+	// Sin el filtro de enlazables: se busca la frase en cualquier sitio.
 	const everything: TextUnit[] = [
-		...units.map( ( { key, text } ) => ( { key, text } ) ),
-		...elsewhere( blocks, claimed, scope ),
+		...Array.from( views, ( [ key, view ] ) => ( {
+			key,
+			text: view.text,
+		} ) ),
+		...units
+			.filter( ( unit ) => ! views.has( unit.key ) )
+			.map( ( { key, text } ) => ( { key, text } ) ),
+		...elsewhere( selection.blocks, claimed, scope ),
 	];
 	const where = locate( everything, suggestion );
 	if ( where.status === 'not_found' ) {
 		return 'not_found';
 	}
-	if ( where.status === 'found' ) {
-		const view = views.get( where.key );
-		if (
-			view &&
-			targets.some( ( t ) => t.key === where.key ) &&
-			blocker( view, where.start, where.end, forbidden( scope ) ) ===
-				'link'
-		) {
-			return 'already_linked';
-		}
+	const view = where.status === 'found' ? views.get( where.key ) : undefined;
+	if (
+		where.status === 'found' &&
+		view &&
+		blocker( view, where.start, where.end, selection.noLink ) === 'link'
+	) {
+		return 'already_linked';
 	}
 	return 'unsupported';
 }
@@ -554,32 +609,19 @@ function applyRaw(
 	if ( ! wrapped.ok ) {
 		return { ok: false, reason: wrapped.reason };
 	}
-	const original = target.read( block );
 
+	// `wrap()` ya comprobó que el resultado es el original más las dos piezas: se escribe tal cual.
 	markPersistent();
 	dispatch( blockEditorStore ).updateBlockAttributes(
 		target.clientId,
 		target.write( block, wrapped.html )
 	);
-	const written = select( blockEditorStore ).getBlock(
-		target.clientId
-	) as Block | null;
-	if ( ! written || target.read( written ) !== wrapped.html ) {
-		// El editor no guardó exactamente lo calculado: se devuelve lo que había y no se da por hecho nada.
-		dispatch( blockEditorStore ).updateBlockAttributes(
-			target.clientId,
-			target.write( block, original )
-		);
-		markPersistent();
-		return { ok: false, reason: 'unsafe' };
-	}
 	markPersistent();
 	clearHighlight();
-	const applied = view.text.slice( start, end );
 
 	return {
 		ok: true,
-		anchor: applied,
+		anchor: view.text.slice( start, end ),
 		// Quita solo este `<a>`, si sigue tal como se puso (una sola vez, con el mismo ancla dentro), como una
 		// edición nueva; el resto del HTML del bloque queda como esté.
 		undo: () => {
@@ -589,7 +631,7 @@ function applyRaw(
 			if ( ! latest ) {
 				return false;
 			}
-			const without = unwrap( target.read( latest ), open, applied );
+			const without = unwrap( target.read( latest ), wrapped );
 			if ( without === null ) {
 				return false;
 			}

@@ -12,11 +12,11 @@ namespace MagicLinking\Core;
 use WP_Post;
 
 /**
- * `get_the_title()` devuelve HTML: el título pasa por `wptexturize` y deja entidades (`&#8230;`, `&amp;`,
- * `&#8217;`). Las pantallas del plugin pintan el título como texto (React escapa), así que lo que se les entrega es el
- * texto ya decodificado, sin etiquetas; si no, el usuario ve «Ver Brujas en un día&#8230; desde las alturas».
+ * Una sola regla para el título de una entrada como texto: el título **guardado** (`post_title`), sin etiquetas y con
+ * las entidades decodificadas. No se usa `get_the_title()`: fuera del administrador (REST, WP-CLI) antepone
+ * «Privado: » o «Protegido: » y aplica `wptexturize` (`&#8230;`, comillas curvas), y el título deja de ser el real.
  *
- * Es texto, no HTML: quien lo imprima en HTML tiene que escaparlo, igual que cualquier otro texto.
+ * Es texto, no HTML: React lo escapa al pintar, y quien lo imprima en HTML tiene que escaparlo, como cualquier texto.
  */
 final class PostTitle {
 
@@ -26,6 +26,17 @@ final class PostTitle {
 	 * @param WP_Post|int $post Entrada o su ID.
 	 */
 	public static function of( WP_Post|int $post ): string {
-		return html_entity_decode( wp_strip_all_tags( get_the_title( $post ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$post = get_post( $post );
+
+		return $post instanceof WP_Post ? self::plain( $post->post_title ) : '';
+	}
+
+	/**
+	 * Un título guardado (por ejemplo, el de una fila de SQL) como texto plano.
+	 *
+	 * @param string $raw `post_title` tal como está en la base de datos.
+	 */
+	public static function plain( string $raw ): string {
+		return html_entity_decode( wp_strip_all_tags( $raw ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 	}
 }

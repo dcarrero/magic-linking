@@ -79,36 +79,54 @@ export function normalize( text: string ): Normalized {
 }
 
 /**
+ * Apariciones de la frase de una sugerencia en un texto, en posiciones del texto original (con el mapa de
+ * `normalize()`). Las solapadas también cuentan.
+ *
+ * @param text   Texto donde buscar.
+ * @param target Frase y ancla de la sugerencia.
+ * @return Tramos [start, end) del ancla.
+ */
+export function occurrences(
+	text: string,
+	target: Target
+): Array< { start: number; end: number } > {
+	const anchor = normalize( target.anchor ).norm;
+	if ( anchor.trim() === '' ) {
+		return [];
+	}
+	const before = normalize( target.before ).norm.slice( -CONTEXT );
+	const after = normalize( target.after ).norm.slice( 0, CONTEXT );
+	const pattern = before + anchor + after;
+	const { norm, map } = normalize( text );
+	const found: Array< { start: number; end: number } > = [];
+	let from = 0;
+	for (;;) {
+		const at = norm.indexOf( pattern, from );
+		if ( at === -1 ) {
+			return found;
+		}
+		const first = at + before.length;
+		const last = first + anchor.length - 1;
+		found.push( {
+			start: map[ first ] ?? 0,
+			end: ( map[ last ] ?? 0 ) + 1,
+		} );
+		from = at + 1;
+	}
+}
+
+/**
  * Busca el ancla en las unidades de texto.
  *
  * @param units  Dónde buscar.
  * @param target Frase y ancla de la sugerencia.
  */
 export function locate( units: TextUnit[], target: Target ): Located {
-	const anchor = normalize( target.anchor ).norm;
-	if ( anchor.trim() === '' ) {
-		return { status: 'not_found' };
-	}
-	const before = normalize( target.before ).norm.slice( -CONTEXT );
-	const after = normalize( target.after ).norm.slice( 0, CONTEXT );
-	const pattern = before + anchor + after;
-
 	let found: Located = { status: 'not_found' };
 	let count = 0;
 
 	for ( const unit of units ) {
-		const { norm, map } = normalize( unit.text );
-		let from = 0;
-		for (;;) {
-			const at = norm.indexOf( pattern, from );
-			if ( at === -1 ) {
-				break;
-			}
-			const first = at + before.length;
-			const last = first + anchor.length - 1;
-			from = at + 1;
-			const start = map[ first ] ?? 0;
-			const end = ( map[ last ] ?? 0 ) + 1;
+		for ( const { start, end } of occurrences( unit.text, target ) ) {
 			if ( unit.accepts && ! unit.accepts( start, end ) ) {
 				continue;
 			}

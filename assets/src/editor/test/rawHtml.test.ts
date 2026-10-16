@@ -111,7 +111,7 @@ describe( 'enlazar sobre la cadena', () => {
 		expect(
 			out.result.html.replace( out.open, '' ).replace( '</a>', '' )
 		).toBe( real );
-		expect( unwrap( out.result.html, out.open, out.applied ) ).toBe( real );
+		expect( unwrap( out.result.html, out.result ) ).toBe( real );
 	} );
 
 	it( 'respeta entidades, comillas tipográficas y dobles espacios fuera del ancla', () => {
@@ -194,9 +194,7 @@ describe( 'enlazar sobre la cadena', () => {
 			expect( out.result.html ).toBe(
 				`La fama de ${ out.open }<strong>Budapest </strong>se</a> debe a todo.`
 			);
-			expect( unwrap( out.result.html, out.open, out.applied ) ).toBe(
-				html
-			);
+			expect( unwrap( out.result.html, out.result ) ).toBe( html );
 		} );
 
 		it( 'si queda mal anidado, se rechaza y no se recorta', () => {
@@ -306,17 +304,25 @@ describe( 'enlazar sobre la cadena', () => {
 
 describe( 'verificación byte a byte', () => {
 	const html = 'Uno <b>dos</b> tres cuatro';
+	const text = buildView( html ).text;
 	const open = openTag( URL, {} );
 	const good = `Uno <b>dos</b> ${ open }tres</a> cuatro`;
 
 	it( 'acepta exactamente las dos piezas', () => {
-		expect( onlyLinkAdded( html, good, 15, 19, open ) ).toBe( true );
+		expect( onlyLinkAdded( html, good, 15, 19, open, text ) ).toBe( true );
 	} );
 
 	it( 'rechaza cualquier otro cambio', () => {
 		// Un espacio menos en otro sitio.
 		expect(
-			onlyLinkAdded( html, good.replace( 'Uno ', 'Uno' ), 15, 19, open )
+			onlyLinkAdded(
+				html,
+				good.replace( 'Uno ', 'Uno' ),
+				15,
+				19,
+				open,
+				text
+			)
 		).toBe( false );
 		// Una entidad reserializada.
 		expect(
@@ -325,26 +331,63 @@ describe( 'verificación byte a byte', () => {
 				`a & ${ open }tres</a>`,
 				6,
 				10,
-				open
+				open,
+				buildView( 'a &amp; tres' ).text
 			)
 		).toBe( false );
 		// Piezas en otro sitio.
-		expect( onlyLinkAdded( html, good, 14, 19, open ) ).toBe( false );
+		expect( onlyLinkAdded( html, good, 14, 19, open, text ) ).toBe( false );
+		// El texto que ve el lector cambia.
+		expect( onlyLinkAdded( html, good, 15, 19, open, 'otro texto' ) ).toBe(
+			false
+		);
+	} );
+} );
+
+describe( 'unwrap', () => {
+	const open = openTag( URL, {} );
+	const wrapOf = (
+		html: string,
+		anchor: string,
+		before: string,
+		after: string
+	) => {
+		const out = link( html, anchor, before, after );
+		if ( out.status !== 'found' || ! out.result.ok ) {
+			throw new Error( 'debería enlazar' );
+		}
+		return out.result;
+	};
+
+	it( 'devuelve el original y no toca nada si el enlace cambió', () => {
+		const html = 'Uno <b>dos</b> tres cuatro';
+		const done = wrapOf( html, 'tres', 'dos ', ' cuatro' );
+		expect( unwrap( done.html, done ) ).toBe( html );
+		// Texto distinto dentro, o ya no está.
+		expect(
+			unwrap( done.html.replace( 'tres', 'seis' ), done )
+		).toBeNull();
+		expect( unwrap( html, done ) ).toBeNull();
 	} );
 
-	it( 'unwrap no toca nada si el enlace cambió', () => {
-		const anchor = 'tres';
-		expect( unwrap( good, open, anchor ) ).toBe( html );
-		// Texto distinto dentro.
-		expect(
-			unwrap( good.replace( 'tres', 'seis' ), open, anchor )
-		).toBeNull();
-		// La etiqueta ya no está o está dos veces.
-		expect( unwrap( html, open, anchor ) ).toBeNull();
-		expect( unwrap( good + good, open, anchor ) ).toBeNull();
-		// Otro enlace dentro.
-		expect(
-			unwrap( `${ open }tres <a href="x">y</a></a>`, open, anchor )
-		).toBeNull();
+	it( 'no se niega por un enlace manual idéntico (mismo destino y mismos atributos) que ya existía', () => {
+		const html = `Ya enlazado: ${ open }otra cosa</a> y aquí tres cuatro.`;
+		const done = wrapOf( html, 'tres', 'aquí ', ' cuatro' );
+		expect( done.html.split( open ).length - 1 ).toBe( 2 );
+		expect( unwrap( done.html, done ) ).toBe( html );
+	} );
+
+	it( 'lo encuentra aunque el usuario haya escrito delante y se haya movido', () => {
+		const html = 'Uno dos tres cuatro';
+		const done = wrapOf( html, 'tres', 'dos ', ' cuatro' );
+		const moved = 'Algo nuevo. ' + done.html;
+		expect( unwrap( moved, done ) ).toBe( 'Algo nuevo. ' + html );
+	} );
+
+	it( 'con dos enlaces idénticos, el de su sitio es el suyo y, movido, no se sabe cuál', () => {
+		const html = `Antes ${ open }tres</a> y luego tres cuatro`;
+		const done = wrapOf( html, 'tres', 'luego ', ' cuatro' );
+		expect( unwrap( done.html, done ) ).toBe( html );
+		expect( unwrap( 'X' + done.html, done ) ).toBeNull();
 	} );
 } );

@@ -85,6 +85,22 @@ final class HistoryExportTest extends HistoryTestCase {
 		);
 	}
 
+	public function test_the_title_is_the_stored_one_for_a_private_entry(): void {
+		$post = $this->post(
+			array(
+				'post_status' => 'private',
+				'post_title'  => "L'été -- vraiment... fin &amp; <b>más</b> &#8230;",
+			)
+		);
+		$this->assertStringStartsWith( 'Private:', get_the_title( $post ), 'get_the_title() antepone «Privado» fuera del administrador.' );
+		$this->put( null, $post );
+
+		$rows = $this->export();
+
+		$this->assertCount( 1, $rows );
+		$this->assertSame( "L'été -- vraiment... fin & más …", $rows[0]['post_title'] );
+	}
+
 	public function test_one_row_per_change_with_the_documented_columns(): void {
 		$ai = $this->put( new AiOrigin( true, 'openai/gpt-4.1-mini' ) );
 
@@ -98,7 +114,7 @@ final class HistoryExportTest extends HistoryTestCase {
 		$this->assertSame( 'insert', $row['action'] );
 		$this->assertSame( 'active', $row['state'] );
 		$this->assertSame( (string) $ai['post'], $row['post_id'] );
-		$this->assertSame( \MagicLinking\Core\PostTitle::of( $ai['post'] ), $row['post_title'] );
+		$this->assertSame( get_post( $ai['post'] )->post_title, $row['post_title'], 'El título guardado, tal cual.' );
 		$this->assertSame( (string) get_permalink( $this->target ), $row['target_url'] );
 		$this->assertSame( 'aire acondicionado', $row['anchor'] );
 		$this->assertSame( "Another entry's panel", $row['origin'], 'La etiqueta de la pantalla, sin traducir.' );

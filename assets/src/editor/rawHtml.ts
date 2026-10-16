@@ -576,10 +576,12 @@ export function openTag(
 export type WrapResult =
 	| {
 			ok: true;
+			/** HTML nuevo, con las dos piezas. */
 			html: string;
-			/** Lugar de la etiqueta de apertura en el HTML nuevo (el HTML original es lo que había antes). */
+			/** Lugar de la etiqueta de apertura en el HTML nuevo (y de lo que había en el original). */
 			start: number;
-			end: number;
+			/** Lo que quedó dentro del enlace, tal como estaba en el original. */
+			inner: string;
 			open: string;
 	  }
 	| { ok: false; reason: 'crosses_format' | 'unsafe' };
@@ -611,37 +613,34 @@ export function wrap(
 		return { ok: false, reason: 'crosses_format' };
 	}
 	const [ start, end ] = range;
+	const inner = html.slice( start, end );
 	const next =
-		html.slice( 0, start ) +
-		open +
-		html.slice( start, end ) +
-		'</a>' +
-		html.slice( end );
-	if ( ! onlyLinkAdded( html, next, start, end, open ) ) {
+		html.slice( 0, start ) + open + inner + '</a>' + html.slice( end );
+	if ( ! onlyLinkAdded( html, next, start, end, open, view.text ) ) {
 		return { ok: false, reason: 'unsafe' };
 	}
-	return { ok: true, html: next, start, end, open };
+	return { ok: true, html: next, start, inner, open };
 }
 
 /**
- * Comprueba que `next` es `html` con una etiqueta de apertura en `start` y un `</a>` en `end` y nada más.
+ * Comprueba que `next` es `html` con una etiqueta de apertura en `start` y un `</a>` en `end` y nada más: las dos piezas
+ * están donde tienen que estar, quitarlas devuelve el original y el texto que ve el lector no ha cambiado.
  *
  * @param html  Original.
  * @param next  Con el enlace.
  * @param start Índice de la apertura en el original.
  * @param end   Índice del cierre en el original.
  * @param open  Etiqueta de apertura.
+ * @param text  Texto de la vista del original.
  */
 export function onlyLinkAdded(
 	html: string,
 	next: string,
 	start: number,
 	end: number,
-	open: string
+	open: string,
+	text: string
 ): boolean {
-	if ( next.length !== html.length + open.length + 4 ) {
-		return false;
-	}
 	const closeAt = end + open.length;
 	if (
 		next.slice( start, start + open.length ) !== open ||
@@ -653,41 +652,33 @@ export function onlyLinkAdded(
 		next.slice( 0, start ) +
 		next.slice( start + open.length, closeAt ) +
 		next.slice( closeAt + 4 );
-	return (
-		stripped === html && buildView( next ).text === buildView( html ).text
-	);
+	return stripped === html && buildView( next ).text === text;
 }
 
 /**
- * Quita el enlace que `wrap()` puso, si sigue tal como estaba: la etiqueta de apertura aparece una sola vez, se
- * cierra con el primer `</a>` sin otro enlace en medio y lo que encierra sigue siendo el ancla. Si no, no se toca
- * nada.
+ * Quita el enlace que `wrap()` puso, si sigue tal como estaba. Se busca el tramo exacto `apertura + interior + </a>`:
+ * primero donde se puso; si el usuario escribió delante y se movió, donde aparezca una sola vez. Otro enlace igual que
+ * ya existía (mismo destino y mismos atributos) no estorba, salvo que sea idéntico también por dentro y no se sepa
+ * cuál es. Si no, no se toca nada.
  *
- * @param html   Contenido actual del bloque.
- * @param open   Etiqueta de apertura que se puso.
- * @param anchor Texto que quedó enlazado.
+ * @param html       Contenido actual del bloque.
+ * @param link       Lo que devolvió `wrap()`.
+ * @param link.start
+ * @param link.inner
+ * @param link.open
  * @return El HTML sin el enlace, o null si no se puede quitar con seguridad.
  */
 export function unwrap(
 	html: string,
-	open: string,
-	anchor: string
+	link: { start: number; inner: string; open: string }
 ): string | null {
-	const at = html.indexOf( open );
-	if ( at === -1 || html.indexOf( open, at + 1 ) !== -1 ) {
-		return null;
+	const whole = link.open + link.inner + '</a>';
+	let at = html.startsWith( whole, link.start ) ? link.start : -1;
+	if ( at === -1 ) {
+		at = html.indexOf( whole );
+		if ( at === -1 || html.indexOf( whole, at + 1 ) !== -1 ) {
+			return null;
+		}
 	}
-	const innerStart = at + open.length;
-	const close = html.indexOf( '</a>', innerStart );
-	if ( close === -1 ) {
-		return null;
-	}
-	const inner = html.slice( innerStart, close );
-	if ( /<a[\s>]/i.test( inner ) ) {
-		return null;
-	}
-	if ( buildView( inner ).text !== anchor ) {
-		return null;
-	}
-	return html.slice( 0, at ) + inner + html.slice( close + 4 );
+	return html.slice( 0, at ) + link.inner + html.slice( at + whole.length );
 }
