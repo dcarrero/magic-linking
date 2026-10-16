@@ -13,7 +13,7 @@ namespace MagicLinking\History;
  * Lo que el panel dice de un enlace que el usuario puso a partir de «Mejorar con IA»: la IA lo recomendaba, se usó el
  * ancla que propuso ella y con qué modelo. Es solo información para el Historial: no toca el contenido (regla 5 de
  * CLAUDE.md, nada de atributos en el enlace) y no da ningún permiso, así que el servidor no se fía del cliente para
- * nada más que esto y lo sanea: dos booleanos y una cadena corta de texto plano.
+ * nada más que esto y lo sanea (la marca la declara el cliente: es informativa, no sirve de auditoría): dos booleanos y una cadena corta de texto plano.
  */
 final class AiOrigin {
 
@@ -53,11 +53,24 @@ final class AiOrigin {
 	}
 
 	/**
-	 * Si un valor del cliente es un «sí» (booleano, 1 o «1»/«true»).
+	 * Marca de una fila del historial (`ai_recommended`, `ai_anchor`, `ai_model`).
+	 *
+	 * @param array $change Fila tal como la devuelve {@see ChangeRepository}.
+	 *
+	 * @phpstan-param array<array-key, mixed> $change
+	 *
+	 * @return self|null Null si la IA no recomendó el enlace.
+	 */
+	public static function from_row( array $change ): ?self {
+		return empty( $change['ai_recommended'] ) ? null : new self( ! empty( $change['ai_anchor'] ), (string) ( $change['ai_model'] ?? '' ) );
+	}
+
+	/**
+	 * Si un valor del cliente es un «sí»: la misma regla de booleanos que usa la API REST.
 	 *
 	 * @param mixed $value Valor.
 	 */
 	private static function truthy( mixed $value ): bool {
-		return true === $value || 1 === $value || '1' === $value || 'true' === $value;
+		return is_scalar( $value ) && rest_sanitize_boolean( $value );
 	}
 }

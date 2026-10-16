@@ -30,6 +30,21 @@ final class Installer implements Module {
 	public const DB_VERSION_OPTION = 'magiclinking_db_version';
 
 	/**
+	 * Esquema que añadió las columnas `ai_*` de `changes` (F1-38).
+	 */
+	public const AI_COLUMNS_SCHEMA = 6;
+
+	/**
+	 * Transitorio (sin autoload) que frena los reintentos de una migración que falló.
+	 */
+	public const RETRY_TRANSIENT = 'magiclinking_schema_retry';
+
+	/**
+	 * Segundos que se espera antes de reintentar una migración fallida.
+	 */
+	public const RETRY_SECONDS = 300;
+
+	/**
 	 * Opción de ajustes (la única en autoload). Se lee aquí solo para saber si
 	 * hay que borrar los datos al desinstalar.
 	 */
@@ -185,6 +200,11 @@ final class Installer implements Module {
 			return true;
 		}
 
+		// Una migración que acaba de fallar espera unos minutos antes de volver a intentarse.
+		if ( $installed > 0 && false !== get_transient( self::RETRY_TRANSIENT ) ) {
+			return false;
+		}
+
 		return $this->upgrade( $installed );
 	}
 
@@ -209,6 +229,15 @@ final class Installer implements Module {
 			}
 		}
 
+		// La versión solo se guarda con el esquema completo: si el `ALTER` de dbDelta falló (sin permiso, tiempo agotado)
+		// no se da por migrado y se reintenta, pero no en cada carga del administrador.
+		if ( $this->target_version >= self::AI_COLUMNS_SCHEMA && ! $this->has_column( 'changes', 'ai_recommended' ) ) {
+			set_transient( self::RETRY_TRANSIENT, 1, self::RETRY_SECONDS );
+
+			return false;
+		}
+		delete_transient( self::RETRY_TRANSIENT );
+
 		update_option( self::DB_VERSION_OPTION, $this->target_version, false );
 
 		// Una actualización (no una instalación nueva) puede dejar el índice léxico sin construir.
@@ -230,6 +259,18 @@ final class Installer implements Module {
 		$statements = Schema::create_statements( $this->wpdb->prefix, $this->wpdb->get_charset_collate() );
 
 		return dbDelta( array_values( $statements ) );
+	}
+
+	/**
+	 * Si una tabla del plugin tiene una columna.
+	 *
+	 * @param string $table  Tabla sin prefijo.
+	 * @param string $column Columna.
+	 */
+	private function has_column( string $table, string $column ): bool {
+		$name = Schema::table( $this->wpdb->prefix, $table );
+
+		return null !== $this->wpdb->get_var( $this->wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $name, $column ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Comprobación del esquema, no hay nada que cachear.
 	}
 
 	/**

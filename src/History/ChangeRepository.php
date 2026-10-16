@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace MagicLinking\History;
 
-use MagicLinking\Core\Installer;
 use MagicLinking\Core\Schema;
 use wpdb;
 
@@ -46,16 +45,6 @@ final class ChangeRepository {
 	public const ORIGIN_EDITOR = 'editor';
 
 	/**
-	 * Filtro (no es un origen): solo los enlaces que recomendó la IA (F1-38). Se pasa en el mismo parámetro `origin`.
-	 */
-	public const FILTER_AI = 'ai';
-
-	/**
-	 * Primera versión del esquema con las columnas `ai_*` (F1-38).
-	 */
-	public const AI_SCHEMA = 6;
-
-	/**
 	 * Inserciones activas de una entrada que se miran como máximo al comprobar duplicados (las más recientes).
 	 */
 	public const ACTIVE_LIMIT = 500;
@@ -81,6 +70,13 @@ final class ChangeRepository {
 	 * @var array<string, array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, origin?: string, ai?: bool}>>>
 	 */
 	private array $memo = array();
+
+	/**
+	 * Si la tabla tiene las columnas `ai_*`; null = sin comprobar en esta petición.
+	 *
+	 * @var bool|null
+	 */
+	private ?bool $ai_columns = null;
 
 	/**
 	 * Constructor.
@@ -143,29 +139,44 @@ final class ChangeRepository {
 	}
 
 	/**
-	 * Si el esquema instalado ya tiene las columnas `ai_*` (F1-38).
+	 * Si la tabla tiene de verdad las columnas `ai_*` (F1-38). No basta con la versión del esquema: un `ALTER` que falló
+	 * (sin permiso, tiempo agotado) deja la versión sin las columnas. Se pregunta a la base de datos una vez por petición.
 	 */
 	public function has_ai_columns(): bool {
-		return (int) get_option( Installer::DB_VERSION_OPTION, 0 ) >= self::AI_SCHEMA;
+		if ( null === $this->ai_columns ) {
+			$found            = $this->wpdb->get_var( $this->wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $this->table, 'ai_recommended' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Comprobación del esquema, no hay nada que cachear.
+			$this->ai_columns = null !== $found;
+		}
+
+		return $this->ai_columns;
 	}
 
 	/**
-	 * Condición SQL del filtro de origen de la pantalla: un origen (`plugin`, `editor`) o «recomendado por la IA».
-	 * Un valor desconocido no filtra. Sin las columnas `ai_*` el filtro de la IA no encuentra nada, en vez de fallar.
+	 * Olvida si hay columnas `ai_*` (tras migrar el esquema o en las pruebas).
+	 */
+	public function forget_columns(): void {
+		$this->ai_columns = null;
+	}
+
+	/**
+	 * Condición SQL de los filtros de la pantalla: origen (`plugin`, `editor`; otro valor no filtra) y, aparte,
+	 * «recomendado por la IA». Se combinan. Sin las columnas `ai_*` el filtro de la IA no encuentra nada, en vez de fallar.
 	 *
-	 * @param string $origin Valor del filtro.
+	 * @param string $origin Filtro de origen.
+	 * @param bool   $ai     Solo los que recomendó la IA.
 	 * @param string $alias  Alias de la tabla.
 	 */
-	private function origin_clause( string $origin, string $alias = 'c' ): string {
+	private function origin_clause( string $origin, bool $ai = false, string $alias = 'c' ): string {
+		$sql = '';
 		if ( in_array( $origin, array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR ), true ) ) {
-			return $this->wpdb->prepare( " AND {$alias}.origin = %s", $origin ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias interno.
+			$sql .= $this->wpdb->prepare( " AND {$alias}.origin = %s", $origin ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias interno.
 		}
 
-		if ( self::FILTER_AI === $origin ) {
-			return $this->has_ai_columns() ? " AND {$alias}.ai_recommended = 1" : ' AND 1 = 0';
+		if ( $ai ) {
+			$sql .= $this->has_ai_columns() ? " AND {$alias}.ai_recommended = 1" : ' AND 1 = 0';
 		}
 
-		return '';
+		return $sql;
 	}
 
 	/**
@@ -414,12 +425,12 @@ final class ChangeRepository {
 	 * su última actividad (poner o deshacer un cambio). Cuenta un enlace una sola vez aunque se haya rehecho (solo
 	 * vale la fila más reciente de cada tramo, como {@see Slots}) y no trae HTML.
 	 *
-	 * @param array $filters  Filtros: `status` (`active`, `undone` o vacío = todos), `origin` (`plugin`, `editor`, `ai` o vacío),
+	 * @param array $filters  Filtros: `status` (`active`, `undone` o vacío = todos), `origin` (`plugin`, `editor` o vacío), `ai` (solo los que recomendó la IA),
 	 *                        `search` (texto del título de la entrada), `post_id` (solo esa entrada) y `restrict` (tipos de entrada que el usuario edita sean de quien sean, su id como autor para el resto y si ve las entradas borradas; ausente = sin límite).
 	 * @param int   $page     Página (desde 1).
 	 * @param int   $per_page Entradas por página.
 	 *
-	 * @phpstan-param array{status?: string, origin?: string, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
 	 *
 	 * @return array{items: list<array{post_id: int, total: int, active: int, last_at: string}>, total: int}
 	 */
@@ -433,7 +444,7 @@ final class ChangeRepository {
 
 		$join   = '';
 		$where  = $this->live_rows_sql( 'c' ) . $wpdb->prepare( ' AND c.action IN ( %s, %s, %s )', ...self::PRIMARY ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Tres acciones.
-		$where .= $this->origin_clause( (string) ( $filters['origin'] ?? '' ) );
+		$where .= $this->origin_clause( (string) ( $filters['origin'] ?? '' ), ! empty( $filters['ai'] ) );
 		if ( null !== $restrict || '' !== $search ) {
 			$join = $wpdb->prepare( ( '' !== $search ? ' INNER' : ' LEFT' ) . ' JOIN %i p ON p.ID = c.post_id', $wpdb->posts ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Palabra fija.
 		}
@@ -492,16 +503,17 @@ final class ChangeRepository {
 	 * @param array  $post_ids Entradas.
 	 * @param int    $limit    Cambios por entrada.
 	 * @param string $origin   Solo de este origen (`plugin`, `editor`) o vacío.
+	 * @param bool   $ai       Solo los que recomendó la IA.
 	 *
 	 * @phpstan-param list<int> $post_ids
 	 *
 	 * @return array<int, list<int>> IDs de cambio por entrada.
 	 */
-	public function recent_ids_of_posts( array $post_ids, int $limit, string $origin = '' ): array {
+	public function recent_ids_of_posts( array $post_ids, int $limit, string $origin = '', bool $ai = false ): array {
 		$wpdb  = $this->wpdb;
 		$parts = array();
 		foreach ( array_values( array_unique( $post_ids ) ) as $post_id ) {
-			$parts[] = '(' . $this->post_rows_sql( $post_id, $origin, 'c.id, c.post_id' ) . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $limit ) ) . ')'; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
+			$parts[] = '(' . $this->post_rows_sql( $post_id, $origin, 'c.id, c.post_id', $ai ) . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $limit ) ) . ')'; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
 		}
 		if ( array() === $parts ) {
 			return array();
@@ -524,14 +536,15 @@ final class ChangeRepository {
 	 * @param int    $before   Cursor: solo los cambios con id menor que este (0 = desde el principio).
 	 * @param int    $per_page Cambios por página.
 	 * @param string $origin   Solo de este origen o vacío.
+	 * @param bool   $ai       Solo los que recomendó la IA.
 	 *
 	 * @return array{ids: list<int>, total: int}
 	 */
-	public function post_ids_page( int $post_id, int $before, int $per_page, string $origin = '' ): array {
+	public function post_ids_page( int $post_id, int $before, int $per_page, string $origin = '', bool $ai = false ): array {
 		$wpdb = $this->wpdb;
 		$cond = $before > 0 ? $wpdb->prepare( ' AND c.id < %d', $before ) : '';
-		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id' ) . $cond . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $per_page ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
-		$all  = (int) $wpdb->get_var( $this->post_rows_sql( $post_id, $origin, 'COUNT(*)' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id', $ai ) . $cond . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $per_page ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$all  = (int) $wpdb->get_var( $this->post_rows_sql( $post_id, $origin, 'COUNT(*)', $ai ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
 
 		return array(
 			'ids'   => array_map( 'intval', $ids ),
@@ -545,13 +558,14 @@ final class ChangeRepository {
 	 * @param int    $post_id Entrada.
 	 * @param bool   $undone  true = los deshechos (para rehacer); false = los puestos (para deshacer).
 	 * @param string $origin  Solo de este origen o vacío.
+	 * @param bool   $ai      Solo los que recomendó la IA.
 	 *
 	 * @return list<int>
 	 */
-	public function pending_ids_of_post( int $post_id, bool $undone, string $origin = '' ): array {
+	public function pending_ids_of_post( int $post_id, bool $undone, string $origin = '', bool $ai = false ): array {
 		$wpdb = $this->wpdb;
 		$cond = $undone ? ' AND c.undone_at IS NOT NULL' : ' AND c.undone_at IS NULL';
-		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id' ) . $cond . ' ORDER BY c.id DESC' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id', $ai ) . $cond . ' ORDER BY c.id DESC' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
 
 		return array_map( 'intval', $ids );
 	}
@@ -624,12 +638,13 @@ final class ChangeRepository {
 	 * @param int    $post_id Entrada.
 	 * @param string $origin  Origen o vacío.
 	 * @param string $select  Columna o expresión.
+	 * @param bool   $ai      Solo los que recomendó la IA.
 	 */
-	private function post_rows_sql( int $post_id, string $origin, string $select ): string {
+	private function post_rows_sql( int $post_id, string $origin, string $select, bool $ai = false ): string {
 		$wpdb = $this->wpdb;
 		$sql  = $wpdb->prepare( 'SELECT ' . $select . ' FROM %i c WHERE c.post_id = %d AND c.action IN ( %s, %s, %s )', $this->table, $post_id, ...self::PRIMARY ) . ' AND ' . $this->live_rows_sql( 'c' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $select es una constante interna; tres acciones.
 
-		return $sql . $this->origin_clause( $origin );
+		return $sql . $this->origin_clause( $origin, $ai );
 	}
 
 	/**

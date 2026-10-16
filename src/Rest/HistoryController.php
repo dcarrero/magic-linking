@@ -110,8 +110,9 @@ final class HistoryController implements Module {
 					),
 					'origin'   => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::FILTER_AI ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
 					),
+					'ai'       => array( 'type' => 'boolean' ),
 					'search'   => array(
 						'type'      => 'string',
 						'maxLength' => 100,
@@ -130,8 +131,9 @@ final class HistoryController implements Module {
 				'args'                => array(
 					'origin' => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::FILTER_AI ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
 					),
+					'ai'     => array( 'type' => 'boolean' ),
 				),
 			)
 		);
@@ -157,8 +159,9 @@ final class HistoryController implements Module {
 					),
 					'origin'   => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::FILTER_AI ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
 					),
+					'ai'       => array( 'type' => 'boolean' ),
 				),
 			)
 		);
@@ -239,8 +242,9 @@ final class HistoryController implements Module {
 						),
 						'origin'     => array(
 							'type' => 'string',
-							'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::FILTER_AI ),
+							'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
 						),
+						'ai'         => array( 'type' => 'boolean' ),
 						'change_ids' => array(
 							'type'     => 'array',
 							'items'    => array(
@@ -304,6 +308,7 @@ final class HistoryController implements Module {
 			array(
 				'status' => 'all' === $status ? '' : $status,
 				'origin' => (string) ( $request['origin'] ?? '' ),
+				'ai'     => $this->wants_ai( $request ),
 				'search' => (string) ( $request['search'] ?? '' ),
 			),
 			$page,
@@ -341,9 +346,20 @@ final class HistoryController implements Module {
 			return $this->forbidden();
 		}
 
-		$group = $this->reader->post_group( get_current_user_id(), $post_id, (string) ( $request['origin'] ?? '' ) );
+		$group = $this->reader->post_group( get_current_user_id(), $post_id, (string) ( $request['origin'] ?? '' ), $this->wants_ai( $request ) );
 
 		return null === $group ? $this->not_found() : new WP_REST_Response( array( 'entry' => $this->with_job( $group ) ) );
+	}
+
+	/**
+	 * Si la petición pide solo los enlaces que recomendó la IA (F1-38). Un filtro aparte, que se combina con `origin`.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	private function wants_ai( WP_REST_Request $request ): bool {
+		$value = $request['ai'] ?? false;
+
+		return is_scalar( $value ) && rest_sanitize_boolean( $value );
 	}
 
 	/**
@@ -354,7 +370,7 @@ final class HistoryController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_entry_changes( WP_REST_Request $request ) {
-		$result = $this->reader->post_changes( get_current_user_id(), (int) $request['post_id'], (int) $request['before'], (int) $request['per_page'], (string) ( $request['origin'] ?? '' ) );
+		$result = $this->reader->post_changes( get_current_user_id(), (int) $request['post_id'], (int) $request['before'], (int) $request['per_page'], (string) ( $request['origin'] ?? '' ), $this->wants_ai( $request ) );
 		if ( null === $result ) {
 			return $this->forbidden();
 		}
@@ -633,12 +649,13 @@ final class HistoryController implements Module {
 	private function run_entry( WP_REST_Request $request, int $post_id, bool $redo ) {
 		$user   = get_current_user_id();
 		$origin = (string) ( $request['origin'] ?? '' );
+		$ai     = $this->wants_ai( $request );
 		if ( ! $this->reader->can_edit( $user, $post_id ) ) {
 			return $this->forbidden();
 		}
 
 		// Lo que se trata es exactamente lo que la pantalla contó: los de la lista o todos los del filtro de origen.
-		$pending = $this->reader->pending_of_post( $post_id, $redo, $origin );
+		$pending = $this->reader->pending_of_post( $post_id, $redo, $origin, $ai );
 		if ( is_array( $request['change_ids'] ) ) {
 			$wanted = array_values( array_unique( array_map( 'intval', $request['change_ids'] ) ) );
 			$light  = $this->changes->light_of( $wanted );
@@ -680,7 +697,7 @@ final class HistoryController implements Module {
 			return new WP_REST_Response(
 				array(
 					'results' => array(),
-					'entry'   => $this->with_job( (array) $this->reader->post_group( $user, $post_id, $origin ) ),
+					'entry'   => $this->with_job( (array) $this->reader->post_group( $user, $post_id, $origin, $ai ) ),
 					'job'     => null === $job ? null : $this->present_job( $job ),
 				),
 				202
@@ -692,7 +709,7 @@ final class HistoryController implements Module {
 		return new WP_REST_Response(
 			array(
 				'results' => array_map( array( $this, 'present_result' ), $done ),
-				'entry'   => $this->reader->post_group( $user, $post_id, $origin ),
+				'entry'   => $this->reader->post_group( $user, $post_id, $origin, $ai ),
 				'job'     => null,
 			)
 		);

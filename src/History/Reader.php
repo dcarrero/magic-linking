@@ -255,11 +255,11 @@ final class Reader {
 	 * plugin, estado de la entrada) la niega, se omite de la página y el total queda como cota superior.
 	 *
 	 * @param int   $user_id  Quien mira.
-	 * @param array $filters  `status` (`active`, `undone`), `origin` (`plugin`, `editor` o `ai`), `search` y `post_id` (solo esa entrada).
+	 * @param array $filters  `status` (`active`, `undone`), `origin` (`plugin`, `editor`), `ai` (solo los que recomendó la IA), `search` y `post_id` (solo esa entrada).
 	 * @param int   $page     Página (desde 1).
 	 * @param int   $per_page Entradas por página.
 	 *
-	 * @phpstan-param array{status?: string, origin?: string, search?: string, post_id?: int} $filters
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string, post_id?: int} $filters
 	 *
 	 * @return array{items: list<array<string, mixed>>, total: int}
 	 */
@@ -273,7 +273,7 @@ final class Reader {
 
 		$visible = array_values( array_filter( $result['items'], fn( array $group ): bool => $this->can_edit( $user_id, $group['post_id'] ) ) );
 		$origin  = (string) ( $filters['origin'] ?? '' );
-		$recent  = $this->changes->recent_ids_of_posts( array_column( $visible, 'post_id' ), self::FIRST_CHANGES, $origin );
+		$recent  = $this->changes->recent_ids_of_posts( array_column( $visible, 'post_id' ), self::FIRST_CHANGES, $origin, ! empty( $filters['ai'] ) );
 		$full    = $this->changes->get_many( array_merge( array(), ...array_values( $recent ) ) );
 		$context = $this->change_context( $full );
 
@@ -313,11 +313,12 @@ final class Reader {
 	 * @param int    $user_id Quien mira.
 	 * @param int    $post_id Entrada.
 	 * @param string $origin  Solo cambios de este origen (`plugin`, `editor`) o vacío.
+	 * @param bool   $ai      Solo los que recomendó la IA.
 	 *
 	 * @return array<string, mixed>|null
 	 */
-	public function post_group( int $user_id, int $post_id, string $origin = '' ): ?array {
-		return $this->post_groups( $user_id, array( 'post_id' => $post_id ) + ( '' === $origin ? array() : array( 'origin' => $origin ) ), 1, 1 )['items'][0] ?? null;
+	public function post_group( int $user_id, int $post_id, string $origin = '', bool $ai = false ): ?array {
+		return $this->post_groups( $user_id, array( 'post_id' => $post_id ) + ( '' === $origin ? array() : array( 'origin' => $origin ) ) + ( $ai ? array( 'ai' => true ) : array() ), 1, 1 )['items'][0] ?? null;
 	}
 
 	/**
@@ -357,15 +358,16 @@ final class Reader {
 	 * @param int    $before   Cursor: solo los cambios con id menor que este (0 = desde el principio).
 	 * @param int    $per_page Cambios por página.
 	 * @param string $origin   Origen (`plugin`, `editor`) o vacío.
+	 * @param bool   $ai       Solo los que recomendó la IA.
 	 *
 	 * @return array{items: list<array<string, mixed>>, total: int}|null Null si no la puede ver.
 	 */
-	public function post_changes( int $user_id, int $post_id, int $before, int $per_page, string $origin = '' ): ?array {
+	public function post_changes( int $user_id, int $post_id, int $before, int $per_page, string $origin = '', bool $ai = false ): ?array {
 		if ( ! $this->can_edit( $user_id, $post_id ) ) {
 			return null;
 		}
 
-		$result  = $this->changes->post_ids_page( $post_id, $before, $per_page, $origin );
+		$result  = $this->changes->post_ids_page( $post_id, $before, $per_page, $origin, $ai );
 		$full    = $this->changes->get_many( $result['ids'] );
 		$context = $this->change_context( $full );
 
@@ -388,11 +390,12 @@ final class Reader {
 	 * @param int    $post_id Entrada.
 	 * @param bool   $undone  true = los deshechos.
 	 * @param string $origin  Solo de este origen o vacío.
+	 * @param bool   $ai      Solo los que recomendó la IA.
 	 *
 	 * @return list<int> Del más reciente al más antiguo.
 	 */
-	public function pending_of_post( int $post_id, bool $undone, string $origin = '' ): array {
-		return $this->changes->pending_ids_of_post( $post_id, $undone, $origin );
+	public function pending_of_post( int $post_id, bool $undone, string $origin = '', bool $ai = false ): array {
+		return $this->changes->pending_ids_of_post( $post_id, $undone, $origin, $ai );
 	}
 
 	/**
@@ -670,7 +673,7 @@ final class Reader {
 		$ai     = 0;
 		foreach ( $slots as $slot ) {
 			$posts[ $slot['post_id'] ] = true;
-			if ( ! empty( $slot['ai'] ) ) {
+			if ( ! empty( $slot['ai'] ) && null === $slot['undone_at'] ) {
 				++$ai;
 			}
 			if ( null !== $slot['undone_at'] ) {
@@ -726,12 +729,14 @@ final class Reader {
 	 * @return array{anchor: bool, model: string}|null
 	 */
 	private static function ai_of( array $change ): ?array {
-		return $change['ai_recommended']
-			? array(
-				'anchor' => $change['ai_anchor'],
-				'model'  => $change['ai_model'],
-			)
-			: null;
+		$ai = AiOrigin::from_row( $change );
+
+		return null === $ai
+			? null
+			: array(
+				'anchor' => $ai->anchor,
+				'model'  => $ai->model,
+			);
 	}
 
 	/**

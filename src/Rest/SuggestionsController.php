@@ -167,10 +167,14 @@ final class SuggestionsController implements Module {
 					'minLength' => 1,
 					'maxLength' => 500,
 				),
-				// F1-38: solo informativos (el Historial los enseña); el servidor los sanea y no cambian lo que se escribe.
+				// F1-38: lo declara el cliente y solo informa al Historial (no sirve de auditoría); el servidor lo sanea y no
+				// cambia lo que se escribe.
 				'ai_recommended' => array( 'type' => 'boolean' ),
 				'ai_anchor'      => array( 'type' => 'boolean' ),
-				'ai_model'       => array( 'type' => 'string' ),
+				'ai_model'       => array(
+					'type'      => 'string',
+					'maxLength' => AiOrigin::MODEL_MAX,
+				),
 				'block_path'     => array(
 					'type'    => array( 'string', 'null' ),
 					'pattern' => '^[0-9]+(\.[0-9]+)*$',
