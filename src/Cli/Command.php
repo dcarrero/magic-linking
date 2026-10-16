@@ -523,6 +523,7 @@ final class Command {
 	 *   - undo
 	 *   - redo
 	 *   - purge
+	 *   - export
 	 * ---
 	 *
 	 * [<batch_id>]
@@ -538,7 +539,7 @@ final class Command {
 	 * : Con list, empieza por los grupos anteriores a este (el cursor que imprime la página anterior).
 	 *
 	 * [--format=<format>]
-	 * : Formato de list.
+	 * : Formato de list (con export, csv por defecto: un cambio por fila, sin tope).
 	 * ---
 	 * default: table
 	 * options:
@@ -547,11 +548,24 @@ final class Command {
 	 *   - csv
 	 * ---
 	 *
+	 * [--status=<status>]
+	 * : Con export, solo los cambios puestos (active) o deshechos (undone).
+	 *
+	 * [--origin=<origin>]
+	 * : Con export, solo los de este origen: editor o plugin.
+	 *
+	 * [--ai]
+	 * : Con export, solo los enlaces que recomendó la IA.
+	 *
+	 * [--search=<text>]
+	 * : Con export, solo las entradas cuyo título contiene el texto.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp magic-linking history list
 	 *     wp magic-linking history undo 01J9Z3K8Q2M4N5P6R7S8T9V0WX
 	 *     wp magic-linking history purge --dry-run
+	 *     wp magic-linking history export --format=csv --ai > history.csv
 	 *
 	 * @param array<int, string>   $args       Argumentos.
 	 * @param array<string, mixed> $assoc_args Opciones.
@@ -593,6 +607,10 @@ final class Command {
 				$this->purge_history( ! empty( $assoc_args['dry-run'] ) );
 				return;
 
+			case 'export':
+				$this->export_history( $assoc_args, $user );
+				return;
+
 			case 'undo':
 			case 'redo':
 				if ( isset( $assoc_args['post'] ) ) {
@@ -603,7 +621,46 @@ final class Command {
 				return;
 		}//end switch
 
-		WP_CLI::error( __( 'Unknown action. Use: list, undo, redo or purge.', 'magic-linking' ) );
+		WP_CLI::error( __( 'Unknown action. Use: list, undo, redo, purge or export.', 'magic-linking' ) );
+	}
+
+	/**
+	 * Exporta el Historial (un cambio por fila, mismas columnas y filtros que el botón de la pantalla).
+	 *
+	 * @param array<string, mixed> $assoc_args Opciones.
+	 * @param int                  $user       Quien exporta (0 = el sistema).
+	 */
+	private function export_history( array $assoc_args, int $user ): void {
+		$format = (string) ( $assoc_args['format'] ?? 'csv' );
+		if ( ! in_array( $format, array( 'csv', 'json' ), true ) ) {
+			$format = 'csv';
+		}
+
+		$rows = $this->history->export_rows(
+			$user,
+			array(
+				'status' => in_array( $assoc_args['status'] ?? '', array( 'active', 'undone' ), true ) ? (string) $assoc_args['status'] : '',
+				'origin' => in_array( $assoc_args['origin'] ?? '', array( 'plugin', 'editor' ), true ) ? (string) $assoc_args['origin'] : '',
+				'ai'     => ! empty( $assoc_args['ai'] ),
+				'search' => sanitize_text_field( (string) ( $assoc_args['search'] ?? '' ) ),
+			)
+		);
+
+		if ( 'json' === $format ) {
+			$items = array();
+			foreach ( $rows as $row ) {
+				$items[] = array_combine( CsvExporter::HISTORY_COLUMNS, $row );
+			}
+			\WP_CLI\Utils\format_items( 'json', $items, CsvExporter::HISTORY_COLUMNS );
+			return;
+		}
+
+		$out = fopen( 'php://output', 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Salida estándar.
+		if ( false === $out ) {
+			return;
+		}
+		CsvExporter::write( $out, CsvExporter::HISTORY_COLUMNS, $rows );
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Salida estándar.
 	}
 
 	/**

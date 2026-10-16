@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-16T07:09:48+00:00\n"
+"POT-Creation-Date: 2026-10-16T07:33:51+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Português de Portugal\n"
@@ -185,99 +185,99 @@ msgid "Process %1$d is now %2$s."
 msgstr "O processo %1$d está agora no estado %2$s."
 
 #. translators: %s: batch ID.
-#: src/Cli/Command.php:585
+#: src/Cli/Command.php:599
 #, php-format
 msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
 msgstr "Há mais lotes. Continue com: wp magic-linking history list --before=%s"
 
-#: src/Cli/Command.php:606
-msgid "Unknown action. Use: list, undo, redo or purge."
-msgstr "Ação desconhecida. Utilize: list, undo, redo ou purge."
+#: src/Cli/Command.php:624
+msgid "Unknown action. Use: list, undo, redo, purge or export."
+msgstr "Ação desconhecida. Use: list, undo, redo, purge ou export."
 
-#: src/Cli/Command.php:618 src/Cli/Command.php:652
+#: src/Cli/Command.php:675 src/Cli/Command.php:709
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:794
 #: src/Rest/SuggestionsController.php:433
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Não tem permissão para editar um dos conteúdos envolvidos."
 
-#: src/Cli/Command.php:623 src/History/Redo.php:65 src/History/Undo.php:165
+#: src/Cli/Command.php:680 src/History/Redo.php:65 src/History/Undo.php:165
 #: src/Rest/HistoryController.php:787
 msgid "That change does not exist."
 msgstr "Essa alteração não existe."
 
-#: src/Cli/Command.php:627 src/Cli/Command.php:647
+#: src/Cli/Command.php:684 src/Cli/Command.php:704
 #: src/Rest/HistoryController.php:773
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr "Este lote está a ser processado em segundo plano. Aguarde que termine ou cancele-o."
 
-#: src/Cli/Command.php:643
+#: src/Cli/Command.php:700
 msgid "There is no such group in the history (or you cannot edit all of its entries)."
 msgstr "Esse grupo não existe no histórico (ou não pode editar todos os seus conteúdos)."
 
 #. translators: %d: number of changes.
-#: src/Cli/Command.php:688
+#: src/Cli/Command.php:745
 #, php-format
 msgid "%d change could not be applied by itself."
 msgid_plural "%d changes could not be applied by themselves."
 msgstr[0] "%d alteração não pôde ser aplicada isoladamente."
 msgstr[1] "%d alterações não puderam ser aplicadas isoladamente."
 
-#: src/Cli/Command.php:695
+#: src/Cli/Command.php:752
 msgid "Group redone."
 msgstr "Grupo refeito."
 
-#: src/Cli/Command.php:695
+#: src/Cli/Command.php:752
 msgid "Group undone."
 msgstr "Grupo anulado."
 
-#: src/Cli/Command.php:706
+#: src/Cli/Command.php:763
 msgid "The history never expires with the current setting; nothing to delete."
 msgstr "Com a definição atual, o histórico nunca expira; não há nada para eliminar."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:715
+#: src/Cli/Command.php:772
 #, php-format
 msgid "%d history row has expired."
 msgid_plural "%d history rows have expired."
 msgstr[0] "%d linha do histórico expirou."
 msgstr[1] "%d linhas do histórico expiraram."
 
-#: src/Cli/Command.php:724
+#: src/Cli/Command.php:781
 msgid "Nothing has expired."
 msgstr "Nada expirou."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:734
+#: src/Cli/Command.php:791
 #, php-format
 msgid "%d history row deleted."
 msgid_plural "%d history rows deleted."
 msgstr[0] "%d linha do histórico eliminada."
 msgstr[1] "%d linhas do histórico eliminadas."
 
-#: src/Cli/Command.php:748 src/Rest/AiController.php:225
+#: src/Cli/Command.php:805 src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
 #: src/Rest/SuggestionsController.php:589
 msgid "That entry does not exist."
 msgstr "Esse conteúdo não existe."
 
-#: src/Cli/Command.php:755
+#: src/Cli/Command.php:812
 msgid "Entry analyzed."
 msgstr "Conteúdo analisado."
 
-#: src/Cli/Command.php:758
+#: src/Cli/Command.php:815
 msgid "Nothing changed since the last analysis. Use --force to analyze it again."
 msgstr "Nada mudou desde a última análise. Utilize --force para o analisar novamente."
 
-#: src/Cli/Command.php:761
+#: src/Cli/Command.php:818
 msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
 msgstr "O conteúdo não está publicado ou não é de um tipo de conteúdo escolhido: foi retirado do relatório."
 
-#: src/Cli/Command.php:764
+#: src/Cli/Command.php:821
 msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
 msgstr "O conteúdo não está publicado ou não é de um tipo de conteúdo escolhido, por isso não é analisado."
 
-#: src/Cli/Command.php:777
+#: src/Cli/Command.php:834
 msgid "Could not open the output."
 msgstr "Não foi possível abrir a saída."
 
@@ -483,11 +483,11 @@ msgstr "Excesso de ligações"
 msgid "OK"
 msgstr "OK"
 
-#: src/History/Reader.php:749
+#: src/History/Reader.php:826
 msgid "Automatic"
 msgstr "Automático"
 
-#: src/History/Reader.php:754
+#: src/History/Reader.php:831
 msgid "Deleted user"
 msgstr "Utilizador eliminado"
 
@@ -567,7 +567,7 @@ msgstr "Este conteúdo foi editado depois; reponha a ligação manualmente."
 msgid "This post was edited afterwards; remove the link by hand."
 msgstr "Este conteúdo foi editado entretanto; remova a ligação manualmente."
 
-#: src/Report/ExportHandler.php:70
+#: src/Report/ExportHandler.php:80
 msgid "You are not allowed to export this data."
 msgstr "Não tem permissão para exportar estes dados."
 
@@ -1225,7 +1225,7 @@ msgstr "Editar conteúdo"
 msgid "There are no broken internal links. Well done."
 msgstr "Não há ligações internas quebradas. Muito bem."
 
-#: assets/build/index.js:10 assets/build/index.js:61
+#: assets/build/index.js:10 assets/build/index.js:50 assets/build/index.js:61
 msgid "Export CSV"
 msgstr "Exportar CSV"
 

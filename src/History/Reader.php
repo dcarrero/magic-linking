@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\History;
 
 use MagicLinking\Content\OpenTag;
+use Generator;
 use WP_Post;
 
 /**
@@ -21,6 +22,11 @@ use WP_Post;
  * deshacerlo. De una entrada que ya no existe decide `edit_others_posts`.
  */
 final class Reader {
+
+	/**
+	 * Cambios que se leen de golpe al exportar.
+	 */
+	public const EXPORT_PAGE = 500;
 
 	/**
 	 * Lotes que se leen de la base de datos por vuelta al buscar los que el usuario puede ver.
@@ -319,6 +325,77 @@ final class Reader {
 	 */
 	public function post_group( int $user_id, int $post_id, string $origin = '', bool $ai = false ): ?array {
 		return $this->post_groups( $user_id, array( 'post_id' => $post_id ) + ( '' === $origin ? array() : array( 'origin' => $origin ) ) + ( $ai ? array( 'ai' => true ) : array() ), 1, 1 )['items'][0] ?? null;
+	}
+
+	/**
+	 * Cambios para exportar, uno por fila y sin tope, de página en página para no cargar todo en memoria (F1-38).
+	 * Valores sin traducir, pensados como datos: el origen va en inglés, las fechas en ISO 8601 en la zona del sitio.
+	 * Solo ve lo que el usuario puede editar, como la pantalla.
+	 *
+	 * @param int   $user_id Quien exporta (0 = el sistema).
+	 * @param array $filters `status` (`active`, `undone`), `origin` (`plugin`, `editor`), `ai` y `search`.
+	 *
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string} $filters
+	 *
+	 * @return Generator<int, array<int, string|int>>
+	 */
+	public function export_rows( int $user_id, array $filters ): Generator {
+		$filters += array( 'restrict' => $this->restriction( $user_id ) );
+		$after    = 0;
+
+		while ( true ) {
+			$ids = $this->changes->export_ids( $filters, $after, self::EXPORT_PAGE );
+			if ( array() === $ids ) {
+				return;
+			}
+			$after = max( $ids );
+			$full  = $this->changes->get_many( $ids );
+			_prime_post_caches( array_unique( array_column( $full, 'post_id' ) ), false, false );
+			cache_users( array_map( 'intval', array_unique( array_column( $full, 'user_id' ) ) ) );
+
+			foreach ( $ids as $id ) {
+				$change = $full[ $id ] ?? null;
+				if ( null === $change || ! $this->can_edit( $user_id, $change['post_id'] ) ) {
+					continue;
+				}
+
+				$view = self::describe( $change );
+				$post = get_post( $change['post_id'] );
+				$user = $change['user_id'] > 0 ? get_userdata( $change['user_id'] ) : false;
+
+				yield array(
+					$change['id'],
+					(string) get_date_from_gmt( $change['created_at'], DATE_ATOM ),
+					$change['user_id'] > 0 ? ( false === $user ? '' : $user->user_login ) : 'system',
+					$change['action'],
+					null === $change['undone_at'] ? 'active' : 'undone',
+					$change['post_id'],
+					$post instanceof WP_Post ? $post->post_title : '',
+					'' !== $view['url'] ? $view['url'] : (string) $view['previous_url'],
+					$view['anchor'],
+					self::export_origin( $change ),
+					$change['batch_id'],
+					$change['ai_recommended'] ? 1 : 0,
+					$change['ai_anchor'] ? 1 : 0,
+					$change['ai_model'],
+				);
+			}//end foreach
+		}//end while
+	}
+
+	/**
+	 * Origen de un cambio con la etiqueta de la pantalla, sin traducir.
+	 *
+	 * @param array $change Fila del historial.
+	 *
+	 * @phpstan-param array{origin: string, action: string} $change
+	 */
+	private static function export_origin( array $change ): string {
+		if ( ChangeRepository::ORIGIN_EDITOR === $change['origin'] ) {
+			return 'Editor panel';
+		}
+
+		return ChangeRepository::INSERT === $change['action'] ? "Another entry's panel" : 'Broken links';
 	}
 
 	/**

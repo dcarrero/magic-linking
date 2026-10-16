@@ -175,4 +175,25 @@ final class HistoryCliTest extends HistoryTestCase {
 		$this->expectExceptionMessageMatches( '/background/' );
 		$this->command->history( array( 'undo', $batch['batch'] ), array() );
 	}
+
+	public function test_export_writes_the_csv_with_the_same_columns_and_filters(): void {
+		$plain = $this->link();
+		$post  = $this->post();
+		\MagicLinking\Core\Plugin::container()->get( \MagicLinking\Content\Inserter::class )->insert(
+			new \MagicLinking\Content\InsertRequest( $post, (string) get_permalink( $this->target ), 'aire acondicionado', 'Compra ', ' ya.', null, array(), null, false, false, false, new \MagicLinking\History\AiOrigin( true, 'm' ) )
+		);
+
+		ob_start();
+		$this->command->history( array( 'export' ), array( 'ai' => true ) );
+		$only_ai = (string) ob_get_clean();
+		ob_start();
+		$this->command->history( array( 'export' ), array() );
+		$all = (string) ob_get_clean();
+
+		$this->assertStringStartsWith( 'id,date,user,action,state,post_id,post_title,target_url,anchor,origin,batch_id,ai_recommended,ai_anchor,ai_model', $only_ai );
+		$this->assertSame( 2, substr_count( $only_ai, "\n" ), 'Cabecera y una fila.' );
+		$this->assertStringContainsString( ',m', $only_ai );
+		$this->assertSame( 3, substr_count( $all, "\n" ), 'Cabecera y dos filas.' );
+		$this->assertStringContainsString( (string) $plain['post'], $all );
+	}
 }

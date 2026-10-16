@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-16T07:09:48+00:00\n"
+"POT-Creation-Date: 2026-10-16T07:33:51+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Deutsch\n"
@@ -185,99 +185,99 @@ msgid "Process %1$d is now %2$s."
 msgstr "Vorgang %1$d ist jetzt %2$s."
 
 #. translators: %s: batch ID.
-#: src/Cli/Command.php:585
+#: src/Cli/Command.php:599
 #, php-format
 msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
 msgstr "Es gibt weitere Durchgänge. Fahren Sie fort mit: wp magic-linking history list --before=%s"
 
-#: src/Cli/Command.php:606
-msgid "Unknown action. Use: list, undo, redo or purge."
-msgstr "Unbekannte Aktion. Verwenden Sie: list, undo, redo oder purge."
+#: src/Cli/Command.php:624
+msgid "Unknown action. Use: list, undo, redo, purge or export."
+msgstr "Unbekannte Aktion. Verwende: list, undo, redo, purge oder export."
 
-#: src/Cli/Command.php:618 src/Cli/Command.php:652
+#: src/Cli/Command.php:675 src/Cli/Command.php:709
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:794
 #: src/Rest/SuggestionsController.php:433
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Sie haben keine Berechtigung, einen der betroffenen Beiträge zu bearbeiten."
 
-#: src/Cli/Command.php:623 src/History/Redo.php:65 src/History/Undo.php:165
+#: src/Cli/Command.php:680 src/History/Redo.php:65 src/History/Undo.php:165
 #: src/Rest/HistoryController.php:787
 msgid "That change does not exist."
 msgstr "Diese Änderung existiert nicht."
 
-#: src/Cli/Command.php:627 src/Cli/Command.php:647
+#: src/Cli/Command.php:684 src/Cli/Command.php:704
 #: src/Rest/HistoryController.php:773
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr "Dieser Durchgang wird gerade im Hintergrund verarbeitet. Warten Sie, bis er abgeschlossen ist, oder brechen Sie ihn ab."
 
-#: src/Cli/Command.php:643
+#: src/Cli/Command.php:700
 msgid "There is no such group in the history (or you cannot edit all of its entries)."
 msgstr "Diese Gruppe gibt es im Verlauf nicht (oder Sie dürfen nicht alle ihre Beiträge bearbeiten)."
 
 #. translators: %d: number of changes.
-#: src/Cli/Command.php:688
+#: src/Cli/Command.php:745
 #, php-format
 msgid "%d change could not be applied by itself."
 msgid_plural "%d changes could not be applied by themselves."
 msgstr[0] "%d Änderung konnte nicht einzeln angewendet werden."
 msgstr[1] "%d Änderungen konnten nicht einzeln angewendet werden."
 
-#: src/Cli/Command.php:695
+#: src/Cli/Command.php:752
 msgid "Group redone."
 msgstr "Gruppe wiederhergestellt."
 
-#: src/Cli/Command.php:695
+#: src/Cli/Command.php:752
 msgid "Group undone."
 msgstr "Gruppe rückgängig gemacht."
 
-#: src/Cli/Command.php:706
+#: src/Cli/Command.php:763
 msgid "The history never expires with the current setting; nothing to delete."
 msgstr "Mit der aktuellen Einstellung läuft der Verlauf nie ab; es gibt nichts zu löschen."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:715
+#: src/Cli/Command.php:772
 #, php-format
 msgid "%d history row has expired."
 msgid_plural "%d history rows have expired."
 msgstr[0] "%d Verlaufseintrag ist abgelaufen."
 msgstr[1] "%d Verlaufseinträge sind abgelaufen."
 
-#: src/Cli/Command.php:724
+#: src/Cli/Command.php:781
 msgid "Nothing has expired."
 msgstr "Nichts ist abgelaufen."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:734
+#: src/Cli/Command.php:791
 #, php-format
 msgid "%d history row deleted."
 msgid_plural "%d history rows deleted."
 msgstr[0] "%d Verlaufseintrag gelöscht."
 msgstr[1] "%d Verlaufseinträge gelöscht."
 
-#: src/Cli/Command.php:748 src/Rest/AiController.php:225
+#: src/Cli/Command.php:805 src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
 #: src/Rest/SuggestionsController.php:589
 msgid "That entry does not exist."
 msgstr "Dieser Beitrag existiert nicht."
 
-#: src/Cli/Command.php:755
+#: src/Cli/Command.php:812
 msgid "Entry analyzed."
 msgstr "Beitrag analysiert."
 
-#: src/Cli/Command.php:758
+#: src/Cli/Command.php:815
 msgid "Nothing changed since the last analysis. Use --force to analyze it again."
 msgstr "Seit der letzten Analyse hat sich nichts geändert. Verwenden Sie --force, um ihn erneut zu analysieren."
 
-#: src/Cli/Command.php:761
+#: src/Cli/Command.php:818
 msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
 msgstr "Der Beitrag ist nicht veröffentlicht oder gehört zu keinem ausgewählten Inhaltstyp: Er wurde aus dem Bericht entfernt."
 
-#: src/Cli/Command.php:764
+#: src/Cli/Command.php:821
 msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
 msgstr "Der Beitrag ist nicht veröffentlicht oder gehört zu keinem ausgewählten Inhaltstyp und wird daher nicht analysiert."
 
-#: src/Cli/Command.php:777
+#: src/Cli/Command.php:834
 msgid "Could not open the output."
 msgstr "Die Ausgabe konnte nicht geöffnet werden."
 
@@ -483,11 +483,11 @@ msgstr "Überverlinkt"
 msgid "OK"
 msgstr "OK"
 
-#: src/History/Reader.php:749
+#: src/History/Reader.php:826
 msgid "Automatic"
 msgstr "Automatisch"
 
-#: src/History/Reader.php:754
+#: src/History/Reader.php:831
 msgid "Deleted user"
 msgstr "Gelöschter Benutzer"
 
@@ -567,7 +567,7 @@ msgstr "Dieser Beitrag wurde danach bearbeitet; setzen Sie den Link von Hand wie
 msgid "This post was edited afterwards; remove the link by hand."
 msgstr "Dieser Beitrag wurde danach bearbeitet; entfernen Sie den Link von Hand."
 
-#: src/Report/ExportHandler.php:70
+#: src/Report/ExportHandler.php:80
 msgid "You are not allowed to export this data."
 msgstr "Sie dürfen diese Daten nicht exportieren."
 
@@ -1225,7 +1225,7 @@ msgstr "Beitrag bearbeiten"
 msgid "There are no broken internal links. Well done."
 msgstr "Es gibt keine defekten internen Links. Gut gemacht."
 
-#: assets/build/index.js:10 assets/build/index.js:61
+#: assets/build/index.js:10 assets/build/index.js:50 assets/build/index.js:61
 msgid "Export CSV"
 msgstr "CSV exportieren"
 

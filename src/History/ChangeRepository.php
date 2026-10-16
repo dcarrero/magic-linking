@@ -403,24 +403,17 @@ final class ChangeRepository {
 	}
 
 	/**
-	 * Cambios por entrada, paginados, todo en SQL (F1-36, D-59): una fila por entrada con sus recuentos, ordenadas por
-	 * su última actividad (poner o deshacer un cambio). Cuenta un enlace una sola vez aunque se haya rehecho (solo
-	 * vale la fila más reciente de cada tramo, como {@see Slots}) y no trae HTML.
+	 * `JOIN` y `WHERE` de los filtros de la pantalla (alias `c` y `p`): filas que cuentan, origen, IA, entrada, lo que el
+	 * usuario puede ver y búsqueda por título. Los comparten el listado por entrada y la exportación.
 	 *
-	 * @param array $filters  Filtros: `status` (`active`, `undone` o vacío = todos), `origin` (`plugin`, `editor` o vacío), `ai` (solo los que recomendó la IA),
-	 *                        `search` (texto del título de la entrada), `post_id` (solo esa entrada) y `restrict` (tipos de entrada que el usuario edita sean de quien sean, su id como autor para el resto y si ve las entradas borradas; ausente = sin límite).
-	 * @param int   $page     Página (desde 1).
-	 * @param int   $per_page Entradas por página.
+	 * @param array $filters Ver {@see self::post_groups()}.
 	 *
-	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
+	 * @phpstan-param array{origin?: string, ai?: bool, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
 	 *
-	 * @return array{items: list<array{post_id: int, total: int, active: int, last_at: string}>, total: int}
+	 * @return array{0: string, 1: string}
 	 */
-	public function post_groups( array $filters, int $page, int $per_page ): array {
+	private function filter_parts( array $filters ): array {
 		$wpdb     = $this->wpdb;
-		$per_page = max( 1, $per_page );
-		$offset   = max( 0, $page - 1 ) * $per_page;
-		$status   = $filters['status'] ?? '';
 		$restrict = $filters['restrict'] ?? null;
 		$search   = trim( (string) ( $filters['search'] ?? '' ) );
 
@@ -446,6 +439,58 @@ final class ChangeRepository {
 		if ( '' !== $search ) {
 			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( $search ) . '%' );
 		}
+
+		return array( $join, $where );
+	}
+
+	/**
+	 * Ids de los cambios que cumplen los filtros, en orden de id y con cursor (para exportar sin cargar todo en memoria).
+	 * Cada tramo cuenta una vez (la fila más reciente) y `status` filtra por fila: `active` (puestos) o `undone`.
+	 *
+	 * @param array $filters Filtros de {@see self::post_groups()} más `status` (`active`, `undone` o vacío).
+	 * @param int   $after   Solo los ids mayores que este (0 = desde el principio).
+	 * @param int   $limit   Máximo de ids.
+	 *
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null} $filters
+	 *
+	 * @return list<int>
+	 */
+	public function export_ids( array $filters, int $after, int $limit ): array {
+		$wpdb             = $this->wpdb;
+		[ $join, $where ] = $this->filter_parts( $filters );
+
+		$status = $filters['status'] ?? '';
+		if ( 'active' === $status ) {
+			$where .= ' AND c.undone_at IS NULL';
+		} elseif ( 'undone' === $status ) {
+			$where .= ' AND c.undone_at IS NOT NULL';
+		}
+
+		$sql = $wpdb->prepare( 'SELECT c.id FROM %i c', $this->table ) . $join . ' WHERE ' . $where . $wpdb->prepare( ' AND c.id > %d ORDER BY c.id ASC LIMIT %d', $after, max( 1, $limit ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
+
+		return array_map( 'intval', $wpdb->get_col( $sql ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+	}
+
+	/**
+	 * Cambios por entrada, paginados, todo en SQL (F1-36, D-59): una fila por entrada con sus recuentos, ordenadas por
+	 * su última actividad (poner o deshacer un cambio). Cuenta un enlace una sola vez aunque se haya rehecho (solo
+	 * vale la fila más reciente de cada tramo, como {@see Slots}) y no trae HTML.
+	 *
+	 * @param array $filters  Filtros: `status` (`active`, `undone` o vacío = todos), `origin` (`plugin`, `editor` o vacío), `ai` (solo los que recomendó la IA),
+	 *                        `search` (texto del título de la entrada), `post_id` (solo esa entrada) y `restrict` (tipos de entrada que el usuario edita sean de quien sean, su id como autor para el resto y si ve las entradas borradas; ausente = sin límite).
+	 * @param int   $page     Página (desde 1).
+	 * @param int   $per_page Entradas por página.
+	 *
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
+	 *
+	 * @return array{items: list<array{post_id: int, total: int, active: int, last_at: string}>, total: int}
+	 */
+	public function post_groups( array $filters, int $page, int $per_page ): array {
+		$wpdb             = $this->wpdb;
+		$per_page         = max( 1, $per_page );
+		$offset           = max( 0, $page - 1 ) * $per_page;
+		$status           = $filters['status'] ?? '';
+		[ $join, $where ] = $this->filter_parts( $filters );
 
 		$having = '';
 		if ( 'active' === $status ) {

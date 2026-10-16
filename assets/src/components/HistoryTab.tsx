@@ -5,6 +5,8 @@ import { HistoryBatches } from './HistoryBatches';
 import { HistoryEntries } from './HistoryEntries';
 
 interface Props {
+	/** Descarga del CSV (con su nonce), a la que se añaden los filtros. */
+	exportUrl: string;
 	/** Dirección de Ajustes (solo para quien puede administrar). */
 	settingsUrl?: string;
 }
@@ -35,8 +37,9 @@ function retentionText( days: number ): string {
  * por cambio); la vista por lote queda para deshacer de una vez lo que tocó varias entradas (D-59).
  * @param root0
  * @param root0.settingsUrl
+ * @param root0.exportUrl
  */
-export function HistoryTab( { settingsUrl }: Props ) {
+export function HistoryTab( { settingsUrl, exportUrl }: Props ) {
 	const [ view, setView ] = useState< View >( 'entry' );
 	const [ retention, setRetention ] = useState( 90 );
 	const onRetention = useCallback(
@@ -106,6 +109,7 @@ export function HistoryTab( { settingsUrl }: Props ) {
 			{ view === 'entry' ? (
 				<HistoryEntries
 					onRetention={ onRetention }
+					exportUrl={ exportUrl }
 					leading={ switcher }
 				/>
 			) : (

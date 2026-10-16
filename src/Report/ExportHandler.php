@@ -12,6 +12,7 @@ namespace MagicLinking\Report;
 use MagicLinking\Core\Module;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\ReportRepository;
+use MagicLinking\History\Reader;
 
 /**
  * Sirve el CSV de la vista actual del informe o de los enlaces rotos.
@@ -37,14 +38,23 @@ final class ExportHandler implements Module {
 	private BrokenRepository $broken;
 
 	/**
+	 * Historial.
+	 *
+	 * @var Reader
+	 */
+	private Reader $reader;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param ReportRepository $report Consulta del informe.
 	 * @param BrokenRepository $broken Consulta de rotos.
+	 * @param Reader           $reader Lectura del Historial.
 	 */
-	public function __construct( ReportRepository $report, BrokenRepository $broken ) {
+	public function __construct( ReportRepository $report, BrokenRepository $broken, Reader $reader ) {
 		$this->report = $report;
 		$this->broken = $broken;
+		$this->reader = $reader;
 	}
 
 	/**
@@ -72,8 +82,13 @@ final class ExportHandler implements Module {
 		check_admin_referer( self::ACTION );
 
 		$get      = wp_unslash( $_GET ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce comprobado arriba.
-		$dataset  = 'broken' === ( $get['dataset'] ?? '' ) ? 'broken' : 'report';
-		$filename = sprintf( 'magic-linking-%s-%s.csv', 'broken' === $dataset ? 'broken-links' : 'report', gmdate( 'Y-m-d' ) );
+		$dataset  = in_array( $get['dataset'] ?? '', array( 'broken', 'history' ), true ) ? (string) $get['dataset'] : 'report';
+		$names    = array(
+			'broken'  => 'broken-links',
+			'history' => 'history',
+			'report'  => 'report',
+		);
+		$filename = sprintf( 'magic-linking-%s-%s.csv', $names[ $dataset ], gmdate( 'Y-m-d' ) );
 
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -92,10 +107,31 @@ final class ExportHandler implements Module {
 	 * Escribe el CSV en un flujo.
 	 *
 	 * @param resource             $stream  Destino.
-	 * @param string               $dataset `report` o `broken`.
+	 * @param string               $dataset `report`, `broken` o `history`.
 	 * @param array<string, mixed> $query   Filtros (los mismos parámetros que la API).
 	 */
 	public function write( $stream, string $dataset, array $query ): void {
+		if ( 'history' === $dataset ) {
+			$status = (string) ( $query['status'] ?? '' );
+			$origin = (string) ( $query['origin'] ?? '' );
+
+			CsvExporter::write(
+				$stream,
+				CsvExporter::HISTORY_COLUMNS,
+				$this->reader->export_rows(
+					get_current_user_id(),
+					array(
+						'status' => in_array( $status, array( 'active', 'undone' ), true ) ? $status : '',
+						'origin' => in_array( $origin, array( 'plugin', 'editor' ), true ) ? $origin : '',
+						'ai'     => rest_sanitize_boolean( (string) ( $query['ai'] ?? '' ) ),
+						'search' => sanitize_text_field( (string) ( $query['search'] ?? '' ) ),
+					)
+				),
+				true
+			);
+			return;
+		}
+
 		if ( 'broken' === $dataset ) {
 			CsvExporter::write(
 				$stream,

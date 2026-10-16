@@ -12,6 +12,8 @@ import { Pagination } from './Pagination';
 const PER_PAGE = 10;
 
 interface Props {
+	/** Descarga del CSV (con su nonce), a la que se añaden los filtros. */
+	exportUrl: string;
 	/** Conmutador «Ver por», que va al principio de la barra de herramientas. */
 	leading: ReactNode;
 	/** Avisa de cuánto se conserva el historial (lo trae la lista). */
@@ -23,8 +25,9 @@ interface Props {
  * @param root0
  * @param root0.onRetention
  * @param root0.leading
+ * @param root0.exportUrl
  */
-export function HistoryEntries( { onRetention, leading }: Props ) {
+export function HistoryEntries( { onRetention, leading, exportUrl }: Props ) {
 	const [ page, setPage ] = useState( 1 );
 	const [ status, setStatus ] = useState< HistoryStatusFilter >( 'all' );
 	const [ origin, setOrigin ] = useState( '' );
@@ -139,6 +142,21 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 	const filtered =
 		status !== 'all' || origin !== '' || ai || debounced !== '';
 
+	// Se exporta lo que enseña el filtro actual, sin tope de filas.
+	const exportParams = new URLSearchParams( { dataset: 'history' } );
+	if ( status !== 'all' ) {
+		exportParams.set( 'status', status );
+	}
+	if ( origin ) {
+		exportParams.set( 'origin', origin );
+	}
+	if ( ai ) {
+		exportParams.set( 'ai', '1' );
+	}
+	if ( debounced ) {
+		exportParams.set( 'search', debounced );
+	}
+
 	const toolbar = (
 		<div className="magiclinking-toolbar">
 			{ leading }
@@ -231,6 +249,12 @@ export function HistoryEntries( { onRetention, leading }: Props ) {
 						}
 					/>
 				</div>
+				<a
+					className="button"
+					href={ `${ exportUrl }&${ exportParams.toString() }` }
+				>
+					{ __( 'Export CSV', 'magic-linking' ) }
+				</a>
 			</div>
 		</div>
 	);

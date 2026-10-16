@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-16T07:09:48+00:00\n"
+"POT-Creation-Date: 2026-10-16T07:33:51+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -197,81 +197,81 @@ msgid "Process %1$d is now %2$s."
 msgstr ""
 
 #. translators: %s: batch ID.
-#: src/Cli/Command.php:585
+#: src/Cli/Command.php:599
 #, php-format
 msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
 msgstr ""
 
-#: src/Cli/Command.php:606
-msgid "Unknown action. Use: list, undo, redo or purge."
+#: src/Cli/Command.php:624
+msgid "Unknown action. Use: list, undo, redo, purge or export."
 msgstr ""
 
-#: src/Cli/Command.php:618
-#: src/Cli/Command.php:652
+#: src/Cli/Command.php:675
+#: src/Cli/Command.php:709
 #: src/Rest/EditorHistoryController.php:98
 #: src/Rest/HistoryController.php:794
 #: src/Rest/SuggestionsController.php:433
 msgid "You do not have permission to edit one of the entries involved."
 msgstr ""
 
-#: src/Cli/Command.php:623
+#: src/Cli/Command.php:680
 #: src/History/Redo.php:65
 #: src/History/Undo.php:165
 #: src/Rest/HistoryController.php:787
 msgid "That change does not exist."
 msgstr ""
 
-#: src/Cli/Command.php:627
-#: src/Cli/Command.php:647
+#: src/Cli/Command.php:684
+#: src/Cli/Command.php:704
 #: src/Rest/HistoryController.php:773
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr ""
 
-#: src/Cli/Command.php:643
+#: src/Cli/Command.php:700
 msgid "There is no such group in the history (or you cannot edit all of its entries)."
 msgstr ""
 
 #. translators: %d: number of changes.
-#: src/Cli/Command.php:688
+#: src/Cli/Command.php:745
 #, php-format
 msgid "%d change could not be applied by itself."
 msgid_plural "%d changes could not be applied by themselves."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:695
+#: src/Cli/Command.php:752
 msgid "Group redone."
 msgstr ""
 
-#: src/Cli/Command.php:695
+#: src/Cli/Command.php:752
 msgid "Group undone."
 msgstr ""
 
-#: src/Cli/Command.php:706
+#: src/Cli/Command.php:763
 msgid "The history never expires with the current setting; nothing to delete."
 msgstr ""
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:715
+#: src/Cli/Command.php:772
 #, php-format
 msgid "%d history row has expired."
 msgid_plural "%d history rows have expired."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:724
+#: src/Cli/Command.php:781
 msgid "Nothing has expired."
 msgstr ""
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:734
+#: src/Cli/Command.php:791
 #, php-format
 msgid "%d history row deleted."
 msgid_plural "%d history rows deleted."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:748
+#: src/Cli/Command.php:805
 #: src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
@@ -279,23 +279,23 @@ msgstr[1] ""
 msgid "That entry does not exist."
 msgstr ""
 
-#: src/Cli/Command.php:755
+#: src/Cli/Command.php:812
 msgid "Entry analyzed."
 msgstr ""
 
-#: src/Cli/Command.php:758
+#: src/Cli/Command.php:815
 msgid "Nothing changed since the last analysis. Use --force to analyze it again."
 msgstr ""
 
-#: src/Cli/Command.php:761
+#: src/Cli/Command.php:818
 msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
 msgstr ""
 
-#: src/Cli/Command.php:764
+#: src/Cli/Command.php:821
 msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
 msgstr ""
 
-#: src/Cli/Command.php:777
+#: src/Cli/Command.php:834
 msgid "Could not open the output."
 msgstr ""
 
@@ -520,11 +520,11 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: src/History/Reader.php:749
+#: src/History/Reader.php:826
 msgid "Automatic"
 msgstr ""
 
-#: src/History/Reader.php:754
+#: src/History/Reader.php:831
 msgid "Deleted user"
 msgstr ""
 
@@ -604,7 +604,7 @@ msgstr ""
 msgid "This post was edited afterwards; remove the link by hand."
 msgstr ""
 
-#: src/Report/ExportHandler.php:70
+#: src/Report/ExportHandler.php:80
 msgid "You are not allowed to export this data."
 msgstr ""
 
@@ -1399,6 +1399,7 @@ msgid "There are no broken internal links. Well done."
 msgstr ""
 
 #: assets/build/index.js:10
+#: assets/build/index.js:50
 #: assets/build/index.js:61
 msgid "Export CSV"
 msgstr ""

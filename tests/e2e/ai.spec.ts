@@ -353,6 +353,26 @@ test.describe( 'AI through the connector', () => {
 		);
 		await expectAccessible( page, '.magiclinking-wrap' );
 
+		// El botón descarga lo que enseña el filtro: solo los recomendados, con su modelo.
+		const exportLink = page.getByRole( 'link', { name: 'Export CSV' } );
+		await expect( exportLink ).toHaveAttribute( 'href', /dataset=history/ );
+		await expect( exportLink ).toHaveAttribute( 'href', /[?&]ai=1/ );
+		const download = await page.request.get(
+			( await exportLink.getAttribute( 'href' ) ) ?? ''
+		);
+		expect( download.status() ).toBe( 200 );
+		expect( download.headers()[ 'content-type' ] ).toContain( 'text/csv' );
+		const csv = ( await download.text() ).replace( /^\uFEFF/, '' ).trim();
+		const lines = csv.split( '\n' );
+		expect( lines[ 0 ] ).toBe(
+			'id,date,user,action,state,post_id,post_title,target_url,anchor,origin,batch_id,ai_recommended,ai_anchor,ai_model'
+		);
+		expect( lines ).toHaveLength( recommended + 1 );
+		for ( const line of lines.slice( 1 ) ) {
+			expect( line ).toContain( 'Editor panel' );
+			expect( line ).toMatch( /,1,[01],gpt-4o-mini$/ );
+		}
+
 		// Por lote, la tarjeta cuenta cuántos recomendó la IA.
 		await openHistoryByBatch( page );
 		await expect( page.locator( '.magiclinking-batch' ) ).toContainText(
