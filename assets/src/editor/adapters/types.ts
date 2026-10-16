@@ -21,7 +21,11 @@ export type ApplyFailure =
 	/** El ancla cruza negrita, cursiva… y el enlace dejaría mal anidada la marca: no se recorta, no se toca. */
 	| 'crosses_format'
 	/** Lo que se iba a escribir no pasó la verificación (solo cambiaba algo más que el enlace): no se tocó nada. */
-	| 'unsafe';
+	| 'unsafe'
+	/** La dirección del destino está vacía o no es http(s): no se enlaza. */
+	| 'bad_target'
+	/** El editor del bloque Clásico tiene texto escrito sin aplicar: escribir ahora lo borraría. */
+	| 'unsynced';
 
 export type ApplyResult =
 	| {

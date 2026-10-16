@@ -94,6 +94,8 @@ jest.mock( '@wordpress/editor', () => ( { store: 'core/editor' } ) );
 // eslint-disable-next-line import/first
 import { gutenbergAdapter } from '../adapters/gutenberg';
 // eslint-disable-next-line import/first
+import * as rawHtml from '../rawHtml';
+// eslint-disable-next-line import/first
 import { clearHighlight, showHighlight } from '../highlight';
 
 /** Como `RichTextData` de WordPress 6.5: un objeto que se convierte en HTML con `toString()`. */
@@ -414,5 +416,83 @@ describe( 'resaltado: mismo criterio que enlazar', () => {
 		] );
 		expect( showHighlight ).not.toHaveBeenCalled();
 		expect( clearHighlight ).toHaveBeenCalled();
+	} );
+} );
+
+describe( 'dirección del destino', () => {
+	it.each( [ '', 'javascript:alert(1)', '/relativa/' ] )(
+		'una dirección «%s» no se enlaza',
+		( url ) => {
+			mockBlocks = [
+				block( 'c1', 'core/freeform', { content: CLASSIC } ),
+			];
+			const bad = {
+				...suggestion(
+					'se debe a ',
+					'muchas razones',
+					', entre ellas'
+				),
+				target: { url },
+			} as unknown as Suggestion;
+			expect( gutenbergAdapter( 1, options ).apply( bad ) ).toEqual( {
+				ok: false,
+				reason: 'bad_target',
+			} );
+			expect( mockUpdates ).toHaveLength( 0 );
+		}
+	);
+} );
+
+describe( 'bloque Clásico: casos límite', () => {
+	it( 'un bloque con <script> no se cuenta dos veces: es «unsupported», no «ambiguous»', () => {
+		mockBlocks = [
+			block( 'c1', 'core/freeform', {
+				content:
+					'Un texto con una frase única aquí.<script>var a;</script>',
+			} ),
+		];
+		expect(
+			gutenbergAdapter( 1, options ).apply(
+				suggestion( 'con una ', 'frase única', ' aquí' )
+			)
+		).toEqual( { ok: false, reason: 'unsupported' } );
+	} );
+
+	it( 'con texto escrito en TinyMCE sin aplicar al bloque, no escribe y lo dice', () => {
+		mockBlocks = [ block( 'c1', 'core/freeform', { content: CLASSIC } ) ];
+		( window as unknown as { tinymce: unknown } ).tinymce = {
+			get: ( id: string ) =>
+				id === 'editor-c1' ? { isDirty: () => true } : null,
+		};
+		const result = gutenbergAdapter( 1, options ).apply(
+			suggestion( 'se debe a ', 'muchas razones', ', entre ellas' )
+		);
+		delete ( window as unknown as { tinymce?: unknown } ).tinymce;
+		expect( result ).toEqual( { ok: false, reason: 'unsynced' } );
+		expect( mockUpdates ).toHaveLength( 0 );
+	} );
+
+	it( 'el resaltado no vuelve a analizar un bloque cuyo contenido no cambió', () => {
+		const html = 'Un texto con una frase única aquí.';
+		mockBlocks = [ block( 'c1', 'core/freeform', { content: html } ) ];
+		document.body.innerHTML =
+			'<div data-block="c1"><div contenteditable="true">' +
+			html +
+			'</div></div>';
+		const spy = jest.spyOn( rawHtml, 'buildView' );
+		const adapter = gutenbergAdapter( 1, options );
+		const one = suggestion( 'con una ', 'frase única', ' aquí' );
+		adapter.highlight( one );
+		adapter.highlight( one );
+		adapter.highlight( one );
+		expect( spy ).toHaveBeenCalledTimes( 1 );
+		// Si el contenido cambia, se analiza otra vez.
+		const first = mockBlocks[ 0 ];
+		if ( first ) {
+			first.attributes = { content: html + ' Más.' };
+		}
+		adapter.highlight( one );
+		expect( spy ).toHaveBeenCalledTimes( 2 );
+		spy.mockRestore();
 	} );
 } );

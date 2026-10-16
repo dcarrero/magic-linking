@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-16T08:57:14+00:00\n"
+"POT-Creation-Date: 2026-10-16T10:45:56+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Deutsch\n"
@@ -196,7 +196,7 @@ msgstr "Unbekannte Aktion. Verwende: list, undo, redo, purge oder export."
 
 #: src/Cli/Command.php:674 src/Cli/Command.php:708
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:433
+#: src/Rest/SuggestionsController.php:434
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Sie haben keine Berechtigung, einen der betroffenen Beiträge zu bearbeiten."
 
@@ -257,7 +257,7 @@ msgstr[1] "%d Verlaufseinträge gelöscht."
 #: src/Cli/Command.php:804 src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
-#: src/Rest/SuggestionsController.php:589
+#: src/Rest/SuggestionsController.php:590
 msgid "That entry does not exist."
 msgstr "Dieser Beitrag existiert nicht."
 
@@ -311,7 +311,7 @@ msgid "The post contains markup (script, styles…) that cannot be scanned safel
 msgstr "Der Beitrag enthält Markup (Skripte, Styles …), das sich nicht sicher durchsuchen lässt."
 
 #: src/Content/Destination.php:43 src/Content/Destination.php:51
-#: src/Rest/FixController.php:251
+#: src/Rest/FixController.php:252
 msgid "The destination is not a published entry that can be linked."
 msgstr "Das Ziel ist kein veröffentlichter Beitrag, auf den verlinkt werden kann."
 
@@ -459,8 +459,8 @@ msgstr "Der Zielbeitrag ist nicht veröffentlicht (Entwurf, ausstehend oder gepl
 msgid "The destination entry is private."
 msgstr "Der Zielbeitrag ist privat."
 
-#: src/Graph/BrokenRepository.php:145 src/Graph/ReportRepository.php:294
-#: src/Rest/FixController.php:206 assets/build/classic.js:12
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:295
+#: src/Rest/FixController.php:207 assets/build/classic.js:12
 #: assets/build/editor.js:12 assets/build/index.js:12
 msgid "(no title)"
 msgstr "(kein Titel)"
@@ -571,7 +571,7 @@ msgstr "Dieser Beitrag wurde danach bearbeitet; entfernen Sie den Link von Hand.
 msgid "You are not allowed to export this data."
 msgstr "Sie dürfen diese Daten nicht exportieren."
 
-#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:251
+#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:252
 msgid "The content is too long to analyze."
 msgstr "Der Inhalt ist zu lang für die Analyse."
 
@@ -626,15 +626,15 @@ msgstr "Ein Beitrag kann nicht auf sich selbst verlinken."
 msgid "The change could not be saved. Try again."
 msgstr "Die Änderung konnte nicht gespeichert werden. Versuche es erneut."
 
-#: src/Rest/FixController.php:240
+#: src/Rest/FixController.php:241
 msgid "This link is no longer broken. Reload the list."
 msgstr "Dieser Link ist nicht mehr defekt. Laden Sie die Liste neu."
 
-#: src/Rest/FixController.php:264 assets/build/index.js:6
+#: src/Rest/FixController.php:265 assets/build/index.js:6
 msgid "The link could not be fixed; nothing was changed."
 msgstr "Der Link ließ sich nicht korrigieren; es wurde nichts geändert."
 
-#: src/Rest/FixController.php:333
+#: src/Rest/FixController.php:334
 msgid "That link does not exist."
 msgstr "Diesen Link gibt es nicht."
 
@@ -655,32 +655,32 @@ msgid "That model works in batches, not live, so it cannot be used in the editor
 msgstr "Dieses Modell arbeitet im Stapelbetrieb, nicht live, und eignet sich daher nicht für den Editor. Wähle ein anderes oder lasse es auf automatisch."
 
 #. translators: %s: comma-separated list of shared terms.
-#: src/Rest/SuggestionPresenter.php:166
+#: src/Rest/SuggestionPresenter.php:167
 #, php-format
 msgid "They share: %s"
 msgstr "Gemeinsame Begriffe: %s"
 
-#: src/Rest/SuggestionPresenter.php:169
+#: src/Rest/SuggestionPresenter.php:170
 msgid "The anchor matches the title of the destination"
 msgstr "Der Ankertext entspricht dem Titel des Ziels"
 
-#: src/Rest/SuggestionPresenter.php:172
+#: src/Rest/SuggestionPresenter.php:173
 msgid "The anchor matches the focus keyword of the destination"
 msgstr "Der Ankertext entspricht dem Fokus-Keyword des Ziels"
 
-#: src/Rest/SuggestionPresenter.php:175
+#: src/Rest/SuggestionPresenter.php:176
 msgid "The destination is an orphan (0 inbound links)"
 msgstr "Das Ziel ist verwaist (0 eingehende Links)"
 
-#: src/Rest/SuggestionPresenter.php:178
+#: src/Rest/SuggestionPresenter.php:179
 msgid "Very similar in meaning"
 msgstr "Inhaltlich sehr ähnlich"
 
-#: src/Rest/SuggestionsController.php:425
+#: src/Rest/SuggestionsController.php:426
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Jeder Link braucht den Beitrag, das Ziel, den Satz, die Position und den Ankertext."
 
-#: src/Rest/SuggestionsController.php:480
+#: src/Rest/SuggestionsController.php:481
 msgid "The link could not be saved; nothing was changed."
 msgstr "Der Link konnte nicht gespeichert werden; es wurde nichts geändert."
 
@@ -1022,6 +1022,14 @@ msgstr "Der Ankertext erstreckt sich über Fett, Kursiv oder eine andere Formati
 #: assets/build/classic.js:26 assets/build/editor.js:26
 msgid "The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand."
 msgstr "Der Link ließ sich nicht hinzufügen, ohne den Rest des Blocks zu gefährden, daher wurde nichts geändert. Fügen Sie ihn von Hand ein."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "The address of the destination is not valid, so the link was not added."
+msgstr "Die Adresse des Ziels ist nicht gültig, daher wurde der Link nicht hinzugefügt."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "The Classic block has changes that are not applied yet. Save or leave the block and try again."
+msgstr "Der Classic-Block hat Änderungen, die noch nicht übernommen wurden. Speichern Sie oder verlassen Sie den Block und versuchen Sie es erneut."
 
 #: assets/build/classic.js:26 assets/build/editor.js:26
 msgid "Switch to the Visual tab to add the link, or add it by hand."

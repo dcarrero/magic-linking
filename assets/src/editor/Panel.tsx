@@ -50,6 +50,16 @@ function failureText( reason: ApplyFailure ): string {
 				'The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand.',
 				'magic-linking'
 			);
+		case 'bad_target':
+			return __(
+				'The address of the destination is not valid, so the link was not added.',
+				'magic-linking'
+			);
+		case 'unsynced':
+			return __(
+				'The Classic block has changes that are not applied yet. Save or leave the block and try again.',
+				'magic-linking'
+			);
 		case 'text_mode':
 			return __(
 				'Switch to the Visual tab to add the link, or add it by hand.',

@@ -5,7 +5,8 @@
  * el texto de cada bloque (o párrafo del editor clásico). Como en el servidor (docs/06 §3, D-48), manda el
  * contexto —30 caracteres a cada lado— y debe aparecer exactamente una vez: si no, no se toca nada.
  * Las secuencias de espacios (también `&nbsp;`) cuentan como uno solo, con la misma clase de espacios que el
- * servidor (`[\s\x{00A0}]` de PCRE: espacio, tabulador, saltos y NBSP; no U+2028, U+2029 ni otros espacios Unicode),
+ * servidor (`[\s\x{00A0}]` con el modificador `u` de PCRE, que en PHP activa Unicode: espacio, tabulador, saltos, NBSP,
+ * U+202F, U+2028, U+2003…; comprobado en `EditorsTest`),
  * y los caracteres invisibles U+FEFF y U+200B no cuentan.
  *
  * Todas las posiciones son unidades UTF-16, como los índices de `String.prototype.slice`.
@@ -45,7 +46,7 @@ interface Normalized {
 }
 
 /** Espacios que el servidor colapsa: ASCII y NBSP (docs/06 §3). */
-const SPACE = /[ \t\n\v\f\r\u00a0]/;
+const SPACE = /[\s\u0085]/;
 /** Invisibles que se ignoran. */
 const INVISIBLE = /[\ufeff\u200b]/;
 

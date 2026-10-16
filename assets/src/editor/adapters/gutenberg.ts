@@ -24,6 +24,7 @@ import {
 	blocker,
 	buildView,
 	forbidden,
+	isLinkUrl,
 	openTag,
 	unwrap,
 	wrap,
@@ -248,18 +249,31 @@ function prepare( selection: Plan ): Prepared {
 	const values = new Map< string, ReturnType< typeof create > >();
 	const views = new Map< string, RawView >();
 	const units: TextUnit[] = [];
+	const live = new Set< string >();
 	for ( const target of selection.targets ) {
 		const block = blockOf( target );
 		if ( ! block ) {
 			continue;
 		}
-		if ( ! target.raw ) {
-			const value = create( { html: target.read( block ) } );
-			values.set( target.key, value );
-			units.push( { key: target.key, text: value.text } );
+		live.add( target.key );
+		const html = target.read( block );
+		// El análisis de un bloque solo se rehace si su contenido cambió (el resaltado lo pide a cada paso del ratón).
+		let cached = analysis.get( target.key );
+		if ( cached?.html !== html ) {
+			cached = target.raw
+				? { html, view: buildView( html ) }
+				: { html, value: create( { html } ) };
+			analysis.set( target.key, cached );
+		}
+		if ( cached.value ) {
+			values.set( target.key, cached.value );
+			units.push( { key: target.key, text: cached.value.text } );
 			continue;
 		}
-		const view = buildView( target.read( block ) );
+		const view = cached.view;
+		if ( ! view ) {
+			continue;
+		}
 		views.set( target.key, view );
 		if ( view.unsafe === null ) {
 			units.push( {
@@ -270,8 +284,23 @@ function prepare( selection: Plan ): Prepared {
 			} );
 		}
 	}
+	for ( const key of Array.from( analysis.keys() ) ) {
+		if ( ! live.has( key ) ) {
+			analysis.delete( key );
+		}
+	}
 	return { units, values, views };
 }
+
+/** Análisis de cada tramo mientras su contenido no cambia. */
+const analysis = new Map<
+	string,
+	{
+		html: string;
+		value?: ReturnType< typeof create >;
+		view?: RawView;
+	}
+>();
 
 /**
  * Texto de un atributo de texto enriquecido: una cadena, o un `RichTextData` (desde WordPress 6.5 lo son
@@ -379,6 +408,10 @@ export function gutenbergAdapter(
 			} ),
 
 		apply: ( suggestion: Suggestion ): ApplyResult => {
+			// Como el servidor (`Linker::open_tag`), no se enlaza a una dirección vacía o que no sea http(s).
+			if ( ! isLinkUrl( suggestion.target.url ?? '' ) ) {
+				return { ok: false, reason: 'bad_target' };
+			}
 			const selection = plan( options.linkIn );
 			const { targets } = selection;
 			const prepared = prepare( selection );
@@ -555,7 +588,11 @@ function whyNot(
 	scope: AdapterOptions[ 'linkIn' ]
 ): ApplyFailure {
 	const { units, views } = prepared;
-	const claimed = new Set( units.map( ( unit ) => unit.key ) );
+	// También las vistas descartadas por no seguras: si no, su texto se contaría dos veces y todo sería ambiguo.
+	const claimed = new Set( [
+		...units.map( ( unit ) => unit.key ),
+		...views.keys(),
+	] );
 	// Sin el filtro de enlazables: se busca la frase en cualquier sitio.
 	const everything: TextUnit[] = [
 		...Array.from( views, ( [ key, view ] ) => ( {
@@ -583,6 +620,22 @@ function whyNot(
 }
 
 /**
+ * Si el editor TinyMCE del bloque Clásico tiene texto escrito que aún no ha pasado al atributo del bloque.
+ *
+ * @param clientId Bloque.
+ */
+function hasPendingEdit( clientId: string ): boolean {
+	const tinymce = (
+		window as unknown as {
+			tinymce?: {
+				get?: ( id: string ) => { isDirty?: () => boolean } | null;
+			};
+		}
+	 ).tinymce;
+	return tinymce?.get?.( `editor-${ clientId }` )?.isDirty?.() === true;
+}
+
+/**
  * Enlaza dentro del HTML en bruto de un bloque Clásico, sin reserializar nada: solo se insertan `<a …>` y `</a>`
  * (`rawHtml.wrap`, que verifica que quitar esas dos piezas devuelve el original byte a byte). El cambio es un nivel
  * de deshacer propio, igual que en los demás bloques.
@@ -604,6 +657,11 @@ function applyRaw(
 	end: number,
 	options: AdapterOptions
 ): ApplyResult {
+	// El bloque Clásico se edita en su propio editor (TinyMCE) y solo pasa el texto al atributo al aplicarlo: si hay
+	// cambios sin aplicar, escribir aquí los borraría. Se avisa en vez de arriesgarlo.
+	if ( hasPendingEdit( target.clientId ) ) {
+		return { ok: false, reason: 'unsynced' };
+	}
 	const open = openTag( suggestion.target.url ?? '', options.linkAttrs );
 	const wrapped = wrap( target.read( block ), view, start, end, open );
 	if ( ! wrapped.ok ) {

@@ -17,6 +17,11 @@ import { decodeEntities } from '@wordpress/html-entities';
 export const BREAK = '\x1F';
 /** Marca de orden de bytes: `\s` de JavaScript la cuenta como espacio y la de PCRE no. */
 const BOM = String.fromCharCode( 0xfeff );
+/**
+ * Espacios que colapsa el servidor: `[\s\x{00A0}]` con el modificador `u` de PCRE, que en PHP activa las propiedades de
+ * Unicode (también U+202F, U+2028, U+2003…). `\s` de JavaScript es casi lo mismo; falta U+0085.
+ */
+const SPACE = /^[\s\u0085]$/u;
 /** Separador que el extractor del motor pone en lugar de un código en línea o una imagen. */
 export const SEPARATOR = '·';
 
@@ -244,7 +249,7 @@ export function buildView( html: string ): RawView {
 		open: string[]
 	) => {
 		for ( const char of text ) {
-			if ( /^\s$/u.test( char ) && char !== BOM ) {
+			if ( SPACE.test( char ) && char !== BOM ) {
 				space( start, end, open );
 				continue;
 			}
@@ -373,6 +378,11 @@ export function buildView( html: string ): RawView {
 
 		const parts = /^<(\/?)([a-zA-Z][^\s/>]*)/.exec( token );
 		if ( ! parts ) {
+			// Un comentario (`<!--more-->`, `<!--nextpage-->`…) corta el texto: ni el ancla ni su contexto lo cruzan,
+			// y un enlace nunca lo envuelve. Igual que `TextView` en el servidor.
+			if ( token.startsWith( '<!--' ) && opaque === 0 ) {
+				emit( BREAK, at, cursor, CUT, stack );
+			}
 			continue;
 		}
 		const name = ( parts[ 2 ] ?? '' ).toLowerCase();
@@ -681,4 +691,14 @@ export function unwrap(
 		}
 	}
 	return html.slice( 0, at ) + link.inner + html.slice( at + whole.length );
+}
+
+/**
+ * Si la dirección del destino sirve para un enlace: http o https y sin espacios. El servidor rechaza la vacía o la que
+ * `esc_url()` descarta (`Linker::open_tag`); aquí se pide además http(s), que es lo que son los permalinks.
+ *
+ * @param url Dirección.
+ */
+export function isLinkUrl( url: string ): boolean {
+	return /^https?:\/\/[^\s]+$/i.test( url );
 }

@@ -327,6 +327,11 @@ final class TextView {
 			$cursor = $at + strlen( $token );
 
 			if ( ! preg_match( '~^<(/?)([a-zA-Z][^\s/>]*)~', $token, $parts ) ) {
+				// Un comentario (`<!--more-->`, `<!--nextpage-->`…) corta el texto: ni el ancla ni su contexto lo
+				// cruzan, así que un enlace nunca lo envuelve.
+				if ( str_starts_with( $token, '<!--' ) && 0 === $opaque ) {
+					$this->emit( self::BREAK, $at, $cursor, 2, $stack );
+				}
 				continue;
 			}
 

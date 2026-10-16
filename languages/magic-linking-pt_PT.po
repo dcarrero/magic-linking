@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-16T08:57:14+00:00\n"
+"POT-Creation-Date: 2026-10-16T10:45:56+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Português de Portugal\n"
@@ -196,7 +196,7 @@ msgstr "Ação desconhecida. Use: list, undo, redo, purge ou export."
 
 #: src/Cli/Command.php:674 src/Cli/Command.php:708
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:433
+#: src/Rest/SuggestionsController.php:434
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Não tem permissão para editar um dos conteúdos envolvidos."
 
@@ -257,7 +257,7 @@ msgstr[1] "%d linhas do histórico eliminadas."
 #: src/Cli/Command.php:804 src/Rest/AiController.php:225
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
-#: src/Rest/SuggestionsController.php:589
+#: src/Rest/SuggestionsController.php:590
 msgid "That entry does not exist."
 msgstr "Esse conteúdo não existe."
 
@@ -311,7 +311,7 @@ msgid "The post contains markup (script, styles…) that cannot be scanned safel
 msgstr "O conteúdo contém código (scripts, estilos…) que não pode ser analisado em segurança."
 
 #: src/Content/Destination.php:43 src/Content/Destination.php:51
-#: src/Rest/FixController.php:251
+#: src/Rest/FixController.php:252
 msgid "The destination is not a published entry that can be linked."
 msgstr "O destino não é um conteúdo publicado que possa receber uma ligação."
 
@@ -459,8 +459,8 @@ msgstr "O conteúdo de destino não está publicado (rascunho, pendente ou agend
 msgid "The destination entry is private."
 msgstr "O conteúdo de destino é privado."
 
-#: src/Graph/BrokenRepository.php:145 src/Graph/ReportRepository.php:294
-#: src/Rest/FixController.php:206 assets/build/classic.js:12
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:295
+#: src/Rest/FixController.php:207 assets/build/classic.js:12
 #: assets/build/editor.js:12 assets/build/index.js:12
 msgid "(no title)"
 msgstr "(sem título)"
@@ -571,7 +571,7 @@ msgstr "Este conteúdo foi editado entretanto; remova a ligação manualmente."
 msgid "You are not allowed to export this data."
 msgstr "Não tem permissão para exportar estes dados."
 
-#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:251
+#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:252
 msgid "The content is too long to analyze."
 msgstr "O conteúdo é demasiado longo para ser analisado."
 
@@ -626,15 +626,15 @@ msgstr "Um conteúdo não pode ligar-se a si próprio."
 msgid "The change could not be saved. Try again."
 msgstr "Não foi possível guardar a alteração. Tente novamente."
 
-#: src/Rest/FixController.php:240
+#: src/Rest/FixController.php:241
 msgid "This link is no longer broken. Reload the list."
 msgstr "Esta ligação já não está quebrada. Volte a carregar a lista."
 
-#: src/Rest/FixController.php:264 assets/build/index.js:6
+#: src/Rest/FixController.php:265 assets/build/index.js:6
 msgid "The link could not be fixed; nothing was changed."
 msgstr "Não foi possível corrigir a ligação; nada foi alterado."
 
-#: src/Rest/FixController.php:333
+#: src/Rest/FixController.php:334
 msgid "That link does not exist."
 msgstr "Essa ligação não existe."
 
@@ -655,32 +655,32 @@ msgid "That model works in batches, not live, so it cannot be used in the editor
 msgstr "Esse modelo funciona por lotes, não em tempo real, por isso não serve para o editor. Escolha outro ou deixe em automático."
 
 #. translators: %s: comma-separated list of shared terms.
-#: src/Rest/SuggestionPresenter.php:166
+#: src/Rest/SuggestionPresenter.php:167
 #, php-format
 msgid "They share: %s"
 msgstr "Têm em comum: %s"
 
-#: src/Rest/SuggestionPresenter.php:169
+#: src/Rest/SuggestionPresenter.php:170
 msgid "The anchor matches the title of the destination"
 msgstr "A âncora coincide com o título do destino"
 
-#: src/Rest/SuggestionPresenter.php:172
+#: src/Rest/SuggestionPresenter.php:173
 msgid "The anchor matches the focus keyword of the destination"
 msgstr "A âncora coincide com a palavra-chave principal do destino"
 
-#: src/Rest/SuggestionPresenter.php:175
+#: src/Rest/SuggestionPresenter.php:176
 msgid "The destination is an orphan (0 inbound links)"
 msgstr "O destino é órfão (0 ligações de entrada)"
 
-#: src/Rest/SuggestionPresenter.php:178
+#: src/Rest/SuggestionPresenter.php:179
 msgid "Very similar in meaning"
 msgstr "Muito semelhante em significado"
 
-#: src/Rest/SuggestionsController.php:425
+#: src/Rest/SuggestionsController.php:426
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Cada ligação precisa do conteúdo, do destino, da frase, da posição e da âncora."
 
-#: src/Rest/SuggestionsController.php:480
+#: src/Rest/SuggestionsController.php:481
 msgid "The link could not be saved; nothing was changed."
 msgstr "Não foi possível guardar a ligação; nada foi alterado."
 
@@ -1022,6 +1022,14 @@ msgstr "A âncora atravessa negrito, itálico ou outra formatação, pelo que a 
 #: assets/build/classic.js:26 assets/build/editor.js:26
 msgid "The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand."
 msgstr "Não foi possível adicionar a ligação sem arriscar o resto do bloco, pelo que nada foi alterado. Adicione-a manualmente."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "The address of the destination is not valid, so the link was not added."
+msgstr "O endereço do destino não é válido, pelo que a ligação não foi adicionada."
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+msgid "The Classic block has changes that are not applied yet. Save or leave the block and try again."
+msgstr "O bloco Clássico tem alterações que ainda não foram aplicadas. Guarde ou saia do bloco e tente novamente."
 
 #: assets/build/classic.js:26 assets/build/editor.js:26
 msgid "Switch to the Visual tab to add the link, or add it by hand."

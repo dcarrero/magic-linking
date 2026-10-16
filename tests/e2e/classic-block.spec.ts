@@ -194,6 +194,21 @@ function blockContent( page: Page ): Promise< { name: string; content: string }[
 	);
 }
 
+/** Entrada clásica con un salto de línea simple dentro de un párrafo y un destino llamado «Budapest». */
+function seedNewline(): number {
+	const out = wp(
+		'eval',
+		`
+		$block = static fn( $t ) => "<!-- wp:paragraph -->\\n<p>$t</p>\\n<!-- /wp:paragraph -->";
+		$make = static fn( $slug, $title, $content ) => wp_insert_post( array( 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_status' => 'publish' ) );
+		$make( 'pe-cb-budapest', 'Budapest desde 2010: el Danubio, los balnearios y los puentes', $block( 'Budapest desde 2010 es mi casa: el Danubio, los balnearios históricos y los puentes de la capital de Hungría marcan el día a día.' ) . $block( 'Cómo es vivir en Budapest desde 2010, entre balnearios históricos, puentes sobre el Danubio y mucha vida cultural.' ) );
+		echo $make( 'pe-cb-salto', 'Mi vida fuera', "Vivo en\nBudapest desde 2010 y me encanta el Danubio, los balnearios históricos y los puentes de la capital de Hungría.\n\nEl segundo párrafo habla de otra cosa totalmente distinta, con recetas y paseos." );
+		`
+	);
+	wp( 'magic-linking', 'index' );
+	return Number( out.trim().split( '\n' ).pop() );
+}
+
 test.describe( 'Classic block in Gutenberg', () => {
 	let origen: number;
 	let hasAi = true;
@@ -291,6 +306,95 @@ test.describe( 'Classic block in Gutenberg', () => {
 		await expect
 			.poll( async () => ( await blockContent( page ) )[ 0 ]?.content )
 			.toBe( before );
+	} );
+
+	test( 'a single line break inside a paragraph: the saved-content and the editor-content suggestions can both be linked', async ( {
+		page,
+	} ) => {
+		const salto = seedNewline();
+		const before = content( salto );
+		expect( before ).toContain( 'Vivo en\nBudapest' );
+		await login( page );
+		await openBlockEditor( page, salto );
+
+		// Sugerencias del contenido guardado (GET) y del contenido del editor (POST, con los <p> y <br /> de Gutenberg).
+		const anchors = await page.evaluate( async ( id ) => {
+			// @ts-expect-error wp lo pone WordPress.
+			const { apiFetch, data } = window.wp;
+			const saved = await apiFetch( {
+				path: `/magic-linking/v1/suggestions/outbound?post_id=${ id }`,
+			} );
+			const editor = await apiFetch( {
+				path: '/magic-linking/v1/suggestions/outbound',
+				method: 'POST',
+				data: {
+					post_id: id,
+					content: data.select( 'core/editor' ).getEditedPostContent(),
+				},
+			} );
+			const list = ( r: { items: { anchor: string; before: string; after: string; target: { title: string } }[] } ) =>
+				r.items.map( ( i ) => `${ i.anchor } -> ${ i.target.title } [${ i.before }|${ i.after }]` );
+			return { saved: list( saved ), editor: list( editor ) };
+		}, salto );
+		expect( anchors.saved.join( '|' ) ).toMatch( /^Budapest|\|Budapest/ );
+		expect( anchors.editor.join( '|' ) ).toMatch( /^Budapest|\|Budapest/ );
+
+		// Y el panel lo enlaza.
+		const panel = await openSidebar( page );
+		const cards = panel.locator( '.magiclinking-card' );
+		await expect( cards.first() ).toBeVisible();
+		const at = await cards.evaluateAll( ( items ) =>
+			items.findIndex( ( item ) =>
+				( item.querySelector( 'mark' )?.textContent ?? '' ).startsWith( 'Budapest' )
+			)
+		);
+		expect( at ).toBeGreaterThanOrEqual( 0 );
+		const card = cards.nth( at );
+		await card.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( card.locator( '.magiclinking-fold__text' ) ).toContainText( 'Link added.' );
+		const [ block ] = await blockContent( page );
+		expect( block?.content ).toMatch( /<a href="[^"]*"[^>]*>Budapest[^<]*<\/a>/ );
+		await save( page );
+		const saved = content( salto );
+		expect( saved ).toMatch( /Vivo en\s*<a href="[^"]*"[^>]*>Budapest[^<]*<\/a>/ );
+		expect( withoutLinks( saved ) ).toBe( before );
+	} );
+
+	test( 'text typed in the Classic block editor is kept when linking (it is edited in a modal and applied on Save)', async ( {
+		page,
+	} ) => {
+		await login( page );
+		await openBlockEditor( page, origen );
+		const panel = await openSidebar( page );
+		const cards = panel.locator( '.magiclinking-card' );
+		await expect( cards.first() ).toBeVisible();
+
+		// Se abre el editor del bloque, se escribe al final del primer párrafo y se aplica con Guardar.
+		await canvas( page ).locator( '[data-type="core/freeform"]' ).click();
+		await page.getByRole( 'button', { name: 'Edit', exact: true } ).click();
+		const dialog = page.getByRole( 'dialog', { name: 'Classic Editor' } );
+		await expect( dialog ).toBeVisible();
+		const frame = dialog.frameLocator( 'iframe' ).first();
+		await frame.locator( 'body' ).click();
+		await page.keyboard.press( 'ControlOrMeta+End' );
+		await page.keyboard.type( ' TECLEADO.' );
+		// Mientras el editor del bloque está abierto, el modal deja el panel inaccesible: no se puede enlazar con texto sin aplicar.
+		await expect(
+			page.getByRole( 'button', { name: /^Link to/ } )
+		).toHaveCount( 0 );
+		await dialog.getByRole( 'button', { name: 'Save' } ).click();
+		await expect( dialog ).toBeHidden();
+		expect( ( await blockContent( page ) )[ 0 ]?.content ).toContain( 'TECLEADO.' );
+
+		// Enlazar después no borra lo escrito.
+		const first = cards.first();
+		await first.getByRole( 'button', { name: /^Link to/ } ).click();
+		await expect( first.locator( '.magiclinking-fold__text' ) ).toContainText( 'Link added.' );
+		const [ block ] = await blockContent( page );
+		expect( block?.content ).toContain( 'TECLEADO.' );
+		expect( block?.content ).toContain( '<a href=' );
+		await save( page );
+		expect( content( origen ) ).toContain( 'TECLEADO.' );
 	} );
 
 	test( 'highlights the anchor in the Classic block when the pointer is over the card, without touching the content', async ( {

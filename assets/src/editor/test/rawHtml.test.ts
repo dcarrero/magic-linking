@@ -3,6 +3,7 @@ import {
 	blocker,
 	buildView,
 	forbidden,
+	isLinkUrl,
 	onlyLinkAdded,
 	openTag,
 	unwrap,
@@ -73,7 +74,7 @@ describe( 'buildView', () => {
 		const view = buildView(
 			'a <!-- oculto --> b <code>x = 1</code> c <img alt="no cuenta" src="a.jpg"> d <span title="tampoco">e</span>'
 		);
-		expect( view.text ).toBe( 'a b · c · d e' ); // comentario, código e imagen
+		expect( view.text ).toBe( 'a \x1F b · c · d e' ); // comentario, código e imagen
 		expect( view.text ).not.toContain( 'oculto' );
 		expect( view.text ).not.toContain( 'x = 1' );
 		expect( view.text ).not.toContain( 'no cuenta' );
@@ -389,5 +390,71 @@ describe( 'unwrap', () => {
 		const done = wrapOf( html, 'tres', 'luego ', ' cuatro' );
 		expect( unwrap( done.html, done ) ).toBe( html );
 		expect( unwrap( 'X' + done.html, done ) ).toBeNull();
+	} );
+} );
+
+describe( 'espacios Unicode y comentarios', () => {
+	it( 'colapsa U+202F, U+2028 y compañía como el servidor', () => {
+		expect( buildView( 'Quoi\u202f? oui\u2028vite\u2003bien' ).text ).toBe(
+			'Quoi ? oui vite bien'
+		);
+		const out = link(
+			'Pregunta\u202f? Un aire\u202facondicionado fijo.',
+			'aire acondicionado',
+			'Un ',
+			' fijo.'
+		);
+		if ( out.status !== 'found' || ! out.result.ok ) {
+			throw new Error( 'debería enlazar' );
+		}
+		expect( out.result.html ).toContain(
+			`${ out.open }aire\u202facondicionado</a>`
+		);
+	} );
+
+	it( 'un comentario corta el texto: ni el ancla ni el contexto lo cruzan', () => {
+		for ( const comment of [
+			'<!--more-->',
+			'<!--nextpage-->',
+			'<!-- x -->',
+		] ) {
+			const html = `Mira el aire${ comment } acondicionado de la sala.`;
+			expect( buildView( html ).text ).toContain( '\x1F' );
+			expect(
+				link( html, 'aire acondicionado', 'Mira el ', ' de la sala.' )
+					.status
+			).toBe( 'not_found' );
+		}
+		const next = link(
+			'Mira el aire acondicionado<!--more--> de la sala.',
+			'aire acondicionado',
+			'Mira el ',
+			''
+		);
+		if ( next.status !== 'found' || ! next.result.ok ) {
+			throw new Error( 'debería enlazar' );
+		}
+		expect( next.result.html ).toBe(
+			`Mira el ${ next.open }aire acondicionado</a><!--more--> de la sala.`
+		);
+	} );
+} );
+
+describe( 'isLinkUrl', () => {
+	it( 'solo acepta http y https con algo detrás', () => {
+		expect( isLinkUrl( 'https://ejemplo.test/a/' ) ).toBe( true );
+		expect( isLinkUrl( 'http://ejemplo.test' ) ).toBe( true );
+		for ( const bad of [
+			'',
+			' ',
+			'javascript:alert(1)',
+			'//ejemplo.test/a',
+			'/a/',
+			'https://',
+			'https://a b',
+			'data:text/html,x',
+		] ) {
+			expect( isLinkUrl( bad ) ).toBe( false );
+		}
 	} );
 } );
