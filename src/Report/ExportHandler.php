@@ -112,8 +112,8 @@ final class ExportHandler implements Module {
 	 */
 	public function write( $stream, string $dataset, array $query ): void {
 		if ( 'history' === $dataset ) {
-			$status = (string) ( $query['status'] ?? '' );
-			$origin = (string) ( $query['origin'] ?? '' );
+			$status = self::scalar( $query['status'] ?? null );
+			$origin = self::scalar( $query['origin'] ?? null );
 
 			CsvExporter::write(
 				$stream,
@@ -123,8 +123,8 @@ final class ExportHandler implements Module {
 					array(
 						'status' => in_array( $status, array( 'active', 'undone' ), true ) ? $status : '',
 						'origin' => in_array( $origin, array( 'plugin', 'editor' ), true ) ? $origin : '',
-						'ai'     => rest_sanitize_boolean( (string) ( $query['ai'] ?? '' ) ),
-						'search' => sanitize_text_field( (string) ( $query['search'] ?? '' ) ),
+						'ai'     => '' !== self::scalar( $query['ai'] ?? null ) && rest_sanitize_boolean( self::scalar( $query['ai'] ?? null ) ),
+						'search' => sanitize_text_field( self::scalar( $query['search'] ?? null ) ),
 					)
 				),
 				true
@@ -170,5 +170,14 @@ final class ExportHandler implements Module {
 			),
 			true
 		);
+	}
+
+	/**
+	 * Valor de un parámetro de la dirección como texto; un array (`ai[]=1`) u otro tipo no escalar se ignora.
+	 *
+	 * @param mixed $value Valor.
+	 */
+	private static function scalar( mixed $value ): string {
+		return is_scalar( $value ) ? (string) $value : '';
 	}
 }

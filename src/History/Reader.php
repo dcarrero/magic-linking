@@ -391,7 +391,7 @@ final class Reader {
 	 * @phpstan-param array{origin: string, action: string} $change
 	 */
 	private static function export_origin( array $change ): string {
-		if ( ChangeRepository::ORIGIN_EDITOR === $change['origin'] ) {
+		if ( ChangeRepository::ORIGIN_EDITOR === self::origin_of( array( $change ) ) ) {
 			return 'Editor panel';
 		}
 

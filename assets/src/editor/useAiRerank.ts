@@ -220,6 +220,24 @@ export function useAiRerank(
 				const unfitNow = unfitCount( next );
 				setUsage( response.usage );
 				setOutcome( next );
+				// Un ancla aceptada en una ejecución anterior solo sigue si esta respuesta la propone otra vez; las
+				// tarjetas que no se enviaron (ya enlazadas) conservan la suya.
+				setOverrides( ( previous ) =>
+					Object.fromEntries(
+						Object.entries( previous ).filter(
+							( [ key, replaced ] ) => {
+								const mark = next.marks[ key ];
+								return (
+									! mark ||
+									( mark.improved?.anchor ===
+										replaced.anchor &&
+										mark.improved?.offset ===
+											replaced.offset )
+								);
+							}
+						)
+					)
+				);
 				setPhase( 'done' );
 				speak(
 					sprintf(
@@ -247,8 +265,17 @@ export function useAiRerank(
 		setPhase( 'idle' );
 		setMessage( '' );
 		setOutcome( null );
+		// Sin respuesta vigente no se puede insertar un ancla de la IA sin su marca: las tarjetas vuelven a su ancla
+		// (salvo las ya enlazadas, que guardan su estado bajo la clave del ancla nueva).
+		setOverrides( ( previous ) =>
+			Object.fromEntries(
+				Object.entries( previous ).filter( ( [ , replaced ] ) =>
+					busy( replaced )
+				)
+			)
+		);
 		speak( __( 'Back to the original order.', 'magic-linking' ), 'polite' );
-	}, [] );
+	}, [ busy ] );
 
 	const acceptAnchor = useCallback(
 		( original: Suggestion, improved: RerankImproved ) => {

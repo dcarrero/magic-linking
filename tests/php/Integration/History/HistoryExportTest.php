@@ -233,4 +233,79 @@ final class HistoryExportTest extends HistoryTestCase {
 	public function test_the_history_screen_gets_the_export_url(): void {
 		$this->assertStringContainsString( 'action=magiclinking_export', ExportHandler::url() );
 	}
+
+	/**
+	 * Pone un enlace en una frase de una entrada.
+	 *
+	 * @param int    $post   Entrada.
+	 * @param string $anchor Ancla (tiene que estar en la frase «Compra X ya.»).
+	 * @param string $before Texto anterior de la frase.
+	 * @param string $after  Texto posterior.
+	 */
+	private function link_in( int $post, string $anchor, string $before, string $after ): int {
+		return Plugin::container()->get( \MagicLinking\Content\Inserter::class )->insert(
+			new \MagicLinking\Content\InsertRequest( $post, (string) get_permalink( $this->target ), $anchor, $before, $after )
+		)->change_id;
+	}
+
+	public function test_the_status_filter_exports_what_the_screen_shows(): void {
+		// La pantalla filtra por entrada y enseña todos los cambios de las que pasan; el CSV tiene que sacar lo mismo.
+		$mixed = $this->post(
+			array(
+				'post_content' => $this->p( 'Compra aire acondicionado ya.' ) . "\n\n" . $this->p( 'Mira el ventilador industrial hoy.' ) . "\n\n" . $this->p( 'Otro humidificador portátil aquí.' ),
+			)
+		);
+		$this->link_in( $mixed, 'aire acondicionado', 'Compra ', ' ya.' );
+		$this->link_in( $mixed, 'ventilador industrial', 'Mira el ', ' hoy.' );
+		$gone = $this->link_in( $mixed, 'humidificador portátil', 'Otro ', ' aquí.' );
+		Plugin::container()->get( Undo::class )->revert( $gone );
+		$active_only = $this->put()['post'];
+		$undone_only = $this->put();
+		Plugin::container()->get( Undo::class )->revert( $undone_only['change'] );
+
+		$by_post = function ( string $status ): array {
+			$rows = $this->export( array( 'status' => $status ) );
+			$out  = array();
+			foreach ( $rows as $row ) {
+				$out[ (int) $row['post_id'] ][] = $row['state'];
+			}
+			ksort( $out );
+
+			return $out;
+		};
+
+		$active = $by_post( 'active' );
+		$this->assertEqualsCanonicalizing( array( $mixed, $active_only ), array_keys( $active ), '«Activos»: las entradas con algo puesto.' );
+		$this->assertCount( 3, $active[ $mixed ], 'Con todos sus cambios, también el deshecho.' );
+		$this->assertContains( 'undone', $active[ $mixed ] );
+
+		$undone = $by_post( 'undone' );
+		$this->assertEqualsCanonicalizing( array( $mixed, $undone_only['post'] ), array_keys( $undone ), '«Deshechos»: las entradas con algo deshecho.' );
+		$this->assertCount( 3, $undone[ $mixed ] );
+		$this->assertContains( 'active', $undone[ $mixed ] );
+
+		// Es lo mismo que cuenta la pantalla.
+		wp_set_current_user( $this->admin );
+		$request = new WP_REST_Request( 'GET', '/magic-linking/v1/history' );
+		$request->set_param( 'group', 'post' );
+		$request->set_param( 'status', 'active' );
+		$screen = rest_get_server()->dispatch( $request )->get_data();
+		$this->assertEqualsCanonicalizing( array_keys( $active ), array_column( $screen['items'], 'post_id' ) );
+	}
+
+	public function test_array_values_in_the_query_are_ignored_without_notices(): void {
+		$this->put();
+		$this->put( new AiOrigin( false, 'm' ) );
+
+		$rows = $this->export(
+			array(
+				'ai'     => array( '1' ),
+				'status' => array( 'active' ),
+				'origin' => array( 'editor' ),
+				'search' => array( 'x' ),
+			)
+		);
+
+		$this->assertCount( 2, $rows, 'Un array no filtra ni avisa.' );
+	}
 }

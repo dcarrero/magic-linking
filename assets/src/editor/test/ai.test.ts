@@ -278,6 +278,14 @@ describe( 'aiLinkInfo', () => {
 		};
 
 		expect( aiLinkInfo( mark, false )?.ai_model ).toHaveLength( MODEL_MAX );
+
+		// Por puntos de código: un emoji (dos unidades UTF-16) no se parte por la mitad.
+		const emoji = aiLinkInfo(
+			{ ...mark, model: '😀'.repeat( 150 ) },
+			false
+		);
+		expect( Array.from( emoji?.ai_model ?? '' ) ).toHaveLength( MODEL_MAX );
+		expect( emoji?.ai_model ).toBe( '😀'.repeat( MODEL_MAX ) );
 	} );
 
 	it( 'says nothing when the AI did not recommend the card', () => {

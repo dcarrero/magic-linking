@@ -196,4 +196,22 @@ final class HistoryCliTest extends HistoryTestCase {
 		$this->assertSame( 3, substr_count( $all, "\n" ), 'Cabecera y dos filas.' );
 		$this->assertStringContainsString( (string) $plain['post'], $all );
 	}
+
+	public function test_export_as_json_is_one_valid_array_and_matches_the_csv(): void {
+		$this->link();
+		$this->link();
+
+		ob_start();
+		$this->command->history( array( 'export' ), array( 'format' => 'json' ) );
+		$json = (string) ob_get_clean();
+		ob_start();
+		$this->command->history( array( 'export' ), array() );
+		$csv = (string) ob_get_clean();
+
+		$rows = json_decode( $json, true );
+		$this->assertIsArray( $rows );
+		$this->assertCount( 2, $rows );
+		$this->assertSame( \MagicLinking\Report\CsvExporter::HISTORY_COLUMNS, array_keys( $rows[0] ) );
+		$this->assertSame( 3, substr_count( $csv, "\n" ) );
+	}
 }

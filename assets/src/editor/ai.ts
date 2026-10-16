@@ -128,8 +128,8 @@ export function aiLinkInfo(
 	return {
 		ai_recommended: true,
 		ai_anchor: usedImproved,
-		// El servidor guarda como mucho 100 caracteres (AiOrigin::MODEL_MAX) y rechaza más en POST /links.
-		ai_model: mark.model.slice( 0, MODEL_MAX ),
+		// Por puntos de código, como cuenta el servidor (mb_substr). Guarda como mucho 100 caracteres (AiOrigin::MODEL_MAX) y rechaza más en POST /links.
+		ai_model: Array.from( mark.model ).slice( 0, MODEL_MAX ).join( '' ),
 	};
 }
 

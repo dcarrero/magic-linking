@@ -444,8 +444,21 @@ final class ChangeRepository {
 	}
 
 	/**
+	 * `HAVING` del filtro de estado de la pantalla: entradas con algún cambio puesto o con alguno deshecho.
+	 *
+	 * @param string $status `active`, `undone` o vacío.
+	 */
+	private function status_having( string $status ): string {
+		if ( 'active' === $status ) {
+			return ' HAVING active > 0';
+		}
+
+		return 'undone' === $status ? ' HAVING active < total' : '';
+	}
+
+	/**
 	 * Ids de los cambios que cumplen los filtros, en orden de id y con cursor (para exportar sin cargar todo en memoria).
-	 * Cada tramo cuenta una vez (la fila más reciente) y `status` filtra por fila: `active` (puestos) o `undone`.
+	 * Cada tramo cuenta una vez (la fila más reciente) y `status` filtra por entrada, igual que la pantalla.
 	 *
 	 * @param array $filters Filtros de {@see self::post_groups()} más `status` (`active`, `undone` o vacío).
 	 * @param int   $after   Solo los ids mayores que este (0 = desde el principio).
@@ -459,11 +472,12 @@ final class ChangeRepository {
 		$wpdb             = $this->wpdb;
 		[ $join, $where ] = $this->filter_parts( $filters );
 
-		$status = $filters['status'] ?? '';
-		if ( 'active' === $status ) {
-			$where .= ' AND c.undone_at IS NULL';
-		} elseif ( 'undone' === $status ) {
-			$where .= ' AND c.undone_at IS NOT NULL';
+		// El estado se aplica como en la pantalla: por entrada (con alguno puesto o alguno deshecho) y con todos los
+		// cambios de las entradas que pasan, no cambio a cambio.
+		$having = $this->status_having( (string) ( $filters['status'] ?? '' ) );
+		if ( '' !== $having ) {
+			$inner  = $wpdb->prepare( 'SELECT c.post_id, COUNT(*) AS total, SUM( c.undone_at IS NULL ) AS active FROM %i c', $this->table ) . $join . ' WHERE ' . $where . ' GROUP BY c.post_id' . $having; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
+			$where .= ' AND c.post_id IN ( SELECT post_id FROM ( ' . $inner . ' ) s )';
 		}
 
 		$sql = $wpdb->prepare( 'SELECT c.id FROM %i c', $this->table ) . $join . ' WHERE ' . $where . $wpdb->prepare( ' AND c.id > %d ORDER BY c.id ASC LIMIT %d', $after, max( 1, $limit ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
@@ -492,12 +506,7 @@ final class ChangeRepository {
 		$status           = $filters['status'] ?? '';
 		[ $join, $where ] = $this->filter_parts( $filters );
 
-		$having = '';
-		if ( 'active' === $status ) {
-			$having = ' HAVING active > 0';
-		} elseif ( 'undone' === $status ) {
-			$having = ' HAVING active < total';
-		}
+		$having = $this->status_having( $status );
 
 		$grouped = $wpdb->prepare( 'SELECT c.post_id, COUNT(*) AS total, SUM( c.undone_at IS NULL ) AS active, MAX( GREATEST( c.created_at, COALESCE( c.undone_at, c.created_at ) ) ) AS last_at FROM %i c', $this->table ) . $join . ' WHERE ' . $where . ' GROUP BY c.post_id' . $having; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
 

@@ -647,20 +647,19 @@ final class Command {
 		);
 
 		if ( 'json' === $format ) {
-			$items = array();
+			// En streaming, como el CSV: una fila por iteración, sin acumular el historial en memoria.
+			echo '[';
+			$first = true;
 			foreach ( $rows as $row ) {
-				$items[] = array_combine( CsvExporter::HISTORY_COLUMNS, $row );
+				echo ( $first ? "\n" : ",\n" ) . wp_json_encode( array_combine( CsvExporter::HISTORY_COLUMNS, $row ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON de una orden de consola.
+				$first = false;
 			}
-			\WP_CLI\Utils\format_items( 'json', $items, CsvExporter::HISTORY_COLUMNS );
+			echo $first ? ']' : "\n]";
+			echo "\n";
 			return;
 		}
 
-		$out = fopen( 'php://output', 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Salida estándar.
-		if ( false === $out ) {
-			return;
-		}
-		CsvExporter::write( $out, CsvExporter::HISTORY_COLUMNS, $rows );
-		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Salida estándar.
+		$this->stream_csv( CsvExporter::HISTORY_COLUMNS, $rows );
 	}
 
 	/**
