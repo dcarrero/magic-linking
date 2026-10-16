@@ -154,7 +154,7 @@ npx wp-env start              # http://localhost:8888 (admin / password)
 composer test                 # unit tests (no WordPress)
 composer test:integration     # integration tests inside wp-env
 composer lint                 # PHPCS (WordPress Coding Standards) + PHPStan
-npm run plugin-check          # builds the ZIP and runs the official Plugin Check on it
+npm run plugin-check          # builds the ZIP, runs the official Plugin Check on it and fails on any ERROR
 npm run zip                   # dist/magic-linking.zip
 ```
 
