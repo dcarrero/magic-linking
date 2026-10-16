@@ -573,9 +573,10 @@ final class Command {
 						'links'      => $group['links'],
 						'active'     => $group['active'],
 						'entries'    => $group['posts'],
+						'ai_links'   => $group['ai_links'],
 					);
 				}
-				\WP_CLI\Utils\format_items( (string) ( $assoc_args['format'] ?? 'table' ), $items, array( 'batch_id', 'created_at', 'user', 'links', 'active', 'entries' ) );
+				\WP_CLI\Utils\format_items( (string) ( $assoc_args['format'] ?? 'table' ), $items, array( 'batch_id', 'created_at', 'user', 'links', 'active', 'entries', 'ai_links' ) );
 				if ( null !== $page['next'] ) {
 					// Hay más grupos (o se acabó el escaneo de esta vuelta): se da el cursor para seguir.
 					WP_CLI::warning(

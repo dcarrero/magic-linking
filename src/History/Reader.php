@@ -229,6 +229,7 @@ final class Reader {
 				'edit_url'     => is_string( $edit ) ? $edit : null,
 				'kind'         => $change['action'],
 				'origin'       => $origin,
+				'ai'           => self::ai_of( $change ),
 				'anchor'       => $view['anchor'],
 				'url'          => $view['url'],
 				'previous_url' => $view['previous_url'],
@@ -254,7 +255,7 @@ final class Reader {
 	 * plugin, estado de la entrada) la niega, se omite de la página y el total queda como cota superior.
 	 *
 	 * @param int   $user_id  Quien mira.
-	 * @param array $filters  `status` (`active`, `undone`), `origin` (`plugin`, `editor`), `search` y `post_id` (solo esa entrada).
+	 * @param array $filters  `status` (`active`, `undone`), `origin` (`plugin`, `editor` o `ai`), `search` y `post_id` (solo esa entrada).
 	 * @param int   $page     Página (desde 1).
 	 * @param int   $per_page Entradas por página.
 	 *
@@ -400,7 +401,7 @@ final class Reader {
 	 *
 	 * @param array $full Cambios con su HTML, por id.
 	 *
-	 * @phpstan-param array<int, array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string}> $full
+	 * @phpstan-param array<int, array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string, ai_recommended: bool, ai_anchor: bool, ai_model: string}> $full
 	 *
 	 * @return array{batches: array<string, int>}
 	 */
@@ -429,7 +430,7 @@ final class Reader {
 	 * @param array $change  Fila del historial con HTML.
 	 * @param array $context Ver {@see self::change_context()}.
 	 *
-	 * @phpstan-param array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string} $change
+	 * @phpstan-param array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string, ai_recommended: bool, ai_anchor: bool, ai_model: string} $change
 	 * @phpstan-param array{batches: array<string, int>} $context
 	 *
 	 * @return array<string, mixed>
@@ -446,6 +447,7 @@ final class Reader {
 			'batch_posts'  => $context['batches'][ $change['batch_id'] ] ?? 1,
 			'kind'         => $change['action'],
 			'origin'       => '' === $change['origin'] ? ChangeRepository::ORIGIN_PLUGIN : $change['origin'],
+			'ai'           => self::ai_of( $change ),
 			'anchor'       => $view['anchor'],
 			'url'          => $view['url'],
 			'previous_url' => $view['previous_url'],
@@ -622,8 +624,8 @@ final class Reader {
 	/**
 	 * Si el usuario puede editar todas las entradas de un grupo.
 	 *
-	 * @param int                                                                                                                        $user_id Quien mira.
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $slots   Huecos.
+	 * @param int                                                                                                                                   $user_id Quien mira.
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, ai?: bool}> $slots   Huecos.
 	 */
 	private function can_see( int $user_id, array $slots ): bool {
 		foreach ( $slots as $slot ) {
@@ -638,7 +640,7 @@ final class Reader {
 	/**
 	 * Carga de una vez las entradas de varios lotes (una consulta en vez de una por entrada).
 	 *
-	 * @param array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}>> $rows Inserciones por lote.
+	 * @param array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, ai?: bool}>> $rows Inserciones por lote.
 	 */
 	private function prime( array $rows ): void {
 		$ids = array();
@@ -656,17 +658,21 @@ final class Reader {
 	/**
 	 * Resumen de un grupo.
 	 *
-	 * @param string                                                                                                                     $batch_id Lote.
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $slots    Huecos (ya juntos).
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $rows     Todas las inserciones.
+	 * @param string                                                                                                                                $batch_id Lote.
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, ai?: bool}> $slots    Huecos (ya juntos).
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, ai?: bool}> $rows     Todas las inserciones.
 	 *
 	 * @return array<string, mixed>
 	 */
 	private function summary( string $batch_id, array $slots, array $rows ): array {
 		$posts  = array();
 		$undone = 0;
+		$ai     = 0;
 		foreach ( $slots as $slot ) {
 			$posts[ $slot['post_id'] ] = true;
+			if ( ! empty( $slot['ai'] ) ) {
+				++$ai;
+			}
 			if ( null !== $slot['undone_at'] ) {
 				++$undone;
 			}
@@ -689,6 +695,7 @@ final class Reader {
 			'user_name'  => self::user_name( $user ),
 			'origin'     => self::origin_of( $rows ),
 			'links'      => count( $slots ),
+			'ai_links'   => $ai,
 			'active'     => count( $slots ) - $undone,
 			'undone'     => $undone,
 			'posts'      => count( $posts ),
@@ -707,6 +714,24 @@ final class Reader {
 	 */
 	private static function origin_of( array $rows ): string {
 		return ChangeRepository::ORIGIN_EDITOR === ( $rows[0]['origin'] ?? '' ) ? ChangeRepository::ORIGIN_EDITOR : ChangeRepository::ORIGIN_PLUGIN;
+	}
+
+	/**
+	 * Lo que se sabe de la IA en un cambio (F1-38): null si no la recomendó; si no, si se usó su ancla y con qué modelo.
+	 *
+	 * @param array $change Fila del historial.
+	 *
+	 * @phpstan-param array{ai_recommended: bool, ai_anchor: bool, ai_model: string} $change
+	 *
+	 * @return array{anchor: bool, model: string}|null
+	 */
+	private static function ai_of( array $change ): ?array {
+		return $change['ai_recommended']
+			? array(
+				'anchor' => $change['ai_anchor'],
+				'model'  => $change['ai_model'],
+			)
+			: null;
 	}
 
 	/**

@@ -17,6 +17,7 @@ use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Suggestion;
+use MagicLinking\History\AiOrigin;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\Reader;
 use MagicLinking\Index\SuggestionCache;
@@ -144,29 +145,33 @@ final class SuggestionsController implements Module {
 		$link = array(
 			'type'       => 'object',
 			'properties' => array(
-				'post_id'    => array(
+				'post_id'        => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'target_id'  => array(
+				'target_id'      => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'sentence'   => array(
+				'sentence'       => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 5000,
 				),
-				'offset'     => array(
+				'offset'         => array(
 					'type'    => 'integer',
 					'minimum' => 0,
 				),
-				'anchor'     => array(
+				'anchor'         => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 500,
 				),
-				'block_path' => array(
+				// F1-38: solo informativos (el Historial los enseña); el servidor los sanea y no cambian lo que se escribe.
+				'ai_recommended' => array( 'type' => 'boolean' ),
+				'ai_anchor'      => array( 'type' => 'boolean' ),
+				'ai_model'       => array( 'type' => 'string' ),
+				'block_path'     => array(
 					'type'    => array( 'string', 'null' ),
 					'pattern' => '^[0-9]+(\.[0-9]+)*$',
 				),
@@ -393,12 +398,15 @@ final class SuggestionsController implements Module {
 		if ( ! is_array( $links ) || array() === $links ) {
 			$links = array(
 				array(
-					'post_id'    => $request['post_id'],
-					'target_id'  => $request['target_id'],
-					'sentence'   => $request['sentence'],
-					'offset'     => $request['offset'],
-					'anchor'     => $request['anchor'],
-					'block_path' => $request['block_path'],
+					'post_id'        => $request['post_id'],
+					'target_id'      => $request['target_id'],
+					'sentence'       => $request['sentence'],
+					'offset'         => $request['offset'],
+					'anchor'         => $request['anchor'],
+					'block_path'     => $request['block_path'],
+					'ai_recommended' => $request['ai_recommended'],
+					'ai_anchor'      => $request['ai_anchor'],
+					'ai_model'       => $request['ai_model'],
 				),
 			);
 		}
@@ -441,7 +449,7 @@ final class SuggestionsController implements Module {
 
 			$path = isset( $link['block_path'] ) && is_string( $link['block_path'] ) && '' !== $link['block_path'] ? $link['block_path'] : null;
 			try {
-				$request = InsertRequest::from_sentence( $post_id, $url, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'], array(), $path );
+				$request = InsertRequest::from_sentence( $post_id, $url, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'], array(), $path, null, false, AiOrigin::from_input( $link ) );
 			} catch ( InsertionException $e ) {
 				$results[ $index ] = $this->failure( $base, $e );
 				continue;

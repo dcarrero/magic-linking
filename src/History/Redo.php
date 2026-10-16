@@ -268,7 +268,7 @@ final class Redo {
 		}
 
 		$user = $user_id ?? get_current_user_id();
-		$id   = $this->changes->record( (string) $change['batch_id'], $post_id, (string) $change['action'], '' === $path ? null : $path, $before, $after, PostWriter::hash( $next ), $user, (string) ( $change['origin'] ?? ChangeRepository::ORIGIN_PLUGIN ) );
+		$id   = $this->changes->record( (string) $change['batch_id'], $post_id, (string) $change['action'], '' === $path ? null : $path, $before, $after, PostWriter::hash( $next ), $user, (string) ( $change['origin'] ?? ChangeRepository::ORIGIN_PLUGIN ), null, ! empty( $change['ai_recommended'] ) ? new AiOrigin( ! empty( $change['ai_anchor'] ), (string) ( $change['ai_model'] ?? '' ) ) : null );
 		if ( 0 === $id ) {
 			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'The change history could not be saved; nothing was written.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}

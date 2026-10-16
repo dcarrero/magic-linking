@@ -46,7 +46,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( array(), $installer->missing_tables() );
 		$this->assertCount( 8, Schema::TABLES );
 		$this->assertSame( MAGICLINKING_DB_VERSION, $installer->installed_version() );
-		$this->assertSame( 5, MAGICLINKING_DB_VERSION );
+		$this->assertSame( 6, MAGICLINKING_DB_VERSION );
 		$this->assertContains( $this->autoload_of( Installer::DB_VERSION_OPTION ), array( 'no', 'off' ) );
 		$this->assertSame( 0, $this->own_autoloaded_options() );
 	}
@@ -69,6 +69,30 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( 'plugin', $wpdb->get_var( "SELECT origin FROM {$table} WHERE batch_id = 'A'" ) ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
 	}
 
+	public function test_upgrading_from_schema_5_adds_the_ai_columns_and_keeps_old_rows_unmarked(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'changes' );
+
+		// Un sitio con el esquema 5 (0.21.1): sin las columnas de la IA y con un enlace del editor antiguo.
+		$wpdb->query( "ALTER TABLE {$table} DROP COLUMN ai_recommended, DROP COLUMN ai_anchor, DROP COLUMN ai_model" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		$wpdb->query( "INSERT INTO {$table} ( batch_id, post_id, action, before_html, after_html, created_at, origin ) VALUES ( 'A', 1, 'insert', 'a', 'b', NOW(), 'editor' )" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		update_option( Installer::DB_VERSION_OPTION, 5, false );
+		Installer::forget_check();
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		foreach ( array( 'ai_recommended', 'ai_anchor', 'ai_model' ) as $column ) {
+			$this->assertContains( $column, $this->columns( 'changes' ) );
+		}
+		$row = $wpdb->get_row( "SELECT origin, ai_recommended, ai_anchor, ai_model FROM {$table} WHERE batch_id = 'A'", ARRAY_A ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		$this->assertSame( 'editor', $row['origin'] );
+		$this->assertSame( '0', (string) $row['ai_recommended'] );
+		$this->assertSame( '0', (string) $row['ai_anchor'] );
+		$this->assertNull( $row['ai_model'] );
+		$this->assertSame( 6, $this->installer()->installed_version() );
+	}
+
 	public function test_tables_have_the_documented_columns(): void {
 		$this->installer()->maybe_upgrade();
 
@@ -77,7 +101,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertColumns( 'postings', array( 'term_id', 'post_id', 'weight', 'field', 'pos' ) );
 		$this->assertColumns( 'links', array( 'id', 'source_id', 'target_id', 'target_url', 'anchor', 'block_path', 'kind', 'is_internal', 'is_broken' ) );
 		$this->assertColumns( 'rules', array( 'id', 'phrase', 'target_id', 'target_url', 'lang', 'max_per_post', 'first_only', 'exclude', 'active', 'created_at', 'created_by' ) );
-		$this->assertColumns( 'changes', array( 'id', 'batch_id', 'post_id', 'action', 'block_path', 'before_html', 'after_html', 'content_hash_after', 'user_id', 'created_at', 'undone_at', 'origin', 'origin_key' ) );
+		$this->assertColumns( 'changes', array( 'id', 'batch_id', 'post_id', 'action', 'block_path', 'before_html', 'after_html', 'content_hash_after', 'user_id', 'created_at', 'undone_at', 'origin', 'origin_key', 'ai_recommended', 'ai_anchor', 'ai_model' ) );
 		$this->assertColumns( 'jobs', array( 'id', 'type', 'status', 'total', 'done', 'params', 'ai_tokens_est', 'ai_tokens_real', 'ai_cost_est', 'ai_cost_real', 'ai_provider', 'ai_model', 'error', 'created_by', 'created_at', 'updated_at' ) );
 	}
 

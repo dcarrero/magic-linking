@@ -110,7 +110,7 @@ final class HistoryController implements Module {
 					),
 					'origin'   => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::FILTER_AI ),
 					),
 					'search'   => array(
 						'type'      => 'string',
@@ -130,7 +130,7 @@ final class HistoryController implements Module {
 				'args'                => array(
 					'origin' => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::FILTER_AI ),
 					),
 				),
 			)
@@ -157,7 +157,7 @@ final class HistoryController implements Module {
 					),
 					'origin'   => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::FILTER_AI ),
 					),
 				),
 			)
@@ -239,7 +239,7 @@ final class HistoryController implements Module {
 						),
 						'origin'     => array(
 							'type' => 'string',
-							'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+							'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::FILTER_AI ),
 						),
 						'change_ids' => array(
 							'type'     => 'array',

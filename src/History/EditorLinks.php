@@ -122,7 +122,8 @@ final class EditorLinks {
 				continue;
 			}
 
-			$clean[ $index ] = array( $insertion, self::key( $post_id, $suggest, $target, $anchor, $insertion ), $target, $anchor );
+			// F1-38: lo que el panel dice de la IA (recomendada, ancla propia, modelo). Solo informativo y saneado.
+			$clean[ $index ] = array( $insertion, self::key( $post_id, $suggest, $target, $anchor, $insertion ), $target, $anchor, AiOrigin::from_input( $link ) );
 			$keys[]          = $clean[ $index ][1];
 		}
 
@@ -131,7 +132,7 @@ final class EditorLinks {
 		$anchors  = $blocks && null === $map ? null : $this->anchors( $content, $map );
 		$urls     = array();
 
-		foreach ( $clean as $index => [ $insertion, $key, $target, $anchor ] ) {
+		foreach ( $clean as $index => [ $insertion, $key, $target, $anchor, $ai ] ) {
 			if ( isset( $existing[ $key ] ) ) {
 				$results[ $index ] = $this->result( $insertion, self::DUPLICATE, $existing[ $key ] );
 				continue;
@@ -191,7 +192,8 @@ final class EditorLinks {
 				PostWriter::hash( $content ),
 				$user_id,
 				ChangeRepository::ORIGIN_EDITOR,
-				$key
+				$key,
+				$ai
 			);
 			if ( 0 === $id ) {
 				$results[ $index ] = $this->result( $insertion, self::UNVERIFIED );

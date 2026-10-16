@@ -52,7 +52,19 @@ final class HistoryCliTest extends HistoryTestCase {
 		$this->command->history( array( 'list' ), array() );
 
 		$this->assertStringContainsString( $batch['batch'], WP_CLI::$lines[0] );
-		$this->assertStringEndsWith( '|2|2|2', WP_CLI::$lines[0], 'Enlaces, puestos y entradas.' );
+		$this->assertStringEndsWith( '|2|2|2|0', WP_CLI::$lines[0], 'Enlaces, puestos, entradas y recomendados por la IA.' );
+	}
+
+	public function test_list_counts_the_links_the_ai_recommended(): void {
+		$post   = $this->post();
+		$result = \MagicLinking\Core\Plugin::container()->get( \MagicLinking\Content\Inserter::class )->insert(
+			new \MagicLinking\Content\InsertRequest( $post, (string) get_permalink( $this->target ), 'aire acondicionado', 'Compra ', ' ya.', null, array(), null, false, false, false, new \MagicLinking\History\AiOrigin( false, 'm' ) )
+		);
+
+		$this->command->history( array( 'list' ), array() );
+
+		$this->assertStringContainsString( $result->batch_id, WP_CLI::$lines[0] );
+		$this->assertStringEndsWith( '|1|1|1|1', WP_CLI::$lines[0] );
 	}
 
 	public function test_undo_and_redo_a_group_in_the_command_itself(): void {
