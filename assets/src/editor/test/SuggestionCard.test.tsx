@@ -52,6 +52,7 @@ const mark: AiMark = {
 		anchor_start: 4,
 		anchor_end: 25,
 	},
+	model: 'gpt-4.1-mini',
 };
 
 let root: Root;

@@ -17,6 +17,8 @@ export interface AiMark {
 	fit: boolean | null;
 	confidence: number | null;
 	improved: RerankImproved | null;
+	/** Modelo que respondió en la llamada de la que sale (F1-38). */
+	model: string;
 }
 
 /** Una tarjeta ya recolocada: la sugerencia que se enseña, la original (su identidad en la lista) y lo que opina la IA. */
@@ -24,6 +26,8 @@ export interface AiView {
 	item: Suggestion;
 	original: Suggestion;
 	mark?: AiMark;
+	/** El ancla que se enseña es la que propuso la respuesta vigente de la IA (no la de una ejecución anterior). */
+	aiAnchor: boolean;
 }
 
 /** Resultado de una llamada: orden nuevo (claves de las originales) y opinión sobre cada una. */
@@ -89,10 +93,44 @@ export function outcomeOf(
 			fit: result.fit,
 			confidence: result.confidence,
 			improved: result.improved,
+			model: response.usage.model,
 		};
 	}
 
 	return { order, marks };
+}
+
+/** Longitud máxima del identificador del modelo que acepta el servidor. */
+export const MODEL_MAX = 100;
+
+/** Lo que el panel avisa al servidor de un enlace que recomendó la IA. */
+export interface AiLinkInfo {
+	ai_recommended: true;
+	ai_anchor: boolean;
+	ai_model: string;
+}
+
+/**
+ * Lo que se anota de la IA cuando el usuario pulsa *Enlazar* en una tarjeta de salientes (F1-38): solo si la IA la
+ * valoró como apta. Si no la recomendó (no apta, sin valorar, sin llamada o con el orden original) no se anota nada.
+ *
+ * @param mark         Opinión de la IA sobre la tarjeta, si la hay.
+ * @param usedImproved Si el enlace usa el ancla que propuso la IA y el usuario aceptó.
+ * @return La marca, o null si la IA no recomendaba el enlace.
+ */
+export function aiLinkInfo(
+	mark: AiMark | undefined,
+	usedImproved: boolean
+): AiLinkInfo | null {
+	if ( ! mark || mark.fit !== true ) {
+		return null;
+	}
+	return {
+		ai_recommended: true,
+		ai_anchor: usedImproved,
+		// Por puntos de código, como cuenta el servidor (mb_substr). Guarda como mucho 100 caracteres (AiOrigin::MODEL_MAX) y rechaza más en POST /links.
+		ai_model: Array.from( mark.model ).slice( 0, MODEL_MAX ).join( '' ),
+	};
 }
 
 /**
@@ -138,6 +176,14 @@ export function arrange(
 		const key = suggestionKey( original );
 		const mark = outcome?.marks[ key ];
 		const replaced = overrides[ key ];
+		// Solo cuenta si el ancla aceptada es la que propone esta misma respuesta: un ancla de una ejecución anterior
+		// ya no es de la IA vigente.
+		const aiAnchor =
+			!! mark &&
+			!! replaced &&
+			!! mark.improved &&
+			replaced.anchor === mark.improved.anchor &&
+			replaced.offset === mark.improved.offset;
 		return {
 			key,
 			view: {
@@ -145,6 +191,7 @@ export function arrange(
 				original,
 				// Con el ancla aceptada ya no hay nada que proponer.
 				mark: mark && replaced ? { ...mark, improved: null } : mark,
+				aiAnchor,
 			} as AiView,
 		};
 	} );

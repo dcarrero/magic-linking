@@ -39,6 +39,7 @@ It works entirely on your server, with no account, no key and no limits. Artific
 * Every link Magic Linking changes is listed with who did it, when, where and the anchor text: links added from an inbound suggestion, links you add from the editor panel (they appear once you save the entry; Magic Linking only records them, and marks them as undone if you remove them and save) and fixes made from the broken links list.
 * Changes are grouped by entry, newest first, with a date on each one. Filter by status, source or title, switch to a view by batch, and undo or redo one change, all the changes of an entry, or a whole batch.
 * Undo and redo from the screen or with WP-CLI (`wp magic-linking history undo --post=<id>`). A large group is undone in the background.
+* Export the history to CSV, one row per change and no row limit, from the **Export CSV** button (it exports what the current filters show) or with WP-CLI (`wp magic-linking history export --format=csv`). It includes the date, user, entry, destination, anchor text, source and, for links you added after "Improve with AI", whether the AI recommended them and with which model.
 * The history is kept 90 days by default; you can choose 30 days, a year or forever.
 
 **Report**
@@ -228,6 +229,10 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Action Scheduler (WooCommerce) 4.2.x, GPL-3.0-or-later, bundled in `vendor/woocommerce/action-scheduler/`. Used to run the analysis and the index in the background.
 
 == Changelog ==
+
+= Unreleased =
+* New: History marks the links the AI recommended ("Editor panel · AI"), with the model and whether its anchor text was used, and you can filter by them. This adds three columns to the history table; the update runs by itself.
+* New: export the History to CSV (button and `wp magic-linking history export`), one row per change, with the filters you have on screen.
 
 = 0.21.1 =
 * Fixed: "Improve with AI" now uses exactly the model you choose. Before, with some providers such as OpenRouter, WordPress could silently send the request to another model and it ran out of time.

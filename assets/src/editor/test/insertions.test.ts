@@ -31,6 +31,20 @@ describe( 'createInsertionLog', () => {
 		expect( log.list().map( ( l ) => l.insertion_id ) ).toEqual( [ a, b ] );
 	} );
 
+	it( 'conserva lo que dijo la IA y sobrevive a una recarga', () => {
+		const storage = memory();
+		const ai = {
+			ai_recommended: true,
+			ai_anchor: true,
+			ai_model: 'openai/gpt-4.1-mini',
+		};
+		const id = createInsertionLog( 7, storage ).add( { ...link, ...ai } );
+
+		expect( createInsertionLog( 7, storage ).list() ).toEqual( [
+			{ ...link, ...ai, insertion_id: id },
+		] );
+	} );
+
 	it( 'los enlaces deshechos en el editor no cuentan', () => {
 		const log = createInsertionLog( 7, memory() );
 		const a = log.add( link );

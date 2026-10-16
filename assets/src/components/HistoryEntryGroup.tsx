@@ -11,9 +11,9 @@ import {
 	formatDate,
 	formatFullDate,
 	parseServerDate,
-	sourceLabel,
 } from './historyFormat';
 import { JobProgress, OutcomeSummary } from './HistoryJobParts';
+import { HistorySource } from './HistorySource';
 import { countStatuses, needsAttention, summaryText } from './historyText';
 import { useHistoryJob } from './useHistoryJob';
 
@@ -21,6 +21,8 @@ interface Props {
 	entry: HistoryEntry;
 	/** Filtro de origen activo: lo que se cuenta, se confirma y se deshace es lo que el filtro deja ver. */
 	origin: string;
+	/** Filtro «recomendado por la IA» activo (se combina con el de origen). */
+	ai: boolean;
 	/** La entrada ha cambiado (o ya no hay nada que enseñar: null). */
 	onChange: ( postId: number, entry: HistoryEntry | null ) => void;
 }
@@ -37,9 +39,10 @@ const MORE_PER_PAGE = 10;
  * @param root0
  * @param root0.entry
  * @param root0.origin
+ * @param root0.ai
  * @param root0.onChange
  */
-export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
+export function HistoryEntryGroup( { entry, origin, ai, onChange }: Props ) {
 	const [ changes, setChanges ] = useState< HistoryEntryChange[] >(
 		entry.changes
 	);
@@ -76,7 +79,7 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 		try {
 			onChange(
 				entry.post_id,
-				( await api.historyEntry( entry.post_id, origin ) ).entry
+				( await api.historyEntry( entry.post_id, origin, ai ) ).entry
 			);
 		} catch ( e ) {
 			setFailure(
@@ -86,7 +89,7 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 				)
 			);
 		}
-	}, [ entry.post_id, origin, onChange ] );
+	}, [ entry.post_id, origin, ai, onChange ] );
 
 	const {
 		job,
@@ -115,6 +118,7 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 			const response = await api.runHistoryEntry( mode, entry.post_id, {
 				changeIds: ids,
 				origin,
+				ai,
 			} );
 			results = response.results;
 			latest = response.entry;
@@ -158,7 +162,8 @@ export function HistoryEntryGroup( { entry, origin, onChange }: Props ) {
 				entry.post_id,
 				changes[ changes.length - 1 ]?.id ?? 0,
 				MORE_PER_PAGE,
-				origin
+				origin,
+				ai
 			);
 			setChanges( ( previous ) => [
 				...previous,
@@ -554,7 +559,11 @@ function ChangeRow( { change, title, disabled, onRun }: RowProps ) {
 				) }
 			</td>
 			<td data-label={ __( 'Source', 'magic-linking' ) }>
-				{ sourceLabel( change.origin, change.kind ) }
+				<HistorySource
+					origin={ change.origin }
+					kind={ change.kind }
+					ai={ change.ai }
+				/>
 			</td>
 			<td data-label={ __( 'User', 'magic-linking' ) }>
 				{ change.user_name }

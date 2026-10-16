@@ -353,6 +353,81 @@ describe( 'useAiRerank', () => {
 		expect( after?.mark?.improved ).toBeNull();
 	} );
 
+	describe( 'accepted anchors', () => {
+		const improved = {
+			anchor: 'bomba de calor reduce',
+			offset: 4,
+			before: 'Una ',
+			after: ' el consumo.',
+			anchor_start: 4,
+			anchor_end: 25,
+		};
+		const answer = ( proposal: typeof improved | null ) => ( {
+			ok: true,
+			skipped: [],
+			usage,
+			items: [
+				{
+					index: 0,
+					target_id: 1,
+					fit: true,
+					confidence: 0.9,
+					improved: proposal,
+				},
+			],
+		} );
+
+		const acceptFirst = async ( payload: OutboundResponse ) => {
+			mocked.rerank.mockResolvedValueOnce( answer( improved ) );
+			await mount( payload );
+			await act( async () => current.run() );
+			act( () =>
+				current.acceptAnchor(
+					payload.items[ 0 ] as Suggestion,
+					improved
+				)
+			);
+			expect( current.view( payload.items )[ 0 ]?.item.anchor ).toBe(
+				'bomba de calor reduce'
+			);
+		};
+
+		it( 'drops the accepted anchor when going back to the original order', async () => {
+			const payload = data( 1 );
+			await acceptFirst( payload );
+
+			act( () => current.reset() );
+
+			const view = current.view( payload.items )[ 0 ];
+			expect( view?.item.anchor ).toBe( 'bomba de calor' );
+			expect( view?.mark ).toBeUndefined();
+		} );
+
+		it( 'drops an accepted anchor that a new run does not propose again', async () => {
+			const payload = data( 1 );
+			await acceptFirst( payload );
+
+			mocked.rerank.mockResolvedValueOnce( answer( null ) );
+			await act( async () => current.run() );
+
+			const view = current.view( payload.items )[ 0 ];
+			expect( view?.item.anchor ).toBe( 'bomba de calor' );
+			expect( view?.aiAnchor ).toBe( false );
+		} );
+
+		it( 'keeps it when the new run proposes the same anchor', async () => {
+			const payload = data( 1 );
+			await acceptFirst( payload );
+
+			mocked.rerank.mockResolvedValueOnce( answer( improved ) );
+			await act( async () => current.run() );
+
+			const view = current.view( payload.items )[ 0 ];
+			expect( view?.item.anchor ).toBe( 'bomba de calor reduce' );
+			expect( view?.aiAnchor ).toBe( true );
+		} );
+	} );
+
 	it( 'does not report a failure when the list changes while the request is running', async () => {
 		mocked.rerank.mockImplementation(
 			(

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\History;
 
+use MagicLinking\Core\Installer;
 use MagicLinking\Core\Schema;
 use wpdb;
 
@@ -67,7 +68,7 @@ final class ChangeRepository {
 	 * Inserciones ya leídas de un solo lote en esta petición (la huella MD5 recorre el HTML de cada fila, y una
 	 * petición pregunta varias veces por el mismo lote). Cualquier escritura la vacía.
 	 *
-	 * @var array<string, array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, origin?: string}>>>
+	 * @var array<string, array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, origin?: string, ai?: bool}>>>
 	 */
 	private array $memo = array();
 
@@ -84,42 +85,80 @@ final class ChangeRepository {
 	/**
 	 * Guarda un cambio.
 	 *
-	 * @param string      $batch_id           Lote.
-	 * @param int         $post_id            Entrada.
-	 * @param string      $action             `insert`, `retarget`, `unlink` o `remove`.
-	 * @param string|null $block_path         Ruta del bloque (`3.0.1`) o `@` y el byte en el editor clásico.
-	 * @param string      $before_html        HTML del tramo antes.
-	 * @param string      $after_html         HTML del tramo después.
-	 * @param string      $content_hash_after SHA-1 del contenido completo después del cambio.
-	 * @param int         $user_id            Quien lo hace (0 = sistema).
-	 * @param string      $origin             `plugin` (lo escribió el servidor) o `editor` (solo registrado, F1-34).
-	 * @param string|null $origin_key         Clave idempotente de un registro del editor (SHA-1); null en el resto.
+	 * @param string        $batch_id           Lote.
+	 * @param int           $post_id            Entrada.
+	 * @param string        $action             `insert`, `retarget`, `unlink` o `remove`.
+	 * @param string|null   $block_path         Ruta del bloque (`3.0.1`) o `@` y el byte en el editor clásico.
+	 * @param string        $before_html        HTML del tramo antes.
+	 * @param string        $after_html         HTML del tramo después.
+	 * @param string        $content_hash_after SHA-1 del contenido completo después del cambio.
+	 * @param int           $user_id            Quien lo hace (0 = sistema).
+	 * @param string        $origin             `plugin` (lo escribió el servidor) o `editor` (solo registrado, F1-34).
+	 * @param string|null   $origin_key         Clave idempotente de un registro del editor (SHA-1); null en el resto.
+	 * @param AiOrigin|null $ai               Si el enlace lo recomendó la IA (F1-38); null = no. Sin las columnas del esquema 6 se ignora.
 	 *
 	 * @return int ID de la fila; 0 si no se ha podido guardar (en ese caso no se escribe el contenido).
 	 */
-	public function record( string $batch_id, int $post_id, string $action, ?string $block_path, string $before_html, string $after_html, string $content_hash_after, int $user_id, string $origin = self::ORIGIN_PLUGIN, ?string $origin_key = null ): int {
+	public function record( string $batch_id, int $post_id, string $action, ?string $block_path, string $before_html, string $after_html, string $content_hash_after, int $user_id, string $origin = self::ORIGIN_PLUGIN, ?string $origin_key = null, ?AiOrigin $ai = null ): int {
 		$wpdb       = $this->wpdb;
 		$this->memo = array();
 
-		$done = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Tabla propia.
-			$this->table,
-			array(
-				'batch_id'           => $batch_id,
-				'post_id'            => $post_id,
-				'action'             => $action,
-				'block_path'         => $block_path,
-				'before_html'        => $before_html,
-				'after_html'         => $after_html,
-				'content_hash_after' => $content_hash_after,
-				'user_id'            => $user_id,
-				'created_at'         => current_time( 'mysql', true ),
-				'origin'             => $origin,
-				'origin_key'         => $origin_key,
-			),
-			array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
+		$data    = array(
+			'batch_id'           => $batch_id,
+			'post_id'            => $post_id,
+			'action'             => $action,
+			'block_path'         => $block_path,
+			'before_html'        => $before_html,
+			'after_html'         => $after_html,
+			'content_hash_after' => $content_hash_after,
+			'user_id'            => $user_id,
+			'created_at'         => current_time( 'mysql', true ),
+			'origin'             => $origin,
+			'origin_key'         => $origin_key,
 		);
+		$formats = array( '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s' );
+
+		// Una actualización automática puede dejar el código nuevo con el esquema anterior hasta la siguiente visita al
+		// administrador: sin las columnas, el enlace se registra igual y solo se pierde la marca.
+		if ( null !== $ai && $this->has_ai_columns() ) {
+			$data['ai_recommended'] = 1;
+			$data['ai_anchor']      = $ai->anchor ? 1 : 0;
+			$data['ai_model']       = '' === $ai->model ? null : $ai->model;
+			$formats                = array_merge( $formats, array( '%d', '%d', '%s' ) );
+		}
+
+		$done = $wpdb->insert( $this->table, $data, $formats ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Tabla propia.
 
 		return false === $done ? 0 : (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * Si el esquema instalado tiene las columnas `ai_*` (F1-38). El instalador solo guarda la versión 6 cuando las tres
+	 * existen, así que basta con la opción (ya en caché); hasta que se migre, todo funciona sin la marca.
+	 */
+	public function has_ai_columns(): bool {
+		return (int) get_option( Installer::DB_VERSION_OPTION, 0 ) >= Installer::AI_COLUMNS_SCHEMA;
+	}
+
+	/**
+	 * Condición SQL de los filtros de la pantalla: origen (`plugin`, `editor`; otro valor no filtra) y, aparte,
+	 * «recomendado por la IA». Se combinan. Sin las columnas `ai_*` el filtro de la IA no encuentra nada, en vez de fallar.
+	 *
+	 * @param string $origin Filtro de origen.
+	 * @param bool   $ai     Solo los que recomendó la IA.
+	 * @param string $alias  Alias de la tabla.
+	 */
+	private function origin_clause( string $origin, bool $ai = false, string $alias = 'c' ): string {
+		$sql = '';
+		if ( in_array( $origin, array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR ), true ) ) {
+			$sql .= $this->wpdb->prepare( " AND {$alias}.origin = %s", $origin ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias interno.
+		}
+
+		if ( $ai ) {
+			$sql .= $this->has_ai_columns() ? " AND {$alias}.ai_recommended = 1" : ' AND 1 = 0';
+		}
+
+		return $sql;
 	}
 
 	/**
@@ -208,7 +247,7 @@ final class ChangeRepository {
 	 *
 	 * @param int $id ID.
 	 *
-	 * @return array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}|null
+	 * @return array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string, ai_recommended: bool, ai_anchor: bool, ai_model: string}|null
 	 */
 	public function get( int $id ): ?array {
 		$wpdb = $this->wpdb;
@@ -222,7 +261,7 @@ final class ChangeRepository {
 	 *
 	 * @param string $batch_id Lote.
 	 *
-	 * @return list<array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}>
+	 * @return list<array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string, ai_recommended: bool, ai_anchor: bool, ai_model: string}>
 	 */
 	public function batch( string $batch_id ): array {
 		$wpdb = $this->wpdb;
@@ -264,7 +303,7 @@ final class ChangeRepository {
 	 *
 	 * @phpstan-param list<int> $ids
 	 *
-	 * @return array<int, array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}>
+	 * @return array<int, array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string, ai_recommended: bool, ai_anchor: bool, ai_model: string}>
 	 */
 	public function get_many( array $ids ): array {
 		$wpdb = $this->wpdb;
@@ -317,7 +356,7 @@ final class ChangeRepository {
 	 *
 	 * @phpstan-param list<string> $batch_ids
 	 *
-	 * @return array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, origin?: string}>> Por lote.
+	 * @return array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, origin?: string, ai?: bool}>> Por lote.
 	 */
 	public function inserts_of( array $batch_ids ): array {
 		$wpdb = $this->wpdb;
@@ -330,9 +369,10 @@ final class ChangeRepository {
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Lista de marcadores generada con array_fill().
 		$placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%s' ) );
+		$ai_column    = $this->has_ai_columns() ? 'ai_recommended' : '0 AS ai_recommended';
 		$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
 			$wpdb->prepare(
-				"SELECT id, batch_id, post_id, action, user_id, created_at, undone_at, origin, MD5( CONCAT_WS( '|', post_id, COALESCE( block_path, '' ), before_html, after_html ) ) AS slot FROM %i WHERE action IN ( %s, %s, %s ) AND batch_id IN ({$placeholders}) ORDER BY id",
+				"SELECT id, batch_id, post_id, action, user_id, created_at, undone_at, origin, {$ai_column}, MD5( CONCAT_WS( '|', post_id, COALESCE( block_path, '' ), before_html, after_html ) ) AS slot FROM %i WHERE action IN ( %s, %s, %s ) AND batch_id IN ({$placeholders}) ORDER BY id",
 				$this->table,
 				...array_merge( self::PRIMARY, $batch_ids )
 			),
@@ -351,6 +391,7 @@ final class ChangeRepository {
 				'undone_at'  => null === $row['undone_at'] ? null : (string) $row['undone_at'],
 				'slot'       => (string) $row['slot'],
 				'origin'     => (string) $row['origin'],
+				'ai'         => 1 === (int) $row['ai_recommended'],
 			);
 		}
 
@@ -362,32 +403,23 @@ final class ChangeRepository {
 	}
 
 	/**
-	 * Cambios por entrada, paginados, todo en SQL (F1-36, D-59): una fila por entrada con sus recuentos, ordenadas por
-	 * su última actividad (poner o deshacer un cambio). Cuenta un enlace una sola vez aunque se haya rehecho (solo
-	 * vale la fila más reciente de cada tramo, como {@see Slots}) y no trae HTML.
+	 * `JOIN` y `WHERE` de los filtros de la pantalla (alias `c` y `p`): filas que cuentan, origen, IA, entrada, lo que el
+	 * usuario puede ver y búsqueda por título. Los comparten el listado por entrada y la exportación.
 	 *
-	 * @param array $filters  Filtros: `status` (`active`, `undone` o vacío = todos), `origin` (`plugin`, `editor` o vacío),
-	 *                        `search` (texto del título de la entrada), `post_id` (solo esa entrada) y `restrict` (tipos de entrada que el usuario edita sean de quien sean, su id como autor para el resto y si ve las entradas borradas; ausente = sin límite).
-	 * @param int   $page     Página (desde 1).
-	 * @param int   $per_page Entradas por página.
+	 * @param array $filters Ver {@see self::post_groups()}.
 	 *
-	 * @phpstan-param array{status?: string, origin?: string, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
+	 * @phpstan-param array{origin?: string, ai?: bool, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
 	 *
-	 * @return array{items: list<array{post_id: int, total: int, active: int, last_at: string}>, total: int}
+	 * @return array{0: string, 1: string}
 	 */
-	public function post_groups( array $filters, int $page, int $per_page ): array {
+	private function filter_parts( array $filters ): array {
 		$wpdb     = $this->wpdb;
-		$per_page = max( 1, $per_page );
-		$offset   = max( 0, $page - 1 ) * $per_page;
-		$status   = $filters['status'] ?? '';
 		$restrict = $filters['restrict'] ?? null;
 		$search   = trim( (string) ( $filters['search'] ?? '' ) );
 
-		$join  = '';
-		$where = $this->live_rows_sql( 'c' ) . $wpdb->prepare( ' AND c.action IN ( %s, %s, %s )', ...self::PRIMARY ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Tres acciones.
-		if ( in_array( $filters['origin'] ?? '', array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR ), true ) ) {
-			$where .= $wpdb->prepare( ' AND c.origin = %s', $filters['origin'] );
-		}
+		$join   = '';
+		$where  = $this->live_rows_sql( 'c' ) . $wpdb->prepare( ' AND c.action IN ( %s, %s, %s )', ...self::PRIMARY ); // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Tres acciones.
+		$where .= $this->origin_clause( (string) ( $filters['origin'] ?? '' ), ! empty( $filters['ai'] ) );
 		if ( null !== $restrict || '' !== $search ) {
 			$join = $wpdb->prepare( ( '' !== $search ? ' INNER' : ' LEFT' ) . ' JOIN %i p ON p.ID = c.post_id', $wpdb->posts ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Palabra fija.
 		}
@@ -408,12 +440,73 @@ final class ChangeRepository {
 			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( $search ) . '%' );
 		}
 
-		$having = '';
+		return array( $join, $where );
+	}
+
+	/**
+	 * `HAVING` del filtro de estado de la pantalla: entradas con algún cambio puesto o con alguno deshecho.
+	 *
+	 * @param string $status `active`, `undone` o vacío.
+	 */
+	private function status_having( string $status ): string {
 		if ( 'active' === $status ) {
-			$having = ' HAVING active > 0';
-		} elseif ( 'undone' === $status ) {
-			$having = ' HAVING active < total';
+			return ' HAVING active > 0';
 		}
+
+		return 'undone' === $status ? ' HAVING active < total' : '';
+	}
+
+	/**
+	 * Ids de los cambios que cumplen los filtros, en orden de id y con cursor (para exportar sin cargar todo en memoria).
+	 * Cada tramo cuenta una vez (la fila más reciente) y `status` filtra por entrada, igual que la pantalla.
+	 *
+	 * @param array $filters Filtros de {@see self::post_groups()} más `status` (`active`, `undone` o vacío).
+	 * @param int   $after   Solo los ids mayores que este (0 = desde el principio).
+	 * @param int   $limit   Máximo de ids.
+	 *
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null} $filters
+	 *
+	 * @return list<int>
+	 */
+	public function export_ids( array $filters, int $after, int $limit ): array {
+		$wpdb             = $this->wpdb;
+		[ $join, $where ] = $this->filter_parts( $filters );
+
+		// El estado se aplica como en la pantalla: por entrada (con alguno puesto o alguno deshecho) y con todos los
+		// cambios de las entradas que pasan, no cambio a cambio.
+		$having = $this->status_having( (string) ( $filters['status'] ?? '' ) );
+		if ( '' !== $having ) {
+			$inner  = $wpdb->prepare( 'SELECT c.post_id, COUNT(*) AS total, SUM( c.undone_at IS NULL ) AS active FROM %i c', $this->table ) . $join . ' WHERE ' . $where . ' GROUP BY c.post_id' . $having; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
+			$where .= ' AND c.post_id IN ( SELECT post_id FROM ( ' . $inner . ' ) s )';
+		}
+
+		$sql = $wpdb->prepare( 'SELECT c.id FROM %i c', $this->table ) . $join . ' WHERE ' . $where . $wpdb->prepare( ' AND c.id > %d ORDER BY c.id ASC LIMIT %d', $after, max( 1, $limit ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
+
+		return array_map( 'intval', $wpdb->get_col( $sql ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+	}
+
+	/**
+	 * Cambios por entrada, paginados, todo en SQL (F1-36, D-59): una fila por entrada con sus recuentos, ordenadas por
+	 * su última actividad (poner o deshacer un cambio). Cuenta un enlace una sola vez aunque se haya rehecho (solo
+	 * vale la fila más reciente de cada tramo, como {@see Slots}) y no trae HTML.
+	 *
+	 * @param array $filters  Filtros: `status` (`active`, `undone` o vacío = todos), `origin` (`plugin`, `editor` o vacío), `ai` (solo los que recomendó la IA),
+	 *                        `search` (texto del título de la entrada), `post_id` (solo esa entrada) y `restrict` (tipos de entrada que el usuario edita sean de quien sean, su id como autor para el resto y si ve las entradas borradas; ausente = sin límite).
+	 * @param int   $page     Página (desde 1).
+	 * @param int   $per_page Entradas por página.
+	 *
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string, restrict?: array{types: list<string>, author: int, deleted: bool}|null, post_id?: int} $filters
+	 *
+	 * @return array{items: list<array{post_id: int, total: int, active: int, last_at: string}>, total: int}
+	 */
+	public function post_groups( array $filters, int $page, int $per_page ): array {
+		$wpdb             = $this->wpdb;
+		$per_page         = max( 1, $per_page );
+		$offset           = max( 0, $page - 1 ) * $per_page;
+		$status           = $filters['status'] ?? '';
+		[ $join, $where ] = $this->filter_parts( $filters );
+
+		$having = $this->status_having( $status );
 
 		$grouped = $wpdb->prepare( 'SELECT c.post_id, COUNT(*) AS total, SUM( c.undone_at IS NULL ) AS active, MAX( GREATEST( c.created_at, COALESCE( c.undone_at, c.created_at ) ) ) AS last_at FROM %i c', $this->table ) . $join . ' WHERE ' . $where . ' GROUP BY c.post_id' . $having; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
 
@@ -446,16 +539,17 @@ final class ChangeRepository {
 	 * @param array  $post_ids Entradas.
 	 * @param int    $limit    Cambios por entrada.
 	 * @param string $origin   Solo de este origen (`plugin`, `editor`) o vacío.
+	 * @param bool   $ai       Solo los que recomendó la IA.
 	 *
 	 * @phpstan-param list<int> $post_ids
 	 *
 	 * @return array<int, list<int>> IDs de cambio por entrada.
 	 */
-	public function recent_ids_of_posts( array $post_ids, int $limit, string $origin = '' ): array {
+	public function recent_ids_of_posts( array $post_ids, int $limit, string $origin = '', bool $ai = false ): array {
 		$wpdb  = $this->wpdb;
 		$parts = array();
 		foreach ( array_values( array_unique( $post_ids ) ) as $post_id ) {
-			$parts[] = '(' . $this->post_rows_sql( $post_id, $origin, 'c.id, c.post_id' ) . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $limit ) ) . ')'; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
+			$parts[] = '(' . $this->post_rows_sql( $post_id, $origin, 'c.id, c.post_id', $ai ) . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $limit ) ) . ')'; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Cada trozo está preparado.
 		}
 		if ( array() === $parts ) {
 			return array();
@@ -478,14 +572,15 @@ final class ChangeRepository {
 	 * @param int    $before   Cursor: solo los cambios con id menor que este (0 = desde el principio).
 	 * @param int    $per_page Cambios por página.
 	 * @param string $origin   Solo de este origen o vacío.
+	 * @param bool   $ai       Solo los que recomendó la IA.
 	 *
 	 * @return array{ids: list<int>, total: int}
 	 */
-	public function post_ids_page( int $post_id, int $before, int $per_page, string $origin = '' ): array {
+	public function post_ids_page( int $post_id, int $before, int $per_page, string $origin = '', bool $ai = false ): array {
 		$wpdb = $this->wpdb;
 		$cond = $before > 0 ? $wpdb->prepare( ' AND c.id < %d', $before ) : '';
-		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id' ) . $cond . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $per_page ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
-		$all  = (int) $wpdb->get_var( $this->post_rows_sql( $post_id, $origin, 'COUNT(*)' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id', $ai ) . $cond . $wpdb->prepare( ' ORDER BY c.id DESC LIMIT %d', max( 1, $per_page ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$all  = (int) $wpdb->get_var( $this->post_rows_sql( $post_id, $origin, 'COUNT(*)', $ai ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
 
 		return array(
 			'ids'   => array_map( 'intval', $ids ),
@@ -499,13 +594,14 @@ final class ChangeRepository {
 	 * @param int    $post_id Entrada.
 	 * @param bool   $undone  true = los deshechos (para rehacer); false = los puestos (para deshacer).
 	 * @param string $origin  Solo de este origen o vacío.
+	 * @param bool   $ai      Solo los que recomendó la IA.
 	 *
 	 * @return list<int>
 	 */
-	public function pending_ids_of_post( int $post_id, bool $undone, string $origin = '' ): array {
+	public function pending_ids_of_post( int $post_id, bool $undone, string $origin = '', bool $ai = false ): array {
 		$wpdb = $this->wpdb;
 		$cond = $undone ? ' AND c.undone_at IS NOT NULL' : ' AND c.undone_at IS NULL';
-		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id' ) . $cond . ' ORDER BY c.id DESC' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
+		$ids  = $wpdb->get_col( $this->post_rows_sql( $post_id, $origin, 'c.id', $ai ) . $cond . ' ORDER BY c.id DESC' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; consulta preparada por trozos.
 
 		return array_map( 'intval', $ids );
 	}
@@ -578,15 +674,13 @@ final class ChangeRepository {
 	 * @param int    $post_id Entrada.
 	 * @param string $origin  Origen o vacío.
 	 * @param string $select  Columna o expresión.
+	 * @param bool   $ai      Solo los que recomendó la IA.
 	 */
-	private function post_rows_sql( int $post_id, string $origin, string $select ): string {
+	private function post_rows_sql( int $post_id, string $origin, string $select, bool $ai = false ): string {
 		$wpdb = $this->wpdb;
 		$sql  = $wpdb->prepare( 'SELECT ' . $select . ' FROM %i c WHERE c.post_id = %d AND c.action IN ( %s, %s, %s )', $this->table, $post_id, ...self::PRIMARY ) . ' AND ' . $this->live_rows_sql( 'c' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $select es una constante interna; tres acciones.
-		if ( in_array( $origin, array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR ), true ) ) {
-			$sql .= $wpdb->prepare( ' AND c.origin = %s', $origin );
-		}
 
-		return $sql;
+		return $sql . $this->origin_clause( $origin, $ai );
 	}
 
 	/**
@@ -703,7 +797,7 @@ final class ChangeRepository {
 	 *
 	 * @phpstan-param array<string, mixed> $row
 	 *
-	 * @return array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string}
+	 * @return array{id: int, batch_id: string, post_id: int, action: string, block_path: string|null, before_html: string, after_html: string, content_hash_after: string, user_id: int, created_at: string, undone_at: string|null, origin: string, ai_recommended: bool, ai_anchor: bool, ai_model: string}
 	 */
 	private function cast( array $row ): array {
 		return array(
@@ -719,6 +813,9 @@ final class ChangeRepository {
 			'created_at'         => (string) $row['created_at'],
 			'undone_at'          => null === $row['undone_at'] ? null : (string) $row['undone_at'],
 			'origin'             => (string) ( $row['origin'] ?? self::ORIGIN_PLUGIN ),
+			'ai_recommended'     => 1 === (int) ( $row['ai_recommended'] ?? 0 ),
+			'ai_anchor'          => 1 === (int) ( $row['ai_anchor'] ?? 0 ),
+			'ai_model'           => (string) ( $row['ai_model'] ?? '' ),
 		);
 	}
 }

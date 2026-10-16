@@ -198,6 +198,14 @@ export interface Boot {
 /** De dónde viene un grupo: lo escribió Magic Linking, o el usuario lo puso en el editor y solo se registró. */
 export type HistoryOrigin = 'plugin' | 'editor';
 
+/** Lo que se sabe de la IA en un cambio que ella recomendó (F1-38). */
+export interface HistoryAi {
+	/** Se usó el ancla que propuso la IA. */
+	anchor: boolean;
+	/** Modelo que lo recomendó; vacío si no se registró. */
+	model: string;
+}
+
 /** Un grupo (lote) del historial: una acción del usuario. */
 /** Qué hizo un cambio: poner un enlace, cambiar su destino o quitarlo. */
 export type ChangeKind = 'insert' | 'retarget' | 'unlink';
@@ -212,6 +220,8 @@ export interface HistoryGroup {
 	user_name: string;
 	/** Enlaces del grupo (rehacer no cuenta dos veces el mismo). */
 	links: number;
+	/** De ellos, los que recomendó la IA. */
+	ai_links?: number;
 	/** Enlaces puestos ahora. */
 	active: number;
 	/** Enlaces deshechos. */
@@ -234,6 +244,8 @@ export interface HistoryResponse {
 export interface HistoryChange {
 	id: number;
 	origin: HistoryOrigin;
+	/** Null si la IA no lo recomendó. */
+	ai?: HistoryAi | null;
 	post_id: number;
 	/** Null si la entrada ya no existe. */
 	post_title: string | null;
@@ -257,6 +269,8 @@ export interface HistoryEntryChange {
 	batch_posts: number;
 	kind: ChangeKind;
 	origin: HistoryOrigin;
+	/** Null si la IA no lo recomendó. */
+	ai: HistoryAi | null;
 	anchor: string;
 	/** Dirección a la que apunta ahora (vacía si se quitó el enlace). */
 	url: string;
@@ -389,6 +403,10 @@ export interface InsertLink {
 	offset: number;
 	anchor: string;
 	block_path: string | null;
+	/** Lo que la IA opina del enlace; solo informativo, el servidor lo guarda en el Historial (F1-38). */
+	ai_recommended?: boolean;
+	ai_anchor?: boolean;
+	ai_model?: string;
 }
 
 export interface SuggestionReason {
@@ -495,6 +513,12 @@ export interface EditorLink {
 	target_id: number;
 	/** Texto enlazado. */
 	anchor: string;
+	/** La IA recomendaba la sugerencia (F1-38). Solo informativo: no cambia lo que se registra. */
+	ai_recommended?: boolean;
+	/** Se usó el ancla que propuso la IA. */
+	ai_anchor?: boolean;
+	/** Identificador exacto del modelo que la recomendó. */
+	ai_model?: string;
 }
 
 export interface EditorLinkResult {

@@ -1,8 +1,10 @@
 import type { RerankResponse, Suggestion } from '../../types';
 import {
+	aiLinkInfo,
 	arrange,
 	candidates,
 	MAX_CANDIDATES,
+	MODEL_MAX,
 	outcomeOf,
 	rerankItems,
 	unfitCount,
@@ -229,5 +231,141 @@ describe( 'withAnchor', () => {
 		expect( at( views, 0 ).original ).toBe( original );
 		expect( at( views, 0 ).mark?.improved ).toBeNull();
 		expect( at( views, 0 ).mark?.fit ).toBe( true );
+	} );
+} );
+
+describe( 'aiLinkInfo', () => {
+	const improved = {
+		anchor: 'bomba de calor reduce',
+		offset: 4,
+		before: 'Una ',
+		after: ' el consumo.',
+		anchor_start: 4,
+		anchor_end: 25,
+	};
+
+	it( 'records the model of the call on every rated card', () => {
+		const original = make( 5 );
+		const outcome = outcomeOf(
+			[ original ],
+			ok( [
+				{
+					index: 0,
+					target_id: 5,
+					fit: true,
+					confidence: 0.8,
+					improved,
+				},
+			] )
+		);
+		const mark = outcome.marks[ suggestionKey( original ) ];
+
+		expect( mark?.model ).toBe( 'm' );
+		expect( aiLinkInfo( mark, false ) ).toEqual( {
+			ai_recommended: true,
+			ai_anchor: false,
+			ai_model: 'm',
+		} );
+		expect( aiLinkInfo( mark, true )?.ai_anchor ).toBe( true );
+	} );
+
+	it( 'cuts a model id longer than the server accepts', () => {
+		const mark = {
+			fit: true,
+			confidence: 0.5,
+			improved: null,
+			model: 'x'.repeat( MODEL_MAX + 40 ),
+		};
+
+		expect( aiLinkInfo( mark, false )?.ai_model ).toHaveLength( MODEL_MAX );
+
+		// Por puntos de código: un emoji (dos unidades UTF-16) no se parte por la mitad.
+		const emoji = aiLinkInfo(
+			{ ...mark, model: '😀'.repeat( 150 ) },
+			false
+		);
+		expect( Array.from( emoji?.ai_model ?? '' ) ).toHaveLength( MODEL_MAX );
+		expect( emoji?.ai_model ).toBe( '😀'.repeat( MODEL_MAX ) );
+	} );
+
+	it( 'says nothing when the AI did not recommend the card', () => {
+		const base = { confidence: 0.5, improved: null, model: 'm' };
+
+		expect( aiLinkInfo( undefined, false ) ).toBeNull();
+		expect( aiLinkInfo( { ...base, fit: false }, true ) ).toBeNull();
+		expect( aiLinkInfo( { ...base, fit: null }, false ) ).toBeNull();
+	} );
+} );
+
+describe( 'aiAnchor', () => {
+	const first = {
+		anchor: 'bomba de calor reduce',
+		offset: 4,
+		before: 'Una ',
+		after: ' el consumo.',
+		anchor_start: 4,
+		anchor_end: 25,
+	};
+
+	const run = ( original: Suggestion, improved: typeof first | null ) =>
+		outcomeOf(
+			[ original ],
+			ok( [
+				{
+					index: 0,
+					target_id: 5,
+					fit: true,
+					confidence: 0.8,
+					improved,
+				},
+			] )
+		);
+
+	it( 'is true when the accepted anchor is the one the current answer proposed', () => {
+		const original = make( 5 );
+		const key = suggestionKey( original );
+
+		const views = arrange( [ original ], run( original, first ), {
+			[ key ]: withAnchor( original, first ),
+		} );
+
+		expect( at( views, 0 ).aiAnchor ).toBe( true );
+	} );
+
+	it( 'is false when the changed anchor comes from an earlier run', () => {
+		const original = make( 5 );
+		const key = suggestionKey( original );
+		const second = {
+			...first,
+			anchor: 'una bomba de calor',
+			anchor_end: 18,
+		};
+
+		// Se aceptó el ancla de la primera ejecución y la segunda propone otra (o ninguna).
+		const views = arrange( [ original ], run( original, second ), {
+			[ key ]: withAnchor( original, first ),
+		} );
+		const none = arrange( [ original ], run( original, null ), {
+			[ key ]: withAnchor( original, first ),
+		} );
+
+		expect( at( views, 0 ).aiAnchor ).toBe( false );
+		expect( at( none, 0 ).aiAnchor ).toBe( false );
+	} );
+
+	it( 'does not mark the AI at all once the original order is restored', () => {
+		const original = make( 5 );
+		const key = suggestionKey( original );
+
+		// «Volver al orden original»: sin respuesta vigente no hay marca, aunque quede un ancla aceptada.
+		const view = at(
+			arrange( [ original ], null, {
+				[ key ]: withAnchor( original, first ),
+			} ),
+			0
+		);
+
+		expect( view.aiAnchor ).toBe( false );
+		expect( aiLinkInfo( view.mark, view.aiAnchor ) ).toBeNull();
 	} );
 } );

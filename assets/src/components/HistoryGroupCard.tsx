@@ -9,9 +9,11 @@ import {
 	formatDate,
 	formatFullDate,
 	parseServerDate,
+	batchAiLabel,
 	batchOriginLabel,
 } from './historyFormat';
 import { JobProgress, OutcomeSummary } from './HistoryJobParts';
+import { HistorySource } from './HistorySource';
 import { countStatuses } from './historyText';
 import { useHistoryJob } from './useHistoryJob';
 
@@ -34,6 +36,7 @@ const DETAILS_PER_PAGE = 50;
  * @param root0.onChange
  */
 export function HistoryGroupCard( { group, onChange }: Props ) {
+	const aiLabel = batchAiLabel( group.ai_links, group.links );
 	const [ expanded, setExpanded ] = useState( false );
 	const [ details, setDetails ] = useState< HistoryChange[] >( [] );
 	const [ total, setTotal ] = useState( 0 );
@@ -218,6 +221,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 				>
 					{ batchOriginLabel( group.origin, group.kind ) }
 				</span>
+				{ aiLabel && <> · { aiLabel }</> }
 			</p>
 			{ ! expanded && (
 				<p className="magiclinking-batch__entries">
@@ -319,6 +323,9 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 										{ __( 'Links to', 'magic-linking' ) }
 									</th>
 									<th scope="col">
+										{ __( 'Source', 'magic-linking' ) }
+									</th>
+									<th scope="col">
 										{ __( 'Status', 'magic-linking' ) }
 									</th>
 									<th scope="col">
@@ -331,7 +338,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 							<tbody>
 								{ details.length === 0 && (
 									<tr className="no-items">
-										<td colSpan={ 6 }>
+										<td colSpan={ 7 }>
 											{ loadingDetails
 												? __(
 														'Loading…',
@@ -377,6 +384,15 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 											<td>{ change.anchor }</td>
 											<td className="magiclinking-url">
 												{ destination( change ) }
+											</td>
+											<td>
+												<HistorySource
+													origin={ change.origin }
+													kind={
+														change.kind ?? 'insert'
+													}
+													ai={ change.ai }
+												/>
 											</td>
 											<td>
 												{ undone

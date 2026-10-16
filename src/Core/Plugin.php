@@ -349,7 +349,7 @@ final class Plugin {
 			),
 			JobsController::class          => static fn( Container $c ): JobsController => new JobsController( $c->get( Jobs::class ) ),
 			SettingsController::class      => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ), $c->get( Capabilities::class ) ),
-			ExportHandler::class           => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ) ),
+			ExportHandler::class           => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ) ),
 			CliModule::class               => static fn( Container $c ): CliModule => new CliModule(
 				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) )
 			),

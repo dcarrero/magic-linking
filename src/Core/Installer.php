@@ -30,6 +30,21 @@ final class Installer implements Module {
 	public const DB_VERSION_OPTION = 'magiclinking_db_version';
 
 	/**
+	 * Esquema que añadió las columnas `ai_*` de `changes` (F1-38).
+	 */
+	public const AI_COLUMNS_SCHEMA = 6;
+
+	/**
+	 * Transitorio (sin autoload) que frena los reintentos de una migración que falló.
+	 */
+	public const RETRY_TRANSIENT = 'magiclinking_schema_retry';
+
+	/**
+	 * Segundos que se espera antes de reintentar una migración fallida.
+	 */
+	public const RETRY_SECONDS = 300;
+
+	/**
 	 * Opción de ajustes (la única en autoload). Se lee aquí solo para saber si
 	 * hay que borrar los datos al desinstalar.
 	 */
@@ -185,6 +200,11 @@ final class Installer implements Module {
 			return true;
 		}
 
+		// Una migración que acaba de fallar espera unos minutos antes de volver a intentarse.
+		if ( $installed > 0 && false !== get_transient( self::RETRY_TRANSIENT ) ) {
+			return false;
+		}
+
 		return $this->upgrade( $installed );
 	}
 
@@ -203,13 +223,24 @@ final class Installer implements Module {
 			return false;
 		}
 
-		foreach ( $this->migrations as $version => $migration ) {
-			if ( $version > $from && $version <= $this->target_version ) {
-				$migration( $this->wpdb );
+		// Paso a paso: cada versión que termina bien se guarda, así un reintento no repite migraciones ya hechas (la 3
+		// vacía las huellas del índice léxico).
+		for ( $version = $from + 1; $version <= $this->target_version; $version++ ) {
+			if ( isset( $this->migrations[ $version ] ) ) {
+				$this->migrations[ $version ]( $this->wpdb );
 			}
-		}
 
-		update_option( self::DB_VERSION_OPTION, $this->target_version, false );
+			// El paso 6 solo vale si dbDelta consiguió las tres columnas: sin permiso ALTER o con el tiempo agotado se
+			// queda en el 5 y se reintenta, pero con un respiro, no en cada carga del administrador.
+			if ( self::AI_COLUMNS_SCHEMA === $version && ! Schema::has_columns( $this->wpdb, 'changes', Schema::AI_COLUMNS ) ) {
+				set_transient( self::RETRY_TRANSIENT, 1, self::RETRY_SECONDS );
+
+				return false;
+			}
+
+			update_option( self::DB_VERSION_OPTION, $version, false );
+		}
+		delete_transient( self::RETRY_TRANSIENT );
 
 		// Una actualización (no una instalación nueva) puede dejar el índice léxico sin construir.
 		if ( $from > 0 ) {

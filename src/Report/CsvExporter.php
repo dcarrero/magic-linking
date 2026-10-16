@@ -41,6 +41,11 @@ final class CsvExporter {
 	public const BROKEN_COLUMNS = array( 'source_id', 'source_title', 'url', 'anchor', 'reason', 'edit_url' );
 
 	/**
+	 * Columnas de la exportación del Historial (F1-38): un cambio por fila.
+	 */
+	public const HISTORY_COLUMNS = array( 'id', 'date', 'user', 'action', 'state', 'post_id', 'post_title', 'target_url', 'anchor', 'origin', 'batch_id', 'ai_recommended', 'ai_anchor', 'ai_model' );
+
+	/**
 	 * Escribe la cabecera y las filas.
 	 *
 	 * @param resource                         $stream Destino abierto para escritura.

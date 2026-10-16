@@ -52,7 +52,19 @@ final class HistoryCliTest extends HistoryTestCase {
 		$this->command->history( array( 'list' ), array() );
 
 		$this->assertStringContainsString( $batch['batch'], WP_CLI::$lines[0] );
-		$this->assertStringEndsWith( '|2|2|2', WP_CLI::$lines[0], 'Enlaces, puestos y entradas.' );
+		$this->assertStringEndsWith( '|2|2|2|0', WP_CLI::$lines[0], 'Enlaces, puestos, entradas y recomendados por la IA.' );
+	}
+
+	public function test_list_counts_the_links_the_ai_recommended(): void {
+		$post   = $this->post();
+		$result = \MagicLinking\Core\Plugin::container()->get( \MagicLinking\Content\Inserter::class )->insert(
+			new \MagicLinking\Content\InsertRequest( $post, (string) get_permalink( $this->target ), 'aire acondicionado', 'Compra ', ' ya.', null, array(), null, false, false, false, new \MagicLinking\History\AiOrigin( false, 'm' ) )
+		);
+
+		$this->command->history( array( 'list' ), array() );
+
+		$this->assertStringContainsString( $result->batch_id, WP_CLI::$lines[0] );
+		$this->assertStringEndsWith( '|1|1|1|1', WP_CLI::$lines[0] );
 	}
 
 	public function test_undo_and_redo_a_group_in_the_command_itself(): void {
@@ -162,5 +174,44 @@ final class HistoryCliTest extends HistoryTestCase {
 		$this->expectException( RuntimeException::class );
 		$this->expectExceptionMessageMatches( '/background/' );
 		$this->command->history( array( 'undo', $batch['batch'] ), array() );
+	}
+
+	public function test_export_writes_the_csv_with_the_same_columns_and_filters(): void {
+		$plain = $this->link();
+		$post  = $this->post();
+		\MagicLinking\Core\Plugin::container()->get( \MagicLinking\Content\Inserter::class )->insert(
+			new \MagicLinking\Content\InsertRequest( $post, (string) get_permalink( $this->target ), 'aire acondicionado', 'Compra ', ' ya.', null, array(), null, false, false, false, new \MagicLinking\History\AiOrigin( true, 'm' ) )
+		);
+
+		ob_start();
+		$this->command->history( array( 'export' ), array( 'ai' => true ) );
+		$only_ai = (string) ob_get_clean();
+		ob_start();
+		$this->command->history( array( 'export' ), array() );
+		$all = (string) ob_get_clean();
+
+		$this->assertStringStartsWith( 'id,date,user,action,state,post_id,post_title,target_url,anchor,origin,batch_id,ai_recommended,ai_anchor,ai_model', $only_ai );
+		$this->assertSame( 2, substr_count( $only_ai, "\n" ), 'Cabecera y una fila.' );
+		$this->assertStringContainsString( ',m', $only_ai );
+		$this->assertSame( 3, substr_count( $all, "\n" ), 'Cabecera y dos filas.' );
+		$this->assertStringContainsString( (string) $plain['post'], $all );
+	}
+
+	public function test_export_as_json_is_one_valid_array_and_matches_the_csv(): void {
+		$this->link();
+		$this->link();
+
+		ob_start();
+		$this->command->history( array( 'export' ), array( 'format' => 'json' ) );
+		$json = (string) ob_get_clean();
+		ob_start();
+		$this->command->history( array( 'export' ), array() );
+		$csv = (string) ob_get_clean();
+
+		$rows = json_decode( $json, true );
+		$this->assertIsArray( $rows );
+		$this->assertCount( 2, $rows );
+		$this->assertSame( \MagicLinking\Report\CsvExporter::HISTORY_COLUMNS, array_keys( $rows[0] ) );
+		$this->assertSame( 3, substr_count( $csv, "\n" ) );
 	}
 }

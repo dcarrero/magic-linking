@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\History;
 
 use MagicLinking\Content\OpenTag;
+use Generator;
 use WP_Post;
 
 /**
@@ -21,6 +22,11 @@ use WP_Post;
  * deshacerlo. De una entrada que ya no existe decide `edit_others_posts`.
  */
 final class Reader {
+
+	/**
+	 * Cambios que se leen de golpe al exportar.
+	 */
+	public const EXPORT_PAGE = 500;
 
 	/**
 	 * Lotes que se leen de la base de datos por vuelta al buscar los que el usuario puede ver.
@@ -229,6 +235,7 @@ final class Reader {
 				'edit_url'     => is_string( $edit ) ? $edit : null,
 				'kind'         => $change['action'],
 				'origin'       => $origin,
+				'ai'           => self::ai_of( $change ),
 				'anchor'       => $view['anchor'],
 				'url'          => $view['url'],
 				'previous_url' => $view['previous_url'],
@@ -254,11 +261,11 @@ final class Reader {
 	 * plugin, estado de la entrada) la niega, se omite de la página y el total queda como cota superior.
 	 *
 	 * @param int   $user_id  Quien mira.
-	 * @param array $filters  `status` (`active`, `undone`), `origin` (`plugin`, `editor`), `search` y `post_id` (solo esa entrada).
+	 * @param array $filters  `status` (`active`, `undone`), `origin` (`plugin`, `editor`), `ai` (solo los que recomendó la IA), `search` y `post_id` (solo esa entrada).
 	 * @param int   $page     Página (desde 1).
 	 * @param int   $per_page Entradas por página.
 	 *
-	 * @phpstan-param array{status?: string, origin?: string, search?: string, post_id?: int} $filters
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string, post_id?: int} $filters
 	 *
 	 * @return array{items: list<array<string, mixed>>, total: int}
 	 */
@@ -272,7 +279,7 @@ final class Reader {
 
 		$visible = array_values( array_filter( $result['items'], fn( array $group ): bool => $this->can_edit( $user_id, $group['post_id'] ) ) );
 		$origin  = (string) ( $filters['origin'] ?? '' );
-		$recent  = $this->changes->recent_ids_of_posts( array_column( $visible, 'post_id' ), self::FIRST_CHANGES, $origin );
+		$recent  = $this->changes->recent_ids_of_posts( array_column( $visible, 'post_id' ), self::FIRST_CHANGES, $origin, ! empty( $filters['ai'] ) );
 		$full    = $this->changes->get_many( array_merge( array(), ...array_values( $recent ) ) );
 		$context = $this->change_context( $full );
 
@@ -312,11 +319,83 @@ final class Reader {
 	 * @param int    $user_id Quien mira.
 	 * @param int    $post_id Entrada.
 	 * @param string $origin  Solo cambios de este origen (`plugin`, `editor`) o vacío.
+	 * @param bool   $ai      Solo los que recomendó la IA.
 	 *
 	 * @return array<string, mixed>|null
 	 */
-	public function post_group( int $user_id, int $post_id, string $origin = '' ): ?array {
-		return $this->post_groups( $user_id, array( 'post_id' => $post_id ) + ( '' === $origin ? array() : array( 'origin' => $origin ) ), 1, 1 )['items'][0] ?? null;
+	public function post_group( int $user_id, int $post_id, string $origin = '', bool $ai = false ): ?array {
+		return $this->post_groups( $user_id, array( 'post_id' => $post_id ) + ( '' === $origin ? array() : array( 'origin' => $origin ) ) + ( $ai ? array( 'ai' => true ) : array() ), 1, 1 )['items'][0] ?? null;
+	}
+
+	/**
+	 * Cambios para exportar, uno por fila y sin tope, de página en página para no cargar todo en memoria (F1-38).
+	 * Valores sin traducir, pensados como datos: el origen va en inglés, las fechas en ISO 8601 en la zona del sitio.
+	 * Solo ve lo que el usuario puede editar, como la pantalla.
+	 *
+	 * @param int   $user_id Quien exporta (0 = el sistema).
+	 * @param array $filters `status` (`active`, `undone`), `origin` (`plugin`, `editor`), `ai` y `search`.
+	 *
+	 * @phpstan-param array{status?: string, origin?: string, ai?: bool, search?: string} $filters
+	 *
+	 * @return Generator<int, array<int, string|int>>
+	 */
+	public function export_rows( int $user_id, array $filters ): Generator {
+		$filters += array( 'restrict' => $this->restriction( $user_id ) );
+		$after    = 0;
+
+		while ( true ) {
+			$ids = $this->changes->export_ids( $filters, $after, self::EXPORT_PAGE );
+			if ( array() === $ids ) {
+				return;
+			}
+			$after = max( $ids );
+			$full  = $this->changes->get_many( $ids );
+			_prime_post_caches( array_unique( array_column( $full, 'post_id' ) ), false, false );
+			cache_users( array_map( 'intval', array_unique( array_column( $full, 'user_id' ) ) ) );
+
+			foreach ( $ids as $id ) {
+				$change = $full[ $id ] ?? null;
+				if ( null === $change || ! $this->can_edit( $user_id, $change['post_id'] ) ) {
+					continue;
+				}
+
+				$view = self::describe( $change );
+				$post = get_post( $change['post_id'] );
+				$user = $change['user_id'] > 0 ? get_userdata( $change['user_id'] ) : false;
+
+				yield array(
+					$change['id'],
+					(string) get_date_from_gmt( $change['created_at'], DATE_ATOM ),
+					$change['user_id'] > 0 ? ( false === $user ? '' : $user->user_login ) : 'system',
+					$change['action'],
+					null === $change['undone_at'] ? 'active' : 'undone',
+					$change['post_id'],
+					$post instanceof WP_Post ? $post->post_title : '',
+					'' !== $view['url'] ? $view['url'] : (string) $view['previous_url'],
+					$view['anchor'],
+					self::export_origin( $change ),
+					$change['batch_id'],
+					$change['ai_recommended'] ? 1 : 0,
+					$change['ai_anchor'] ? 1 : 0,
+					$change['ai_model'],
+				);
+			}//end foreach
+		}//end while
+	}
+
+	/**
+	 * Origen de un cambio con la etiqueta de la pantalla, sin traducir.
+	 *
+	 * @param array $change Fila del historial.
+	 *
+	 * @phpstan-param array{origin: string, action: string} $change
+	 */
+	private static function export_origin( array $change ): string {
+		if ( ChangeRepository::ORIGIN_EDITOR === self::origin_of( array( $change ) ) ) {
+			return 'Editor panel';
+		}
+
+		return ChangeRepository::INSERT === $change['action'] ? "Another entry's panel" : 'Broken links';
 	}
 
 	/**
@@ -356,15 +435,16 @@ final class Reader {
 	 * @param int    $before   Cursor: solo los cambios con id menor que este (0 = desde el principio).
 	 * @param int    $per_page Cambios por página.
 	 * @param string $origin   Origen (`plugin`, `editor`) o vacío.
+	 * @param bool   $ai       Solo los que recomendó la IA.
 	 *
 	 * @return array{items: list<array<string, mixed>>, total: int}|null Null si no la puede ver.
 	 */
-	public function post_changes( int $user_id, int $post_id, int $before, int $per_page, string $origin = '' ): ?array {
+	public function post_changes( int $user_id, int $post_id, int $before, int $per_page, string $origin = '', bool $ai = false ): ?array {
 		if ( ! $this->can_edit( $user_id, $post_id ) ) {
 			return null;
 		}
 
-		$result  = $this->changes->post_ids_page( $post_id, $before, $per_page, $origin );
+		$result  = $this->changes->post_ids_page( $post_id, $before, $per_page, $origin, $ai );
 		$full    = $this->changes->get_many( $result['ids'] );
 		$context = $this->change_context( $full );
 
@@ -387,11 +467,12 @@ final class Reader {
 	 * @param int    $post_id Entrada.
 	 * @param bool   $undone  true = los deshechos.
 	 * @param string $origin  Solo de este origen o vacío.
+	 * @param bool   $ai      Solo los que recomendó la IA.
 	 *
 	 * @return list<int> Del más reciente al más antiguo.
 	 */
-	public function pending_of_post( int $post_id, bool $undone, string $origin = '' ): array {
-		return $this->changes->pending_ids_of_post( $post_id, $undone, $origin );
+	public function pending_of_post( int $post_id, bool $undone, string $origin = '', bool $ai = false ): array {
+		return $this->changes->pending_ids_of_post( $post_id, $undone, $origin, $ai );
 	}
 
 	/**
@@ -400,7 +481,7 @@ final class Reader {
 	 *
 	 * @param array $full Cambios con su HTML, por id.
 	 *
-	 * @phpstan-param array<int, array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string}> $full
+	 * @phpstan-param array<int, array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string, ai_recommended: bool, ai_anchor: bool, ai_model: string}> $full
 	 *
 	 * @return array{batches: array<string, int>}
 	 */
@@ -429,7 +510,7 @@ final class Reader {
 	 * @param array $change  Fila del historial con HTML.
 	 * @param array $context Ver {@see self::change_context()}.
 	 *
-	 * @phpstan-param array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string} $change
+	 * @phpstan-param array{id: int, batch_id: string, post_id: int, action: string, before_html: string, after_html: string, user_id: int, created_at: string, undone_at: string|null, origin: string, ai_recommended: bool, ai_anchor: bool, ai_model: string} $change
 	 * @phpstan-param array{batches: array<string, int>} $context
 	 *
 	 * @return array<string, mixed>
@@ -446,6 +527,7 @@ final class Reader {
 			'batch_posts'  => $context['batches'][ $change['batch_id'] ] ?? 1,
 			'kind'         => $change['action'],
 			'origin'       => '' === $change['origin'] ? ChangeRepository::ORIGIN_PLUGIN : $change['origin'],
+			'ai'           => self::ai_of( $change ),
 			'anchor'       => $view['anchor'],
 			'url'          => $view['url'],
 			'previous_url' => $view['previous_url'],
@@ -622,8 +704,8 @@ final class Reader {
 	/**
 	 * Si el usuario puede editar todas las entradas de un grupo.
 	 *
-	 * @param int                                                                                                                        $user_id Quien mira.
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $slots   Huecos.
+	 * @param int                                                                                                                                   $user_id Quien mira.
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, ai?: bool}> $slots   Huecos.
 	 */
 	private function can_see( int $user_id, array $slots ): bool {
 		foreach ( $slots as $slot ) {
@@ -638,7 +720,7 @@ final class Reader {
 	/**
 	 * Carga de una vez las entradas de varios lotes (una consulta en vez de una por entrada).
 	 *
-	 * @param array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}>> $rows Inserciones por lote.
+	 * @param array<string, list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, ai?: bool}>> $rows Inserciones por lote.
 	 */
 	private function prime( array $rows ): void {
 		$ids = array();
@@ -656,17 +738,21 @@ final class Reader {
 	/**
 	 * Resumen de un grupo.
 	 *
-	 * @param string                                                                                                                     $batch_id Lote.
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $slots    Huecos (ya juntos).
-	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string}> $rows     Todas las inserciones.
+	 * @param string                                                                                                                                $batch_id Lote.
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, ai?: bool}> $slots    Huecos (ya juntos).
+	 * @param list<array{id: int, post_id: int, user_id: int, created_at: string, undone_at: string|null, slot: string, action: string, ai?: bool}> $rows     Todas las inserciones.
 	 *
 	 * @return array<string, mixed>
 	 */
 	private function summary( string $batch_id, array $slots, array $rows ): array {
 		$posts  = array();
 		$undone = 0;
+		$ai     = 0;
 		foreach ( $slots as $slot ) {
 			$posts[ $slot['post_id'] ] = true;
+			if ( ! empty( $slot['ai'] ) ) {
+				++$ai;
+			}
 			if ( null !== $slot['undone_at'] ) {
 				++$undone;
 			}
@@ -689,6 +775,7 @@ final class Reader {
 			'user_name'  => self::user_name( $user ),
 			'origin'     => self::origin_of( $rows ),
 			'links'      => count( $slots ),
+			'ai_links'   => $ai,
 			'active'     => count( $slots ) - $undone,
 			'undone'     => $undone,
 			'posts'      => count( $posts ),
@@ -707,6 +794,26 @@ final class Reader {
 	 */
 	private static function origin_of( array $rows ): string {
 		return ChangeRepository::ORIGIN_EDITOR === ( $rows[0]['origin'] ?? '' ) ? ChangeRepository::ORIGIN_EDITOR : ChangeRepository::ORIGIN_PLUGIN;
+	}
+
+	/**
+	 * Lo que se sabe de la IA en un cambio (F1-38): null si no la recomendó; si no, si se usó su ancla y con qué modelo.
+	 *
+	 * @param array $change Fila del historial.
+	 *
+	 * @phpstan-param array{ai_recommended: bool, ai_anchor: bool, ai_model: string} $change
+	 *
+	 * @return array{anchor: bool, model: string}|null
+	 */
+	private static function ai_of( array $change ): ?array {
+		$ai = AiOrigin::from_row( $change );
+
+		return null === $ai
+			? null
+			: array(
+				'anchor' => $ai->anchor,
+				'model'  => $ai->model,
+			);
 	}
 
 	/**

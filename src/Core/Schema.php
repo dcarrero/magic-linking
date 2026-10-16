@@ -32,6 +32,26 @@ final class Schema {
 	public const TABLES = array( 'docs', 'terms', 'postings', 'links', 'rules', 'changes', 'jobs', 'dismissed' );
 
 	/**
+	 * Columnas que añadió el esquema 6 a `changes` (F1-38): las tres tienen que existir.
+	 */
+	public const AI_COLUMNS = array( 'ai_recommended', 'ai_anchor', 'ai_model' );
+
+	/**
+	 * Si una tabla tiene todas esas columnas (un `ALTER` que falla a medias deja solo algunas).
+	 *
+	 * @param \wpdb  $wpdb    Conexión.
+	 * @param string $table   Una de TABLES.
+	 * @param array  $columns Columnas que tienen que estar.
+	 *
+	 * @phpstan-param list<string> $columns
+	 */
+	public static function has_columns( \wpdb $wpdb, string $table, array $columns ): bool {
+		$found = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', self::table( $wpdb->prefix, $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Comprobación del esquema, no hay nada que cachear.
+
+		return array() === array_diff( $columns, array_map( 'strval', $found ) );
+	}
+
+	/**
 	 * Nombre completo de una tabla.
 	 *
 	 * @param string $site_prefix Prefijo del sitio ($wpdb->prefix).
@@ -161,6 +181,9 @@ final class Schema {
   undone_at datetime NULL,
   origin varchar(20) NOT NULL DEFAULT 'plugin',
   origin_key char(40) NULL,
+  ai_recommended tinyint(1) unsigned NOT NULL DEFAULT 0,
+  ai_anchor tinyint(1) unsigned NOT NULL DEFAULT 0,
+  ai_model varchar(100) NULL,
   PRIMARY KEY  (id),
   KEY batch_id (batch_id),
   KEY post_created (post_id,created_at),

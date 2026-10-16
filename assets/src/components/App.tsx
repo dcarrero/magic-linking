@@ -250,6 +250,7 @@ export function App( {
 						) }
 						{ tab === 'history' && (
 							<HistoryTab
+								exportUrl={ exportUrl }
 								settingsUrl={
 									canManage ? tabUrls.settings : undefined
 								}

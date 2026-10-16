@@ -4,6 +4,7 @@ import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import { AiBar } from './AiBar';
+import { aiLinkInfo, type AiLinkInfo } from './ai';
 import type { Suggestion } from '../types';
 import type { ApplyFailure, EditorAdapter } from './adapters/types';
 import type { EditorBoot } from './boot';
@@ -150,12 +151,19 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 		return () => window.clearTimeout( timer );
 	}, [ focusKey, clearFocusKey ] );
 
-	const linkOutbound = ( suggestion: Suggestion ) => {
+	const linkOutbound = (
+		suggestion: Suggestion,
+		ai: AiLinkInfo | null = null
+	) => {
 		const result = adapter.apply( suggestion );
 		if ( result.ok ) {
 			const message = __( 'Link added.', 'magic-linking' );
 			// Al guardar la entrada se registra en el Historial; si se deshace aquí antes, deja de contar.
-			const insertion = state.trackInsertion( suggestion, result.anchor );
+			const insertion = state.trackInsertion(
+				suggestion,
+				result.anchor,
+				ai
+			);
 			setStatus( suggestion, {
 				kind: 'added',
 				message,
@@ -421,6 +429,7 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 													item,
 													original,
 													mark,
+													aiAnchor,
 												} ) => (
 													<SuggestionCard
 														key={ suggestionKey(
@@ -447,7 +456,16 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 														historyUrl={
 															boot.historyUrl
 														}
-														onLink={ linkOutbound }
+														onLink={ ( card ) =>
+															linkOutbound(
+																card,
+																// Si la IA la recomendaba, se anota para el Historial (F1-38).
+																aiLinkInfo(
+																	mark,
+																	aiAnchor
+																)
+															)
+														}
 														onDismiss={ ( card ) =>
 															dismiss(
 																card,
