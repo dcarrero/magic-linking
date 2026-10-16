@@ -27,20 +27,23 @@ rsync -a --exclude-from=.distignore --exclude-from="${IGNORED}" --exclude=/vendo
 cp composer.lock "${BUILD}/"
 composer install --working-dir="${BUILD}" --no-dev --optimize-autoloader --classmap-authoritative --no-interaction --quiet
 # composer.json se queda: wordpress.org lo pide cuando hay vendor/.
-# Documentación de la dependencia que el plugin no usa (instrucciones para agentes, historial de cambios y READMEs); las licencias se quedan.
-rm -f "${BUILD}/vendor/woocommerce/action-scheduler/"{AGENTS.md,CLAUDE.md,changelog.txt,README.md} "${BUILD}/vendor/woocommerce/action-scheduler/lib/cron-expression/README.md"
+# Documentación de la dependencia que el plugin no usa (instrucciones para agentes, historial de cambios, READMEs y readme.txt); las licencias se quedan.
+rm -f "${BUILD}/vendor/woocommerce/action-scheduler/"{AGENTS.md,CLAUDE.md,changelog.txt,README.md} "${BUILD}/vendor/woocommerce/action-scheduler/lib/cron-expression/README.md" "${BUILD}/vendor/woocommerce/action-scheduler/readme.txt"
 rm "${BUILD}/composer.lock"
 
-(cd dist && zip -rq "${SLUG}.zip" "${SLUG}")
+# -9 máxima compresión, -X sin atributos extra de macOS/Unix, -D sin entradas de carpeta.
+(cd dist && zip -rq9XD "${SLUG}.zip" "${SLUG}")
 
 # Comprobación final: nada oculto ni de desarrollo dentro de <slug>/.
 HIDDEN="$(unzip -Z1 "dist/${SLUG}.zip" | grep -E "^${SLUG}/(.*/)?\.[^/]" || true)"
 DEVDIRS="$(unzip -Z1 "dist/${SLUG}.zip" | grep -E "^${SLUG}/(tests|node_modules|bin|dist)(/|$)" || true)"
 # Las pruebas de JavaScript viven junto al código en assets/src; no son código fuente del plugin.
 JSTESTS="$(unzip -Z1 "dist/${SLUG}.zip" | grep -E "^${SLUG}/assets/src/(.*/)?(test/|[^/]*\.test\.[jt]sx?$)" || true)"
-if [ -n "${HIDDEN}${DEVDIRS}${JSTESTS}" ]; then
+# Documentación de Action Scheduler que se retira a propósito: no debe reaparecer.
+ASDOCS="$(unzip -Z1 "dist/${SLUG}.zip" | grep -E "^${SLUG}/vendor/woocommerce/action-scheduler/(AGENTS\.md|CLAUDE\.md|changelog\.txt|README\.md|readme\.txt|lib/cron-expression/README\.md)$" || true)"
+if [ -n "${HIDDEN}${DEVDIRS}${JSTESTS}${ASDOCS}" ]; then
 	echo "El ZIP contiene ficheros ocultos o de desarrollo:" >&2
-	printf '%s\n%s\n%s\n' "${HIDDEN}" "${DEVDIRS}" "${JSTESTS}" | sed '/^$/d' | head -20 >&2
+	printf '%s\n%s\n%s\n%s\n' "${HIDDEN}" "${DEVDIRS}" "${JSTESTS}" "${ASDOCS}" | sed '/^$/d' | head -20 >&2
 	exit 1
 fi
 
