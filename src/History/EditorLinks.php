@@ -31,6 +31,10 @@ use WP_Post;
  * Si el enlace no está, aparece más de una vez o el verificador no lo da por bueno, no se registra nada.
  * La clave idempotente (entrada, sugerencia, destino, ancla e identificador de inserción del cliente) evita
  * duplicados si se guarda varias veces o se repite la petición.
+ *
+ * F1-38: cada enlace puede traer lo que el panel sabe de la IA (`ai_recommended`, `ai_anchor`, `ai_model`), apuntado
+ * al pulsar *Enlazar* y enviado con este mismo aviso, así que se casa con su fila por la misma clave. Se sanea con
+ * {@see AiOrigin} y es solo información: si falta, el enlace se registra igual, sin marca.
  */
 final class EditorLinks {
 
