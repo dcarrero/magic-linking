@@ -4,7 +4,7 @@ import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { Job, StatusResponse } from '../types';
-import { parseServerDate } from './historyFormat';
+import { formatDate } from './historyFormat';
 
 interface Props {
 	canManage: boolean;
@@ -349,9 +349,7 @@ export function IndexStatus( {
 				{ sprintf(
 					/* translators: %s: date and time of the last analysis. */
 					__( 'Last analysis: %s', 'magic-linking' ),
-					parseServerDate(
-						status.last_done.updated_at
-					).toLocaleString()
+					formatDate( status.last_done.updated_at )
 				) }{ ' ' }
 				<Button
 					variant="secondary"

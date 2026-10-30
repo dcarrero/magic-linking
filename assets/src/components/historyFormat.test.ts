@@ -2,6 +2,7 @@ import {
 	aiDetails,
 	batchAiLabel,
 	batchOriginLabel,
+	formatDate,
 	originKey,
 	parseServerDate,
 	sourceLabel,
@@ -105,5 +106,18 @@ describe( 'AI marks', () => {
 		expect( batchAiLabel( 2, 3 ) ).toBe(
 			'2 of 3 links recommended by the AI'
 		);
+	} );
+} );
+
+describe( 'formatDate', () => {
+	afterEach( () => {
+		document.documentElement.lang = '';
+	} );
+
+	it( 'follows the language of the page', () => {
+		document.documentElement.lang = 'es-ES';
+		expect( formatDate( '2026-10-30T10:00:00Z' ) ).toMatch( /oct/i );
+		document.documentElement.lang = 'en-US';
+		expect( formatDate( '2026-10-30T10:00:00Z' ) ).toMatch( /Oct/ );
 	} );
 } );

@@ -2,6 +2,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { api } from '../api';
 import type { ReportItem, Summary } from '../types';
+import { formatDate } from './historyFormat';
 import { ReportTab } from './ReportTab';
 
 jest.mock( '@wordpress/a11y', () => ( { speak: jest.fn() } ) );
@@ -166,4 +167,25 @@ describe( 'ReportTab refreshing rows after a change', () => {
 		expect( inboundCell() ).toBe( '2' );
 		expect( host.textContent ).toContain( 'Orphans (3)' );
 	} );
+} );
+
+describe( 'ReportTab dates', () => {
+	afterEach( () => {
+		document.documentElement.lang = '';
+	} );
+
+	it.each( [
+		[ 'es-ES', /oct/i ],
+		[ 'en-US', /Oct/ ],
+	] )(
+		'shows "Analyzed" like the History does in %s',
+		async ( lang, month ) => {
+			document.documentElement.lang = lang;
+			await mount();
+			const cell = host.querySelector( 'tbody time' )?.textContent;
+			expect( cell ).toBe( formatDate( '2026-10-30T10:00:00' ) );
+			expect( cell ).toMatch( month );
+			expect( cell ).not.toMatch( /\d+\/\d+\/\d+/ );
+		}
+	);
 } );
