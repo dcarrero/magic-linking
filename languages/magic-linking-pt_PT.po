@@ -2674,3 +2674,62 @@ msgstr "Só são contadas as ligações escritas dentro do conteúdo de cada pub
 #: assets/build/index.js:79
 msgid "You can also run the analysis from the terminal: %s"
 msgstr "Também pode executar a análise a partir do terminal: %s"
+
+#: src/Rest/ReportController.php:203
+msgid "That entry is not in the analysis."
+msgstr ""
+
+#: assets/build/index.js:71
+msgid "The suggestions could not be loaded."
+msgstr ""
+
+#. translators: %d: number of suggestions.
+#: assets/build/index.js:72
+#: assets/build/index.js:77
+#, js-format
+msgid "%d suggestion"
+msgid_plural "%d suggestions"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: title of the destination.
+#: assets/build/index.js:74
+#, js-format
+msgid "Link to “%s” added."
+msgstr ""
+
+#: assets/build/index.js:74
+msgid "The text has changed since the link was added, so it could not be removed automatically. Open the history to see why."
+msgstr ""
+
+#. translators: %s: entry title.
+#: assets/build/index.js:75
+#, js-format
+msgid "Inbound suggestions: %s"
+msgstr ""
+
+#. translators: %s: entry title.
+#: assets/build/index.js:76
+#, js-format
+msgid "Outbound suggestions: %s"
+msgstr ""
+
+#: assets/build/index.js:76
+msgid "Sentences in other entries where a link to this one fits. Each link is added right away, one at a time, without opening the editor of that entry, and you can undo it."
+msgstr ""
+
+#: assets/build/index.js:76
+msgid "Sentences in this entry where a link to another entry fits. Each link is added right away, one at a time, without opening the editor, and you can undo it."
+msgstr ""
+
+#: assets/build/index.js:77
+msgid "Outbound suggestions pages"
+msgstr ""
+
+#: assets/build/index.js:80
+msgid "Inbound suggestions"
+msgstr ""
+
+#: assets/build/index.js:80
+msgid "Outbound suggestions"
+msgstr ""

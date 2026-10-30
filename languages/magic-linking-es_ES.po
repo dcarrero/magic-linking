@@ -2675,3 +2675,62 @@ msgstr "Solo se cuentan los enlaces escritos dentro del contenido de cada entrad
 #: assets/build/index.js:79
 msgid "You can also run the analysis from the terminal: %s"
 msgstr "También puedes ejecutar el análisis desde el terminal: %s"
+
+#: src/Rest/ReportController.php:203
+msgid "That entry is not in the analysis."
+msgstr "Esa entrada no está en el análisis."
+
+#: assets/build/index.js:71
+msgid "The suggestions could not be loaded."
+msgstr "No se han podido cargar las sugerencias."
+
+#. translators: %d: number of suggestions.
+#: assets/build/index.js:72
+#: assets/build/index.js:77
+#, js-format
+msgid "%d suggestion"
+msgid_plural "%d suggestions"
+msgstr[0] "%d sugerencia"
+msgstr[1] "%d sugerencias"
+
+#. translators: %s: title of the destination.
+#: assets/build/index.js:74
+#, js-format
+msgid "Link to “%s” added."
+msgstr "Enlace a «%s» añadido."
+
+#: assets/build/index.js:74
+msgid "The text has changed since the link was added, so it could not be removed automatically. Open the history to see why."
+msgstr "El texto ha cambiado desde que se añadió el enlace y no se ha podido quitar solo. Abre el historial para ver el motivo."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:75
+#, js-format
+msgid "Inbound suggestions: %s"
+msgstr "Sugerencias entrantes: %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:76
+#, js-format
+msgid "Outbound suggestions: %s"
+msgstr "Sugerencias salientes: %s"
+
+#: assets/build/index.js:76
+msgid "Sentences in other entries where a link to this one fits. Each link is added right away, one at a time, without opening the editor of that entry, and you can undo it."
+msgstr "Frases de otras entradas donde encaja un enlace a esta. Cada enlace se añade al momento, de uno en uno y sin abrir el editor de esa entrada, y puedes deshacerlo."
+
+#: assets/build/index.js:76
+msgid "Sentences in this entry where a link to another entry fits. Each link is added right away, one at a time, without opening the editor, and you can undo it."
+msgstr "Frases de esta entrada donde encaja un enlace a otra. Cada enlace se añade al momento, de uno en uno y sin abrir el editor, y puedes deshacerlo."
+
+#: assets/build/index.js:77
+msgid "Outbound suggestions pages"
+msgstr "Páginas de sugerencias salientes"
+
+#: assets/build/index.js:80
+msgid "Inbound suggestions"
+msgstr "Sugerencias entrantes"
+
+#: assets/build/index.js:80
+msgid "Outbound suggestions"
+msgstr "Sugerencias salientes"
