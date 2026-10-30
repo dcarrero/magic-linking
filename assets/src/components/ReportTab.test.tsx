@@ -1,8 +1,8 @@
+// The `test:js` script sets TZ=Asia/Tokyo (not UTC), so reading the server date as local time would change the hour.
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { api } from '../api';
 import type { ReportItem, Summary } from '../types';
-import { formatDate } from './historyFormat';
 import { ReportTab } from './ReportTab';
 
 jest.mock( '@wordpress/a11y', () => ( { speak: jest.fn() } ) );
@@ -175,17 +175,16 @@ describe( 'ReportTab dates', () => {
 	} );
 
 	it.each( [
-		[ 'es-ES', /oct/i ],
-		[ 'en-US', /Oct/ ],
+		[ 'es-ES', /^30 oct 2026,\s19:00$/ ],
+		[ 'en-US', /^Oct 30, 2026,\s7:00\sPM$/ ],
 	] )(
-		'shows "Analyzed" like the History does in %s',
-		async ( lang, month ) => {
+		'shows "Analyzed" in %s with the UTC instant converted to the browser zone',
+		async ( lang, expected ) => {
 			document.documentElement.lang = lang;
 			await mount();
-			const cell = host.querySelector( 'tbody time' )?.textContent;
-			expect( cell ).toBe( formatDate( '2026-10-30T10:00:00' ) );
-			expect( cell ).toMatch( month );
-			expect( cell ).not.toMatch( /\d+\/\d+\/\d+/ );
+			expect( host.querySelector( 'tbody time' )?.textContent ).toMatch(
+				expected
+			);
 		}
 	);
 } );

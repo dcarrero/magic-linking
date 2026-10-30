@@ -11,18 +11,67 @@ export function parseServerDate( value: string ): Date {
 	return new Date( /(Z|[+-]\d\d:?\d\d)$/.test( iso ) ? iso : iso + 'Z' );
 }
 
+const formatters = new Map< string, Intl.DateTimeFormat >();
+
+/**
+ * Idioma de la página como etiqueta BCP 47 válida; los locales de WordPress que no lo son
+ * (p. ej. `pt-PT-ao90`) caen al idioma del navegador en vez de lanzar.
+ */
+function pageLocale(): string | undefined {
+	const lang = document.documentElement.lang;
+	if ( ! lang ) {
+		return undefined;
+	}
+	try {
+		return Intl.getCanonicalLocales( lang )[ 0 ];
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Formateador de fechas cacheado por idioma y estilo (se llama una vez por fila en cada render).
+ * @param style           Estilos de fecha y hora.
+ * @param style.dateStyle
+ * @param style.timeStyle
+ */
+function formatter( style: {
+	dateStyle: 'medium' | 'full';
+	timeStyle: 'short' | 'medium';
+} ): Intl.DateTimeFormat {
+	const locale = pageLocale();
+	const key = `${ locale ?? '' }|${ style.dateStyle }|${ style.timeStyle }`;
+	let cached = formatters.get( key );
+	if ( ! cached ) {
+		cached = new Intl.DateTimeFormat( locale, style );
+		formatters.set( key, cached );
+	}
+	return cached;
+}
+
+/**
+ * Da formato a una fecha del servidor; si no es válida devuelve el texto tal cual.
+ * @param value           Fecha del servidor.
+ * @param style           Estilos de fecha y hora.
+ * @param style.dateStyle
+ * @param style.timeStyle
+ */
+function format(
+	value: string,
+	style: Parameters< typeof formatter >[ 0 ]
+): string {
+	const date = parseServerDate( value );
+	return Number.isNaN( date.getTime() )
+		? value
+		: formatter( style ).format( date );
+}
+
 /**
  * Fecha y hora en el idioma del usuario, con el formato de la pantalla.
  * @param value Fecha RFC 3339 del servidor.
  */
 export function formatDate( value: string ): string {
-	return new Intl.DateTimeFormat(
-		document.documentElement.lang || undefined,
-		{
-			dateStyle: 'medium',
-			timeStyle: 'short',
-		}
-	).format( parseServerDate( value ) );
+	return format( value, { dateStyle: 'medium', timeStyle: 'short' } );
 }
 
 /**
@@ -30,13 +79,7 @@ export function formatDate( value: string ): string {
  * @param value Fecha RFC 3339 del servidor.
  */
 export function formatFullDate( value: string ): string {
-	return new Intl.DateTimeFormat(
-		document.documentElement.lang || undefined,
-		{
-			dateStyle: 'full',
-			timeStyle: 'medium',
-		}
-	).format( parseServerDate( value ) );
+	return format( value, { dateStyle: 'full', timeStyle: 'medium' } );
 }
 
 /**
