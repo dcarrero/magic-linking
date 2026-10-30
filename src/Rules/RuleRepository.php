@@ -19,6 +19,11 @@ use wpdb;
 final class RuleRepository {
 
 	/**
+	 * Columna de las opciones de la regla (docs/03 §4.5 la llama `exclude`; guarda también el hueco de una palabra).
+	 */
+	private const OPTIONS = 'exclude';
+
+	/**
 	 * Tabla.
 	 *
 	 * @var string
@@ -178,7 +183,7 @@ final class RuleRepository {
 			'lang'         => $rule->lang,
 			'max_per_post' => $rule->max_per_post,
 			'first_only'   => $rule->first_only ? 1 : 0,
-			'exclude'      => $rule->options_json(),
+			self::OPTIONS  => $rule->options_json(),
 			'active'       => $rule->active ? 1 : 0,
 		);
 	}

@@ -803,6 +803,7 @@ test.describe( 'Internal links', () => {
 			'Report',
 			'Broken links',
 			'History',
+			'Rules',
 			'Settings',
 		] );
 	} );
