@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.22.1
+Stable tag: 0.23.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Internal link suggestions in the editor. Link in one click, check that nothing e
 
 Magic Linking suggests internal links while you write, adds the one you choose without touching anything else, and keeps a history so you can undo it. It also reports which of your entries are orphans, under-linked, over-linked or have broken internal links.
 
-It works entirely on your server, with no account, no key and no limits. Artificial intelligence is optional: it only runs if you have connected an AI provider in WordPress (Settings > Connectors) and press *Improve with AI* in the panel.
+It works entirely on your server, with no account, no key and no limits, not even on the number of automatic rules. Artificial intelligence is optional: it only runs if you have connected an AI provider in WordPress (Settings > Connectors) and press *Improve with AI* in the panel.
 
 **In the editor**
 
@@ -25,12 +25,21 @@ It works entirely on your server, with no account, no key and no limits. Artific
 * **Dismiss**: a suggestion you do not want can be dismissed for good, from either side, and restored with *Undo*.
 * **Improve with AI (optional)**: if your site has an AI connector (WordPress 7.0 or later, Settings > Connectors), the *Outbound* tab shows an *Improve with AI* button. One click sends the best 20 suggestions to your AI provider in a single request; it puts the best ones first, marks the ones it does not recommend and may propose a better anchor text (always a stretch of the same sentence, and only used if you accept it). It shows what that request cost. See "AI and your privacy".
 
+**Automatic rules**
+
+* **Rules**: a screen where you say "this phrase links to this entry". A rule has a phrase and its variants, a destination (a published entry), how many links to add per entry, whether to link only the first appearance, and an optional gap of one word (so "heat pump" also matches "heat water pump"). You can leave out post types and categories, and pause or edit a rule at any time. There is no limit on the number of rules.
+* **Applied by themselves when you publish or update**: when a published entry is saved with new text, the rules are applied in the background, not during the save. If the entry is open in someone's editor, Magic Linking waits and tries again later instead of touching it. Drafts are not linked; they are when you publish them.
+* **Applied to what you already have, one entry at a time**: *Apply to existing entries* lists the entries where the rule fits, shows the sentence with the link that would be added and an *Add link* button for each one, with *Undo*. There is no "apply to all" button.
+* **Quality limits**: a rule only adds links. It never removes or changes a link you already have, never links inside a link, and respects your limits: words per link, links to the same target from one entry (Settings > Suggestions) and entries that can use the same anchor text for the same target.
+* **A link you undo does not come back**: if you undo a link added by a rule, the same rule does not add it again to that entry (unless you edit the rule).
+* WP-CLI: `wp magic-linking rules` (list, add, delete, scan, apply).
+
 **How and when it changes your content**
 
-* Nothing is changed until you press *Link* on a suggestion. There are no automatic changes and no background rewriting.
+* Nothing is changed until you press *Link* on a suggestion, apply a rule to an entry, or publish or update an entry that matches a rule you created. Suggestions never change anything by themselves, and rules only add links.
 * For the entry you have open, the link is inserted in the editor; saving is up to you.
 * For inbound suggestions, the link is written into the other entry on the server. Before saving, Magic Linking checks that the rest of that entry stays exactly as it was: only the link is added. If the check fails, it writes nothing and tells you why. WordPress keeps a revision of the entry as usual.
-* Every change is recorded in **History**, where you can undo it and redo it. Links you add from the editor panel are listed there too once you save the entry; Magic Linking only records them. Undo removes only that link; if the text around it was edited since, it tells you instead of guessing.
+* Every change is recorded in **History**, where you can undo it and redo it; links added by a rule are marked "Automatic rule". Links you add from the editor panel are listed there too once you save the entry; Magic Linking only records them. Undo removes only that link; if the text around it was edited since, it tells you instead of guessing.
 * An entry that is open in someone's editor is never modified from the server.
 * Links already written in your content are never removed or rewritten, except to undo a link Magic Linking added or when you fix a broken link from its list.
 
@@ -64,7 +73,8 @@ It works entirely on your server, with no account, no key and no limits. Artific
 
 * It does not need artificial intelligence. Everything works without it. When you use it, it is only through the AI client and the *Connectors* screen that WordPress itself provides, never with keys or credit of its own.
 * It does not check links over the network: a link is "broken" when it points to an address on your own site that leads nowhere, according to WordPress. Links to other sites are counted, not checked.
-* It does not suggest or add links automatically while you are away. Every link is a click of yours.
+* It does not add links by itself, except for the rules you create yourself. Suggestions always need a click of yours.
+* It does not apply a rule to all your existing entries at once: you review and add them one by one.
 
 **How links are counted**
 
@@ -84,7 +94,7 @@ It works entirely on your server, with no account, no key and no limits. Artific
 
 **Roadmap**
 
-Next: several phrases per destination and adjustable anchor text, automatic rules and, with the AI connectors that WordPress already provides, suggestions by meaning (when WordPress offers embeddings).
+Next: several phrases per destination and adjustable anchor text and, with the AI connectors that WordPress already provides, suggestions by meaning (when WordPress offers embeddings).
 
 == Installation ==
 
@@ -100,13 +110,30 @@ From the terminal: `wp magic-linking index` analyses the site and `wp magic-link
 
 = Does it change my posts or pages? =
 
-Only when you press *Link* on a suggestion, and only by adding that link.
+Only when you press *Link* on a suggestion or apply a rule, or when you publish or update an entry that matches a rule you created. In every case it only adds a link.
 
 * Outbound suggestions (for the entry you are editing): the link is inserted in the editor itself. You save the entry when you want, as with any other change.
 * Inbound suggestions (links from other entries to this one): the link is written into the other entry on the server. The rest of that entry must stay identical, byte for byte, or nothing is written. WordPress creates a revision, and the change is listed in History, where you can undo it.
+* Automatic rules (the ones you create in Magic Linking > Rules) add their links in the background after you publish or update an entry, with the same check and the same entry in History.
 * It never modifies an entry that is open in an editor, and it only edits, removes or rewrites a link you already had when you ask for it from the broken links list (change its destination or remove it, keeping its text), with the same check and undo.
 
 Everything else (the report, the index, the settings, the broken links list until you fix one) only reads your content and writes to its own tables.
+
+= How do automatic rules work? =
+
+Go to **Magic Linking > Rules**, add a rule (a phrase, its variants and the entry it should link to) and save it. From then on, when you publish or update an entry whose text contains the phrase, the link is added in the background. To use a rule on entries you already have, press *Apply to existing entries* on the rule, review the sentence shown for each entry and press *Add link* on the ones you want. You can create as many rules as you like. Rules never remove or change a link and respect your limits in Settings > Suggestions.
+
+= Can I apply a rule to all my entries at once? =
+
+No. In this version you add the links one entry at a time, after seeing the sentence. Each one is recorded in History as "Automatic rule" and can be undone.
+
+= I undid a link that a rule added. Will it come back? =
+
+No. A rule does not add again a link you undid in that entry. If you edit the rule (phrase, destination or options), it counts as a new rule and may add its link again.
+
+= Can I add links from the report without opening the entry? =
+
+Yes. On each row of the report, *Inbound suggestions* and *Outbound suggestions* open a side panel with the same suggestions as the editor. Press *Link* on the ones you like; the numbers of the row update and you can undo each link there or from History. You need permission to edit that entry.
 
 = How do I undo a link? =
 
@@ -231,6 +258,12 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 
 == Changelog ==
 
+= 0.23.0 =
+* New: automatic rules. In Magic Linking > Rules, say that a phrase (and its variants, with an optional gap of one word) links to an entry; there is no limit on the number of rules. They are applied in the background when you publish or update an entry, waiting if it is open in an editor, and you can apply a rule to the entries you already have, one by one, with a preview and Undo.
+* New: rules respect quality limits and only add links. The new setting "Links to the same target from one entry" (Settings > Suggestions) caps how many links one entry gets to the same target, and a link you undo does not come back.
+* New: History marks the links added by rules as "Automatic rule", also in the filter, the CSV export and WP-CLI (`wp magic-linking rules`).
+* New: add links from the report. On each row, *Inbound suggestions* and *Outbound suggestions* open a panel with the same cards as the editor, so you can link one by one without opening the entry, with History and Undo. The numbers of the row update by themselves.
+
 = 0.22.1 =
 * Fixed: in an entry whose whole content is a Classic block inside the block editor, the Link button now adds the link (it said "the text has changed"). Only the link is added: the rest of the block's HTML stays byte for byte as it was. When the sentence is somewhere the panel cannot link (a heading, quote or table you have not allowed, or a shortcode), it now says so instead of claiming the text changed.
 * Fixed: History shows the titles of entries as text (no "&#8230;" or "&amp;"), also in the CSV export.
@@ -295,6 +328,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 0.23.0 =
+Adds automatic rules (Magic Linking > Rules) and lets you add links one by one from the report. Rules only add links, use the table of rules that already existed and are applied to existing entries only one at a time. The update does not touch your content.
 
 = 0.22.1 =
 The Link button now works in entries made of a single Classic block in the block editor. History now marks the links the AI recommended and can be exported to CSV. The update adds three columns to the history table by itself and does not touch your content.

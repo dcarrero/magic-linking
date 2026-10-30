@@ -9,7 +9,7 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 
 *Enlazado interno para WordPress que funciona gratis de verdad, con la IA que ya tiene tu WordPress y sin vender créditos.*
 
-> **Status: version 0.20 ([0.11 is the latest on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
+> **Status: version 0.23.0 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
 
 ## 🚀 Features
 
@@ -17,7 +17,9 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 - **🖱️ One-click linking** - The link is inserted in the editor itself, on that phrase only; you save when you want, and you can undo it from the card
 - **📥 Inbound suggestions** - Other entries that mention the one you are editing; the link is written there, on the server, and the rest of that entry must stay identical byte for byte or nothing is written. WordPress keeps a revision
 - **↩️ History with undo and redo** - Every link Magic Linking changes (server, editor panel and broken-link fixes) is listed, grouped by entry with dates and filters, undo or redo one change, an entry or a batch; configurable retention (30, 90, 365 days or forever); large groups are undone in the background
+- **🤖 Automatic rules** - Unlimited rules (phrase and variants, optional one-word gap → entry) applied in the background when you publish or update, waiting if the entry is open in an editor; apply a rule to existing entries one by one with a preview and undo; they only add links and respect your limits
 - **🧭 Link report** - Orphan, under-linked and over-linked entries, with inbound, internal outbound, external and broken counts for every entry
+- **➕ Add links from the report** - *Inbound suggestions* and *Outbound suggestions* on each row open a panel with the same cards as the editor; link one by one without opening the entry, with History and undo
 - **🔎 Filters and search** - Filter by problem type, search by title, sort, paginate
 - **📤 CSV export** - Export the exact view you are looking at
 - **🩹 Broken internal links** - Complete list with anchor text, reason and a link to edit the source entry (trash, draft, private or non-existent targets); fix each one by changing its destination or removing the link, with undo
@@ -29,11 +31,12 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 
 ### When it changes your content
 
-Only when you press **Link** on a suggestion, and only by adding that link. It never edits an entry that is open in an editor, never rewrites links you already had and never links entries of different languages. Everything else (index, report, settings) only reads your content.
+Only when you press **Link** on a suggestion or apply a rule, or when you publish or update an entry that matches a rule you created, and always only by adding a link. It never edits an entry that is open in an editor, never rewrites links you already had and never links entries of different languages. Everything else (index, report, settings) only reads your content.
 
 ### What it does not do (yet)
 
 - It does not need AI and has no servers or keys of its own. If your site has an AI connector (**Settings → Connectors**, WordPress 7.0+), the **Improve with AI** button in the editor panel sends the best 20 suggestions to your provider in one request, only when you press it, with a cost estimate first and a daily token cap you set. Semantic suggestions (embeddings) wait for WordPress 7.2.
+- It does not apply a rule to all your existing entries at once: you review and add them one by one (in bulk is for Pro).
 - It does not check links over the network: a link is "broken" when it points to an address of your own site that leads nowhere, according to WordPress. Links to other sites are counted, not checked.
 
 ## 🛠️ Installation
@@ -73,7 +76,8 @@ See [Development](#-development) to build the assets.
 3. **History**: undo or redo any change, by entry or by batch.
 4. **Report**: use the filters *Orphans*, *Under-linked*, *Over-linked* and *With broken links*; export to CSV.
 5. **Broken links**: review each broken internal link and fix it: change its destination, remove the link or open its entry.
-6. **Settings**: thresholds for under-linked and over-linked entries, history retention, full re-analysis (*Maintenance*) and what to do with the data when the plugin is deleted.
+6. **Rules**: create phrase → entry rules; they apply themselves on publish or update, and *Apply to existing entries* adds them one by one.
+7. **Settings**: thresholds for under-linked and over-linked entries, history retention, full re-analysis (*Maintenance*) and what to do with the data when the plugin is deleted.
 
 ### WP-CLI
 
@@ -84,6 +88,7 @@ wp magic-linking report --filter=orphans --format=csv     # orphan pages as CSV
 wp magic-linking broken                                   # broken internal links
 wp magic-linking job list                                 # background jobs (also: pause, resume, cancel)
 wp magic-linking history list                             # history (also: undo, redo, purge; undo|redo --post=<id>)
+wp magic-linking rules list                               # automatic rules (also: add, delete, scan, apply, run)
 ```
 
 ### How links are counted
@@ -106,8 +111,9 @@ Legend: ✅ done · 🔜 planned. No dates and no prices; the order can change.
 - ✅ Outbound and inbound link suggestions in the editor (block editor and classic), with the reason for each one
 - ✅ One-click insertion touching only the affected block, verified, with history and **undo / redo**
 - 🔜 Several phrases per destination and adjustable anchor text
-- 🔜 Automatic rules (phrase → URL), unlimited, applied on save
-- 🔜 Remove or change broken links one by one
+- ✅ Automatic rules (phrase → entry), unlimited, applied on publish or update and to existing entries one by one
+- ✅ Add links one by one from the report
+- ✅ Remove or change broken links one by one
 - ✅ Optional AI through the WordPress AI client (**Settings → Connectors**): *Improve with AI* reorders the suggestions, flags the ones it does not recommend and may propose a better anchor, with cost estimate and a daily cap you set
 - 🔜 Suggestions by meaning (embeddings) when WordPress 7.2 provides them
 - 🔜 Pillar content (own flag, Yoast or Rank Math) and Ignore / Consider / Require filters by post type, category and tag
@@ -117,7 +123,7 @@ Legend: ✅ done · 🔜 planned. No dates and no prices; the order can change.
 
 A separate add-on that hooks into the free plugin without unlocking or expanding anything it already does. It adds:
 
-- 🔜 **In bulk:** link many entries at once with a full preview and a single undo; apply rules to existing entries; fix broken links in bulk
+- 🔜 **In bulk:** link many entries at once with a full preview and a single undo; apply rules to all existing entries at once; fix broken links in bulk
 - 🔜 **Automation:** site-wide background processes, HTTP checking of links (also external), suggested replacements
 - 🔜 **Connections:** page builders, Search Console, other sites, agents (Abilities API)
 - 🔜 Advanced history and audit
@@ -175,6 +181,10 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 [GPL-2.0-or-later](LICENSE).
 
 ## 📝 Changelog
+
+### 0.23.0
+- Automatic rules (F1-13): *Rules* screen with no limit on rules (phrase and variants, optional one-word gap, destination, links per entry, exclusions); applied in the background on publish or update, waiting for the editor to close; applied to existing entries one by one with preview and undo; new setting "Links to the same target from one entry"; an undone link does not come back; History origin "Automatic rule"; `wp magic-linking rules`.
+- Add links from the report (F1-26): *Inbound suggestions* and *Outbound suggestions* on each row open a panel with the editor's cards; individual insertion with History and undo; row numbers refresh by themselves.
 
 ### 0.22.1
 - Link inside the Classic block of the block editor (`core/freeform`): the link is inserted on the block's raw HTML string (only `<a …>` and `</a>`, verified before writing, rest byte for byte) with the same rules as the server; new failure reasons (`unsupported`, `crosses_format`, `unsafe`) replace the misleading "the text has changed".
