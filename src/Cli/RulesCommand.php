@@ -110,13 +110,15 @@ final class RulesCommand {
 	 * : Enlaces como máximo por entrada. Por defecto 1 (lo limita el ajuste «Enlaces al mismo destino desde una entrada»).
 	 *
 	 * [--first-only]
-	 * : Solo la primera aparición de cada frase (por defecto).
+	 * : Solo la primera aparición de cada frase (por defecto). Con `--no-first-only` se enlazan todas las apariciones hasta el máximo.
 	 *
 	 * [--word-gap]
 	 * : Admite una palabra más entre dos de la frase.
 	 *
 	 * [--inactive]
 	 * : La crea sin activar.
+	 *
+	 * El autor de la regla es el usuario de WP-CLI (`--user=<id>`); sin él, la regla se aplica como el sistema.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -129,29 +131,27 @@ final class RulesCommand {
 		unset( $args );
 
 		$input = array(
-			'phrases'   => explode( '|', (string) ( $assoc_args['phrases'] ?? '' ) ),
-			'target_id' => absint( $assoc_args['target'] ?? 0 ),
-			'active'    => empty( $assoc_args['inactive'] ),
-			'word_gap'  => ! empty( $assoc_args['word-gap'] ),
+			'phrases'    => explode( '|', (string) ( $assoc_args['phrases'] ?? '' ) ),
+			'target_id'  => absint( $assoc_args['target'] ?? 0 ),
+			'active'     => empty( $assoc_args['inactive'] ),
+			'first_only' => ! isset( $assoc_args['first-only'] ) || filter_var( $assoc_args['first-only'], FILTER_VALIDATE_BOOLEAN ),
+			'word_gap'   => ! empty( $assoc_args['word-gap'] ),
 		);
 		if ( isset( $assoc_args['max-per-post'] ) ) {
 			$input['max_per_post'] = (int) $assoc_args['max-per-post'];
 		}
-		if ( isset( $assoc_args['first-only'] ) ) {
-			$input['first_only'] = true;
-		}
 
-		$rule = $this->validator->validate( $input, null, 0 );
+		$rule = $this->validator->validate( $input, null, get_current_user_id() );
 		if ( $rule instanceof WP_Error ) {
 			WP_CLI::error( $rule->get_error_message() );
 			return;
 		}
 		$id = $this->rules->insert( $rule );
 		if ( $id < 1 ) {
-			WP_CLI::error( 'The rule could not be saved.' );
+			WP_CLI::error( __( 'The rule could not be saved.', 'magic-linking' ) );
 			return;
 		}
-		WP_CLI::success( sprintf( 'Rule %d created.', $id ) );
+		WP_CLI::success( sprintf( /* translators: %d: rule ID. */ __( 'Rule %d created.', 'magic-linking' ), $id ) );
 	}
 
 	/**
@@ -170,10 +170,10 @@ final class RulesCommand {
 
 		$id = absint( $args[0] ?? 0 );
 		if ( null === $this->rules->find( $id ) || ! $this->rules->delete( $id ) ) {
-			WP_CLI::error( sprintf( 'Rule %d does not exist.', $id ) );
+			WP_CLI::error( sprintf( /* translators: %d: rule ID. */ __( 'Rule %d does not exist.', 'magic-linking' ), $id ) );
 			return;
 		}
-		WP_CLI::success( sprintf( 'Rule %d deleted.', $id ) );
+		WP_CLI::success( sprintf( /* translators: %d: rule ID. */ __( 'Rule %d deleted.', 'magic-linking' ), $id ) );
 	}
 
 	/**
@@ -196,7 +196,7 @@ final class RulesCommand {
 	public function scan( array $args, array $assoc_args ): void {
 		$rule = $this->rules->find( absint( $args[0] ?? 0 ) );
 		if ( null === $rule ) {
-			WP_CLI::error( 'That rule does not exist.' );
+			WP_CLI::error( __( 'That rule does not exist.', 'magic-linking' ) );
 			return;
 		}
 
@@ -214,7 +214,11 @@ final class RulesCommand {
 			}
 		} while ( ! $found['done'] && $shown < $limit );
 
-		WP_CLI::success( $found['done'] ? sprintf( '%d entries where the rule fits.', $shown ) : sprintf( '%d entries shown. Continue with --after=%d', $shown, $cursor ) );
+		if ( $found['done'] ) {
+			WP_CLI::success( sprintf( /* translators: %d: number of entries. */ _n( '%d entry where the rule fits.', '%d entries where the rule fits.', $shown, 'magic-linking' ), $shown ) );
+			return;
+		}
+		WP_CLI::success( sprintf( /* translators: 1: number of entries shown, 2: entry ID to continue after. */ __( '%1$d entries shown. Continue with --after=%2$d', 'magic-linking' ), $shown, $cursor ) );
 	}
 
 	/**
@@ -238,28 +242,35 @@ final class RulesCommand {
 		$rule = $this->rules->find( absint( $args[0] ?? 0 ) );
 		$post = get_post( absint( $assoc_args['post'] ?? 0 ) );
 		if ( null === $rule || ! $post instanceof WP_Post ) {
-			WP_CLI::error( 'That rule or entry does not exist.' );
+			WP_CLI::error( __( 'That rule or entry does not exist.', 'magic-linking' ) );
 			return;
 		}
 
 		$preview = $this->service->preview( $post, $rule );
 		if ( array() === $preview['links'] ) {
-			WP_CLI::warning( RuleService::reasons()[ $preview['skipped'] ?? '' ] ?? 'Nothing to link.' );
+			WP_CLI::warning( RuleService::reasons()[ $preview['skipped'] ?? '' ] ?? __( 'Nothing to link.', 'magic-linking' ) );
 			return;
 		}
 		foreach ( $preview['links'] as $link ) {
 			WP_CLI::line( sprintf( '…%s[%s]%s…', $link['before'], $link['anchor'], $link['after'] ) );
 		}
 		if ( empty( $assoc_args['yes'] ) ) {
-			WP_CLI::warning( 'Nothing was written. Add --yes to add these links.' );
+			WP_CLI::warning( __( 'Nothing was written. Add --yes to add these links.', 'magic-linking' ) );
 			return;
 		}
 
-		$outcome = $this->service->apply( $post, $rule, 0 );
+		$outcome = $this->service->apply( $post, $rule, get_current_user_id() );
 		foreach ( $outcome->failed as $failure ) {
 			WP_CLI::warning( $failure['message'] );
 		}
-		WP_CLI::success( sprintf( '%d link(s) added (batch %s). Undo with: wp magic-linking history undo %s', $outcome->inserted, $outcome->batch_id, $outcome->batch_id ) );
+		if ( $outcome->inserted < 1 ) {
+			// Nada que deshacer: ni éxito ni orden con un lote vacío.
+			if ( array() === $outcome->failed ) {
+				WP_CLI::warning( RuleService::reasons()[ $outcome->skipped ?? '' ] ?? __( 'Nothing was added.', 'magic-linking' ) );
+			}
+			return;
+		}
+		WP_CLI::success( sprintf( /* translators: 1: number of links added, 2: history batch ID. */ _n( '%1$d link added (batch %2$s). Undo with: wp magic-linking history undo %2$s', '%1$d links added (batch %2$s). Undo with: wp magic-linking history undo %2$s', $outcome->inserted, 'magic-linking' ), $outcome->inserted, $outcome->batch_id ) );
 	}
 
 	/**
@@ -278,13 +289,13 @@ final class RulesCommand {
 
 		$post_id = absint( $assoc_args['post'] ?? 0 );
 		if ( ! get_post( $post_id ) instanceof WP_Post ) {
-			WP_CLI::error( 'That entry does not exist.' );
+			WP_CLI::error( __( 'That entry does not exist.', 'magic-linking' ) );
 			return;
 		}
 		$added = 0;
 		foreach ( $this->service->apply_saved( $post_id ) as $outcome ) {
 			$added += $outcome->inserted;
 		}
-		WP_CLI::success( sprintf( '%d link(s) added (%s).', $added, RuleRunner::HOOK ) );
+		WP_CLI::success( sprintf( /* translators: %d: number of links added. */ _n( '%d link added.', '%d links added.', $added, 'magic-linking' ), $added ) );
 	}
 }
