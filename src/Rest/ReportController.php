@@ -12,17 +12,21 @@ namespace MagicLinking\Rest;
 use MagicLinking\Core\Module;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\ReportRepository;
-use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
 /**
- * GET /report, GET /report/{id} y GET /broken, para quien puede editar entradas.
+ * GET /report, GET /report/rows y GET /broken, para quien puede editar entradas.
  */
 final class ReportController implements Module {
 
 	public const NAMESPACE = 'magic-linking/v1';
+
+	/**
+	 * Filas que se pueden pedir de una vez en `GET /report/rows`.
+	 */
+	public const MAX_ROWS = 50;
 
 	/**
 	 * Informe.
@@ -118,16 +122,21 @@ final class ReportController implements Module {
 
 		register_rest_route(
 			self::NAMESPACE,
-			'/report/(?P<id>\\d+)',
+			'/report/rows',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'get_row' ),
+				'callback'            => array( $this, 'get_rows' ),
 				'permission_callback' => array( $this, 'can_read' ),
 				'args'                => array(
-					'id' => array(
-						'type'     => 'integer',
+					'ids' => array(
+						'type'     => 'array',
 						'required' => true,
-						'minimum'  => 1,
+						'minItems' => 1,
+						'maxItems' => self::MAX_ROWS,
+						'items'    => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+						),
 					),
 				),
 			)
@@ -190,22 +199,18 @@ final class ReportController implements Module {
 	}
 
 	/**
-	 * GET /report/{id}: la fila de una entrada con las cifras de ahora y el resumen (para refrescarla en la pantalla
-	 * tras añadir o deshacer un enlace sin volver a pedir la página entera, que reordenaría las filas).
+	 * GET /report/rows?ids=1,2: las filas de esas entradas con las cifras de ahora y el resumen, calculado una sola
+	 * vez (para refrescar la pantalla tras añadir o deshacer un enlace sin volver a pedir la página entera, que
+	 * reordenaría las filas). Se omiten las entradas que no están en el análisis o que el usuario no puede leer.
 	 *
 	 * @param WP_REST_Request $request Petición.
-	 *
-	 * @return WP_REST_Response|WP_Error
 	 */
-	public function get_row( WP_REST_Request $request ) {
-		$item = $this->report->row( (int) $request['id'] );
-		if ( null === $item ) {
-			return new WP_Error( 'magiclinking_not_found', __( 'That entry is not in the analysis.', 'magic-linking' ), array( 'status' => 404 ) );
-		}
+	public function get_rows( WP_REST_Request $request ): WP_REST_Response {
+		$ids = array_values( array_filter( array_map( 'intval', (array) $request['ids'] ), static fn( int $id ): bool => current_user_can( 'read_post', $id ) ) );
 
 		return new WP_REST_Response(
 			array(
-				'item'    => $item,
+				'items'   => $this->report->rows( $ids ),
 				'summary' => $this->report->summary(),
 			)
 		);

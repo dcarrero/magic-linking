@@ -78,10 +78,10 @@ final class ReportSuggestionsTest extends GraphTestCase {
 	 * @return array<string, mixed>
 	 */
 	private function row( int $post_id, ?int $user = null ): array {
-		$response = $this->request( 'GET', "/report/{$post_id}", array(), $user );
+		$response = $this->request( 'GET', '/report/rows', array( 'ids' => array( $post_id ) ), $user );
 		$this->assertSame( 200, $response->get_status() );
 
-		return $response->get_data()['item'];
+		return $response->get_data()['items'][0];
 	}
 
 	/**
@@ -196,21 +196,48 @@ final class ReportSuggestionsTest extends GraphTestCase {
 
 	// ------------------------------------------------------------------ La fila del informe.
 
-	public function test_the_row_route_returns_the_current_figures_and_the_summary(): void {
+	public function test_the_rows_route_returns_several_rows_with_a_single_summary(): void {
 		$this->corpus();
+		$private = self::factory()->post->create(
+			array(
+				'post_status' => 'private',
+				'post_author' => $this->admin,
+				'post_title'  => 'Privada del administrador',
+			)
+		);
 
-		$response = $this->request( 'GET', "/report/{$this->target}" );
+		$response = $this->request( 'GET', '/report/rows', array( 'ids' => array( $this->target, $this->sources[0], 99999 ) ) );
 		$this->assertSame( 200, $response->get_status() );
 		$data = $response->get_data();
-		$this->assertSame( $this->target, $data['item']['id'] );
-		$this->assertSame( 0, $data['item']['inbound'] );
-		$this->assertSame( 'orphan', $data['item']['status'] );
-		$this->assertNotSame( '', $data['item']['edit_url'] );
+		$this->assertSame( array( $this->target, $this->sources[0] ), array_column( $data['items'], 'id' ), 'Un id que no está en el análisis se omite.' );
 		$this->assertArrayHasKey( 'internal_links', $data['summary'] );
 
-		$this->assertSame( 404, $this->request( 'GET', '/report/99999' )->get_status() );
-		$this->assertSame( 403, $this->request( 'GET', "/report/{$this->target}", array(), $this->subscriber )->get_status() );
-		$this->assertSame( 401, $this->request( 'GET', "/report/{$this->target}", array(), 0 )->get_status() );
+		// Quien no puede leer una entrada no recibe su fila.
+		$as_author = $this->request( 'GET', '/report/rows', array( 'ids' => array( $private, $this->sources[0] ) ), $this->author );
+		$this->assertSame( 200, $as_author->get_status() );
+		$this->assertNotContains( $private, array_column( $as_author->get_data()['items'], 'id' ) );
+
+		$this->assertSame( 403, $this->request( 'GET', '/report/rows', array( 'ids' => array( $this->target ) ), $this->subscriber )->get_status() );
+		$this->assertSame( 401, $this->request( 'GET', '/report/rows', array( 'ids' => array( $this->target ) ), 0 )->get_status() );
+		$this->assertSame( 400, $this->request( 'GET', '/report/rows', array( 'ids' => range( 1, 51 ) ) )->get_status(), 'Con tope de ids por petición.' );
+		$this->assertSame( 400, $this->request( 'GET', '/report/rows', array() )->get_status() );
+	}
+
+	public function test_the_rows_route_computes_the_summary_once(): void {
+		$this->corpus();
+		$count = 0;
+		add_filter(
+			'query',
+			static function ( $sql ) use ( &$count ) {
+				if ( str_contains( (string) $sql, 'AS analyzed' ) ) {
+					++$count;
+				}
+				return $sql;
+			}
+		);
+		$this->request( 'GET', '/report/rows', array( 'ids' => array( $this->target, $this->sources[0], $this->sources[1] ) ) );
+
+		$this->assertSame( 1, $count, 'Un solo cálculo del resumen por petición.' );
 	}
 
 	public function test_the_row_hides_the_edit_link_from_who_cannot_edit_the_entry(): void {
