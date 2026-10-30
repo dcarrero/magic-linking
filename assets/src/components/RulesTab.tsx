@@ -297,7 +297,7 @@ export function RulesTab( { settingsUrl }: Props ) {
 					{ sprintf(
 						/* translators: 1: words per link, 2: links to the same target per entry, 3: entries with the same anchor. */
 						__(
-							'Hard limits (you can change them in Settings): no link is added to an entry that already has one internal link for every %1$d words, at most %2$d link(s) to the same target from an entry, and at most %3$d entries with the same anchor text towards the same target.',
+							'Limits that rules never exceed (change them in Settings): one internal link for every %1$d words of an entry, %2$d to the same target from one entry, and %3$d entries using the same anchor text for the same target.',
 							'magic-linking'
 						),
 						limits.words_per_link,
