@@ -191,6 +191,9 @@ final class RulesCommand {
 	 * [--after=<id>]
 	 * : Sigue la búsqueda después de esta entrada (el cursor que se imprime al final).
 	 *
+	 * [--full]
+	 * : Recorre todas las entradas, como «Search every entry» de la pantalla. Sin esto se usa el índice, que es más rápido pero puede dejarse alguna.
+	 *
 	 * @param array<int, string>   $args       Argumentos.
 	 * @param array<string, mixed> $assoc_args Opciones.
 	 */
@@ -203,9 +206,10 @@ final class RulesCommand {
 
 		$limit  = max( 1, (int) ( $assoc_args['limit'] ?? 50 ) );
 		$cursor = absint( $assoc_args['after'] ?? 0 );
+		$full   = ! empty( $assoc_args['full'] );
 		$shown  = 0;
 		do {
-			$found  = $this->service->scan( $rule, 0, $cursor, $limit - $shown, 20.0 );
+			$found  = $this->service->scan( $rule, 0, $cursor, $limit - $shown, 20.0, $full );
 			$cursor = $found['cursor'];
 			foreach ( $found['items'] as $item ) {
 				++$shown;
@@ -216,6 +220,10 @@ final class RulesCommand {
 		} while ( ! $found['done'] && $shown < $limit );
 
 		if ( $found['done'] ) {
+			if ( 0 === $shown && ! $full ) {
+				// El índice guarda los términos de más peso de cada entrada, no todas sus palabras: puede dejarse alguna.
+				WP_CLI::warning( __( 'No entry found using the index, which can miss some matches. Run it again with --full to check every entry.', 'magic-linking' ) );
+			}
 			WP_CLI::success( sprintf( /* translators: %d: number of entries. */ _n( '%d entry where the rule fits.', '%d entries where the rule fits.', $shown, 'magic-linking' ), $shown ) );
 			return;
 		}
