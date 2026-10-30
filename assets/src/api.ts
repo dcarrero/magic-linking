@@ -76,10 +76,13 @@ export interface BrokenQuery {
 	per_page: number;
 }
 
+/** Reglas por página de la lista (la API también lo acepta como `per_page`). */
+export const RULES_PER_PAGE = 50;
+
 export const api = {
 	rules: ( page: number, signal?: AbortSignal ) =>
 		apiFetch< RulesResponse >( {
-			path: path( '/rules', { page, per_page: 50 } ),
+			path: path( '/rules', { page, per_page: RULES_PER_PAGE } ),
 			signal,
 		} ),
 	ruleOptions: ( signal?: AbortSignal ) =>

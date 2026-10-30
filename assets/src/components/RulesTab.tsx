@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
-import { api, errorMessage } from '../api';
+import { api, errorMessage, RULES_PER_PAGE } from '../api';
 import { useLoad } from '../hooks';
 import type { RuleItem } from '../types';
 import { ApplyRuleModal } from './ApplyRuleModal';
 import { ConfirmModal } from './ConfirmModal';
 import { Column, DataTable } from './DataTable';
 import { RuleForm } from './RuleForm';
+import { pageAfterChange, rulesTotalPages } from './rulesPaging';
 
 interface Props {
 	settingsUrl?: string;
@@ -44,6 +45,16 @@ export function RulesTab( { settingsUrl }: Props ) {
 		[ version ],
 		__( 'Could not load the options.', 'magic-linking' )
 	);
+
+	// Si se borra la última regla de una página, se vuelve a la última que existe en vez de mostrar una vacía.
+	useEffect( () => {
+		if ( data ) {
+			const next = pageAfterChange( page, data.total, RULES_PER_PAGE );
+			if ( next !== page ) {
+				setPage( next );
+			}
+		}
+	}, [ data, page ] );
 
 	useEffect( () => {
 		if ( notice ) {
@@ -392,9 +403,10 @@ export function RulesTab( { settingsUrl }: Props ) {
 				}
 				noun="rules"
 				page={ page }
-				totalPages={
-					data ? Math.max( 1, Math.ceil( data.total / 50 ) ) : 1
-				}
+				totalPages={ rulesTotalPages(
+					data?.total ?? 0,
+					RULES_PER_PAGE
+				) }
 				total={ data?.total ?? 0 }
 				onPage={ setPage }
 			/>
