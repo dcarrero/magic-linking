@@ -222,6 +222,7 @@ export function RuleForm( { rule, options, onSaved, onCancel }: Props ) {
 							) }
 							value={ search }
 							onChange={ setSearch }
+							nested
 						/>
 						<div role="status" className="screen-reader-text">
 							{ ! targets.loading && targets.data && debounced
