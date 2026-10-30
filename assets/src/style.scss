@@ -932,3 +932,13 @@
 .magiclinking-drawer__body .description {
 	margin-top: 0;
 }
+
+// Objetivos de 24 px (WCAG 2.5.8) en las filas plegadas (enlazada o descartada) del panel del informe.
+.magiclinking-drawer {
+	.magiclinking-fold__undo,
+	.magiclinking-fold__history {
+		align-items: center;
+		display: inline-flex;
+		min-height: 24px;
+	}
+}
