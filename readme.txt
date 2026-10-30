@@ -49,6 +49,7 @@ It works entirely on your server, with no account, no key and no limits. Artific
 * **Over-linked pages**: entries with more internal links than one for every 100 words (you can change that too). A short text may always have one link.
 * **Broken internal links**: links to an entry that is in the trash, is a draft or private, or does not exist. The complete list, with the anchor text and the reason. Fix each one from the list: change its destination to another published entry, or remove the link and keep its text. Magic Linking checks that nothing else in the entry changes, and you can undo it from History.
 * Numbers for every entry: inbound, internal outbound, external and broken links.
+* **Add links from the report**: *Inbound suggestions* and *Outbound suggestions* on each row open a side panel with the suggested sentences. Press **Link** on the ones you like, one at a time, without opening the editor of the entry; the row updates its numbers and you can undo each link right there or from History.
 * Filters, search by title, sorting, pagination and **CSV export** of the view you are looking at.
 
 **Also**

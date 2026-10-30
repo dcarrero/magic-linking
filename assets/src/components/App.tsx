@@ -226,6 +226,8 @@ export function App( {
 									initialFilter={ reportFilter }
 									refreshKey={ refreshKey }
 									exportUrl={ exportUrl }
+									historyUrl={ tabUrls.history }
+									reportUrl={ tabUrls.report }
 									onSummary={ onSummary }
 									onBroken={ ( id, title ) => {
 										window.location.assign(

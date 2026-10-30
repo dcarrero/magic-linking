@@ -136,6 +136,44 @@ final class ReportRepository {
 	}
 
 	/**
+	 * Filas del informe de varias entradas, con las cifras de ahora (para refrescarlas tras añadir o deshacer un
+	 * enlace), en una sola consulta y en el orden pedido. Las que no están en el análisis se omiten.
+	 *
+	 * @param array<int, int> $post_ids Entradas.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function rows( array $post_ids ): array {
+		$post_ids = array_values( array_unique( array_filter( array_map( 'intval', $post_ids ) ) ) );
+		if ( array() === $post_ids ) {
+			return array();
+		}
+
+		$wpdb         = $this->wpdb;
+		$docs         = Schema::table( $wpdb->prefix, 'docs' );
+		$placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
+
+		$found = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Tabla propia; los marcadores son %d.
+			$wpdb->prepare( "SELECT d.post_id, p.post_title, d.post_type, d.lang, d.inbound, d.outbound, d.external, d.broken, d.word_count, d.indexed_at FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE d.post_id IN ({$placeholders})", array_merge( array( $docs, $wpdb->posts ), $post_ids ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+			ARRAY_A
+		);
+
+		$by_id = array();
+		foreach ( (array) $found as $row ) {
+			$by_id[ (int) $row['post_id'] ] = $this->item( $row );
+		}
+
+		$items = array();
+		foreach ( $post_ids as $id ) {
+			if ( isset( $by_id[ $id ] ) ) {
+				$items[] = $by_id[ $id ];
+			}
+		}
+
+		return $items;
+	}
+
+	/**
 	 * Todas las filas del informe con los filtros dados, de 500 en 500.
 	 *
 	 * @param array<string, mixed> $args Filtros y orden (sin página).

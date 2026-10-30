@@ -1,4 +1,4 @@
-import { useEffect, useState } from '@wordpress/element';
+import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import type { ReactNode } from 'react';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
@@ -6,6 +6,10 @@ import { api } from '../api';
 import { useDebounced, useIsFirstRender, useLoad } from '../hooks';
 import type { ReportFilter, ReportItem, SortKey, Summary } from '../types';
 import { Column, DataTable } from './DataTable';
+import {
+	SuggestionsDrawer,
+	type SuggestionDirection,
+} from './SuggestionsDrawer';
 import { SearchBox } from './SearchBox';
 
 interface Props {
@@ -15,6 +19,10 @@ interface Props {
 	onSummary: ( summary: Summary ) => void;
 	/** Filtro con el que se abre la lista. */
 	initialFilter?: ReportFilter;
+	/** Dirección de la pantalla Historial (para el panel de sugerencias). */
+	historyUrl?: string;
+	/** Dirección del informe (para el estado vacío del panel de sugerencias). */
+	reportUrl?: string;
 }
 
 const PER_PAGE = window.magiclinking?.perPage ?? 20;
@@ -34,6 +42,8 @@ const STATUS_LABEL: Record< ReportItem[ 'status' ], () => string > = {
  * @param root0.onBroken
  * @param root0.onSummary
  * @param root0.initialFilter
+ * @param root0.historyUrl
+ * @param root0.reportUrl
  */
 export function ReportTab( {
 	refreshKey,
@@ -41,6 +51,8 @@ export function ReportTab( {
 	onBroken,
 	onSummary,
 	initialFilter = 'all',
+	historyUrl = 'admin.php?page=magic-linking-history',
+	reportUrl = 'admin.php?page=magic-linking',
 }: Props ) {
 	const [ filter, setFilter ] = useState< ReportFilter >( initialFilter );
 	const [ search, setSearch ] = useState( '' );
@@ -52,6 +64,16 @@ export function ReportTab( {
 	const perPage = PER_PAGE;
 	const debounced = useDebounced( search );
 	const first = useIsFirstRender();
+	// Panel lateral de sugerencias de una fila y filas refrescadas desde el servidor tras añadir o deshacer un enlace.
+	const [ panel, setPanel ] = useState< {
+		row: ReportItem;
+		direction: SuggestionDirection;
+	} | null >( null );
+	// Filas y resumen releídos del servidor tras un cambio; hasta la siguiente carga, mandan sobre los de la página.
+	const [ fresh, setFresh ] = useState< {
+		rows: Record< number, ReportItem >;
+		summary: Summary | null;
+	} >( { rows: {}, summary: null } );
 
 	const query = {
 		filter,
@@ -80,11 +102,67 @@ export function ReportTab( {
 		__( 'Could not load the report.', 'magic-linking' )
 	);
 
+	// Una sola fuente para el resumen: lo leen la cabecera (onSummary) y las pestañas de filtro.
+	const summary = fresh.summary ?? data?.summary;
 	useEffect( () => {
-		if ( data ) {
-			onSummary( data.summary );
+		if ( summary ) {
+			onSummary( summary );
 		}
-	}, [ data, onSummary ] );
+	}, [ summary, onSummary ] );
+
+	const rowIds = new Set( ( data?.items ?? [] ).map( ( row ) => row.id ) );
+	const rowIdsRef = useRef( rowIds );
+	rowIdsRef.current = rowIds;
+	const pending = useRef( new Set< number >() );
+	const inFlight = useRef< AbortController | null >( null );
+
+	// Una carga nueva trae las cifras al día: lo releído a mano y lo que estuviera en vuelo ya no hacen falta.
+	useEffect( () => {
+		inFlight.current?.abort();
+		pending.current.clear();
+		setFresh( { rows: {}, summary: null } );
+	}, [ data ] );
+	useEffect( () => () => inFlight.current?.abort(), [] );
+
+	const rows = ( data?.items ?? [] ).map(
+		( row ) => fresh.rows[ row.id ] ?? row
+	);
+
+	/**
+	 * Vuelve a leer del servidor, en una sola petición, las filas visibles que cambiaron (la del panel y el origen o
+	 * destino del enlace). No se vuelve a pedir la página: reordenaría las filas y se perdería el sitio del usuario.
+	 * Cada petición cancela la anterior y solo la última puede escribir; lo que la anterior no llegó a traer se pide
+	 * de nuevo, así una respuesta vieja nunca pisa a una nueva.
+	 */
+	const refreshRows = useCallback( ( ids: number[] ) => {
+		ids.filter( ( id ) => rowIdsRef.current.has( id ) ).forEach( ( id ) =>
+			pending.current.add( id )
+		);
+		const wanted = Array.from( pending.current );
+		if ( wanted.length === 0 ) {
+			return;
+		}
+		inFlight.current?.abort();
+		const controller = new AbortController();
+		inFlight.current = controller;
+		api.reportRows( wanted, controller.signal )
+			.then( ( response ) => {
+				if ( controller.signal.aborted ) {
+					return;
+				}
+				wanted.forEach( ( id ) => pending.current.delete( id ) );
+				setFresh( ( previous ) => ( {
+					rows: {
+						...previous.rows,
+						...Object.fromEntries(
+							response.items.map( ( item ) => [ item.id, item ] )
+						),
+					},
+					summary: response.summary,
+				} ) );
+			} )
+			.catch( () => undefined );
+	}, [] );
 
 	useEffect( () => {
 		if ( ! data || first ) {
@@ -109,7 +187,6 @@ export function ReportTab( {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ data ] );
 
-	const summary = data?.summary;
 	const multilingual = summary?.multilingual ?? false;
 	const views: { id: ReportFilter; label: string; count?: number }[] = [
 		{
@@ -311,6 +388,29 @@ export function ReportTab( {
 				),
 			} );
 		}
+		if ( row.edit_url ) {
+			// Hace falta poder editar la entrada de la fila (las rutas de sugerencias lo exigen).
+			( [ 'inbound', 'outbound' ] as const ).forEach( ( direction ) =>
+				items.push( {
+					id: `suggestions-${ direction }`,
+					node: (
+						<button
+							type="button"
+							className="button-link"
+							onClick={ () => setPanel( { row, direction } ) }
+						>
+							{ direction === 'inbound'
+								? __( 'Inbound suggestions', 'magic-linking' )
+								: __(
+										'Outbound suggestions',
+										'magic-linking'
+								  ) }
+							{ title }
+						</button>
+					),
+				} )
+			);
+		}
 		if ( row.broken > 0 ) {
 			items.push( {
 				id: 'broken',
@@ -378,7 +478,7 @@ export function ReportTab( {
 			<DataTable< ReportItem, SortKey >
 				caption={ __( 'Internal links by entry', 'magic-linking' ) }
 				columns={ columns }
-				rows={ data?.items ?? [] }
+				rows={ rows }
 				rowKey={ ( row ) => row.id }
 				rowActions={ rowActions }
 				orderby={ orderby }
@@ -475,6 +575,17 @@ export function ReportTab( {
 				total={ data?.total ?? 0 }
 				onPage={ setPage }
 			/>
+
+			{ panel && (
+				<SuggestionsDrawer
+					entry={ { id: panel.row.id, title: panel.row.title } }
+					direction={ panel.direction }
+					historyUrl={ historyUrl }
+					reportUrl={ reportUrl }
+					onClose={ () => setPanel( null ) }
+					onChanged={ refreshRows }
+				/>
+			) }
 		</div>
 	);
 }

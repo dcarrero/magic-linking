@@ -65,6 +65,12 @@ export interface ReportResponse extends Paged {
 	summary: Summary;
 }
 
+/** `GET /report/rows`: las filas pedidas con las cifras de ahora y el resumen, calculado una sola vez. */
+export interface ReportRowsResponse {
+	items: ReportItem[];
+	summary: Summary;
+}
+
 export interface BrokenItem {
 	id: number;
 	source_id: number;

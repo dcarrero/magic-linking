@@ -17,11 +17,16 @@ use WP_REST_Response;
 use WP_REST_Server;
 
 /**
- * GET /report y GET /broken, para quien puede editar entradas.
+ * GET /report, GET /report/rows y GET /broken, para quien puede editar entradas.
  */
 final class ReportController implements Module {
 
 	public const NAMESPACE = 'magic-linking/v1';
+
+	/**
+	 * Filas que se pueden pedir de una vez en `GET /report/rows`.
+	 */
+	public const MAX_ROWS = 50;
 
 	/**
 	 * Informe.
@@ -117,6 +122,28 @@ final class ReportController implements Module {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/report/rows',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_rows' ),
+				'permission_callback' => array( $this, 'can_read' ),
+				'args'                => array(
+					'ids' => array(
+						'type'     => 'array',
+						'required' => true,
+						'minItems' => 1,
+						'maxItems' => self::MAX_ROWS,
+						'items'    => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/broken',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -168,6 +195,24 @@ final class ReportController implements Module {
 			$result['total'],
 			$page,
 			(int) $request['per_page']
+		);
+	}
+
+	/**
+	 * GET /report/rows?ids=1,2: las filas de esas entradas con las cifras de ahora y el resumen, calculado una sola
+	 * vez (para refrescar la pantalla tras añadir o deshacer un enlace sin volver a pedir la página entera, que
+	 * reordenaría las filas). Se omiten las entradas que no están en el análisis o que el usuario no puede leer.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	public function get_rows( WP_REST_Request $request ): WP_REST_Response {
+		$ids = array_values( array_filter( array_map( 'intval', (array) $request['ids'] ), static fn( int $id ): bool => current_user_can( 'read_post', $id ) ) );
+
+		return new WP_REST_Response(
+			array(
+				'items'   => $this->report->rows( $ids ),
+				'summary' => $this->report->summary(),
+			)
 		);
 	}
 
