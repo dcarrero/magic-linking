@@ -26,6 +26,14 @@ import type {
 	OutboundResponse,
 	RerankItem,
 	RerankResponse,
+	RuleApplyResponse,
+	RuleCandidatesResponse,
+	RuleInput,
+	RuleItem,
+	RuleOptions,
+	RulesResponse,
+	RuleStalled,
+	RuleTarget,
 	RunResponse,
 	Job,
 	ReportFilter,
@@ -69,7 +77,70 @@ export interface BrokenQuery {
 	per_page: number;
 }
 
+/** Reglas por página de la lista (la API también lo acepta como `per_page`). */
+export const RULES_PER_PAGE = 50;
+
 export const api = {
+	rules: ( page: number, signal?: AbortSignal ) =>
+		apiFetch< RulesResponse >( {
+			path: path( '/rules', { page, per_page: RULES_PER_PAGE } ),
+			signal,
+		} ),
+	dismissStalledRuleNotice: ( ruleId: number ) =>
+		apiFetch< { stalled: RuleStalled[] } >( {
+			path: path( `/rules/${ ruleId }/stalled` ),
+			method: 'DELETE',
+		} ),
+	dismissStalledRule: ( postId: number ) =>
+		apiFetch< { stalled: RuleStalled[] } >( {
+			path: path( `/rules/stalled/${ postId }` ),
+			method: 'DELETE',
+		} ),
+	ruleOptions: ( signal?: AbortSignal ) =>
+		apiFetch< RuleOptions >( { path: path( '/rules/options' ), signal } ),
+	ruleTargets: ( search: string, signal?: AbortSignal ) =>
+		apiFetch< { items: RuleTarget[] } >( {
+			path: path( '/rules/targets', { search } ),
+			signal,
+		} ),
+	createRule: ( input: RuleInput ) =>
+		apiFetch< { rule: RuleItem } >( {
+			path: path( '/rules' ),
+			method: 'POST',
+			data: input,
+		} ),
+	updateRule: ( id: number, input: Partial< RuleInput > ) =>
+		apiFetch< { rule: RuleItem } >( {
+			path: path( `/rules/${ id }` ),
+			method: 'POST',
+			data: input,
+		} ),
+	deleteRule: ( id: number ) =>
+		apiFetch< { deleted: boolean; id: number } >( {
+			path: path( `/rules/${ id }` ),
+			method: 'DELETE',
+		} ),
+	ruleCandidates: (
+		id: number,
+		cursor: number,
+		limit: number,
+		signal?: AbortSignal,
+		full = false
+	) =>
+		apiFetch< RuleCandidatesResponse >( {
+			path: path( `/rules/${ id }/candidates`, {
+				cursor,
+				limit,
+				full: full ? 1 : 0,
+			} ),
+			signal,
+		} ),
+	applyRule: ( id: number, postId: number ) =>
+		apiFetch< RuleApplyResponse >( {
+			path: path( `/rules/${ id }/apply` ),
+			method: 'POST',
+			data: { post_id: postId },
+		} ),
 	report: ( q: ReportQuery, signal?: AbortSignal ) =>
 		apiFetch< ReportResponse >( {
 			path: path( '/report', { ...q } ),

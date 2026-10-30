@@ -425,10 +425,11 @@ final class GraphRepository {
 	 * @param array<int, string> $post_types Tipos.
 	 * @param int                $after_id   Solo IDs mayores que este.
 	 * @param int                $limit      Máximo de IDs.
+	 * @param array<int, int>    $exclude    IDs que no se devuelven (p. ej. las direcciones ignoradas de Ajustes).
 	 *
 	 * @return array<int, int>
 	 */
-	public function eligible_ids( array $post_types, int $after_id, int $limit ): array {
+	public function eligible_ids( array $post_types, int $after_id, int $limit, array $exclude = array() ): array {
 		if ( array() === $post_types ) {
 			return array();
 		}
@@ -436,8 +437,13 @@ final class GraphRepository {
 		$wpdb = $this->wpdb;
 		$in   = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
 
+		$not = '';
+		if ( array() !== $exclude ) {
+			$not = ' AND ID NOT IN (' . implode( ',', array_map( 'intval', $exclude ) ) . ')';
+		}
+
 		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Consulta de análisis sobre el núcleo.
-			$wpdb->prepare( "SELECT ID FROM %i WHERE post_status = 'publish' AND ID > %d AND post_type IN ({$in}) ORDER BY ID ASC LIMIT %d", array_merge( array( $wpdb->posts, $after_id ), $post_types, array( $limit ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+			$wpdb->prepare( "SELECT ID FROM %i WHERE post_status = 'publish' AND ID > %d AND post_type IN ({$in}){$not} ORDER BY ID ASC LIMIT %d", array_merge( array( $wpdb->posts, $after_id ), $post_types, array( $limit ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
 		);
 
 		return array_map( 'intval', $ids );

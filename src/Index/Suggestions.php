@@ -15,6 +15,7 @@ use MagicLinking\Engine\Indexer;
 use MagicLinking\Engine\PhraseFinder;
 use MagicLinking\Engine\Retriever;
 use MagicLinking\Engine\Scorer;
+use MagicLinking\Engine\IgnoredWords;
 use MagicLinking\Engine\Suggester;
 use MagicLinking\Engine\Suggestion;
 use WP_Post;
@@ -228,7 +229,7 @@ final class Suggestions {
 			return $found;
 		}
 
-		$patterns = array_map( static fn( string $word ): string => '/(?<![\p{L}\p{N}])' . preg_quote( $word, '/' ) . '(?![\p{L}\p{N}])/iu', $all['ignored_words'] );
+		$patterns = IgnoredWords::patterns( $all['ignored_words'] );
 
 		return array_values(
 			array_filter(
@@ -237,13 +238,8 @@ final class Suggestions {
 					if ( in_array( $suggestion->source, $all['ignored_ids'], true ) ) {
 						return false;
 					}
-					foreach ( $patterns as $pattern ) {
-						if ( 1 === preg_match( $pattern, $suggestion->anchor ) ) {
-							return false;
-						}
-					}
 
-					return true;
+					return ! IgnoredWords::matches( $patterns, $suggestion->anchor );
 				}
 			)
 		);

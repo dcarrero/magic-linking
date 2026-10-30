@@ -25,12 +25,21 @@ final class CliModule implements Module {
 	private $factory;
 
 	/**
+	 * Fábrica de las órdenes de reglas (F1-13).
+	 *
+	 * @var callable|null
+	 */
+	private $rules_factory;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param callable $factory Devuelve la orden.
+	 * @param callable      $factory       Devuelve la orden.
+	 * @param callable|null $rules_factory Devuelve las órdenes de `wp magic-linking rules`.
 	 */
-	public function __construct( callable $factory ) {
-		$this->factory = $factory;
+	public function __construct( callable $factory, ?callable $rules_factory = null ) {
+		$this->factory       = $factory;
+		$this->rules_factory = $rules_factory;
 	}
 
 	/**
@@ -39,6 +48,9 @@ final class CliModule implements Module {
 	public function register(): void {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			WP_CLI::add_command( 'magic-linking', ( $this->factory )() );
+			if ( null !== $this->rules_factory ) {
+				WP_CLI::add_command( 'magic-linking rules', ( $this->rules_factory )() );
+			}
 		}
 	}
 }

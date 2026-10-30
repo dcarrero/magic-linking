@@ -133,3 +133,4 @@ export async function openSettingsTab(
 		name
 	);
 }
+export const SCREEN_RULES = '/wp-admin/admin.php?page=magic-linking-rules';

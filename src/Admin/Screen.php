@@ -26,6 +26,7 @@ final class Screen implements Module {
 
 	public const SLUG_BROKEN   = 'magic-linking-broken';
 	public const SLUG_HISTORY  = 'magic-linking-history';
+	public const SLUG_RULES    = 'magic-linking-rules';
 	public const SLUG_SETTINGS = 'magic-linking-settings';
 
 	/**
@@ -107,6 +108,7 @@ final class Screen implements Module {
 			'report'   => self::SLUG,
 			'broken'   => self::SLUG_BROKEN,
 			'history'  => self::SLUG_HISTORY,
+			'rules'    => self::SLUG_RULES,
 			'settings' => self::SLUG_SETTINGS,
 		);
 
@@ -131,7 +133,7 @@ final class Screen implements Module {
 	}
 
 	/**
-	 * Añade el menú «Magic Linking» y sus cuatro páginas.
+	 * Añade el menú «Magic Linking» y sus páginas.
 	 */
 	public function add_menu(): void {
 		$title = __( 'Magic Linking', 'magic-linking' );
@@ -150,6 +152,10 @@ final class Screen implements Module {
 			array(
 				'history',
 				add_submenu_page( self::SLUG, __( 'History', 'magic-linking' ), __( 'History', 'magic-linking' ), 'edit_posts', self::SLUG_HISTORY, array( $this, 'render' ) ),
+			),
+			array(
+				'rules',
+				add_submenu_page( self::SLUG, __( 'Rules', 'magic-linking' ), __( 'Rules', 'magic-linking' ), 'manage_options', self::SLUG_RULES, array( $this, 'render' ) ),
 			),
 			array(
 				'settings',
@@ -196,7 +202,7 @@ final class Screen implements Module {
 	 */
 	public function on_load(): void {
 		$screen = get_current_screen();
-		if ( $screen && ! in_array( $this->screens[ $screen->id ] ?? '', array( 'settings', 'history' ), true ) ) {
+		if ( $screen && ! in_array( $this->screens[ $screen->id ] ?? '', array( 'settings', 'history', 'rules' ), true ) ) {
 			add_screen_option(
 				'per_page',
 				array(
@@ -253,6 +259,7 @@ final class Screen implements Module {
 						'report'   => self::page_url( 'report' ),
 						'broken'   => self::page_url( 'broken' ),
 						'history'  => self::page_url( 'history' ),
+						'rules'    => self::page_url( 'rules' ),
 						'settings' => self::page_url( 'settings' ),
 					),
 				)

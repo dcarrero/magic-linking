@@ -7,7 +7,7 @@ interface Props {
 	totalPages: number;
 	total: number;
 	onPage: ( page: number ) => void;
-	noun: 'entries' | 'links';
+	noun: 'entries' | 'links' | 'rules';
 	/** Barra superior: lleva el campo de página actual, como en las tablas nativas. */
 	top?: boolean;
 }
@@ -53,18 +53,26 @@ export function Pagination( {
 		previous.current = page;
 	}, [ page, top, totalPages ] );
 
-	const count =
-		noun === 'entries'
-			? sprintf(
-					/* translators: %s: number of entries. */
-					_n( '%s entry', '%s entries', total, 'magic-linking' ),
-					total.toLocaleString()
-			  )
-			: sprintf(
-					/* translators: %s: number of links. */
-					_n( '%s link', '%s links', total, 'magic-linking' ),
-					total.toLocaleString()
-			  );
+	let count: string;
+	if ( noun === 'entries' ) {
+		count = sprintf(
+			/* translators: %s: number of entries. */
+			_n( '%s entry', '%s entries', total, 'magic-linking' ),
+			total.toLocaleString()
+		);
+	} else if ( noun === 'rules' ) {
+		count = sprintf(
+			/* translators: %s: number of rules. */
+			_n( '%s rule', '%s rules', total, 'magic-linking' ),
+			total.toLocaleString()
+		);
+	} else {
+		count = sprintf(
+			/* translators: %s: number of links. */
+			_n( '%s link', '%s links', total, 'magic-linking' ),
+			total.toLocaleString()
+		);
+	}
 
 	const commit = () => {
 		const next = Math.min(

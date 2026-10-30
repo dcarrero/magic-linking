@@ -392,8 +392,12 @@ final class Reader {
 	 * @phpstan-param array{origin: string, action: string} $change
 	 */
 	private static function export_origin( array $change ): string {
-		if ( ChangeRepository::ORIGIN_EDITOR === self::origin_of( array( $change ) ) ) {
+		$origin = self::origin_of( array( $change ) );
+		if ( ChangeRepository::ORIGIN_EDITOR === $origin ) {
 			return 'Editor panel';
+		}
+		if ( ChangeRepository::ORIGIN_RULE === $origin ) {
+			return 'Automatic rule';
 		}
 
 		return ChangeRepository::INSERT === $change['action'] ? "Another entry's panel" : 'Broken links';
@@ -794,7 +798,9 @@ final class Reader {
 	 * @phpstan-param list<array{origin?: string}> $rows
 	 */
 	private static function origin_of( array $rows ): string {
-		return ChangeRepository::ORIGIN_EDITOR === ( $rows[0]['origin'] ?? '' ) ? ChangeRepository::ORIGIN_EDITOR : ChangeRepository::ORIGIN_PLUGIN;
+		$origin = $rows[0]['origin'] ?? '';
+
+		return in_array( $origin, array( ChangeRepository::ORIGIN_EDITOR, ChangeRepository::ORIGIN_RULE ), true ) ? $origin : ChangeRepository::ORIGIN_PLUGIN;
 	}
 
 	/**

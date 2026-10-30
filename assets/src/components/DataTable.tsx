@@ -29,7 +29,7 @@ interface Props< Row, Key extends string > {
 	totalPages: number;
 	total: number;
 	onPage: ( page: number ) => void;
-	noun: 'entries' | 'links';
+	noun: 'entries' | 'links' | 'rules';
 }
 
 /**

@@ -71,6 +71,7 @@ const TAB_OF: Record< keyof SettingsValues, SettingsTabName > = {
 	inbound_per_page: 'suggestions',
 	words_per_link: 'suggestions',
 	same_anchor_max: 'suggestions',
+	links_per_target_max: 'suggestions',
 	low_inbound_threshold: 'suggestions',
 	link_in_headings: 'links',
 	link_in_quotes: 'links',

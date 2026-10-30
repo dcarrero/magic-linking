@@ -28,6 +28,13 @@ final class PostWriter {
 	private const NEVER_STATUS = array( 'trash', 'auto-draft', 'inherit' );
 
 	/**
+	 * Escrituras de este plugin en curso en esta petición.
+	 *
+	 * @var int
+	 */
+	private static int $writing = 0;
+
+	/**
 	 * Conexión.
 	 *
 	 * @var wpdb
@@ -48,6 +55,14 @@ final class PostWriter {
 	 */
 	public function __construct( wpdb $wpdb ) {
 		$this->wpdb = $wpdb;
+	}
+
+	/**
+	 * Si el plugin está escribiendo ahora mismo en una entrada (insertar, deshacer, rehacer, arreglar): los oyentes
+	 * de guardado que reaccionan a los cambios del usuario, como las reglas automáticas, no deben reaccionar a estos.
+	 */
+	public static function is_writing(): bool {
+		return self::$writing > 0;
 	}
 
 	/**
@@ -214,15 +229,20 @@ final class PostWriter {
 
 		$revisions = array_map( 'intval', array_values( wp_get_post_revisions( $post_id, array( 'fields' => 'ids' ) ) ) );
 
-		$result = wp_update_post(
-			wp_slash(
-				array(
-					'ID'           => $post_id,
-					'post_content' => $next,
-				)
-			),
-			true
-		);
+		++self::$writing;
+		try {
+			$result = wp_update_post(
+				wp_slash(
+					array(
+						'ID'           => $post_id,
+						'post_content' => $next,
+					)
+				),
+				true
+			);
+		} finally {
+			--self::$writing;
+		}
 		if ( $result instanceof WP_Error ) {
 			throw new InsertionException( InsertionException::WRITE_FAILED, __( 'WordPress could not save the post; nothing was changed.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}

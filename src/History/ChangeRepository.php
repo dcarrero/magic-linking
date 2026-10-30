@@ -46,6 +46,11 @@ final class ChangeRepository {
 	public const ORIGIN_EDITOR = 'editor';
 
 	/**
+	 * Origen de un cambio: lo puso una regla automática (F1-13).
+	 */
+	public const ORIGIN_RULE = 'rule';
+
+	/**
 	 * Inserciones activas de una entrada que se miran como máximo al comprobar duplicados (las más recientes).
 	 */
 	public const ACTIVE_LIMIT = 500;
@@ -150,7 +155,7 @@ final class ChangeRepository {
 	 */
 	private function origin_clause( string $origin, bool $ai = false, string $alias = 'c' ): string {
 		$sql = '';
-		if ( in_array( $origin, array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR ), true ) ) {
+		if ( in_array( $origin, array( self::ORIGIN_PLUGIN, self::ORIGIN_EDITOR, self::ORIGIN_RULE ), true ) ) {
 			$sql .= $this->wpdb->prepare( " AND {$alias}.origin = %s", $origin ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias interno.
 		}
 

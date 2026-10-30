@@ -165,6 +165,8 @@ export interface SettingsValues {
 	outbound_shown: number;
 	inbound_per_page: number;
 	same_anchor_max: number;
+	/** Enlaces al mismo destino desde una entrada: tope duro de las reglas (docs/04 §6.1). */
+	links_per_target_max: number;
 	ignored_urls: string[];
 	ignored_words: string[];
 	/** Tope diario de tokens de IA; 0 = sin IA (docs/05 §5.3). */
@@ -197,12 +199,15 @@ export interface Boot {
 	/** Elementos por página (Opciones de pantalla). */
 	perPage?: number;
 	settingsUrl: string;
-	initialTab?: 'report' | 'broken' | 'history' | 'settings';
-	tabUrls?: Record< 'report' | 'broken' | 'history' | 'settings', string >;
+	initialTab?: 'report' | 'broken' | 'history' | 'rules' | 'settings';
+	tabUrls?: Record<
+		'report' | 'broken' | 'history' | 'rules' | 'settings',
+		string
+	>;
 }
 
 /** De dónde viene un grupo: lo escribió Magic Linking, o el usuario lo puso en el editor y solo se registró. */
-export type HistoryOrigin = 'plugin' | 'editor';
+export type HistoryOrigin = 'plugin' | 'editor' | 'rule';
 
 /** Lo que se sabe de la IA en un cambio que ella recomendó (F1-38). */
 export interface HistoryAi {
@@ -702,4 +707,113 @@ export interface AiStatus {
 		prices_date: string;
 	};
 	notice_dismissed: boolean;
+}
+
+/** Reglas automáticas (F1-13). */
+export interface RuleItem {
+	id: number;
+	phrases: string[];
+	target_id: number;
+	target_title: string;
+	target_url: string;
+	target_available: boolean;
+	lang: string;
+	max_per_post: number;
+	first_only: boolean;
+	word_gap: boolean;
+	exclude_post_types: string[];
+	exclude_categories: number[];
+	active: boolean;
+	created_at: string;
+}
+
+/** Topes duros vigentes (ajustes del usuario). */
+export interface RuleLimitsInfo {
+	words_per_link: number;
+	links_per_target: number;
+	same_anchor_max: number;
+}
+
+export interface RuleStalled {
+	post_id: number;
+	title: string;
+	edit_url: string;
+	time: number;
+}
+
+export interface RuleStalledRule {
+	rule_id: number;
+	phrase: string;
+	time: number;
+}
+
+export interface RulesResponse {
+	items: RuleItem[];
+	total: number;
+	limits: RuleLimitsInfo;
+	/** Entradas que siguieron abiertas en el editor durante un día y a las que no se pudo aplicar las reglas. */
+	stalled: RuleStalled[];
+	/** Reglas que no se aplican porque quien las creó ya no puede gestionar el sitio. */
+	stalled_rules: RuleStalledRule[];
+}
+
+export interface RuleOptions {
+	post_types: { name: string; label: string }[];
+	categories: { id: number; name: string }[];
+	limits: RuleLimitsInfo;
+}
+
+export interface RuleTarget {
+	id: number;
+	title: string;
+	type: string;
+	url: string;
+}
+
+/** Lo que se envía al crear o editar una regla. */
+export interface RuleInput {
+	phrases: string[];
+	target_id: number;
+	max_per_post: number;
+	first_only: boolean;
+	word_gap: boolean;
+	exclude_post_types: string[];
+	exclude_categories: number[];
+	active: boolean;
+}
+
+export interface RulePreviewLink {
+	anchor: string;
+	before: string;
+	after: string;
+}
+
+/** Una entrada donde encaja una regla, con el enlace que se añadiría. */
+export interface RuleCandidate {
+	post_id: number;
+	title: string;
+	skipped: string | null;
+	skipped_message: string;
+	links: RulePreviewLink[];
+	edit_url: string;
+	view_url: string;
+}
+
+export interface RuleCandidatesResponse {
+	items: RuleCandidate[];
+	cursor: number;
+	done: boolean;
+	examined: number;
+	/** La búsqueda se acotó con el índice léxico (hay un recorrido completo disponible). */
+	narrowed: boolean;
+}
+
+export interface RuleApplyResponse {
+	post_id: number;
+	rule_id: number;
+	inserted: number;
+	failed: { reason: string; message: string }[];
+	skipped: string | null;
+	skipped_message: string;
+	batch_id: string;
 }

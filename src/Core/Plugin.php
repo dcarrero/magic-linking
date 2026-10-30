@@ -18,6 +18,7 @@ use MagicLinking\AI\Client;
 use MagicLinking\AI\Reranker;
 use MagicLinking\Cli\CliModule;
 use MagicLinking\Cli\Command;
+use MagicLinking\Cli\RulesCommand;
 use MagicLinking\Content\Destination;
 use MagicLinking\Content\Inserter;
 use MagicLinking\Content\PostWriter;
@@ -48,6 +49,11 @@ use MagicLinking\I18n\TextDomain;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
+use MagicLinking\Rules\RuleRepository;
+use MagicLinking\Rules\RuleRunner;
+use MagicLinking\Rules\RuleService;
+use MagicLinking\Rules\RuleValidator;
+use MagicLinking\Rules\SiteAnchors;
 use MagicLinking\Rest\AiController;
 use MagicLinking\Rest\DismissalsController;
 use MagicLinking\Rest\EditorHistoryController;
@@ -55,6 +61,7 @@ use MagicLinking\Rest\FixController;
 use MagicLinking\Rest\HistoryController;
 use MagicLinking\Rest\JobsController;
 use MagicLinking\Rest\ReportController;
+use MagicLinking\Rest\RulesController;
 use MagicLinking\Rest\SettingsController;
 use MagicLinking\Rest\SuggestionPresenter;
 use MagicLinking\Rest\SuggestionsController;
@@ -87,6 +94,8 @@ final class Plugin {
 		SuggestionCache::class,
 		SuggestionsController::class,
 		DismissalsController::class,
+		RulesController::class,
+		RuleRunner::class,
 		JobsController::class,
 		SettingsController::class,
 		Capabilities::class,
@@ -240,6 +249,34 @@ final class Plugin {
 				$c->get( SuggestionPresenter::class ),
 				$c->get( Destination::class )
 			),
+			RuleRepository::class          => static function (): RuleRepository {
+				global $wpdb;
+				return new RuleRepository( $wpdb );
+			},
+			SiteAnchors::class             => static function (): SiteAnchors {
+				global $wpdb;
+				return new SiteAnchors( $wpdb );
+			},
+			RuleValidator::class           => static fn( Container $c ): RuleValidator => new RuleValidator( $c->get( Settings::class ), $c->get( Language::class ) ),
+			RuleService::class             => static fn( Container $c ): RuleService => new RuleService(
+				$c->get( TableDocuments::class ),
+				$c->get( Inserter::class ),
+				$c->get( Destination::class ),
+				$c->get( Language::class ),
+				$c->get( Settings::class ),
+				$c->get( SiteAnchors::class ),
+				$c->get( GraphRepository::class ),
+				$c->get( RuleRepository::class ),
+				$c->get( TableRepository::class ),
+				$c->get( LexicalIndexer::class )
+			),
+			RuleRunner::class              => static fn( Container $c ): RuleRunner => new RuleRunner( $c->get( RuleRepository::class ), $c->get( RuleService::class ), $c->get( Settings::class ) ),
+			RulesController::class         => static fn( Container $c ): RulesController => new RulesController(
+				$c->get( RuleRepository::class ),
+				$c->get( RuleValidator::class ),
+				$c->get( RuleService::class ),
+				$c->get( Settings::class )
+			),
 			PostWriter::class              => static function (): PostWriter {
 				global $wpdb;
 				return new PostWriter( $wpdb );
@@ -351,7 +388,8 @@ final class Plugin {
 			SettingsController::class      => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ), $c->get( Capabilities::class ) ),
 			ExportHandler::class           => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ) ),
 			CliModule::class               => static fn( Container $c ): CliModule => new CliModule(
-				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) )
+				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) ),
+				static fn(): RulesCommand => new RulesCommand( $c->get( RuleRepository::class ), $c->get( RuleValidator::class ), $c->get( RuleService::class ) )
 			),
 			Screen::class                  => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ) ),
 			EditorPanel::class             => static fn( Container $c ): EditorPanel => new EditorPanel( $c->get( Settings::class ) ),

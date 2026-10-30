@@ -2459,16 +2459,8 @@ msgid "Words per internal link"
 msgstr "Palabras por enlace interno"
 
 #: assets/build/index.js:73
-msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed)."
-msgstr "Una entrada con más enlaces internos que uno por cada tantas palabras se muestra como sobrecargada (siempre se admite al menos un enlace)."
-
-#: assets/build/index.js:73
 msgid "Entries that can use the same anchor text for the same target"
 msgstr "Entradas que pueden usar la misma ancla hacia el mismo destino"
-
-#: assets/build/index.js:73
-msgid "Beyond this many entries, the same anchor text towards the same target is suggested less."
-msgstr "A partir de este número de entradas, se sugiere menos la misma ancla hacia el mismo destino."
 
 #: assets/build/index.js:73
 msgid "Under-linked below this many inbound links"
@@ -2685,9 +2677,7 @@ msgid "The suggestions could not be loaded."
 msgstr "No se han podido cargar las sugerencias."
 
 #. translators: %d: number of suggestions.
-#: assets/build/index.js:72
-#: assets/build/index.js:77
-#, js-format
+#: assets/build/index.js:72 assets/build/index.js:77
 msgid "%d suggestion"
 msgid_plural "%d suggestions"
 msgstr[0] "%d sugerencia"
@@ -2695,7 +2685,6 @@ msgstr[1] "%d sugerencias"
 
 #. translators: %s: title of the destination.
 #: assets/build/index.js:74
-#, js-format
 msgid "Link to “%s” added."
 msgstr "Enlace a «%s» añadido."
 
@@ -2705,13 +2694,11 @@ msgstr "El texto ha cambiado desde que se añadió el enlace y no se ha podido q
 
 #. translators: %s: entry title.
 #: assets/build/index.js:75
-#, js-format
 msgid "Inbound suggestions: %s"
 msgstr "Sugerencias entrantes: %s"
 
 #. translators: %s: entry title.
 #: assets/build/index.js:76
-#, js-format
 msgid "Outbound suggestions: %s"
 msgstr "Sugerencias salientes: %s"
 
@@ -2734,3 +2721,540 @@ msgstr "Sugerencias entrantes"
 #: assets/build/index.js:80
 msgid "Outbound suggestions"
 msgstr "Sugerencias salientes"
+
+#: src/Admin/Screen.php:158 assets/build/index.js:112
+msgid "Rules"
+msgstr "Reglas"
+
+#: src/Cli/RulesCommand.php:151
+msgid "The rule could not be saved."
+msgstr "No se ha podido guardar la regla."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:154
+#, php-format
+msgid "Rule %d created."
+msgstr "Regla %d creada."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:173
+#, php-format
+msgid "Rule %d does not exist."
+msgstr "La regla %d no existe."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:176
+#, php-format
+msgid "Rule %d deleted."
+msgstr "Regla %d borrada."
+
+#: src/Cli/RulesCommand.php:199
+msgid "That rule does not exist."
+msgstr "Esa regla no existe."
+
+#. translators: %d: number of entries.
+#: src/Cli/RulesCommand.php:218
+#, php-format
+msgid "%d entry where the rule fits."
+msgid_plural "%d entries where the rule fits."
+msgstr[0] "%d entrada donde encaja la regla."
+msgstr[1] "%d entradas donde encaja la regla."
+
+#. translators: 1: number of entries shown, 2: entry ID to continue after.
+#: src/Cli/RulesCommand.php:221
+#, php-format
+msgid "%1$d entries shown. Continue with --after=%2$d"
+msgstr "%1$d entradas mostradas. Sigue con --after=%2$d"
+
+#: src/Cli/RulesCommand.php:245 src/Rest/RulesController.php:542
+msgid "That rule or entry does not exist."
+msgstr "Esa regla o esa entrada no existe."
+
+#: src/Cli/RulesCommand.php:251
+msgid "Nothing to link."
+msgstr "No hay nada que enlazar."
+
+#: src/Cli/RulesCommand.php:258
+msgid "Nothing was written. Add --yes to add these links."
+msgstr "No se ha escrito nada. Añade --yes para añadir estos enlaces."
+
+#: src/Cli/RulesCommand.php:269 assets/build/index.js:85
+msgid "Nothing was added."
+msgstr "No se ha añadido nada."
+
+#. translators: 1: number of links added, 2: history batch ID.
+#: src/Cli/RulesCommand.php:273
+#, php-format
+msgid "%1$d link added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
+msgid_plural "%1$d links added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
+msgstr[0] "%1$d enlace añadido (lote %2$s). Para deshacerlo: wp magic-linking history undo %2$s"
+msgstr[1] "%1$d enlaces añadidos (lote %2$s). Para deshacerlos: wp magic-linking history undo %2$s"
+
+#. translators: %d: number of links added.
+#: src/Cli/RulesCommand.php:299 assets/build/index.js:85
+#, php-format
+msgid "%d link added."
+msgid_plural "%d links added."
+msgstr[0] "%d enlace añadido."
+msgstr[1] "%d enlaces añadidos."
+
+#: src/Rest/RulesController.php:549
+msgid "You do not have permission to edit this entry."
+msgstr "No tienes permiso para editar esta entrada."
+
+#: src/Rest/RulesController.php:556
+msgid "The rule could not be saved. Try again."
+msgstr "No se ha podido guardar la regla. Inténtalo de nuevo."
+
+#: src/Rules/RuleService.php:94
+msgid "The entry is not published."
+msgstr "La entrada no está publicada."
+
+#: src/Rules/RuleService.php:96
+msgid "The rule excludes this content type."
+msgstr "La regla excluye este tipo de contenido."
+
+#: src/Rules/RuleService.php:97
+msgid "The rule excludes a category of this entry."
+msgstr "La regla excluye una de las categorías de esta entrada."
+
+#: src/Rules/RuleService.php:98
+msgid "The entry is in a different language than the destination."
+msgstr "La entrada está en un idioma distinto al del destino."
+
+#: src/Rules/RuleService.php:100
+msgid "This rule was already applied to the entry (or undone there), so it is not applied again by itself."
+msgstr "Esta regla ya se aplicó en la entrada (o se deshizo allí), así que no se vuelve a aplicar sola."
+
+#: src/Rules/RuleService.php:101
+msgid "The entry or the destination is in your list of ignored URLs."
+msgstr "La entrada o el destino están en tu lista de URL ignoradas."
+
+#: src/Rules/RuleService.php:102
+msgid "The person who created the rule can no longer manage the site or edit this entry."
+msgstr "Quien creó la regla ya no puede gestionar el sitio ni editar esta entrada."
+
+#: src/Rules/RuleService.php:103
+msgid "Someone has the entry open in the editor."
+msgstr "Alguien tiene la entrada abierta en el editor."
+
+#: src/Rules/RuleService.php:104
+msgid "The entry is the destination itself."
+msgstr "La entrada es el propio destino."
+
+#: src/Rules/RuleService.php:105
+msgid "The entry already has as many internal links as its length allows."
+msgstr "La entrada ya tiene todos los enlaces internos que admite por su longitud."
+
+#: src/Rules/RuleService.php:106
+msgid "The entry already links to the destination as many times as allowed."
+msgstr "La entrada ya enlaza al destino todas las veces permitidas."
+
+#: src/Rules/RuleService.php:107
+msgid "That anchor already points to the destination from as many entries as allowed."
+msgstr "Esa ancla ya apunta al destino desde todas las entradas permitidas."
+
+#: src/Rules/RuleService.php:108
+msgid "No phrase of the rule fits in the text."
+msgstr "Ninguna frase de la regla encaja en el texto."
+
+#: src/Rules/RuleValidator.php:62
+msgid "The destination must be a published entry of a content type that Magic Linking analyzes."
+msgstr "El destino tiene que ser una entrada publicada de un tipo de contenido que Magic Linking analiza."
+
+#: src/Rules/RuleValidator.php:65
+msgid "That entry is in your list of ignored URLs, so it cannot be a destination."
+msgstr "Esa entrada está en tu lista de URL ignoradas, así que no puede ser destino."
+
+#: src/Rules/RuleValidator.php:76
+msgid "Write at least one phrase to link."
+msgstr "Escribe al menos una frase que enlazar."
+
+#. translators: %d: maximum number of links a rule can add to one entry.
+#: src/Rules/RuleValidator.php:81
+#, php-format
+msgid "Links per entry must be between 1 and %d."
+msgstr "Los enlaces por entrada tienen que estar entre 1 y %d."
+
+#. translators: %d: maximum characters of a phrase.
+#: src/Rules/RuleValidator.php:134
+#, php-format
+msgid "A phrase can have at most %d characters."
+msgstr "Una frase puede tener como máximo %d caracteres."
+
+#. translators: 1: the phrase, 2: maximum number of words.
+#: src/Rules/RuleValidator.php:138
+#, php-format
+msgid "“%1$s” is not a usable phrase: it needs between 1 and %2$d words."
+msgstr "«%1$s» no sirve como frase: necesita entre 1 y %2$d palabras."
+
+#. translators: %s: the phrase.
+#: src/Rules/RuleValidator.php:145
+#, php-format
+msgid "“%s” has no meaningful word to link (only articles, prepositions or numbers)."
+msgstr "«%s» no tiene ninguna palabra con contenido que enlazar (solo artículos, preposiciones o números)."
+
+#. translators: %d: maximum number of phrases in one rule.
+#: src/Rules/RuleValidator.php:155
+#, php-format
+msgid "A rule can have at most %d phrases."
+msgstr "Una regla puede tener como máximo %d frases."
+
+#. translators: %s: number of rules.
+#: assets/build/index.js:4
+msgid "%s rule"
+msgid_plural "%s rules"
+msgstr[0] "%s regla"
+msgstr[1] "%s reglas"
+
+#: assets/build/index.js:13
+msgctxt "history origin"
+msgid "Automatic rule · AI"
+msgstr "Regla automática · IA"
+
+#: assets/build/index.js:13
+msgctxt "history origin"
+msgid "Automatic rule"
+msgstr "Regla automática"
+
+#: assets/build/index.js:14
+msgid "Added by an automatic rule"
+msgstr "Añadido por una regla automática"
+
+#: assets/build/index.js:51
+msgctxt "history origin filter"
+msgid "Automatic rules"
+msgstr "Reglas automáticas"
+
+#: assets/build/index.js:81
+msgid "No more entries fit this rule."
+msgstr "No hay más entradas donde encaje esta regla."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:83
+msgid "Apply “%s” to existing entries"
+msgstr "Aplicar «%s» a las entradas existentes"
+
+#: assets/build/index.js:83
+msgid "These are the entries where the rule fits. Check the link that would be added and add it entry by entry. Each one is written safely, shown in the history and can be undone."
+msgstr "Estas son las entradas donde encaja la regla. Revisa el enlace que se añadiría y añádelo entrada por entrada. Cada uno se escribe con seguridad, queda en el historial y se puede deshacer."
+
+#: assets/build/index.js:83
+msgid "Searching…"
+msgstr "Buscando…"
+
+#. translators: 1: number of entries where the rule fits, 2: number of entries checked.
+#: assets/build/index.js:84
+msgid "%1$s where it fits, %2$s checked."
+msgstr "%1$s donde encaja, %2$s revisadas."
+
+#: assets/build/index.js:84
+msgid "No entry needs this rule right now."
+msgstr "Ninguna entrada necesita esta regla ahora mismo."
+
+#: assets/build/index.js:84
+msgid "The link would be added here:"
+msgstr "El enlace se añadiría aquí:"
+
+#: assets/build/index.js:85
+msgid "The link could not be added; nothing was changed."
+msgstr "No se ha podido añadir el enlace; no se ha cambiado nada."
+
+#: assets/build/index.js:85
+msgid "Add link"
+msgstr "Añadir enlace"
+
+#: assets/build/index.js:85
+msgid "Undone: the entry is back as it was."
+msgstr "Deshecho: la entrada ha vuelto a ser como era."
+
+#: assets/build/index.js:85
+msgid "Keep searching"
+msgstr "Seguir buscando"
+
+#: assets/build/index.js:85
+msgid "Find more entries"
+msgstr "Buscar más entradas"
+
+#: assets/build/index.js:85
+msgid "Pick the entry the rule should link to."
+msgstr "Elige la entrada a la que debe enlazar la regla."
+
+#: assets/build/index.js:85
+msgid "The rule could not be saved. Nothing was changed."
+msgstr "No se ha podido guardar la regla. No se ha cambiado nada."
+
+#: assets/build/index.js:85
+msgid "Edit rule"
+msgstr "Editar regla"
+
+#: assets/build/index.js:85
+msgid "Add a rule"
+msgstr "Añadir una regla"
+
+#: assets/build/index.js:85
+msgid "Phrases to link"
+msgstr "Frases que enlazar"
+
+#: assets/build/index.js:85
+msgid "(required)"
+msgstr "(obligatorio)"
+
+#: assets/build/index.js:85
+msgid "One phrase per line: the first is the main one and the rest are variants. Plurals and similar forms are matched too, so “heat pump” also finds “heat pumps”. The text is linked exactly as it is written in the entry."
+msgstr "Una frase por línea: la primera es la principal y las demás son variantes. También encajan los plurales y las formas parecidas, así que «bomba de calor» encuentra «bombas de calor». El texto se enlaza tal como está escrito en la entrada."
+
+#: assets/build/index.js:85 assets/build/index.js:89
+msgid "Destination"
+msgstr "Destino"
+
+#: assets/build/index.js:86
+msgid "Type part of the title of the entry the links should lead to."
+msgstr "Escribe parte del título de la entrada a la que deben llevar los enlaces."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:87
+msgid "Destination: %s"
+msgstr "Destino: %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:88
+msgid "Selected: %s"
+msgstr "Seleccionada: %s"
+
+#: assets/build/index.js:88
+msgid "Keep the current one"
+msgstr "Mantener la actual"
+
+#: assets/build/index.js:88
+msgid "Links per entry"
+msgstr "Enlaces por entrada"
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: assets/build/index.js:89
+msgid "The most links this rule adds to one entry. Your settings allow %d link to the same target from one entry, so that is the real maximum."
+msgid_plural "The most links this rule adds to one entry. Your settings allow %d links to the same target from one entry, so that is the real maximum."
+msgstr[0] "El máximo de enlaces que esta regla añade a una entrada. Tus ajustes permiten %d enlace al mismo destino desde una entrada, así que ese es el máximo real."
+msgstr[1] "El máximo de enlaces que esta regla añade a una entrada. Tus ajustes permiten %d enlaces al mismo destino desde una entrada, así que ese es el máximo real."
+
+#: assets/build/index.js:89
+msgid "The most links this rule adds to one entry."
+msgstr "El máximo de enlaces que esta regla añade a una entrada."
+
+#: assets/build/index.js:89
+msgid "Only the first appearance of each phrase"
+msgstr "Solo la primera aparición de cada frase"
+
+#: assets/build/index.js:89
+msgid "Allow one extra word inside a phrase"
+msgstr "Admitir una palabra más dentro de una frase"
+
+#: assets/build/index.js:89
+msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words, and never across punctuation."
+msgstr "«reforma de cocina» también encaja en «reforma de la cocina», pero no con dos palabras más, y nunca a través de un signo de puntuación."
+
+#: assets/build/index.js:89
+msgid "Do not apply to"
+msgstr "No aplicar a"
+
+#: assets/build/index.js:89
+msgid "Skip entries in these categories"
+msgstr "Saltar las entradas de estas categorías"
+
+#: assets/build/index.js:89
+msgid "Categories to skip"
+msgstr "Categorías que saltar"
+
+#: assets/build/index.js:89
+msgid "Active: apply it when an entry is saved"
+msgstr "Activa: se aplica al guardar una entrada"
+
+#: assets/build/index.js:89
+msgid "Save rule"
+msgstr "Guardar regla"
+
+#: assets/build/index.js:89 assets/build/index.js:95
+msgid "Add rule"
+msgstr "Añadir regla"
+
+#: assets/build/index.js:89
+msgid "Could not load the rules."
+msgstr "No se han podido cargar las reglas."
+
+#: assets/build/index.js:89
+msgid "Could not load the options."
+msgstr "No se han podido cargar las opciones."
+
+#: assets/build/index.js:89
+msgid "Phrases"
+msgstr "Frases"
+
+#: assets/build/index.js:89
+msgid "(missing entry)"
+msgstr "(entrada que no existe)"
+
+#: assets/build/index.js:89
+msgid "not published"
+msgstr "sin publicar"
+
+#: assets/build/index.js:89
+msgid "Options"
+msgstr "Opciones"
+
+#. translators: %d: links per entry.
+#: assets/build/index.js:90
+msgid "%d link per entry"
+msgid_plural "%d links per entry"
+msgstr[0] "%d enlace por entrada"
+msgstr[1] "%d enlaces por entrada"
+
+#: assets/build/index.js:90
+msgid "first appearance only"
+msgstr "solo la primera aparición"
+
+#: assets/build/index.js:90
+msgid "one extra word allowed"
+msgstr "admite una palabra más"
+
+#. translators: %s: content types, comma separated.
+#: assets/build/index.js:91
+msgid "skips %s"
+msgstr "salta %s"
+
+#. translators: %d: number of categories.
+#: assets/build/index.js:92
+msgid "skips %d category"
+msgid_plural "skips %d categories"
+msgstr[0] "salta %d categoría"
+msgstr[1] "salta %d categorías"
+
+#: assets/build/index.js:92
+msgid "Active"
+msgstr "Activa"
+
+#: assets/build/index.js:92
+msgid "Paused"
+msgstr "En pausa"
+
+#: assets/build/index.js:92
+msgid "A rule turns a phrase into a link to an entry. It is applied when a published entry is saved (never when a page is shown) and it only adds links: it never removes or changes one that exists, and everything it writes can be undone from the history. If someone has the entry open in the editor, the rule waits until it is closed."
+msgstr "Una regla convierte una frase en un enlace a una entrada. Se aplica al guardar una entrada publicada (nunca al mostrar una página) y solo añade enlaces: nunca quita ni cambia uno que ya existe, y todo lo que escribe se puede deshacer desde el historial. Si alguien tiene la entrada abierta en el editor, la regla espera a que se cierre."
+
+#. translators: 1: words per link, 2: links to the same target per entry, 3: entries with the same anchor.
+#: assets/build/index.js:93
+msgid "Limits that rules never exceed (change them in Settings): one internal link for every %1$d words of an entry, %2$d to the same target from one entry, and %3$d entries using the same anchor text for the same target."
+msgstr "Límites que las reglas nunca superan (se cambian en Ajustes): un enlace interno por cada %1$d palabras de una entrada, %2$d al mismo destino desde una entrada y %3$d entradas con el mismo texto de ancla hacia el mismo destino."
+
+#: assets/build/index.js:93
+msgid "Open Settings"
+msgstr "Abrir Ajustes"
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:94
+msgid "Rule “%s” added. It will be applied the next time a published entry is saved. To use it on existing entries, choose “Apply to existing entries”."
+msgstr "Regla «%s» añadida. Se aplicará la próxima vez que se guarde una entrada publicada. Para usarla en las entradas que ya existen, elige «Aplicar a las entradas existentes»."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:95
+msgid "Rule “%s” saved."
+msgstr "Regla «%s» guardada."
+
+#: assets/build/index.js:95
+msgid "Automatic rules"
+msgstr "Reglas automáticas"
+
+#: assets/build/index.js:95
+msgid "Apply to existing entries"
+msgstr "Aplicar a las entradas existentes"
+
+#: assets/build/index.js:95
+msgid "Rule paused."
+msgstr "Regla en pausa."
+
+#: assets/build/index.js:95
+msgid "Rule activated."
+msgstr "Regla activada."
+
+#: assets/build/index.js:95
+msgid "The rule could not be changed."
+msgstr "No se ha podido cambiar la regla."
+
+#: assets/build/index.js:95
+msgid "Activate"
+msgstr "Activar"
+
+#: assets/build/index.js:95
+msgid "Delete"
+msgstr "Borrar"
+
+#: assets/build/index.js:95
+msgid "There are no rules yet. Add one to link a phrase to an entry automatically."
+msgstr "Todavía no hay reglas. Añade una para enlazar una frase a una entrada de forma automática."
+
+#: assets/build/index.js:95
+msgid "Delete rule"
+msgstr "Borrar regla"
+
+#: assets/build/index.js:95
+msgid "Rule deleted. The links it already added stay in your entries; you can undo them from the history."
+msgstr "Regla borrada. Los enlaces que ya añadió se quedan en tus entradas; puedes deshacerlos desde el historial."
+
+#: assets/build/index.js:95
+msgid "The rule could not be deleted."
+msgstr "No se ha podido borrar la regla."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:96
+msgid "Delete the rule “%s”? The links it already added stay in your entries; you can undo them from the history."
+msgstr "¿Borrar la regla «%s»? Los enlaces que ya añadió se quedan en tus entradas; puedes deshacerlos desde el historial."
+
+#: assets/build/index.js:108
+msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed). Automatic rules never add a link to an entry that already has that many."
+msgstr "Una entrada con más enlaces internos que uno por cada tantas palabras se muestra como sobrecargada (siempre se admite al menos un enlace). Las reglas automáticas nunca añaden un enlace a una entrada que ya tiene tantos."
+
+#: assets/build/index.js:108
+msgid "Links to the same target from one entry"
+msgstr "Enlaces al mismo destino desde una entrada"
+
+#: assets/build/index.js:108
+msgid "Automatic rules add at most this many links from an entry to the same target. Existing links are never removed."
+msgstr "Las reglas automáticas añaden como máximo tantos enlaces desde una entrada al mismo destino. Los enlaces que ya existen nunca se quitan."
+
+#: assets/build/index.js:108
+msgid "Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries."
+msgstr "A partir de tantas entradas, el mismo texto de ancla hacia el mismo destino se sugiere menos, y las reglas automáticas dejan de usarlo en entradas nuevas."
+
+#: assets/build/index.js:93
+msgid "Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed."
+msgstr "Algunas entradas han estado abiertas en el editor durante un día, así que no se han podido aplicar las reglas. Vuelve a guardarlas cuando estén cerradas."
+
+#: assets/build/index.js:93
+msgid "Notice dismissed."
+msgstr "Aviso descartado."
+
+#. translators: 1: rule ID, 2: reason.
+#: src/Cli/RulesCommand.php:303 src/Cli/RulesCommand.php:307
+#, php-format
+msgid "Rule %1$d: %2$s"
+msgstr "Regla %1$d: %2$s"
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: src/Rules/RuleValidator.php:94
+#, php-format
+msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgstr[0] "Tus ajustes permiten %d enlace al mismo destino desde una entrada, así que una regla no puede añadir más. Sube «Enlaces al mismo destino desde una entrada» en Ajustes para usar un valor mayor."
+msgstr[1] "Tus ajustes permiten %d enlaces al mismo destino desde una entrada, así que una regla no puede añadir más. Sube «Enlaces al mismo destino desde una entrada» en Ajustes para usar un valor mayor."
+
+#: assets/build/index.js:84
+msgid "Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower)."
+msgstr "Búsqueda con el índice: solo entradas que tienen la primera palabra de una frase entre sus términos principales. «Buscar en todas las entradas» las revisa todas (más lenta)."
+
+#: assets/build/index.js:85
+msgid "Search every entry"
+msgstr "Buscar en todas las entradas"
+
+#. translators: %s: main phrase of a rule.
+#: assets/build/index.js:94
+msgid "The rule “%s” is not being applied: the person who created it can no longer manage the site."
+msgstr "La regla «%s» no se está aplicando: quien la creó ya no puede gestionar el sitio."

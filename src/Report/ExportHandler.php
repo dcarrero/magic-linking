@@ -122,7 +122,7 @@ final class ExportHandler implements Module {
 					get_current_user_id(),
 					array(
 						'status' => in_array( $status, array( 'active', 'undone' ), true ) ? $status : '',
-						'origin' => in_array( $origin, array( 'plugin', 'editor' ), true ) ? $origin : '',
+						'origin' => in_array( $origin, array( 'plugin', 'editor', 'rule' ), true ) ? $origin : '',
 						'ai'     => '' !== self::scalar( $query['ai'] ?? null ) && rest_sanitize_boolean( self::scalar( $query['ai'] ?? null ) ),
 						'search' => sanitize_text_field( self::scalar( $query['search'] ?? null ) ),
 					)

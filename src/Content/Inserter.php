@@ -218,7 +218,7 @@ final class Inserter {
 		$user = $requests[0]->user_id ?? get_current_user_id();
 		$ids  = array();
 		foreach ( $edits as $index => $edit ) {
-			$id = $this->changes->record( $batch_id, $post_id, ChangeRepository::INSERT, $edit->path, $edit->before_html, $edit->after_html, PostWriter::hash( $edit->content ), $user, ChangeRepository::ORIGIN_PLUGIN, null, $requests[ $index ]->ai );
+			$id = $this->changes->record( $batch_id, $post_id, ChangeRepository::INSERT, $edit->path, $edit->before_html, $edit->after_html, PostWriter::hash( $edit->content ), $user, $requests[ $index ]->origin, $requests[ $index ]->origin_key, $requests[ $index ]->ai );
 			if ( 0 === $id ) {
 				foreach ( $ids as $done ) {
 					$this->changes->delete( $done );

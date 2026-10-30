@@ -176,17 +176,20 @@ final class PhraseFinder {
 				if ( $sentence->has_link || $i + $size > count( $sentence->keys ) ) {
 					continue;
 				}
-				if ( ! $this->matches( $sentence, $i, $phrase->keys ) ) {
+				// Tokens que cubre la aparición: los de la frase y, con hueco, una palabra más en una posición.
+				$length = $this->matches( $sentence, $i, $phrase->keys ) ? $size : ( $phrase->gap ? $this->gapped( $sentence, $i, $phrase->keys, $analyzer, $generic ) : null );
+				if ( null === $length ) {
 					continue;
 				}
 
-				[ $start, $end ] = $this->expand( $sentence, $i, $i + $size - 1, $expand );
+				[ $start, $end ] = $this->expand( $sentence, $i, $i + $length - 1, $expand );
 				$grown           = array( $start, $end );
 				[ $start, $end ] = $analyzer->trim_edges( $sentence->tokens, $start, $end, $analyzer->foreign_language( $sentence ) );
 				if ( $end < $start ) {
 					continue;
 				}
-				if ( $grown[1] - $grown[0] + 1 > $this->max_words ) {
+				// Con hueco la aparición ocupa una palabra más que la frase: una frase de la longitud máxima sigue valiendo.
+				if ( $grown[1] - $grown[0] + 1 > $this->max_words + ( $length > $size ? 1 : 0 ) ) {
 					continue;
 				}
 				// «más información» sigue siendo genérica aunque al recortarla quede «información».
@@ -219,7 +222,7 @@ final class PhraseFinder {
 
 				$kind = $trimmed ? ( $words > 1 ? Phrase::NGRAM : Phrase::UNIGRAM ) : $phrase->kind;
 				// Si dos frases dan el mismo tramo gana la última (comportamiento de siempre; D-52).
-				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, $kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last );
+				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, $kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last, $phrase->key() );
 			}//end foreach
 		}//end foreach
 
@@ -296,6 +299,43 @@ final class PhraseFinder {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Aparición de una frase objetivo con hueco: las mismas palabras con una más intercalada, en una sola
+	 * posición (docs/04 §4.2). «reforma de cocina» encaja en «reforma de la cocina» pero no en «reforma de
+	 * toda la cocina». La palabra del hueco no puede ser verbal ni genérica ni estar separada por puntuación.
+	 *
+	 * @param Sentence            $sentence Frase.
+	 * @param int                 $i        Posición del primer token.
+	 * @param string[]            $keys     Claves de la frase objetivo.
+	 * @param Analyzer            $analyzer Analizador del idioma.
+	 * @param array<string, true> $generic  Anclas genéricas por clave.
+	 * @return int|null Tokens que cubre la aparición (uno más que la frase); null si no encaja.
+	 *
+	 * @phpstan-param list<string> $keys
+	 */
+	private function gapped( Sentence $sentence, int $i, array $keys, Analyzer $analyzer, array $generic ): ?int {
+		$size  = count( $keys );
+		$count = count( $sentence->keys );
+		if ( $size < 2 || $i + $size + 1 > $count ) {
+			return null;
+		}
+		for ( $p = 1; $p < $size; $p++ ) {
+			$word = $sentence->tokens[ $i + $p ];
+			if ( $word->break_before || $analyzer->is_verb_like( $word ) || isset( $generic[ $word->key ] ) || isset( $generic[ $analyzer->tokenizer()->key( $word->surface ) ] ) ) {
+				continue;
+			}
+			$fits = true;
+			for ( $n = 0; $n < $size && $fits; $n++ ) {
+				$at   = $n < $p ? $i + $n : $i + $n + 1;
+				$fits = $sentence->keys[ $at ] === $keys[ $n ] && ( 0 === $n || ! $sentence->tokens[ $at ]->break_before );
+			}
+			if ( $fits ) {
+				return $size + 1;
+			}
+		}
+		return null;
 	}
 
 	/**

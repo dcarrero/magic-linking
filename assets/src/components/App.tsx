@@ -6,10 +6,11 @@ import { BrokenTab } from './BrokenTab';
 import { HistoryTab } from './HistoryTab';
 import { IndexStatus } from './IndexStatus';
 import { ReportTab } from './ReportTab';
+import { RulesTab } from './RulesTab';
 import { SettingsTab } from './SettingsTab';
 import { Wizard } from './Wizard';
 
-type Tab = 'report' | 'broken' | 'history' | 'settings';
+type Tab = 'report' | 'broken' | 'history' | 'rules' | 'settings';
 
 type TabUrls = Record< Tab, string >;
 
@@ -24,6 +25,7 @@ const DEFAULT_URLS: TabUrls = {
 	report: 'admin.php?page=magic-linking',
 	broken: 'admin.php?page=magic-linking-broken',
 	history: 'admin.php?page=magic-linking-history',
+	rules: 'admin.php?page=magic-linking-rules',
 	settings: 'admin.php?page=magic-linking-settings',
 };
 
@@ -68,7 +70,7 @@ export function App( {
 	tabUrls = DEFAULT_URLS,
 }: Props ) {
 	const tab: Tab =
-		initialTab === 'settings' && ! canManage
+		( initialTab === 'settings' || initialTab === 'rules' ) && ! canManage
 			? 'report'
 			: initialTab ?? 'report';
 	const [ refreshKey, setRefreshKey ] = useState( 0 );
@@ -136,6 +138,7 @@ export function App( {
 		report: __( 'Report', 'magic-linking' ),
 		broken: __( 'Broken links', 'magic-linking' ),
 		history: __( 'History', 'magic-linking' ),
+		rules: __( 'Rules', 'magic-linking' ),
 		settings: __( 'Settings', 'magic-linking' ),
 	};
 
@@ -204,7 +207,10 @@ export function App( {
 				</dl>
 			) }
 
-			{ ( hasIndex || tab === 'settings' || tab === 'history' ) && (
+			{ ( hasIndex ||
+				tab === 'settings' ||
+				tab === 'history' ||
+				tab === 'rules' ) && (
 				<>
 					<div
 						className={
@@ -257,6 +263,9 @@ export function App( {
 									canManage ? tabUrls.settings : undefined
 								}
 							/>
+						) }
+						{ tab === 'rules' && canManage && (
+							<RulesTab settingsUrl={ tabUrls.settings } />
 						) }
 						{ tab === 'settings' && canManage && (
 							<SettingsTab

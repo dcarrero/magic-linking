@@ -41,6 +41,8 @@ final class InsertRequest {
 	 * @param bool          $quotes     Permitir enlaces en citas (ajuste del usuario).
 	 * @param bool          $tables     Permitir enlaces en tablas (ajuste del usuario).
 	 * @param AiOrigin|null $ai       Si el enlace lo recomendó la IA (F1-38); solo se guarda en el historial.
+	 * @param string        $origin     Origen que se anota en el historial (`plugin` por defecto, `rule` en las reglas automáticas, F1-13).
+	 * @param string|null   $origin_key Clave que se anota con el cambio (en las reglas, la de la regla y la entrada); null = ninguna.
 	 *
 	 * @phpstan-param array<string, string> $attributes
 	 */
@@ -56,7 +58,9 @@ final class InsertRequest {
 		public readonly bool $headings = false,
 		public readonly bool $quotes = false,
 		public readonly bool $tables = false,
-		public readonly ?AiOrigin $ai = null
+		public readonly ?AiOrigin $ai = null,
+		public readonly string $origin = 'plugin',
+		public readonly ?string $origin_key = null
 	) {
 	}
 
@@ -80,7 +84,9 @@ final class InsertRequest {
 			$this->headings || ! empty( $scope['headings'] ),
 			$this->quotes || ! empty( $scope['quotes'] ),
 			$this->tables || ! empty( $scope['tables'] ),
-			$this->ai
+			$this->ai,
+			$this->origin,
+			$this->origin_key
 		);
 	}
 
@@ -97,12 +103,14 @@ final class InsertRequest {
 	 * @param int|null      $user_id    Ver el constructor.
 	 * @param bool          $headings   Ver el constructor.
 	 * @param AiOrigin|null $ai       Ver el constructor.
+	 * @param string        $origin     Ver el constructor.
+	 * @param string|null   $origin_key Ver el constructor.
 	 *
 	 * @phpstan-param array<string, string> $attributes
 	 *
 	 * @throws InsertionException Si el ancla no es un tramo literal de la frase.
 	 */
-	public static function from_sentence( int $post_id, string $url, string $sentence, int $offset, string $anchor, array $attributes = array(), ?string $block_path = null, ?int $user_id = null, bool $headings = false, ?AiOrigin $ai = null ): self {
+	public static function from_sentence( int $post_id, string $url, string $sentence, int $offset, string $anchor, array $attributes = array(), ?string $block_path = null, ?int $user_id = null, bool $headings = false, ?AiOrigin $ai = null, string $origin = 'plugin', ?string $origin_key = null ): self {
 		if ( '' === $anchor || $offset < 0 || substr( $sentence, $offset, strlen( $anchor ) ) !== $anchor ) {
 			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The anchor is not part of the sentence.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
@@ -119,7 +127,9 @@ final class InsertRequest {
 			$headings,
 			false,
 			false,
-			$ai
+			$ai,
+			$origin,
+			$origin_key
 		);
 	}
 

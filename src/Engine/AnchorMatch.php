@@ -25,6 +25,7 @@ final class AnchorMatch {
 	 * @param int    $words     Palabras del ancla.
 	 * @param float  $position  Posición relativa de la frase en el texto (0–1).
 	 * @param bool   $last      Si está en el último párrafo.
+	 * @param string $phrase    Clave de la frase objetivo que la produjo (sin la palabra del hueco, si lo hubo).
 	 */
 	public function __construct(
 		public readonly int $sentence,
@@ -34,7 +35,8 @@ final class AnchorMatch {
 		public readonly string $kind,
 		public readonly int $words,
 		public readonly float $position,
-		public readonly bool $last
+		public readonly bool $last,
+		public readonly string $phrase = ''
 	) {
 	}
 }
