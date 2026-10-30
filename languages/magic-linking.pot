@@ -3602,3 +3602,32 @@ msgstr ""
 #: assets/build/index.js:93
 msgid "Notice dismissed."
 msgstr ""
+
+#. translators: 1: rule ID, 2: reason.
+#: src/Cli/RulesCommand.php:303
+#: src/Cli/RulesCommand.php:307
+#, php-format
+msgid "Rule %1$d: %2$s"
+msgstr ""
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: src/Rules/RuleValidator.php:94
+#, php-format
+msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/index.js:84
+msgid "Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower)."
+msgstr ""
+
+#: assets/build/index.js:85
+msgid "Search every entry"
+msgstr ""
+
+#. translators: %s: main phrase of a rule.
+#: assets/build/index.js:94
+#, js-format
+msgid "The rule “%s” is not being applied: the person who created it can no longer manage the site."
+msgstr ""

@@ -3231,3 +3231,30 @@ msgstr "Algunas entradas han estado abiertas en el editor durante un día, así 
 #: assets/build/index.js:93
 msgid "Notice dismissed."
 msgstr "Aviso descartado."
+
+#. translators: 1: rule ID, 2: reason.
+#: src/Cli/RulesCommand.php:303 src/Cli/RulesCommand.php:307
+#, php-format
+msgid "Rule %1$d: %2$s"
+msgstr "Regla %1$d: %2$s"
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: src/Rules/RuleValidator.php:94
+#, php-format
+msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgstr[0] "Tus ajustes permiten %d enlace al mismo destino desde una entrada, así que una regla no puede añadir más. Sube «Enlaces al mismo destino desde una entrada» en Ajustes para usar un valor mayor."
+msgstr[1] "Tus ajustes permiten %d enlaces al mismo destino desde una entrada, así que una regla no puede añadir más. Sube «Enlaces al mismo destino desde una entrada» en Ajustes para usar un valor mayor."
+
+#: assets/build/index.js:84
+msgid "Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower)."
+msgstr "Búsqueda con el índice: solo entradas que tienen la primera palabra de una frase entre sus términos principales. «Buscar en todas las entradas» las revisa todas (más lenta)."
+
+#: assets/build/index.js:85
+msgid "Search every entry"
+msgstr "Buscar en todas las entradas"
+
+#. translators: %s: main phrase of a rule.
+#: assets/build/index.js:94
+msgid "The rule “%s” is not being applied: the person who created it can no longer manage the site."
+msgstr "La regla «%s» no se está aplicando: quien la creó ya no puede gestionar el sitio."
