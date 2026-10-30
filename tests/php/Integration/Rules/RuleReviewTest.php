@@ -25,9 +25,9 @@ final class RuleReviewTest extends RulesTestCase {
 		return substr_count( $this->content_of( $post_id ), '<a ' );
 	}
 
-	private function run_job( int $post_id, int $attempt = 0 ): void {
+	private function run_job( int $post_id ): void {
 		as_unschedule_all_actions( RuleRunner::HOOK, null, Installer::ACTION_GROUP );
-		do_action( RuleRunner::HOOK, $post_id, $attempt ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals -- Prefijo propio.
+		do_action( RuleRunner::HOOK, $post_id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals -- Prefijo propio.
 	}
 
 	/**
@@ -47,9 +47,6 @@ final class RuleReviewTest extends RulesTestCase {
 		$this->assertInstanceOf( Rule::class, $paused );
 		$this->assertFalse( $paused->active );
 		$this->assertSame( $rule->lang, $paused->lang );
-
-		$this->assertWPError( $validator->validate( array( 'phrases' => array( 'otra frase' ) ), $rule, $this->admin ), 'Cambiar las frases sí exige destino válido.' );
-		$this->assertWPError( $validator->validate( array( 'target_id' => $this->target ), $rule, $this->admin ), 'Indicar el destino sí lo valida.' );
 	}
 
 	/**
@@ -212,5 +209,109 @@ final class RuleReviewTest extends RulesTestCase {
 		$this->run_job( $other );
 		$this->assertSame( 0, $this->links_in( $other ) );
 		$this->assertNotNull( $rule );
+	}
+
+	/**
+	 * Hallazgos 3 y 4: reenviar el mismo destino y las frases no revalida el destino; cambiarlo, sí.
+	 */
+	public function test_editing_with_the_same_target_revalidates_only_what_changed(): void {
+		$rule = $this->rule();
+		wp_update_post(
+			array(
+				'ID'          => $this->target,
+				'post_status' => 'draft',
+			)
+		);
+		$validator = Plugin::container()->get( RuleValidator::class );
+
+		$edited = $validator->validate(
+			array(
+				'target_id'    => $this->target,
+				'phrases'      => array( 'bomba de calor', 'aerotermia' ),
+				'max_per_post' => 3,
+			),
+			$rule,
+			$this->admin
+		);
+		$this->assertInstanceOf( Rule::class, $edited, 'Mismo destino: solo se revalidan las frases.' );
+		$this->assertSame( array( 'bomba de calor', 'aerotermia' ), $edited->variants );
+		$this->assertWPError(
+			$validator->validate(
+				array(
+					'target_id' => $this->target,
+					'phrases'   => array( 'de la' ),
+				),
+				$rule,
+				$this->admin
+			),
+			'Una frase mala sigue fallando.'
+		);
+
+		$other = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$this->assertWPError( $validator->validate( array( 'target_id' => $other ), $rule, $this->admin ), 'Un destino nuevo sí se valida.' );
+
+		// Un destino ignorado que ya era el de la regla tampoco bloquea editarla.
+		wp_update_post(
+			array(
+				'ID'          => $this->target,
+				'post_status' => 'publish',
+			)
+		);
+		Plugin::container()->get( Settings::class )->update( array( 'ignored_urls' => array( (string) get_permalink( $this->target ) ) ) );
+		$this->assertInstanceOf(
+			Rule::class,
+			$validator->validate(
+				array(
+					'target_id'    => $this->target,
+					'phrases'      => array( 'bomba de calor' ),
+					'max_per_post' => 2,
+				),
+				$rule,
+				$this->admin
+			)
+		);
+	}
+
+	/**
+	 * Hallazgo 6: la marca de «regla aplicada» no se duplica.
+	 */
+	public function test_the_applied_mark_is_not_duplicated(): void {
+		$rule = $this->rule(
+			array(
+				'first_only'   => false,
+				'max_per_post' => 2,
+			)
+		);
+		Plugin::container()->get( Settings::class )->update( array( 'links_per_target_max' => 3 ) );
+		$post = $this->entry( $this->body( array( 'Una bomba de calor ahorra.', 'Otra bomba de calor distinta.' ), 300 ) );
+
+		$this->assertSame( 2, $this->service()->apply( $post, $rule, $this->admin )->inserted );
+		Plugin::container()->get( Settings::class )->update( array( 'links_per_target_max' => 5 ) );
+		$this->service()->apply( get_post( $post->ID ), $rule, $this->admin );
+
+		$this->assertCount( 1, get_post_meta( $post->ID, RuleService::APPLIED_META, false ) );
+	}
+
+	/**
+	 * Hallazgo 7: pausar o borrar una regla vale al instante aunque haya una cola ya leída.
+	 */
+	public function test_a_paused_or_deleted_rule_is_not_applied_from_a_stale_cache(): void {
+		global $wpdb;
+		$rule = $this->rule();
+		$a    = self::factory()->post->create( array( 'post_content' => $this->body( array( 'Una bomba de calor ahorra.' ) ) ) );
+		$b    = self::factory()->post->create( array( 'post_content' => $this->body( array( 'Una bomba de calor ahorra otra vez.' ) ) ) );
+		$this->assertCount( 1, $this->repo()->active() ); // La cola ya leyó la regla.
+
+		// Otro proceso la pausa.
+		$other = new \MagicLinking\Rules\RuleRepository( $wpdb );
+		$other->update( new Rule( $rule->id, $rule->variants, $rule->target_id, $rule->target_url, $rule->lang, 1, true, false, array(), array(), false ) );
+		$this->run_job( $a );
+		$this->assertSame( 0, $this->links_in( $a ), 'Pausada: no se aplica.' );
+
+		$other->update( new Rule( $rule->id, $rule->variants, $rule->target_id, $rule->target_url, $rule->lang, 1, true, false, array(), array(), true ) );
+		$this->assertTrue( $this->repo()->has_active() );
+		$other->delete( $rule->id );
+		$this->run_job( $b );
+		$this->assertSame( 0, $this->links_in( $b ), 'Borrada: no se aplica.' );
 	}
 }

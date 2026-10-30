@@ -48,7 +48,11 @@ final class RuleMatcher {
 		$analyzed = $analyzer->analyze( $source, true );
 
 		// Topes de la entrada: nunca se quita nada, solo se calcula cuánto cabe.
-		$room_density = $limits->density_cap( $analyzed->words ) - count( $source->links );
+		// Los enlaces rotos (sin destino) no llenan el cupo: el lector no puede seguirlos y el usuario los va a arreglar o
+		// quitar, así que una entrada con enlaces muertos no está «llena». Ojo: el informe de «sobrecargada» (D-34) sí
+		// cuenta cada saliente interna, rota o no; la diferencia va por el lado permisivo y se anota como decisión.
+		$working      = count( array_filter( $source->links, static fn( $link ): bool => null !== $link->target ) );
+		$room_density = $limits->density_cap( $analyzed->words ) - $working;
 		if ( $room_density <= 0 ) {
 			return new RulePlan( array(), RulePlan::DENSITY );
 		}
@@ -87,7 +91,7 @@ final class RuleMatcher {
 			if ( count( $matches ) >= $room ) {
 				break;
 			}
-			if ( $rule->first_only && isset( $seen[ $match->key ] ) ) {
+			if ( $rule->first_only && isset( $seen[ $match->phrase ] ) ) {
 				continue;
 			}
 			foreach ( $ignored_words as $word ) {
@@ -107,7 +111,7 @@ final class RuleMatcher {
 				}
 			}
 			$taken[ $match->sentence ][] = array( $match->offset, $end );
-			$seen[ $match->key ]         = true;
+			$seen[ $match->phrase ]      = true;
 			$matches[]                   = new RuleMatch( $analyzed->sentences[ $match->sentence ]->text, $match->offset, $match->anchor, $match->key );
 		}//end foreach
 

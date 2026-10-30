@@ -244,4 +244,45 @@ final class RuleMatcherTest extends TestCase {
 		$this->assertSame( 1, $limits->density_cap( 99 ) );
 		$this->assertSame( 3, $limits->density_cap( 350 ) );
 	}
+
+	/**
+	 * Hallazgo 5: con hueco, «solo la primera aparición» cuenta por frase y no por el texto del ancla.
+	 */
+	public function test_first_only_counts_per_phrase_even_with_a_gap(): void {
+		$doc  = $this->long_doc( array( 'Una reforma de la cocina cara.', 'Otra reforma de cocina barata.', 'Y otra reforma de toda cocina no cuenta.' ) );
+		$plan = $this->plan(
+			$doc,
+			array( 'reforma de cocina' ),
+			array(
+				'gap'   => true,
+				'first' => true,
+				'max'   => 3,
+			),
+			new RuleLimits( 100, 3 )
+		);
+
+		$this->assertSame( array( 'reforma de la cocina' ), self::anchors( $plan ), 'Solo la primera aparición, aunque la segunda lleve otro ancla.' );
+
+		$all = $this->plan(
+			$doc,
+			array( 'reforma de cocina' ),
+			array(
+				'gap'   => true,
+				'first' => false,
+				'max'   => 3,
+			),
+			new RuleLimits( 100, 3 )
+		);
+		$this->assertSame( array( 'reforma de la cocina', 'reforma de cocina' ), self::anchors( $all ) );
+	}
+
+	/**
+	 * Hallazgo 8: los enlaces rotos no llenan el cupo de densidad.
+	 */
+	public function test_broken_links_do_not_fill_the_density_allowance(): void {
+		$base   = $this->doc( array( 'Una bomba de calor ahorra energía en casa y mucho más en invierno.' ) );
+		$broken = new Document( $base->id, $base->type, $base->lang, $base->title, $base->slug, $base->date, $base->headings, $base->paragraphs, array( new \MagicLinking\Engine\Link( null, 'enlace muerto' ), new \MagicLinking\Engine\Link( null, 'otro muerto' ) ), array(), array() );
+
+		$this->assertCount( 1, $this->plan( $broken, array( 'bomba de calor' ) )->matches );
+	}
 }

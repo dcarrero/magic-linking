@@ -17,13 +17,13 @@ use MagicLinking\Rules\RuleValidator;
 
 final class RuleRunnerTest extends RulesTestCase {
 
-	private function scheduled( int $post_id, int $attempt = 0 ): bool {
-		return as_has_scheduled_action( RuleRunner::HOOK, array( $post_id, $attempt ), Installer::ACTION_GROUP );
+	private function scheduled( int $post_id ): bool {
+		return as_has_scheduled_action( RuleRunner::HOOK, array( $post_id ), Installer::ACTION_GROUP );
 	}
 
-	private function run_job( int $post_id, int $attempt = 0 ): void {
+	private function run_job( int $post_id ): void {
 		as_unschedule_all_actions( RuleRunner::HOOK, null, Installer::ACTION_GROUP );
-		do_action( RuleRunner::HOOK, $post_id, $attempt ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals -- Prefijo propio.
+		do_action( RuleRunner::HOOK, $post_id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals -- Prefijo propio.
 	}
 
 	public function set_up(): void {
@@ -156,23 +156,100 @@ final class RuleRunnerTest extends RulesTestCase {
 		$this->run_job( $id );
 
 		$this->assertSame( $before, $this->content_of( $id ) );
-		$this->assertTrue( $this->scheduled( $id, 1 ), 'Se reprograma unos minutos después.' );
+		$this->assertTrue( $this->scheduled( $id ), 'Se reprograma unos minutos después.' );
 
 		// Sin bloqueo, el siguiente intento escribe.
 		delete_post_meta( $id, '_edit_lock' );
-		$this->run_job( $id, 1 );
+		$this->run_job( $id );
 		$this->assertSame( 1, $this->links_in( $id ) );
-		$this->assertFalse( $this->scheduled( $id, 2 ) );
+		$this->assertFalse( $this->scheduled( $id ) );
 	}
 
-	public function test_it_gives_up_after_the_last_retry(): void {
+	public function test_it_keeps_retrying_for_a_day_with_growing_waits(): void {
 		$this->rule();
 		$id = self::factory()->post->create( array( 'post_content' => $this->body( array( 'Una bomba de calor ahorra.' ) ) ) );
 		update_post_meta( $id, '_edit_lock', time() . ':' . $this->admin );
 
-		$this->run_job( $id, RuleRunner::MAX_ATTEMPTS );
+		// Con el editor abierto desde hace 5 horas y 30 intentos, sigue esperando.
+		update_post_meta(
+			$id,
+			RuleRunner::RETRY_META,
+			array(
+				'since'    => time() - 5 * HOUR_IN_SECONDS,
+				'attempts' => 30,
+			)
+		);
+		$this->run_job( $id );
 
-		$this->assertFalse( $this->scheduled( $id, RuleRunner::MAX_ATTEMPTS + 1 ) );
+		$this->assertTrue( $this->scheduled( $id ) );
+		$this->assertSame( 0, $this->links_in( $id ) );
+		$waits = array_map( static fn( int $n ): int => RuleRunner::wait_for( $n ), range( 0, 12 ) );
+		$this->assertSame( RuleRunner::RETRY_SECONDS, $waits[0] );
+		$this->assertGreaterThan( $waits[0], $waits[3] );
+		$this->assertLessThanOrEqual( 2 * HOUR_IN_SECONDS, max( $waits ), 'La espera tiene techo.' );
+	}
+
+	public function test_after_a_day_it_gives_up_and_leaves_a_visible_record(): void {
+		$this->rule();
+		$id = self::factory()->post->create(
+			array(
+				'post_title'   => 'Entrada siempre abierta',
+				'post_content' => $this->body( array( 'Una bomba de calor ahorra.' ) ),
+			)
+		);
+		update_post_meta( $id, '_edit_lock', time() . ':' . $this->admin );
+		update_post_meta(
+			$id,
+			RuleRunner::RETRY_META,
+			array(
+				'since'    => time() - 25 * HOUR_IN_SECONDS,
+				'attempts' => 14,
+			)
+		);
+
+		$this->run_job( $id );
+
+		$this->assertFalse( $this->scheduled( $id ) );
+		$this->assertSame( array( $id ), array_column( \MagicLinking\Rules\RuleLog::all(), 'post_id' ), 'Queda constancia en la pantalla de reglas.' );
+
+		// Cuando por fin se aplica, el registro se limpia.
+		delete_post_meta( $id, '_edit_lock' );
+		$this->run_job( $id );
+		$this->assertSame( 1, $this->links_in( $id ) );
+		$this->assertSame( array(), \MagicLinking\Rules\RuleLog::all() );
+	}
+
+	public function test_there_is_only_one_pending_action_per_entry_whatever_the_retry(): void {
+		$this->rule();
+		$id = self::factory()->post->create( array( 'post_content' => $this->body( array( 'Una bomba de calor ahorra.' ) ) ) );
+		update_post_meta( $id, '_edit_lock', time() . ':' . $this->admin );
+		$count = static function ( int $post ): int {
+			$n     = 0;
+			$found = as_get_scheduled_actions(
+				array(
+					'hook'     => RuleRunner::HOOK,
+					'status'   => \ActionScheduler_Store::STATUS_PENDING,
+					'per_page' => 100,
+				)
+			);
+			foreach ( $found as $action ) {
+				$n += ( $action->get_args()[0] ?? 0 ) === $post ? 1 : 0;
+			}
+			return $n;
+		};
+
+		$this->run_job( $id );
+		$this->assertSame( 1, $count( $id ) );
+
+		// Un guardado con una espera ya pendiente, y otra ejecución a la fuerza: no se abre una segunda cadena.
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => $this->content_of( $id ) . $this->p( 'Más texto.' ),
+			)
+		);
+		do_action( RuleRunner::HOOK, $id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals -- Prefijo propio.
+		$this->assertSame( 1, $count( $id ) );
 	}
 
 	public function test_only_the_save_hook_is_added_and_nothing_touches_the_front_end_content(): void {

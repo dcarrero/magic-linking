@@ -222,7 +222,7 @@ final class PhraseFinder {
 
 				$kind = $trimmed ? ( $words > 1 ? Phrase::NGRAM : Phrase::UNIGRAM ) : $phrase->kind;
 				// Si dos frases dan el mismo tramo gana la última (comportamiento de siempre; D-52).
-				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, $kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last );
+				$found[ $s . ':' . $offset . ':' . $key ] = new AnchorMatch( $s, $offset, $anchor, $key, $kind, $words, $total > 0 ? $s / $total : 0.0, $sentence->paragraph === $last, $phrase->key() );
 			}//end foreach
 		}//end foreach
 
