@@ -136,6 +136,25 @@ final class ReportRepository {
 	}
 
 	/**
+	 * Una sola fila del informe, con las cifras de ahora (para refrescarla tras añadir o deshacer un enlace).
+	 *
+	 * @param int $post_id Entrada.
+	 *
+	 * @return array<string, mixed>|null Null si la entrada no está en el análisis.
+	 */
+	public function row( int $post_id ): ?array {
+		$wpdb = $this->wpdb;
+		$docs = Schema::table( $wpdb->prefix, 'docs' );
+
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb->prepare( 'SELECT d.post_id, p.post_title, d.post_type, d.lang, d.inbound, d.outbound, d.external, d.broken, d.word_count, d.indexed_at FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE d.post_id = %d', $docs, $wpdb->posts, $post_id ),
+			ARRAY_A
+		);
+
+		return is_array( $row ) ? $this->item( $row ) : null;
+	}
+
+	/**
 	 * Todas las filas del informe con los filtros dados, de 500 en 500.
 	 *
 	 * @param array<string, mixed> $args Filtros y orden (sin página).

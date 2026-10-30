@@ -12,12 +12,13 @@ namespace MagicLinking\Rest;
 use MagicLinking\Core\Module;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\ReportRepository;
+use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
 /**
- * GET /report y GET /broken, para quien puede editar entradas.
+ * GET /report, GET /report/{id} y GET /broken, para quien puede editar entradas.
  */
 final class ReportController implements Module {
 
@@ -117,6 +118,23 @@ final class ReportController implements Module {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/report/(?P<id>\\d+)',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_row' ),
+				'permission_callback' => array( $this, 'can_read' ),
+				'args'                => array(
+					'id' => array(
+						'type'     => 'integer',
+						'required' => true,
+						'minimum'  => 1,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/broken',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -168,6 +186,28 @@ final class ReportController implements Module {
 			$result['total'],
 			$page,
 			(int) $request['per_page']
+		);
+	}
+
+	/**
+	 * GET /report/{id}: la fila de una entrada con las cifras de ahora y el resumen (para refrescarla en la pantalla
+	 * tras añadir o deshacer un enlace sin volver a pedir la página entera, que reordenaría las filas).
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_row( WP_REST_Request $request ) {
+		$item = $this->report->row( (int) $request['id'] );
+		if ( null === $item ) {
+			return new WP_Error( 'magiclinking_not_found', __( 'That entry is not in the analysis.', 'magic-linking' ), array( 'status' => 404 ) );
+		}
+
+		return new WP_REST_Response(
+			array(
+				'item'    => $item,
+				'summary' => $this->report->summary(),
+			)
 		);
 	}
 
