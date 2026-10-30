@@ -100,7 +100,7 @@ final class RuleMatcherTest extends TestCase {
 	}
 
 	public function test_gap_word_cannot_be_a_verb(): void {
-		$this->assertSame( array(), self::anchors( $this->plan( $this->doc( array( 'La energía produce solar en casa. ' . self::FILLER ) ), array( 'energía solar' ), array( 'gap' => true ) ) ) );
+		$this->assertSame( array(), self::anchors( $this->plan( $this->doc( array( 'La energía llegó solar a casa. ' . self::FILLER ) ), array( 'energía solar' ), array( 'gap' => true ) ) ) );
 		$this->assertSame( array( 'energía muy solar' ), self::anchors( $this->plan( $this->doc( array( 'La energía muy solar llega a casa. ' . self::FILLER ) ), array( 'energía solar' ), array( 'gap' => true ) ) ) );
 	}
 
