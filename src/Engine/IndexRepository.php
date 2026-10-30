@@ -91,6 +91,18 @@ interface IndexRepository {
 	public function containing( array $terms, string $lang, int $limit, array $exclude = array(), array $needs = array() ): array;
 
 	/**
+	 * IDs de las entradas del idioma que cumplen los filtros en modo Exigir: una sola consulta, para las ramas que
+	 * reciben candidatas de fuera del índice (vectores) y necesitan filtrar antes de cortar.
+	 *
+	 * @param string $lang  Idioma.
+	 * @param array  $needs Filtros en modo Exigir (ver {@see self::similar()}).
+	 * @return list<int>
+	 *
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
+	 */
+	public function matching( string $lang, array $needs ): array;
+
+	/**
 	 * Similitud entre dos entradas indexadas (producto de sus términos principales).
 	 *
 	 * @param int $a ID.

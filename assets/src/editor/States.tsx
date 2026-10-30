@@ -86,23 +86,14 @@ export function EmptyState( {
 	if ( required.length > 0 ) {
 		return (
 			<p className="magiclinking-panel__empty">
-				{ direction === 'outbound'
-					? sprintf(
-							/* translators: %s: the filters that are required, such as "category" or "category and tag". */
-							__(
-								'There are no suggestions: only entries with the same %s are searched.',
-								'magic-linking'
-							),
-							requiredNames( required )
-					  )
-					: sprintf(
-							/* translators: %s: the filters that are required, such as "category" or "category and tag". */
-							__(
-								'There are no suggestions: only entries with the same %s as this one are searched.',
-								'magic-linking'
-							),
-							requiredNames( required )
-					  ) }{ ' ' }
+				{ sprintf(
+					/* translators: %s: the filters that are required, such as "category" or "category and tag". */
+					__(
+						'There are no suggestions: only entries that match this one in %s are searched.',
+						'magic-linking'
+					),
+					requiredNames( required )
+				) }{ ' ' }
 				{ settingsUrl
 					? createInterpolateElement(
 							__(

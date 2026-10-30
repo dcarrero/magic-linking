@@ -78,8 +78,13 @@ final class Pillars implements Module {
 	 * @param string    $key     Clave.
 	 */
 	public function on_meta( $meta_id, int $post_id, string $key ): void {
-		unset( $meta_id, $post_id );
-		if ( in_array( $key, array( self::OWN_KEY, self::YOAST_KEY, self::RANK_MATH_KEY ), true ) ) {
+		unset( $meta_id );
+		if ( ! in_array( $key, array( self::OWN_KEY, self::YOAST_KEY, self::RANK_MATH_KEY ), true ) ) {
+			return;
+		}
+		// Solo importa la de una entrada publicada de un tipo que se analiza (no borradores, ni tipos ajenos).
+		$post = get_post( $post_id );
+		if ( $post instanceof \WP_Post && 'publish' === $post->post_status && SuggestionCache::relevant( $post ) ) {
 			SuggestionCache::bump();
 		}
 	}
@@ -90,6 +95,23 @@ final class Pillars implements Module {
 	 * @param string $plugin `yoast` o `rank_math`.
 	 */
 	public function active( string $plugin ): bool {
+		return self::is_active( $plugin );
+	}
+
+	/**
+	 * Qué plugins de SEO están activos, como texto (`10`, `01`…): entra en la clave de las sugerencias guardadas, de
+	 * modo que activar o desactivar Yoast SEO o Rank Math las invalida sin enganchar nada.
+	 */
+	public static function signature(): string {
+		return (int) self::is_active( 'yoast' ) . (string) (int) self::is_active( 'rank_math' );
+	}
+
+	/**
+	 * Si un plugin de SEO está activo (ver {@see self::active()}).
+	 *
+	 * @param string $plugin `yoast` o `rank_math`.
+	 */
+	private static function is_active( string $plugin ): bool {
 		$constant = 'yoast' === $plugin ? 'WPSEO_VERSION' : 'RANK_MATH_VERSION';
 
 		return (bool) apply_filters( 'magiclinking_seo_plugin_active', defined( $constant ), $plugin ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals -- Filtro propio.

@@ -286,12 +286,12 @@ final class Suggester {
 		}
 		if ( null !== $vectors && null !== $query && $this->semantic_retrieval ) {
 			// Con Exigir, el filtro va antes del corte por CANDIDATES (no después, que lo dejaría casi vacío).
-			$allowed = $required
-				? function ( int $id ) use ( $source ): bool {
-					$meta = $this->index->meta( $id );
-					return null !== $meta && $this->passes_required( $source, $meta );
-				}
-				: null;
+			$allowed = null;
+			if ( $required ) {
+				// Una sola consulta con los IDs permitidos del idioma, no una por cada vector.
+				$ok      = array_flip( $this->index->matching( $source->lang, $needs ) );
+				$allowed = static fn( int $id ): bool => isset( $ok[ $id ] );
+			}
 			$cosines = $vectors->nearest( $query, $source->lang, Retriever::CANDIDATES, $exclude, $allowed );
 			$this->preload( array_keys( $cosines ) );
 			$candidates = array();
@@ -659,12 +659,9 @@ final class Suggester {
 	 * @param DocMeta  $target Destino.
 	 */
 	private function passes_required( Document $source, DocMeta $target ): bool {
-		foreach ( $this->filters as $filter => $mode ) {
-			if ( self::REQUIRE === $mode && array() === array_intersect( self::values( $filter, $source->type, $source->taxonomies ), self::values( $filter, $target->type, $target->taxonomies ) ) ) {
-				return false;
-			}
-		}
-		return true;
+		$needs = $this->requirement( $source->type, $source->taxonomies );
+
+		return null !== $needs && Requirement::met( $needs, $target->type, $target->taxonomies );
 	}
 
 	/**

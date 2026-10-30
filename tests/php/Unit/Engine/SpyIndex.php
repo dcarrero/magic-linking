@@ -85,6 +85,11 @@ final class SpyIndex implements IndexRepository, TermStats, Preloads {
 		return $this->inner->containing( $terms, $lang, $limit, $exclude, $needs );
 	}
 
+	public function matching( string $lang, array $needs ): array {
+		$this->log[] = 'matching';
+		return $this->inner->matching( $lang, $needs );
+	}
+
 	public function similarity( int $a, int $b ): float {
 		return $this->inner->similarity( $a, $b );
 	}

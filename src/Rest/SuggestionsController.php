@@ -110,23 +110,38 @@ final class SuggestionsController implements Module {
 					'callback'            => array( $this, 'post_outbound' ),
 					'permission_callback' => array( $this, 'can_edit_post' ),
 					'args'                => array(
-						'post_id' => $post_id,
-						'content' => array(
+						'post_id'    => $post_id,
+						'content'    => array(
 							'type'     => 'string',
 							'required' => true,
 						),
-						'title'   => array( 'type' => 'string' ),
-						// Categorías y etiquetas que el editor tiene ahora (aún sin guardar): taxonomía lógica → IDs o nombres.
-						'terms'   => array(
+						'title'      => array( 'type' => 'string' ),
+						// Categorías y etiquetas que el editor tiene ahora (aún sin guardar): taxonomía lógica → IDs de término.
+						'terms'      => array(
 							'type'                 => 'object',
 							'properties'           => array(
 								'category' => array(
 									'type'  => 'array',
-									'items' => array( 'type' => array( 'integer', 'string' ) ),
+									'items' => array( 'type' => 'integer' ),
 								),
 								'post_tag' => array(
 									'type'  => 'array',
-									'items' => array( 'type' => array( 'integer', 'string' ) ),
+									'items' => array( 'type' => 'integer' ),
+								),
+							),
+							'additionalProperties' => false,
+						),
+						// Nombres de etiquetas escritos en el editor clásico: se envían aparte, nunca se toman por IDs.
+						'term_names' => array(
+							'type'                 => 'object',
+							'properties'           => array(
+								'category' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'string' ),
+								),
+								'post_tag' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'string' ),
 								),
 							),
 							'additionalProperties' => false,
@@ -272,7 +287,9 @@ final class SuggestionsController implements Module {
 
 		$terms = $request->has_param( 'terms' ) && is_array( $request['terms'] ) ? $request['terms'] : null;
 
-		return $this->outbound( (int) $request['post_id'], $content, $title, $terms );
+		$names = $request->has_param( 'term_names' ) && is_array( $request['term_names'] ) ? $request['term_names'] : null;
+
+		return $this->outbound( (int) $request['post_id'], $content, $title, $terms, $names );
 	}
 
 	/**
@@ -281,13 +298,15 @@ final class SuggestionsController implements Module {
 	 * @param int         $post_id ID.
 	 * @param string|null $content Contenido del editor; null = el guardado.
 	 * @param string|null $title   Título del editor.
-	 * @param array|null  $terms   Categorías y etiquetas del editor, sin guardar.
+	 * @param array|null  $terms   IDs de categorías y etiquetas del editor, sin guardar.
+	 * @param array|null  $names   Nombres de etiquetas del editor clásico, sin guardar.
 	 *
 	 * @phpstan-param array<string, mixed>|null $terms
+	 * @phpstan-param array<string, mixed>|null $names
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
-	private function outbound( int $post_id, ?string $content, ?string $title, ?array $terms = null ) {
+	private function outbound( int $post_id, ?string $content, ?string $title, ?array $terms = null, ?array $names = null ) {
 		$post = get_post( $post_id );
 		if ( ! $post instanceof WP_Post ) {
 			return $this->not_found();
@@ -300,7 +319,7 @@ final class SuggestionsController implements Module {
 
 		// Solo se guardan las de una entrada publicada: la de un borrador cambia con cada guardado y no invalida nada.
 		if ( null !== $content ) {
-			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms );
+			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms, $names );
 		} elseif ( 'publish' === $post->post_status ) {
 			$found = SuggestionCache::remember( 'out', $post_id, fn(): array => $this->suggestions->outgoing( $post_id ) );
 		} else {

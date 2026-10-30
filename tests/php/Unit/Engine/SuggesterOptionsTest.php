@@ -363,6 +363,38 @@ final class SuggesterOptionsTest extends TestCase {
 		$this->assertSame( array( 10 ), $require, 'solo orígenes de la misma categoría' );
 	}
 
+	public function test_semantic_branch_asks_the_index_once_for_the_allowed_ids(): void {
+		$corpus  = self::filter_corpus();
+		$origin  = self::origin( $corpus );
+		$spy     = new SpyIndex( $corpus->index );
+		$vectors = new \MagicLinking\Engine\MemoryVectors();
+		foreach ( array( 8, 9, 10 ) as $id ) {
+			$vectors->put( $id, 'es', array( 1.0, 0.1 * $id ) );
+		}
+		$suggester = new Suggester(
+			$spy,
+			$corpus->source,
+			$corpus->indexer,
+			new \MagicLinking\Engine\PhraseFinder(),
+			self::loose(),
+			null,
+			array(
+				'never'              => array( 10 ),
+				'semantic_retrieval' => true,
+				'filters'            => array( 'type' => 'require' ),
+				'now'                => Corpus::NOW,
+			),
+			$vectors
+		);
+
+		$found = $suggester->outgoing( $origin, array( 1.0, 0.9 ) );
+
+		$this->assertNull( self::to( $found, 8 ), 'La página queda fuera con Exigir tipo.' );
+		$this->assertNotNull( self::to( $found, 9 ) );
+		$this->assertSame( 1, count( array_keys( $spy->log, 'matching', true ) ), 'Una consulta con los permitidos.' );
+		$this->assertLessThanOrEqual( 2, count( array_keys( $spy->log, 'meta', true ) ), 'Sin una lectura de metadatos por cada vector del idioma.' );
+	}
+
 	public function test_unknown_filters_and_ignore_do_not_change_anything(): void {
 		$corpus = self::filter_corpus();
 		$origin = self::origin( $corpus );

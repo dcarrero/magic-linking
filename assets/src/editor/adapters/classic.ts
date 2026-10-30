@@ -5,6 +5,7 @@
  * es código y se pide cambiar de pestaña, en vez de adivinar posiciones dentro de etiquetas. El enlace se pone
  * dentro de una transacción de TinyMCE, así que el deshacer del editor lo quita de una vez.
  */
+import { _x } from '@wordpress/i18n';
 import type { Suggestion } from '../../types';
 import type { EditorTerms } from '../boot';
 import { locate, rangeFromOffsets } from '../locate';
@@ -87,7 +88,7 @@ export function classicAdapter(
 				?.value ?? '',
 
 		getTerms: () => {
-			const out: EditorTerms = {};
+			const out: EditorTerms = { ids: {}, names: {} };
 			for ( const [ logical, source ] of Object.entries(
 				options.terms ?? {}
 			) ) {
@@ -97,7 +98,7 @@ export function classicAdapter(
 						source.taxonomy === 'category'
 							? 'post_category[]'
 							: `tax_input[${ source.taxonomy }][]`;
-					out[ logical as 'category' | 'post_tag' ] = Array.from(
+					out.ids[ logical as 'category' | 'post_tag' ] = Array.from(
 						document.querySelectorAll< HTMLInputElement >(
 							`input[name="${ name }"]:checked`
 						)
@@ -105,19 +106,27 @@ export function classicAdapter(
 						.map( ( box ) => Number( box.value ) )
 						.filter( ( id ) => id > 0 );
 				} else {
-					// Caja de etiquetas: un texto con los nombres separados por comas.
+					// Caja de etiquetas: un texto con los nombres, separados por el delimitador del idioma (el mismo que
+					// usa el núcleo en tags-box.js: `_x( ',', 'tag delimiter' ) || ','`). Son nombres, nunca IDs.
+					// eslint-disable-next-line @wordpress/i18n-text-domain -- Es la cadena del propio núcleo.
+					const delimiter = _x( ',', 'tag delimiter' ) || ',';
 					const field = document.querySelector< HTMLTextAreaElement >(
 						`textarea[name="tax_input[${ source.taxonomy }]"]`
 					);
 					if ( field ) {
-						out[ logical as 'category' | 'post_tag' ] = field.value
-							.split( ',' )
-							.map( ( name ) => name.trim() )
-							.filter( Boolean );
+						out.names[ logical as 'category' | 'post_tag' ] =
+							field.value
+								.split( delimiter )
+								.map( ( name ) => name.trim() )
+								.filter( Boolean );
 					}
 				}
 			}
-			return Object.keys( out ).length > 0 ? out : undefined;
+			return Object.keys( out.ids ).length +
+				Object.keys( out.names ).length >
+				0
+				? out
+				: undefined;
 		},
 
 		// Al guardar, el editor clásico recarga la página y el panel se vuelve a montar con lo guardado.

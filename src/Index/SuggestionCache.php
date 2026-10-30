@@ -52,24 +52,89 @@ final class SuggestionCache implements Module {
 		add_action( 'deleted_post', array( $this, 'on_save' ), 10, 2 );
 		add_action( 'transition_post_status', array( $this, 'on_transition' ), 10, 3 );
 		// Categorías y etiquetas (filtros de taxonomía, docs/04 §4.3): solo cuentan si hay alguno activo.
-		add_action( 'set_object_terms', array( $this, 'on_terms' ) );
-		add_action( 'deleted_term_relationships', array( $this, 'on_terms' ) );
-		add_action( 'delete_term', array( $this, 'on_terms' ) );
-		add_action( 'edited_term', array( $this, 'on_terms' ) );
+		// Renombrar o reordenar un término no cambia su `term_taxonomy_id`, que es lo que comparan los filtros.
+		add_action( 'set_object_terms', array( $this, 'on_set_terms' ), 10, 6 );
+		add_action( 'deleted_term_relationships', array( $this, 'on_terms' ), 10, 3 );
+		add_action( 'delete_term', array( $this, 'on_delete_term' ), 10, 3 );
 		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $prefix ) {
 			add_action( $prefix . Installer::SETTINGS_OPTION, array( self::class, 'bump' ) );
 		}
 	}
 
 	/**
-	 * Cambian los términos de una entrada o un término: renueva la época si algún filtro de categoría o
-	 * etiqueta está en modo Considerar o Exigir (con todos en Ignorar, las sugerencias no dependen de ellos).
+	 * Se asignan términos a una entrada: solo importa si de verdad cambia el conjunto.
+	 *
+	 * @param int          $object_id Entrada.
+	 * @param array<mixed> $terms   Términos recibidos (no se usa).
+	 * @param int[]        $tt_ids    `term_taxonomy_id` asignados.
+	 * @param string       $taxonomy  Taxonomía.
+	 * @param bool         $append    Se añaden a los que ya tenía.
+	 * @param int[]|null   $old_tt_ids Los que tenía antes.
 	 */
-	public function on_terms(): void {
-		$filters = ( new Settings() )->filters();
-		if ( Suggester::IGNORE !== $filters['category'] || Suggester::IGNORE !== $filters['tag'] ) {
+	public function on_set_terms( $object_id, $terms, $tt_ids, $taxonomy, $append = false, $old_tt_ids = array() ): void {
+		unset( $terms );
+		$old = array_map( 'intval', (array) $old_tt_ids );
+		$new = array_map( 'intval', (array) $tt_ids );
+		$new = $append ? array_merge( $old, $new ) : $new;
+		sort( $old );
+		$new = array_values( array_unique( $new ) );
+		sort( $new );
+		if ( $old !== $new ) {
+			$this->on_terms( (int) $object_id, array(), (string) $taxonomy );
+		}
+	}
+
+	/**
+	 * Cambian los términos de una entrada: renueva la época si es una entrada publicada de un tipo que se analiza y la
+	 * taxonomía es la que usa algún filtro en modo Considerar o Exigir.
+	 *
+	 * @param int          $object_id Entrada.
+	 * @param array<mixed> $tt_ids `term_taxonomy_id` afectados (no se usa).
+	 * @param string       $taxonomy  Taxonomía.
+	 */
+	public function on_terms( $object_id, $tt_ids = array(), $taxonomy = '' ): void {
+		unset( $tt_ids );
+		$post = get_post( (int) $object_id );
+		if ( $post instanceof WP_Post && 'publish' === $post->post_status && self::relevant( $post ) && self::taxonomy_used( $post->post_type, (string) $taxonomy ) ) {
 			self::bump();
 		}
+	}
+
+	/**
+	 * Se borra un término: importa si lo usa algún filtro activo de un tipo que se analiza.
+	 *
+	 * @param int    $term     Término.
+	 * @param int    $tt_id    `term_taxonomy_id`.
+	 * @param string $taxonomy Taxonomía.
+	 */
+	public function on_delete_term( $term, $tt_id, $taxonomy ): void {
+		unset( $term, $tt_id );
+		foreach ( ( new Settings() )->post_types() as $type ) {
+			if ( self::taxonomy_used( $type, (string) $taxonomy ) ) {
+				self::bump();
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Si una taxonomía es la que lee algún filtro de categoría o etiqueta en modo Considerar o Exigir para un tipo.
+	 *
+	 * @param string $post_type Tipo de contenido.
+	 * @param string $taxonomy  Taxonomía.
+	 */
+	private static function taxonomy_used( string $post_type, string $taxonomy ): bool {
+		$filters = ( new Settings() )->filters();
+		foreach ( array(
+			'category' => 'category',
+			'post_tag' => 'tag',
+		) as $logical => $filter ) {
+			if ( Suggester::IGNORE !== $filters[ $filter ] && Taxonomies::primary( $post_type, $logical ) === $taxonomy ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -104,7 +169,7 @@ final class SuggestionCache implements Module {
 	 *
 	 * @param WP_Post $post Entrada.
 	 */
-	private static function relevant( WP_Post $post ): bool {
+	public static function relevant( WP_Post $post ): bool {
 		if ( 'revision' === $post->post_type || wp_is_post_autosave( $post ) || 'auto-draft' === $post->post_status ) {
 			return false;
 		}
@@ -142,7 +207,7 @@ final class SuggestionCache implements Module {
 			return $compute();
 		}
 
-		$key    = 'magiclinking_sg_' . md5( implode( '|', array( MAGICLINKING_VERSION, $kind, $post_id, wp_cache_get_last_changed( self::GROUP ) ) ) );
+		$key    = 'magiclinking_sg_' . md5( implode( '|', array( MAGICLINKING_VERSION, $kind, $post_id, wp_cache_get_last_changed( self::GROUP ), Pillars::signature() ) ) );
 		$stored = get_transient( $key );
 		if ( is_array( $stored ) ) {
 			return $stored;

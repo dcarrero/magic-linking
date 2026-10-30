@@ -186,9 +186,9 @@ final class EditorPanel implements Module {
 					'linkAttrs'   => (object) $this->settings->link_attributes(),
 					'historyUrl'  => Screen::page_url( 'history' ),
 					'reportUrl'   => Screen::page_url( 'report' ),
-					// Solo quien puede cambiar los ajustes recibe el enlace a ellos (estado vacío por filtros).
 					// De dónde lee el editor las categorías y etiquetas aún sin guardar (filtros por taxonomía).
 					'terms'       => (object) Taxonomies::sources( $post->post_type ),
+					// Solo quien puede cambiar los ajustes recibe el enlace a ellos (estado vacío por filtros).
 					'settingsUrl' => current_user_can( 'manage_options' ) ? Screen::page_url( 'settings' ) . '#tab=suggestions' : '',
 				)
 			) . ';',

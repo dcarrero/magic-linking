@@ -21,10 +21,14 @@ export type TermSources = Partial<
 	Record< 'category' | 'post_tag', TermSource >
 >;
 
-/** Categorías y etiquetas elegidas en el editor, sin guardar: IDs o, en el clásico, nombres de etiqueta. */
-export type EditorTerms = Partial<
-	Record< 'category' | 'post_tag', ( number | string )[] >
->;
+/**
+ * Categorías y etiquetas elegidas en el editor, sin guardar. Los IDs de término y los nombres viajan por separado
+ * (el cuadro de etiquetas del editor clásico solo tiene nombres, y una etiqueta puede llamarse «2026»).
+ */
+export interface EditorTerms {
+	ids: Partial< Record< 'category' | 'post_tag', number[] > >;
+	names: Partial< Record< 'category' | 'post_tag', string[] > >;
+}
 
 /**
  * Configuración que el servidor pasa al panel del editor (`EditorPanel::enqueue`).

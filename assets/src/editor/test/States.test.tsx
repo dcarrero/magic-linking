@@ -33,7 +33,7 @@ describe( 'EmptyState con filtros Exigir', () => {
 				settingsUrl="/settings#tab=suggestions"
 			/>
 		);
-		expect( host.textContent ).toContain( 'same category' );
+		expect( host.textContent ).toContain( 'match this one in category' );
 		const link = host.querySelector( 'a' );
 		expect( link?.getAttribute( 'href' ) ).toBe(
 			'/settings#tab=suggestions'

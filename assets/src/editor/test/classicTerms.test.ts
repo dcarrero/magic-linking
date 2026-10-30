@@ -1,3 +1,4 @@
+import * as wpI18n from '@wordpress/i18n';
 import { classicAdapter } from '../adapters/classic';
 
 const options = {
@@ -21,8 +22,31 @@ describe( 'classicAdapter.getTerms', () => {
 			<input type="checkbox" name="post_category[]" value="9" checked>
 			<textarea name="tax_input[post_tag]">sol, aire ,</textarea>`;
 		expect( classicAdapter( 5, options ).getTerms() ).toEqual( {
-			category: [ 4, 9 ],
-			post_tag: [ 'sol', 'aire' ],
+			ids: { category: [ 4, 9 ] },
+			names: { post_tag: [ 'sol', 'aire' ] },
+		} );
+	} );
+
+	it( 'las etiquetas numéricas siguen siendo nombres, nunca IDs', () => {
+		document.body.innerHTML =
+			'<textarea name="tax_input[post_tag]">2026, 5</textarea>';
+		expect( classicAdapter( 5, options ).getTerms()?.names ).toEqual( {
+			post_tag: [ '2026', '5' ],
+		} );
+		expect( classicAdapter( 5, options ).getTerms()?.ids ).toEqual( {
+			category: [],
+		} );
+	} );
+
+	it( 'usa el delimitador de etiquetas del idioma, como el núcleo', () => {
+		document.body.innerHTML =
+			'<textarea name="tax_input[post_tag]">sol、aire,mar</textarea>';
+		( wpI18n as { setLocaleData: ( d: unknown ) => void } ).setLocaleData( {
+			'': {},
+			'tag delimiter\u0004,': [ '、' ],
+		} );
+		expect( classicAdapter( 5, options ).getTerms()?.names ).toEqual( {
+			post_tag: [ 'sol', 'aire,mar' ],
 		} );
 	} );
 

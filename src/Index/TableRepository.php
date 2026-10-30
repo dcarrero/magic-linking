@@ -131,7 +131,8 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 
 	/**
 	 * Si los metadatos que se construyen llevan las categorías y etiquetas de la entrada (filtros Considerar y
-	 * Exigir): lo decide quien calcula las sugerencias con {@see self::use_taxonomies()}.
+	 * Exigir). Solo lo tiene encendido la vista que devuelve {@see self::with_taxonomies()}; el servicio compartido
+	 * nunca cambia de estado.
 	 *
 	 * @var bool
 	 */
@@ -161,13 +162,18 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	}
 
 	/**
-	 * Activa o desactiva la lectura de categorías y etiquetas en los metadatos. Solo se activa mientras hay filtros
-	 * por taxonomía en modo Considerar o Exigir: sin ellos, no se hace ninguna consulta de términos.
+	 * Una vista de este repositorio con la lectura de categorías y etiquetas encendida o apagada. Es una copia con
+	 * su propia caché: quien calcula las sugerencias la usa durante un cálculo y se la queda; el servicio compartido
+	 * (reglas, informe, indexado) nunca recibe taxonomías, ni siquiera si un cálculo vuelve a entrar en él.
 	 *
-	 * @param bool $enabled Activada.
+	 * @param bool $enabled Lectura de términos activada.
 	 */
-	public function use_taxonomies( bool $enabled ): void {
-		$this->with_taxonomies = $enabled;
+	public function with_taxonomies( bool $enabled ): self {
+		$view                  = clone $this;
+		$view->with_taxonomies = $enabled;
+		$view->cache           = null;
+
+		return $view;
 	}
 
 	// ------------------------------------------------------------------ Frecuencia de documento.
@@ -904,6 +910,26 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		}
 
 		return $sql;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param string $lang  Idioma.
+	 * @param array  $needs Filtros en modo Exigir.
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
+	 */
+	public function matching( string $lang, array $needs ): array {
+		Installer::ensure_current();
+
+		$wpdb = $this->wpdb;
+		$args = array( $this->docs, $this->posts, $lang );
+		$sql  = $this->require_sql( 'd', $needs, $args );
+		$ids  = $wpdb->get_col( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- $sql solo lleva marcadores generados por require_sql(); los valores van en $args.
+			$wpdb->prepare( "SELECT d.post_id FROM %i d JOIN %i w ON w.ID = d.post_id WHERE d.lang = %s AND d.status = 1 AND w.post_status = 'publish'{$sql} ORDER BY d.post_id ASC", $args )
+		);
+
+		return array_map( 'intval', (array) $ids );
 	}
 
 	/**

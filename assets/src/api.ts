@@ -2,6 +2,7 @@
  * Llamadas a la API REST del plugin.
  */
 import apiFetch from '@wordpress/api-fetch';
+import type { EditorTerms } from './editor/boot';
 import type {
 	AiCapabilities,
 	AiStatus,
@@ -391,7 +392,7 @@ export const api = {
 		content: string,
 		title?: string,
 		signal?: AbortSignal,
-		terms?: Record< string, ( number | string )[] >
+		terms?: EditorTerms
 	) =>
 		apiFetch< OutboundResponse >( {
 			path: path( '/suggestions/outbound' ),
@@ -401,7 +402,9 @@ export const api = {
 				content,
 				...( title !== undefined ? { title } : {} ),
 				// Las categorías y etiquetas del editor mandan sobre las guardadas (filtros por taxonomía).
-				...( terms !== undefined ? { terms } : {} ),
+				...( terms !== undefined
+					? { terms: terms.ids, term_names: terms.names }
+					: {} ),
 			},
 			signal,
 		} ),

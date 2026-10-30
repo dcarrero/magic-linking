@@ -53,7 +53,7 @@ final class PostSource implements DocumentSource {
 	private GraphRepository $graph;
 
 	/**
-	 * Los documentos llevan sus categorías y etiquetas (lo decide {@see self::use_taxonomies()}).
+	 * Los documentos llevan sus categorías y etiquetas (solo en la vista de {@see self::with_taxonomies()}).
 	 *
 	 * @var bool
 	 */
@@ -149,18 +149,21 @@ final class PostSource implements DocumentSource {
 	}
 
 	/**
-	 * Activa o desactiva que los documentos lleven sus categorías y etiquetas. Solo lo activa el cálculo de
-	 * sugerencias, y solo si hay filtros por taxonomía en modo Considerar o Exigir: el indexado y las reglas no
-	 * hacen ninguna consulta de términos.
+	 * Una vista de esta fuente cuyos documentos llevan (o no) sus categorías y etiquetas. Solo la usa el cálculo de
+	 * sugerencias, y solo si hay filtros por taxonomía en modo Considerar o Exigir: el indexado y las reglas, que usan
+	 * el servicio compartido, no hacen ninguna consulta de términos.
 	 *
-	 * @param bool $enabled Activado.
+	 * @param bool $enabled Documentos con términos.
 	 */
-	public function use_taxonomies( bool $enabled ): void {
-		$this->with_taxonomies = $enabled;
+	public function with_taxonomies( bool $enabled ): self {
+		$view                  = clone $this;
+		$view->with_taxonomies = $enabled;
+
+		return $view;
 	}
 
 	/**
-	 * Si los documentos llevan ahora sus categorías y etiquetas.
+	 * Si los documentos de esta fuente llevan sus categorías y etiquetas.
 	 */
 	public function taxonomies_enabled(): bool {
 		return $this->with_taxonomies;

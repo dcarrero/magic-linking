@@ -109,15 +109,17 @@ final class Suggestions {
 	 * @param array       $options Opciones del motor (`never`, `now`…; ver {@see Suggester::__construct()}).
 	 * @param string|null $content Contenido (HTML o bloques) tal como está ahora en el editor, sin guardar; null = el guardado.
 	 * @param string|null $title   Título tal como está en el editor; solo con `$content`.
-	 * @param array|null  $terms   Categorías y etiquetas elegidas en el editor, sin guardar (ver {@see Taxonomies::resolve()}); solo con `$content`.
+	 * @param array|null  $terms   IDs de categorías y etiquetas elegidas en el editor, sin guardar (ver {@see Taxonomies::resolve()}); solo con `$content`.
 	 *                             Mandan sobre las guardadas, que en una entrada nueva no existen todavía.
+	 * @param array|null  $names   Nombres de etiquetas escritos en el editor clásico, sin guardar (nunca se toman por IDs).
 	 *
 	 * @return list<Suggestion> Vacío si el índice no está listo o la entrada no se analiza.
 	 *
 	 * @phpstan-param array<string, mixed> $options
 	 * @phpstan-param array<string, mixed>|null $terms
+	 * @phpstan-param array<string, mixed>|null $names
 	 */
-	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null, ?array $terms = null ): array {
+	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null, ?array $terms = null, ?array $names = null ): array {
 		$post = get_post( $post_id );
 		// Con el contenido del editor, una entrada nueva (borrador automático) también se analiza: aún no hay nada guardado.
 		if ( ! $post instanceof WP_Post || ! $this->analyzes( $post, null !== $content ) || ! $this->ready() ) {
@@ -137,19 +139,19 @@ final class Suggestions {
 		$options['never']     = array_values( array_unique( array_merge( $options['never'] ?? array(), $this->dismissals->targets_for_source( $post_id ) ) ) );
 		$options['penalized'] = $this->dismissals->penalized_targets( $this->settings->post_types() );
 
+		// Vistas de este cálculo: con términos solo si hay filtros por taxonomía; el servicio compartido no cambia.
+		[ $repository, $documents ] = $this->views();
 		try {
-			$suggester = $this->suggester( $options );
-			$document  = $this->documents->from_post( $post );
-			if ( null !== $content && null !== $terms && $this->documents->taxonomies_enabled() ) {
-				$document = $document->with_taxonomies( Taxonomies::resolve( $post->post_type, $terms ) + $document->taxonomies );
+			$suggester = $this->suggester( $options, $repository, $documents );
+			$document  = $documents->from_post( $post );
+			if ( null !== $content && ( null !== $terms || null !== $names ) && $documents->taxonomies_enabled() ) {
+				$document = $document->with_taxonomies( Taxonomies::resolve( $post->post_type, $terms ?? array(), $names ?? array() ) + $document->taxonomies );
 			}
 			$found = $suggester->outgoing( $document );
 
 			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
 		} finally {
-			$this->repository->use_taxonomies( false );
-			$this->documents->use_taxonomies( false );
-			$this->documents->release();
+			$documents->release();
 		}
 	}
 
@@ -174,12 +176,11 @@ final class Suggestions {
 		$options['excluded_origins'] = array_values( array_unique( array_merge( $options['excluded_origins'] ?? array(), $this->dismissals->sources_for_target( $post_id ) ) ) );
 		$options['penalized']        = $this->dismissals->penalized_targets( $this->settings->post_types() );
 
+		[ $repository, $documents ] = $this->views();
 		try {
-			return $this->without_ignored( $this->suggester( $options )->incoming( $post_id ) );
+			return $this->without_ignored( $this->suggester( $options, $repository, $documents )->incoming( $post_id ) );
 		} finally {
-			$this->repository->use_taxonomies( false );
-			$this->documents->use_taxonomies( false );
-			$this->documents->release();
+			$documents->release();
 		}
 	}
 
@@ -210,14 +211,42 @@ final class Suggestions {
 	}
 
 	/**
+	 * Filtros en modo Considerar o Exigir.
+	 *
+	 * @param array $all Ajustes.
+	 *
+	 * @phpstan-param array<string, mixed> $all
+	 *
+	 * @return array<string, string>
+	 */
+	private function active_filters( array $all ): array {
+		return array_filter( $all['filters'], static fn( string $mode ): bool => Suggester::IGNORE !== $mode );
+	}
+
+	/**
+	 * Índice y documentos para un cálculo: vistas que leen categorías y etiquetas solo si hay filtros por esas
+	 * taxonomías en modo Considerar o Exigir. Sin estado compartido: el resto del plugin no ve nunca esos términos.
+	 *
+	 * @return array{0: TableRepository, 1: TableDocuments}
+	 */
+	private function views(): array {
+		$filters    = $this->active_filters( $this->settings->all() );
+		$taxonomies = isset( $filters['category'] ) || isset( $filters['tag'] );
+
+		return array( $this->repository->with_taxonomies( $taxonomies ), $this->documents->with_taxonomies( $taxonomies ) );
+	}
+
+	/**
 	 * Motor con la configuración congelada y los ajustes de calidad del usuario (docs/07 §8); lo que pida
 	 * quien llama manda sobre ellos.
 	 *
-	 * @param array $options Opciones del motor.
+	 * @param array           $options    Opciones del motor.
+	 * @param TableRepository $repository Índice de este cálculo (vista).
+	 * @param TableDocuments  $documents  Documentos de este cálculo (vista).
 	 *
 	 * @phpstan-param array<string, mixed> $options
 	 */
-	private function suggester( array $options ): Suggester {
+	private function suggester( array $options, TableRepository $repository, TableDocuments $documents ): Suggester {
 		$all = $this->settings->all();
 
 		$defaults = array( 'max_outgoing' => $this->candidates( $all ) );
@@ -227,20 +256,16 @@ final class Suggestions {
 		}
 
 		// Los filtros en modo Considerar o Exigir (docs/04 §4.3) y el contenido pilar (§6).
-		$filters    = array_filter( $all['filters'], static fn( string $mode ): bool => Suggester::IGNORE !== $mode );
-		$taxonomies = isset( $filters['category'] ) || isset( $filters['tag'] );
-		$this->repository->use_taxonomies( $taxonomies );
-		$this->documents->use_taxonomies( $taxonomies );
-		$defaults['filters'] = $filters;
+		$defaults['filters'] = $this->active_filters( $all );
 		$defaults['pillars'] = $this->pillars->ids();
 
 		return new Suggester(
-			$this->repository,
-			$this->documents,
+			$repository,
+			$documents,
 			new Indexer(),
 			new PhraseFinder(),
 			new Scorer( array(), Scorer::THRESHOLD, Scorer::DENSITY, Scorer::MIN_RELEVANCE, self::BONUSES, (int) $all['same_anchor_max'] ),
-			new Retriever( $this->repository ),
+			new Retriever( $repository ),
 			array_merge( $defaults, $options )
 		);
 	}

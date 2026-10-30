@@ -217,6 +217,30 @@ final class PillarFiltersTest extends GraphTestCase {
 		$this->assertSame( 'rank_math', $pillars->external( $this->other ) );
 	}
 
+	public function test_activating_or_deactivating_a_seo_plugin_invalidates_the_stored_suggestions(): void {
+		wp_using_ext_object_cache( true );
+		$calls = 0;
+		$kind  = 'out-' . uniqid();
+		$count = static function () use ( &$calls ): array {
+			++$calls;
+			return array( 'n' => $calls );
+		};
+
+		SuggestionCache::remember( $kind, $this->source, $count );
+		SuggestionCache::remember( $kind, $this->source, $count );
+		$this->assertSame( 1, $calls, 'Precondición: el segundo se sirve de lo guardado.' );
+
+		$this->seo_active['yoast'] = false;
+		SuggestionCache::remember( $kind, $this->source, $count );
+		$this->assertSame( 2, $calls, 'Desactivar Yoast SEO invalida.' );
+		$this->seo_active['rank_math'] = false;
+		SuggestionCache::remember( $kind, $this->source, $count );
+		$this->assertSame( 3, $calls, 'Desactivar Rank Math invalida.' );
+		SuggestionCache::remember( $kind, $this->source, $count );
+		$this->assertSame( 3, $calls );
+		wp_using_ext_object_cache( false );
+	}
+
 	public function test_the_plugin_is_active_when_it_defines_its_constant(): void {
 		remove_all_filters( 'magiclinking_seo_plugin_active' );
 		$pillars = Plugin::container()->get( Pillars::class );
@@ -338,8 +362,7 @@ final class PillarFiltersTest extends GraphTestCase {
 
 	public function test_require_is_applied_in_the_query_before_the_limit(): void {
 		$energia = $this->category( 'energia' );
-		$repo    = Plugin::container()->get( \MagicLinking\Index\TableRepository::class );
-		$repo->use_taxonomies( true );
+		$repo    = Plugin::container()->get( \MagicLinking\Index\TableRepository::class )->with_taxonomies( true );
 		$weights = $repo->terms( $this->source );
 
 		$tt = array_map( 'strval', wp_get_object_terms( $this->same, 'category', array( 'fields' => 'tt_ids' ) ) );
@@ -358,7 +381,6 @@ final class PillarFiltersTest extends GraphTestCase {
 			$chunked->containing( array_keys( $weights ), 'es', 10, array( $this->source ), array( 'types' => array( 'page' ) ) )
 		);
 		$this->assertSame( array( $this->page ), array_keys( $repo->containing( array_keys( $weights ), 'es', 10, array( $this->source ), array( 'types' => array( 'page' ) ) ) ) );
-		$repo->use_taxonomies( false );
 	}
 
 	public function test_chunked_ranking_with_require_does_not_validate_candidates_one_by_one(): void {
@@ -425,17 +447,21 @@ final class PillarFiltersTest extends GraphTestCase {
 	}
 
 	public function test_editor_terms_by_name_for_tags_and_unknown_names_are_dropped(): void {
-		$values = \MagicLinking\Index\Taxonomies::resolve(
-			'post',
-			array(
-				'post_tag' => array( 'hogar', 'no-existe' ),
-				'category' => array( 'x' ),
-			)
-		);
+		$values = \MagicLinking\Index\Taxonomies::resolve( 'post', array(), array( 'post_tag' => array( 'hogar', 'no-existe' ) ) );
 		$hogar  = get_term_by( 'name', 'hogar', 'post_tag' );
 		$this->assertSame( array( (string) $hogar->term_taxonomy_id ), $values['post_tag'] );
-		$this->assertSame( array(), $values['category'] );
+		$this->assertArrayNotHasKey( 'category', $values );
 		$this->assertArrayNotHasKey( 'post_tag', \MagicLinking\Index\Taxonomies::resolve( 'post', array( 'category' => array() ) ) );
+
+		// Una etiqueta llamada «2026» es un nombre; el término con ID 2026 (otra cosa) no se toma por ella.
+		$year    = self::factory()->tag->create( array( 'name' => '2026' ) );
+		$other   = self::factory()->tag->create( array( 'name' => 'otra' ) );
+		$by_name = \MagicLinking\Index\Taxonomies::resolve( 'post', array(), array( 'post_tag' => array( '2026' ) ) );
+		$this->assertSame( array( (string) get_term( $year, 'post_tag' )->term_taxonomy_id ), $by_name['post_tag'] );
+		$by_id = \MagicLinking\Index\Taxonomies::resolve( 'post', array( 'post_tag' => array( $other ) ) );
+		$this->assertSame( array( (string) get_term( $other, 'post_tag' )->term_taxonomy_id ), $by_id['post_tag'] );
+		$as_text = \MagicLinking\Index\Taxonomies::resolve( 'post', array( 'post_tag' => array( (string) $other ) ) );
+		$this->assertSame( array(), $as_text['post_tag'], 'Un número como texto no es un ID: nunca se adivina.' );
 	}
 
 	public function test_changing_terms_renews_the_cache_epoch_only_with_taxonomy_filters(): void {
@@ -448,27 +474,118 @@ final class PillarFiltersTest extends GraphTestCase {
 		wp_set_post_categories( $this->same, array( $this->category( 'energia' ) ) );
 		$this->assertNotSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'set_object_terms' );
 
+		// Lo mismo otra vez: no cambia el conjunto, no sube.
+		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+		wp_set_post_categories( $this->same, array( $this->category( 'energia' ) ) );
+		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'Mismo conjunto de términos.' );
+
+		// Borradores, tipos no analizados, menús de navegación y taxonomías que ningún filtro lee no importan.
+		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+		wp_set_post_categories( $draft, array( $this->category( 'bricolaje' ) ) );
+		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'Un borrador.' );
+		$custom = self::factory()->post->create(
+			array(
+				'post_type'   => 'attachment',
+				'post_status' => 'inherit',
+			)
+		);
+		wp_set_post_categories( $custom, array( $this->category( 'bricolaje' ) ) );
+		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'Un tipo que no se analiza.' );
+		$menu = wp_create_nav_menu( 'Menú de prueba' );
+		$item = wp_update_nav_menu_item(
+			$menu,
+			0,
+			array(
+				'menu-item-title'  => 'Inicio',
+				'menu-item-url'    => home_url( '/' ),
+				'menu-item-status' => 'publish',
+			)
+		);
+		wp_set_object_terms( $item, array( 'otro' ), 'nav_menu' );
+		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'Términos de nav_menu.' );
+		wp_set_post_terms( $this->same, array( 'solo-tag' ), 'post_tag' );
+		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'Las etiquetas no importan con el filtro de etiqueta en Ignorar.' );
+		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+
 		$term  = self::factory()->category->create( array( 'name' => 'efimera' ) );
 		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
 		wp_update_term( $term, 'category', array( 'name' => 'efimera dos' ) );
-		$this->assertNotSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'edited_term' );
+		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'Renombrar no cambia el term_taxonomy_id: no importa.' );
 		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
 		wp_delete_term( $term, 'category' );
 		$this->assertNotSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'delete_term' );
 	}
 
-	public function test_documents_carry_taxonomies_only_on_the_suggestion_path(): void {
+	public function test_shared_services_never_carry_taxonomies_even_when_a_calculation_reenters(): void {
 		$this->filters( array( 'category' => 'require' ) );
 		$source = Plugin::container()->get( \MagicLinking\Index\PostSource::class );
+		$repo   = Plugin::container()->get( \MagicLinking\Index\TableRepository::class );
 		$post   = get_post( $this->source );
 
 		$this->assertSame( array(), $source->from_post( $post )->taxonomies, 'El indexado y las reglas no leen términos aunque haya filtros.' );
-		$source->use_taxonomies( true );
-		$this->assertNotEmpty( $source->from_post( $post )->taxonomies['category'] );
-		$source->use_taxonomies( false );
+		$this->assertNotEmpty( $source->with_taxonomies( true )->from_post( $post )->taxonomies['category'], 'La vista del cálculo sí.' );
+		$this->assertSame( array(), $source->from_post( $post )->taxonomies, 'La vista no cambia el servicio compartido.' );
 
-		$this->service()->outgoing( $this->source );
-		$this->assertFalse( $source->taxonomies_enabled(), 'Tras calcular sugerencias, la bandera vuelve a apagarse.' );
+		// Dentro de un cálculo (el filtro se ejecuta al leer el contenido de la entrada) el servicio compartido sigue sin términos.
+		$seen = array();
+		add_filter(
+			'magiclinking_post_html',
+			function ( $html ) use ( &$seen, $source, $repo, $post ) {
+				static $busy = false;
+				if ( $busy ) {
+					return $html;
+				}
+				$busy   = true;
+				$seen[] = array( $source->from_post( $post )->taxonomies, $repo->meta( $this->same )->taxonomies );
+				$busy   = false;
+				return $html;
+			}
+		);
+		$this->assertNotEmpty( $this->service()->outgoing( $this->source ) );
+		$this->assertNotEmpty( $seen );
+		foreach ( $seen as $pair ) {
+			$this->assertSame( array(), $pair[0] );
+			$this->assertSame( array(), $pair[1] );
+		}
+	}
+
+	public function test_exigir_comparator_and_sql_agree_on_the_same_cases(): void {
+		$repo = Plugin::container()->get( \MagicLinking\Index\TableRepository::class )->with_taxonomies( true );
+		$repo->release();
+		$energia = array_map( 'strval', wp_get_object_terms( $this->same, 'category', array( 'fields' => 'tt_ids' ) ) );
+		$cocina  = array_map( 'strval', wp_get_object_terms( $this->source - 1, 'category', array( 'fields' => 'tt_ids' ) ) );
+		$hogar   = array_map( 'strval', wp_get_object_terms( $this->same, 'post_tag', array( 'fields' => 'tt_ids' ) ) );
+		$cases   = array(
+			array(),
+			array( 'types' => array( 'page' ) ),
+			array( 'types' => array( 'post' ) ),
+			array( 'types' => array( 'post', 'page' ) ),
+			array( 'taxonomies' => array( 'category' => $energia ) ),
+			array( 'taxonomies' => array( 'category' => array_merge( $energia, $cocina ) ) ),
+			array( 'taxonomies' => array( 'post_tag' => $hogar ) ),
+			array(
+				'types'      => array( 'page' ),
+				'taxonomies' => array(
+					'category' => $energia,
+					'post_tag' => $hogar,
+				),
+			),
+		);
+		global $wpdb;
+		$ids = array_map( 'intval', $wpdb->get_col( "SELECT post_id FROM {$wpdb->prefix}magiclinking_docs WHERE lang = 'es' AND status = 1" ) ); // phpcs:ignore WordPress.DB
+		foreach ( $cases as $n => $needs ) {
+			$expected = array();
+			foreach ( $ids as $id ) {
+				$meta = $repo->meta( $id );
+				if ( null !== $meta && 'publish' === get_post_status( $id ) && \MagicLinking\Engine\Requirement::met( $needs, $meta->type, $meta->taxonomies ) ) {
+					$expected[] = $id;
+				}
+			}
+			sort( $expected );
+			$this->assertSame( $expected, $repo->matching( 'es', $needs ), "Caso {$n}: el comparador de PHP y el SQL coinciden." );
+		}
+		$this->assertNotSame( array(), $repo->matching( 'es', $cases[3] ) );
 	}
 
 	public function test_require_type_and_tag(): void {
@@ -532,6 +649,17 @@ final class PillarFiltersTest extends GraphTestCase {
 		$this->assertNotSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'La marca de un plugin de SEO invalida las sugerencias guardadas.' );
 
 		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		update_post_meta( $draft, 'rank_math_pillar_content', 'on' );
+		update_post_meta( $draft, Pillars::OWN_KEY, '1' );
+		$attachment = self::factory()->post->create(
+			array(
+				'post_type'   => 'attachment',
+				'post_status' => 'inherit',
+			)
+		);
+		update_post_meta( $attachment, Pillars::OWN_KEY, '1' );
+		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'La marca de un borrador o de un tipo ajeno no importa.' );
 		update_post_meta( $this->same, 'unrelated_meta', '1' );
 		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ) );
 

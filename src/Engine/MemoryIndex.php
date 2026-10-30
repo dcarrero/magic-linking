@@ -222,6 +222,24 @@ final class MemoryIndex implements IndexRepository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 *
+	 * @param string $lang  Idioma.
+	 * @param array  $needs Filtros en modo Exigir.
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
+	 */
+	public function matching( string $lang, array $needs ): array {
+		$out = array();
+		foreach ( $this->docs as $id => $meta ) {
+			if ( $meta->lang === $lang && Requirement::met( $needs, $meta->type, $meta->taxonomies ) ) {
+				$out[] = $id;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Deja las entradas que cumplen los filtros en modo Exigir.
 	 *
 	 * @param array<int, float> $scores  ID → puntuación.
@@ -239,18 +257,7 @@ final class MemoryIndex implements IndexRepository {
 			$scores,
 			function ( int $id ) use ( $needs ): bool {
 				$meta = $this->docs[ $id ] ?? null;
-				if ( null === $meta ) {
-					return false;
-				}
-				if ( isset( $needs['types'] ) && ! in_array( $meta->type, $needs['types'], true ) ) {
-					return false;
-				}
-				foreach ( $needs['taxonomies'] ?? array() as $taxonomy => $values ) {
-					if ( array() === array_intersect( $values, $meta->taxonomies[ $taxonomy ] ?? array() ) ) {
-						return false;
-					}
-				}
-				return true;
+				return null !== $meta && Requirement::met( $needs, $meta->type, $meta->taxonomies );
 			},
 			ARRAY_FILTER_USE_KEY
 		);

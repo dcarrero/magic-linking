@@ -401,7 +401,7 @@ export function gutenbergAdapter(
 			),
 
 		getTerms: () => {
-			const out: EditorTerms = {};
+			const out: EditorTerms = { ids: {}, names: {} };
 			for ( const [ logical, source ] of Object.entries(
 				options.terms ?? {}
 			) ) {
@@ -409,12 +409,13 @@ export function gutenbergAdapter(
 					editorStore
 				).getEditedPostAttribute( source.field );
 				if ( Array.isArray( value ) ) {
-					out[ logical as 'category' | 'post_tag' ] = value.filter(
-						( id ): id is number => typeof id === 'number'
-					);
+					out.ids[ logical as 'category' | 'post_tag' ] =
+						value.filter(
+							( id ): id is number => typeof id === 'number'
+						);
 				}
 			}
-			return Object.keys( out ).length > 0 ? out : undefined;
+			return Object.keys( out.ids ).length > 0 ? out : undefined;
 		},
 
 		onSaved: ( callback ) => watchSaves( { saved: callback } ),

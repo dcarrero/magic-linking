@@ -143,12 +143,15 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	}
 
 	/**
-	 * Activa o desactiva la lectura de categorías y etiquetas en los documentos (ver {@see PostSource::use_taxonomies()}).
+	 * Una vista con los documentos con (o sin) categorías y etiquetas (ver {@see PostSource::with_taxonomies()}).
 	 *
-	 * @param bool $enabled Activada.
+	 * @param bool $enabled Documentos con términos.
 	 */
-	public function use_taxonomies( bool $enabled ): void {
-		$this->posts->use_taxonomies( $enabled );
+	public function with_taxonomies( bool $enabled ): self {
+		$view        = clone $this;
+		$view->posts = $this->posts->with_taxonomies( $enabled );
+
+		return $view;
 	}
 
 	/**

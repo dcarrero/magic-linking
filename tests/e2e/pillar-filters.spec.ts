@@ -262,7 +262,7 @@ test.describe("Pillar content and filters", () => {
 		panel = await openSidebar(page);
 		await expect(panel.locator(".magiclinking-card")).toHaveCount(0);
 		await expect(panel).toContainText(
-			"only entries with the same category are searched",
+			"only entries that match this one in category are searched",
 		);
 		const link = panel.getByRole("link", { name: "Settings → Suggestions" });
 		await expect(link).toHaveAttribute(
@@ -274,7 +274,7 @@ test.describe("Pillar content and filters", () => {
 		// Entrantes, igual.
 		await panel.getByRole("tab", { name: /^Inbound/ }).click();
 		await expect(panel).toContainText(
-			"only entries with the same category as this one are searched",
+			"only entries that match this one in category are searched",
 		);
 	});
 });
