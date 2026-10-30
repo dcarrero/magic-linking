@@ -136,8 +136,19 @@ final class PostSource implements DocumentSource {
 			$content->headings,
 			$content->paragraphs,
 			array(),
-			Fingerprint::focus( $post->ID )
+			Fingerprint::focus( $post->ID ),
+			$this->wants_taxonomies() ? Taxonomies::of( $post->ID, $post->post_type ) : array()
 		);
+	}
+
+	/**
+	 * Si hay filtros por categoría o etiqueta en modo Considerar o Exigir: solo entonces los documentos llevan sus
+	 * términos (sin filtros, no se hace ninguna consulta más).
+	 */
+	public function wants_taxonomies(): bool {
+		$filters = $this->settings->filters();
+
+		return 'ignore' !== $filters['category'] || 'ignore' !== $filters['tag'];
 	}
 
 	/**

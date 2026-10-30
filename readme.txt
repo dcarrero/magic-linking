@@ -157,6 +157,10 @@ Because the site has no AI connector (add one in Settings > Connectors), WordPre
 
 The suggestions come from the index of your site, which is built in the background after you press *Analyze my site*. Until it is ready the panel says so. Also, suggestions need text: a very short entry has little to suggest, and entries in another language, drafts, private entries and password-protected ones are never proposed as destinations.
 
+= Can I favour my main pages, or only link within a category? =
+
+Yes. Tick *Pillar content* in the panel (Magic Linking reads the cornerstone mark of Yoast SEO and the pillar mark of Rank Math without asking you anything): links to those entries rank a little higher. In *Settings → Suggestions* you can ignore, take into account or require the content type, category and tag. These are quality settings, never limits.
+
 = Why can't I link from this phrase? =
 
 Links are only inserted in paragraphs and lists, and never inside an existing link. Headings, quotes and tables are off by default: turn them on in Magic Linking > Settings > Links > Where links can be inserted. A developer can allow more block types with `magiclinking_insertable_blocks`.

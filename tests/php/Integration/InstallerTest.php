@@ -464,6 +464,8 @@ final class InstallerTest extends WP_UnitTestCase {
 		$post_id = self::factory()->post->create();
 		update_post_meta( $post_id, 'magiclinking_dismissed', array( 3 ) );
 		update_post_meta( $post_id, 'other_plugin_meta', 'keep' );
+		update_post_meta( $post_id, '_magiclinking_pillar', '1' );
+		update_post_meta( $post_id, '_yoast_wpseo_is_cornerstone', '1' );
 		set_transient( 'magiclinking_suggestions_1', array( 'x' ) );
 		update_option( 'other_plugin_option', 'keep' );
 		global $wpdb;
@@ -489,6 +491,8 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertFalse( get_transient( 'magiclinking_suggestions_1' ) );
 		$this->assertSame( '', get_post_meta( $post_id, 'magiclinking_dismissed', true ) );
 		$this->assertSame( 'keep', get_post_meta( $post_id, 'other_plugin_meta', true ) );
+		$this->assertSame( '', get_post_meta( $post_id, '_magiclinking_pillar', true ), 'La casilla de pilar propia se borra con los datos.' );
+		$this->assertSame( '1', get_post_meta( $post_id, '_yoast_wpseo_is_cornerstone', true ), 'La marca de Yoast no es nuestra.' );
 		$this->assertSame( 'keep', get_option( 'other_plugin_option' ) );
 	}
 

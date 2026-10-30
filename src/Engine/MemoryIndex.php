@@ -183,8 +183,10 @@ final class MemoryIndex implements IndexRepository {
 	 * @param string               $lang    Idioma.
 	 * @param int                  $limit   Máximo.
 	 * @param int[]                $exclude Excluidos.
+	 * @param array                $needs   Filtros en modo Exigir (docs/04 §4.3), aplicados antes del límite.
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
 	 */
-	public function similar( array $weights, string $lang, int $limit, array $exclude = array() ): array {
+	public function similar( array $weights, string $lang, int $limit, array $exclude = array(), array $needs = array() ): array {
 		$postings = $this->postings[ $lang ] ?? array();
 		$scores   = array();
 		foreach ( $weights as $term => $weight ) {
@@ -195,7 +197,7 @@ final class MemoryIndex implements IndexRepository {
 				$scores[ $id ] = ( $scores[ $id ] ?? 0.0 ) + $weight * $other;
 			}
 		}
-		return self::best( $scores, $limit, $exclude );
+		return self::best( $this->allowed( $scores, $needs ), $limit, $exclude );
 	}
 
 	/**
@@ -205,8 +207,10 @@ final class MemoryIndex implements IndexRepository {
 	 * @param string   $lang    Idioma.
 	 * @param int      $limit   Máximo.
 	 * @param int[]    $exclude Excluidos.
+	 * @param array    $needs   Filtros en modo Exigir (docs/04 §4.3), aplicados antes del límite.
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
 	 */
-	public function containing( array $terms, string $lang, int $limit, array $exclude = array() ): array {
+	public function containing( array $terms, string $lang, int $limit, array $exclude = array(), array $needs = array() ): array {
 		$postings = $this->postings[ $lang ] ?? array();
 		$scores   = array();
 		foreach ( array_unique( $terms ) as $term ) {
@@ -214,7 +218,42 @@ final class MemoryIndex implements IndexRepository {
 				$scores[ $id ] = ( $scores[ $id ] ?? 0.0 ) + $weight;
 			}
 		}
-		return self::best( $scores, $limit, $exclude );
+		return self::best( $this->allowed( $scores, $needs ), $limit, $exclude );
+	}
+
+	/**
+	 * Deja las entradas que cumplen los filtros en modo Exigir.
+	 *
+	 * @param array<int, float> $scores  ID → puntuación.
+	 * @param array             $needs Filtros (tipos permitidos y, por taxonomía, valores de los que basta compartir uno).
+	 * @return array<int, float>
+	 *
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
+	 */
+	private function allowed( array $scores, array $needs ): array {
+		if ( array() === $needs ) {
+			return $scores;
+		}
+
+		return array_filter(
+			$scores,
+			function ( int $id ) use ( $needs ): bool {
+				$meta = $this->docs[ $id ] ?? null;
+				if ( null === $meta ) {
+					return false;
+				}
+				if ( isset( $needs['types'] ) && ! in_array( $meta->type, $needs['types'], true ) ) {
+					return false;
+				}
+				foreach ( $needs['taxonomies'] ?? array() as $taxonomy => $values ) {
+					if ( array() === array_intersect( $values, $meta->taxonomies[ $taxonomy ] ?? array() ) ) {
+						return false;
+					}
+				}
+				return true;
+			},
+			ARRAY_FILTER_USE_KEY
+		);
 	}
 
 	/**

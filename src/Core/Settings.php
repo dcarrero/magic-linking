@@ -13,6 +13,7 @@ use MagicLinking\AI\Models;
 
 use MagicLinking\AI\Budget;
 use MagicLinking\Engine\RuleLimits;
+use MagicLinking\Engine\Suggester;
 
 /**
  * Lee y guarda la opción magiclinking_settings, la única en autoload.
@@ -45,6 +46,11 @@ final class Settings {
 		'ignored_urls'                 => array(),
 		'ignored_words'                => array(),
 		'ignored_ids'                  => array(),
+		'filters'                      => array(
+			'type'     => Suggester::IGNORE,
+			'category' => Suggester::IGNORE,
+			'tag'      => Suggester::IGNORE,
+		),
 		'ai_daily_token_limit'         => Budget::DEFAULT_LIMIT,
 		'ai_model'                     => '',
 	);
@@ -259,6 +265,15 @@ final class Settings {
 			$out[ $key ] = self::clean_list( $input[ $key ] ?? $base[ $key ] ?? array(), $limit, 'ignored_urls' === $key );
 		}
 
+		$filters = array();
+		$given   = is_array( $input['filters'] ?? null ) ? $input['filters'] : array();
+		$kept    = is_array( $base['filters'] ?? null ) ? $base['filters'] : array();
+		foreach ( self::DEFAULTS['filters'] as $filter => $default ) {
+			$mode               = $given[ $filter ] ?? $kept[ $filter ] ?? $default;
+			$filters[ $filter ] = is_string( $mode ) && in_array( $mode, array( Suggester::IGNORE, Suggester::CONSIDER, Suggester::REQUIRE ), true ) ? $mode : $default;
+		}
+		$out['filters'] = $filters;
+
 		// Se calculan al guardar las direcciones (`update()`); lo que llegue de fuera se descarta allí.
 		$out['ignored_ids'] = array_values( array_map( 'intval', (array) ( $input['ignored_ids'] ?? $base['ignored_ids'] ?? array() ) ) );
 
@@ -318,6 +333,26 @@ final class Settings {
 		}
 
 		return array_slice( $out, 0, $limit );
+	}
+
+	/**
+	 * Filtros por tipo, categoría y etiqueta con su modo (docs/04 §4.3): `ignore`, `consider` o `require`.
+	 *
+	 * @return array<string, string>
+	 */
+	public function filters(): array {
+		return $this->all()['filters'];
+	}
+
+	/**
+	 * Filtros en el modo indicado.
+	 *
+	 * @param string $mode `consider` o `require`.
+	 *
+	 * @return list<string>
+	 */
+	public function filters_in_mode( string $mode ): array {
+		return array_keys( array_filter( $this->filters(), static fn( string $value ): bool => $value === $mode ) );
 	}
 
 	/**

@@ -57,8 +57,8 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	}
 
 	/**
-	 * Carga en las cachés de entradas y metadatos las que se van a pedir. Los términos de taxonomía no
-	 * hacen falta: el motor no los usa aquí.
+	 * Carga en las cachés de entradas y metadatos las que se van a pedir. Los términos de taxonomía solo se
+	 * cargan (en una consulta) si hay filtros por categoría o etiqueta en modo Considerar o Exigir.
 	 *
 	 * @param int[] $ids IDs.
 	 */
@@ -68,7 +68,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 			return;
 		}
 
-		_prime_post_caches( $ids, false, true );
+		_prime_post_caches( $ids, $this->posts->wants_taxonomies(), true );
 
 		$links        = $this->graph->links_from( $ids );
 		$this->stored = array();

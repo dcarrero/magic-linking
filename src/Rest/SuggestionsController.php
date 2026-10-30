@@ -294,12 +294,14 @@ final class SuggestionsController implements Module {
 
 		return new WP_REST_Response(
 			array(
-				'ready'   => true,
-				'state'   => 'ok',
-				'draft'   => null !== $content,
-				'total'   => count( $found ),
-				'items'   => array_map( array( $this->presenter, 'present' ), $found ),
-				'post_id' => $post_id,
+				'ready'    => true,
+				'state'    => 'ok',
+				'draft'    => null !== $content,
+				'total'    => count( $found ),
+				'items'    => array_map( array( $this->presenter, 'present' ), $found ),
+				'post_id'  => $post_id,
+				// Filtros en modo Exigir (type, category, tag): sin sugerencias, el estado vacío los explica.
+				'required' => $this->settings->filters_in_mode( 'require' ),
 			)
 		);
 	}
@@ -376,6 +378,7 @@ final class SuggestionsController implements Module {
 				'per_page'    => $per_page,
 				'items'       => array_map( array( $this->presenter, 'present' ), $cut ),
 				'post_id'     => $post_id,
+				'required'    => $this->settings->filters_in_mode( 'require' ),
 			)
 		);
 		$response->header( 'X-WP-Total', (string) $total );

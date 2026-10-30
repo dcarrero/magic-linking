@@ -39,6 +39,16 @@ final class Suggestions {
 	private const NEVER_STATUS = array( 'trash', 'auto-draft', 'inherit' );
 
 	/**
+	 * Bonificaciones activas, medidas en el banco (F0-12, D-33): contenido pilar +0,05 y, por cada filtro en modo
+	 * Considerar que comparten origen y destino, +0,05 con tope +0,10 (`Scorer::AFFINITY_CAP`). Reordenan, pero el
+	 * umbral y la relevancia mínima se comprueban antes de sumarlas: nunca hacen pasar una sugerencia por sí solas.
+	 */
+	public const BONUSES = array(
+		'pillar'   => 0.05,
+		'affinity' => 0.05,
+	);
+
+	/**
 	 * Constructor.
 	 *
 	 * @param TableRepository     $repository Índice.
@@ -46,13 +56,15 @@ final class Suggestions {
 	 * @param TableDocuments      $documents  Entradas con sus enlaces.
 	 * @param Settings            $settings   Ajustes.
 	 * @param DismissalRepository $dismissals Pares descartados.
+	 * @param Pillars             $pillars    Contenido pilar.
 	 */
 	public function __construct(
 		private TableRepository $repository,
 		private LexicalIndexer $lexical,
 		private TableDocuments $documents,
 		private Settings $settings,
-		private DismissalRepository $dismissals
+		private DismissalRepository $dismissals,
+		private Pillars $pillars
 	) {
 	}
 
@@ -127,6 +139,7 @@ final class Suggestions {
 
 			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
 		} finally {
+			$this->repository->use_taxonomies( false );
 			$this->documents->release();
 		}
 	}
@@ -155,6 +168,7 @@ final class Suggestions {
 		try {
 			return $this->without_ignored( $this->suggester( $options )->incoming( $post_id ) );
 		} finally {
+			$this->repository->use_taxonomies( false );
 			$this->documents->release();
 		}
 	}
@@ -202,12 +216,18 @@ final class Suggestions {
 			$options['never'] = array_values( array_unique( array_merge( $options['never'] ?? array(), $all['ignored_ids'] ) ) );
 		}
 
+		// Los filtros en modo Considerar o Exigir (docs/04 §4.3) y el contenido pilar (§6).
+		$filters = array_filter( $all['filters'], static fn( string $mode ): bool => Suggester::IGNORE !== $mode );
+		$this->repository->use_taxonomies( isset( $filters['category'] ) || isset( $filters['tag'] ) );
+		$defaults['filters'] = $filters;
+		$defaults['pillars'] = $this->pillars->ids();
+
 		return new Suggester(
 			$this->repository,
 			$this->documents,
 			new Indexer(),
 			new PhraseFinder(),
-			new Scorer( array(), Scorer::THRESHOLD, Scorer::DENSITY, Scorer::MIN_RELEVANCE, array(), (int) $all['same_anchor_max'] ),
+			new Scorer( array(), Scorer::THRESHOLD, Scorer::DENSITY, Scorer::MIN_RELEVANCE, self::BONUSES, (int) $all['same_anchor_max'] ),
 			new Retriever( $this->repository ),
 			array_merge( $defaults, $options )
 		);

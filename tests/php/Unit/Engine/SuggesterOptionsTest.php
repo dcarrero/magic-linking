@@ -318,6 +318,51 @@ final class SuggesterOptionsTest extends TestCase {
 		$this->assertEqualsWithDelta( $plain->score->value + 0.05, $consider->score->value, 1e-9 );
 	}
 
+	public function test_require_is_applied_in_retrieval_before_the_limit(): void {
+		$corpus = self::filter_corpus();
+		self::origin( $corpus );
+		$weights = $corpus->index->terms( 10 );
+
+		$best = $corpus->index->similar( $weights, 'es', 1, array( 10 ) );
+		$kept = $corpus->index->similar( $weights, 'es', 1, array( 10 ), array( 'taxonomies' => array( 'category' => array( 'energia' ) ) ) );
+		$this->assertSame( array( 9 ), array_keys( $best ), 'sin filtro, la mejor es la de otra categoría' );
+		$this->assertSame( array( 8 ), array_keys( $kept ), 'con el filtro en la consulta, la mejor es la única de la categoría, no un hueco' );
+	}
+
+	public function test_require_category_without_values_in_the_source_finds_nothing(): void {
+		$corpus = self::filter_corpus();
+		$origin = $corpus->source->add( 21, 'Sin categoría', array( 'La geotermia y el compostaje doméstico, otra vez.' ), 'es', 'post', '', 1790000000, array(), array() );
+
+		$free = $corpus->suggester( array( 'never' => array( 10 ) ), self::loose() )->outgoing( $origin );
+		$none = $corpus->suggester(
+			array(
+				'never'   => array( 10 ),
+				'filters' => array( 'category' => 'require' ),
+			),
+			self::loose()
+		)->outgoing( $origin );
+
+		$this->assertNotSame( array(), $free );
+		$this->assertSame( array(), $none, 'sin categoría en el origen, ninguna candidata puede compartirla' );
+	}
+
+	public function test_require_category_filters_incoming_origins(): void {
+		$corpus = new Corpus(
+			static function ( ArraySource $s ): void {
+				$s->add( 8, 'Guía de geotermia', array( 'La geotermia aprovecha el calor del subsuelo.' ), 'es', 'post', '', 1790000000, array(), self::terms( 'energia', 'solar' ) );
+				$s->add( 9, 'Notas de campo', array( 'Hoy hablamos de geotermia en casa.' ), 'es', 'post', '', 1790000000, array(), self::terms( 'hogar', 'casa' ) );
+				$s->add( 10, 'Más notas', array( 'La geotermia gana adeptos cada año.' ), 'es', 'post', '', 1790000000, array(), self::terms( 'energia', 'casa' ) );
+			}
+		);
+
+		$free    = array_map( static fn( Suggestion $s ): int => $s->source, $corpus->suggester( array(), self::loose() )->incoming( 8 ) );
+		$require = array_map( static fn( Suggestion $s ): int => $s->source, $corpus->suggester( array( 'filters' => array( 'category' => 'require' ) ), self::loose() )->incoming( 8 ) );
+
+		$this->assertContains( 9, $free );
+		$this->assertContains( 10, $free );
+		$this->assertSame( array( 10 ), $require, 'solo orígenes de la misma categoría' );
+	}
+
 	public function test_unknown_filters_and_ignore_do_not_change_anything(): void {
 		$corpus = self::filter_corpus();
 		$origin = self::origin( $corpus );

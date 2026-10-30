@@ -39,6 +39,7 @@ use MagicLinking\History\Undo;
 use MagicLinking\I18n\Language;
 use MagicLinking\Index\DismissalRepository;
 use MagicLinking\Index\LexicalIndexer;
+use MagicLinking\Index\Pillars;
 use MagicLinking\Index\PostSource;
 use MagicLinking\Index\ScopedExtractor;
 use MagicLinking\Index\SuggestionCache;
@@ -60,6 +61,7 @@ use MagicLinking\Rest\EditorHistoryController;
 use MagicLinking\Rest\FixController;
 use MagicLinking\Rest\HistoryController;
 use MagicLinking\Rest\JobsController;
+use MagicLinking\Rest\PillarController;
 use MagicLinking\Rest\ReportController;
 use MagicLinking\Rest\RulesController;
 use MagicLinking\Rest\SettingsController;
@@ -92,6 +94,8 @@ final class Plugin {
 		EditorHistoryController::class,
 		EditorReconciler::class,
 		SuggestionCache::class,
+		Pillars::class,
+		PillarController::class,
 		SuggestionsController::class,
 		DismissalsController::class,
 		RulesController::class,
@@ -237,8 +241,14 @@ final class Plugin {
 				$c->get( LexicalIndexer::class ),
 				$c->get( TableDocuments::class ),
 				$c->get( Settings::class ),
-				$c->get( DismissalRepository::class )
+				$c->get( DismissalRepository::class ),
+				$c->get( Pillars::class )
 			),
+			Pillars::class                 => static function (): Pillars {
+				global $wpdb;
+				return new Pillars( $wpdb );
+			},
+			PillarController::class        => static fn( Container $c ): PillarController => new PillarController( $c->get( Pillars::class ), $c->get( Settings::class ) ),
 			SuggestionCache::class         => static fn(): SuggestionCache => new SuggestionCache(),
 			SuggestionPresenter::class     => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ) ),
 			SuggestionsController::class   => static fn( Container $c ): SuggestionsController => new SuggestionsController(

@@ -130,6 +130,14 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	private ?array $cache = null;
 
 	/**
+	 * Si los metadatos que se construyen llevan las categorías y etiquetas de la entrada (filtros Considerar y
+	 * Exigir): lo decide quien calcula las sugerencias con {@see self::use_taxonomies()}.
+	 *
+	 * @var bool
+	 */
+	private bool $with_taxonomies = false;
+
+	/**
 	 * Totales por idioma (entradas y longitud media), calculados al primer uso.
 	 *
 	 * @var array<string, array{0: int, 1: float}>
@@ -150,6 +158,16 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		$this->postings    = Schema::table( $wpdb->prefix, 'postings' );
 		$this->links       = Schema::table( $wpdb->prefix, 'links' );
 		$this->posts       = $wpdb->posts;
+	}
+
+	/**
+	 * Activa o desactiva la lectura de categorías y etiquetas en los metadatos. Solo se activa mientras hay filtros
+	 * por taxonomía en modo Considerar o Exigir: sin ellos, no se hace ninguna consulta de términos.
+	 *
+	 * @param bool $enabled Activada.
+	 */
+	public function use_taxonomies( bool $enabled ): void {
+		$this->with_taxonomies = $enabled;
 	}
 
 	// ------------------------------------------------------------------ Frecuencia de documento.
@@ -703,6 +721,11 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			}
 		}//end foreach
 
+		if ( $this->with_taxonomies ) {
+			// Una consulta para los términos de todas; luego `get_the_terms()` lee de la caché.
+			update_object_term_cache( $ids, array_values( array_unique( array_map( static fn( array $row ): string => (string) $row['post_type'], $metas ) ) ) );
+		}
+
 		$cache = array(
 			'meta'    => array(),
 			'terms'   => array(),
@@ -773,7 +796,8 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			(int) $row['word_count'],
 			(int) $row['doc_len'],
 			(int) $row['outbound'],
-			Fingerprint::focus( $id )
+			Fingerprint::focus( $id ),
+			$this->with_taxonomies ? Taxonomies::of( $id, (string) $row['post_type'] ) : array()
 		);
 	}
 
@@ -815,8 +839,10 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	 * @param string               $lang    Idioma.
 	 * @param int                  $limit   Máximo.
 	 * @param int[]                $exclude Excluidos.
+	 * @param array                $needs   Filtros en modo Exigir (docs/04 §4.3), aplicados antes del límite.
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
 	 */
-	public function similar( array $weights, string $lang, int $limit, array $exclude = array() ): array {
+	public function similar( array $weights, string $lang, int $limit, array $exclude = array(), array $needs = array() ): array {
 		$found = $this->term_ids( $lang, array_map( 'strval', array_keys( $weights ) ) );
 		$by_id = array();
 		foreach ( $weights as $term => $weight ) {
@@ -825,7 +851,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			}
 		}
 
-		return $this->rank( $by_id, $lang, $limit, $exclude );
+		return $this->rank( $by_id, $lang, $limit, $exclude, $needs );
 	}
 
 	/**
@@ -835,15 +861,49 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	 * @param string   $lang    Idioma.
 	 * @param int      $limit   Máximo.
 	 * @param int[]    $exclude Excluidos.
+	 * @param array    $needs   Filtros en modo Exigir (docs/04 §4.3), aplicados antes del límite.
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
 	 */
-	public function containing( array $terms, string $lang, int $limit, array $exclude = array() ): array {
+	public function containing( array $terms, string $lang, int $limit, array $exclude = array(), array $needs = array() ): array {
 		$found = $this->lookup( $lang, array_values( array_unique( array_map( 'strval', $terms ) ) ) );
 		$by_id = array();
 		foreach ( $found as $term ) {
 			$by_id[ $term[0] ] = 1.0;
 		}
 
-		return $this->rank( $by_id, $lang, $limit, $exclude );
+		return $this->rank( $by_id, $lang, $limit, $exclude, $needs );
+	}
+
+	/**
+	 * Condiciones de los filtros en modo Exigir sobre la fila de `magiclinking_docs` (`d`): tipo permitido y, por
+	 * taxonomía, al menos un término en común (`term_relationships`). Se añaden a la consulta, así que se aplican
+	 * antes del límite, igual que el idioma.
+	 *
+	 * @param string           $alias   Alias de `magiclinking_docs` en la consulta.
+	 * @param array            $needs Filtros.
+	 * @param list<int|string> $args    Argumentos de `prepare()` a los que se añaden los de las condiciones (por referencia).
+	 *
+	 * @return string Condiciones para añadir con AND; vacío si no hay filtros.
+	 *
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
+	 * @phpstan-param-out list<int|string> $args
+	 */
+	private function require_sql( string $alias, array $needs, array &$args ): string {
+		$sql = '';
+		if ( isset( $needs['types'] ) ) {
+			$types = array_map( 'strval', $needs['types'] );
+			$sql  .= " AND {$alias}.post_type IN (" . implode( ',', array_fill( 0, max( 1, count( $types ) ), '%s' ) ) . ')';
+			array_push( $args, ...( array() === $types ? array( '' ) : $types ) );
+		}
+		foreach ( $needs['taxonomies'] ?? array() as $values ) {
+			$ids = array_values( array_filter( array_map( 'intval', $values ), static fn( int $id ): bool => $id > 0 ) );
+			// Sin términos válidos nada puede compartirlos: la condición siempre es falsa.
+			$ids  = array() === $ids ? array( 0 ) : $ids;
+			$sql .= " AND EXISTS (SELECT 1 FROM %i r WHERE r.object_id = {$alias}.post_id AND r.term_taxonomy_id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . '))';
+			array_push( $args, $this->wpdb->term_relationships, ...$ids );
+		}
+
+		return $sql;
 	}
 
 	/**
@@ -857,10 +917,13 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	 * @param string            $lang    Idioma.
 	 * @param int               $limit   Máximo.
 	 * @param int[]             $exclude Excluidos.
+	 * @param array             $needs Filtros en modo Exigir.
 	 *
 	 * @return array<int, float> ID → puntuación, de mayor a menor (empates por ID ascendente).
+	 *
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
 	 */
-	private function rank( array $by_id, string $lang, int $limit, array $exclude ): array {
+	private function rank( array $by_id, string $lang, int $limit, array $exclude, array $needs = array() ): array {
 		if ( array() === $by_id || $limit <= 0 ) {
 			return array();
 		}
@@ -871,15 +934,17 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		$skip = array_flip( array_map( 'intval', $exclude ) );
 
 		if ( count( $by_id ) > $this->query_terms ) {
-			return $this->rank_in_chunks( $by_id, $lang, $limit, $skip );
+			return $this->rank_in_chunks( $by_id, $lang, $limit, $skip, $needs );
 		}
 
 		$query = $this->weights_table( $by_id, $args );
-		$args  = array_merge( $args, array( $this->postings, $this->docs, $this->posts, $lang, $limit + count( $skip ) ) );
+		$args  = array_merge( $args, array( $this->postings, $this->docs, $this->posts, $lang ) );
+		$extra = $this->require_sql( 'd', $needs, $args );
+		$args  = array_merge( $args, array( $limit + count( $skip ) ) );
 
-		$rows = $wpdb->get_results( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $query solo lleva marcadores %d y %s generados por weights_table(); los valores van en $args.
+		$rows = $wpdb->get_results( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $query y $extra solo llevan marcadores generados por weights_table() y require_sql(); los valores van en $args.
 			$wpdb->prepare(
-				"SELECT s.post_id, s.score FROM (SELECT p.post_id AS post_id, SUM(p.weight * q.w) AS score FROM ({$query}) q JOIN %i p ON p.term_id = q.term_id GROUP BY p.post_id) s JOIN %i d ON d.post_id = s.post_id JOIN %i w ON w.ID = s.post_id WHERE d.lang = %s AND d.status = 1 AND w.post_status = 'publish' ORDER BY s.score DESC, s.post_id ASC LIMIT %d",
+				"SELECT s.post_id, s.score FROM (SELECT p.post_id AS post_id, SUM(p.weight * q.w) AS score FROM ({$query}) q JOIN %i p ON p.term_id = q.term_id GROUP BY p.post_id) s JOIN %i d ON d.post_id = s.post_id JOIN %i w ON w.ID = s.post_id WHERE d.lang = %s AND d.status = 1 AND w.post_status = 'publish'{$extra} ORDER BY s.score DESC, s.post_id ASC LIMIT %d",
 				$args
 			),
 			ARRAY_N
@@ -938,10 +1003,13 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	 * @param string            $lang  Idioma.
 	 * @param int               $limit Máximo.
 	 * @param array<int, int>   $skip  Excluidos (como claves).
+	 * @param array             $needs Filtros en modo Exigir.
 	 *
 	 * @return array<int, float>
+	 *
+	 * @phpstan-param array{types?: list<string>, taxonomies?: array<string, list<string>>} $needs
 	 */
-	private function rank_in_chunks( array $by_id, string $lang, int $limit, array $skip ): array {
+	private function rank_in_chunks( array $by_id, string $lang, int $limit, array $skip, array $needs = array() ): array {
 		$wpdb   = $this->wpdb;
 		$scores = array();
 
@@ -976,10 +1044,12 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			}
 			$batch = array_slice( $ids, $from, $limit );
 			$marks = implode( ',', array_fill( 0, count( $batch ), '%d' ) );
-			$valid = $wpdb->get_col(
+			$args  = array_merge( array( $this->docs, $this->posts, $lang ), $batch );
+			$extra = $this->require_sql( 'd', $needs, $args );
+			$valid = $wpdb->get_col( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $extra solo lleva marcadores generados por require_sql(); los valores van en $args.
 				$wpdb->prepare(
-					"SELECT d.post_id FROM %i d JOIN %i w ON w.ID = d.post_id WHERE d.lang = %s AND d.status = 1 AND w.post_status = 'publish' AND d.post_id IN ({$marks})",
-					array_merge( array( $this->docs, $this->posts, $lang ), $batch )
+					"SELECT d.post_id FROM %i d JOIN %i w ON w.ID = d.post_id WHERE d.lang = %s AND d.status = 1 AND w.post_status = 'publish' AND d.post_id IN ({$marks}){$extra}",
+					$args
 				)
 			);
 			$valid = array_flip( array_map( 'intval', $valid ) );
@@ -989,7 +1059,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 					$out[ $id ] = $scores[ $id ];
 				}
 			}
-		}
+		}//end for
 
 		return $out;
 	}
