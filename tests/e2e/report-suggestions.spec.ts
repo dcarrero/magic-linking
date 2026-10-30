@@ -146,6 +146,14 @@ test.describe( 'Add links from the report', () => {
 		ids = seedReport();
 	} );
 
+	// Las entradas de esta pasada no se quedan en el sitio: otras specs (p. ej. el informe) cuentan filas.
+	test.afterAll( () => {
+		wp(
+			'eval',
+			`global $wpdb; foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'pe-%'" ) as $id ) { wp_delete_post( (int) $id, true ); } foreach ( array( 'docs', 'links', 'jobs', 'changes', 'dismissed' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }`
+		);
+	} );
+
 	test( 'outbound: adds a link on the server without opening the editor, updates the row and undoes it', async ( {
 		page,
 	} ) => {
