@@ -61,16 +61,15 @@ final class RuleService {
 	/**
 	 * Constructor.
 	 *
-	 * @param TableDocuments   $documents   Documentos del motor con sus enlaces actuales.
-	 * @param Inserter         $inserter    Inserción segura.
-	 * @param Destination      $destination Comprobación del destino.
-	 * @param Language         $language    Idioma por entrada.
-	 * @param Settings         $settings    Ajustes (tipos y topes).
-	 * @param SiteAnchors      $anchors     Anclas ya usadas hacia cada destino.
-	 * @param ChangeRepository $changes     Historial.
-	 * @param GraphRepository  $graph       Grafo (recorre las entradas).
-	 * @param RuleRepository   $rules       Reglas.
-	 * @param RuleMatcher      $matcher     Coincidencia.
+	 * @param TableDocuments  $documents   Documentos del motor con sus enlaces actuales.
+	 * @param Inserter        $inserter    Inserción segura.
+	 * @param Destination     $destination Comprobación del destino.
+	 * @param Language        $language    Idioma por entrada.
+	 * @param Settings        $settings    Ajustes (tipos y topes).
+	 * @param SiteAnchors     $anchors     Anclas ya usadas hacia cada destino.
+	 * @param GraphRepository $graph       Grafo (recorre las entradas).
+	 * @param RuleRepository  $rules       Reglas.
+	 * @param RuleMatcher     $matcher     Coincidencia.
 	 */
 	public function __construct(
 		private TableDocuments $documents,
@@ -79,7 +78,6 @@ final class RuleService {
 		private Language $language,
 		private Settings $settings,
 		private SiteAnchors $anchors,
-		private ChangeRepository $changes,
 		private GraphRepository $graph,
 		private RuleRepository $rules,
 		private RuleMatcher $matcher = new RuleMatcher()

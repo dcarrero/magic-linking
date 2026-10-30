@@ -265,7 +265,6 @@ final class Plugin {
 				$c->get( Language::class ),
 				$c->get( Settings::class ),
 				$c->get( SiteAnchors::class ),
-				$c->get( ChangeRepository::class ),
 				$c->get( GraphRepository::class ),
 				$c->get( RuleRepository::class )
 			),

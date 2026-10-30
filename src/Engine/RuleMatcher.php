@@ -33,9 +33,11 @@ final class RuleMatcher {
 	 * @param RuleSpec   $rule   Regla.
 	 * @param RuleLimits $limits Topes duros.
 	 * @param callable   $sites  Recibe la clave de un ancla y devuelve en cuántas entradas distintas del sitio (sin contar esta) ya enlaza al destino de la regla.
+	 * @param array      $ignored_words Palabras o frases ignoradas (Ajustes): un ancla que las contiene como palabra completa no se enlaza.
 	 * @return RulePlan
 	 *
 	 * @phpstan-param callable(string): int $sites
+	 * @phpstan-param list<string> $ignored_words
 	 */
 	public function plan( Document $source, RuleSpec $rule, RuleLimits $limits, callable $sites, array $ignored_words = array() ): RulePlan {
 		if ( $source->id === $rule->target_id ) {
