@@ -9,7 +9,7 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 
 *Enlazado interno para WordPress que funciona gratis de verdad, con la IA que ya tiene tu WordPress y sin vender créditos.*
 
-> **Status: version 0.23.0 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
+> **Status: version 0.23.1 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
 
 ## 🚀 Features
 
@@ -181,6 +181,9 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 [GPL-2.0-or-later](LICENSE).
 
 ## 📝 Changelog
+
+### 0.23.1
+- Shorter `readme.txt` description: WordPress.org appends the unknown sections (support, external services, privacy, third-party libraries) to it and trimmed the result past 2,500 words. No code changes.
 
 ### 0.23.0
 - Automatic rules (F1-13): *Rules* screen with no limit on rules (phrase and variants, optional one-word gap, destination, links per entry, exclusions); applied in the background on publish or update, waiting for the editor to close; applied to existing entries one by one with preview and undo; new setting "Links to the same target from one entry"; an undone link does not come back; History origin "Automatic rule"; `wp magic-linking rules`.

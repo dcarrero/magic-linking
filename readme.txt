@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.23.0
+Stable tag: 0.23.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,7 +23,7 @@ It works entirely on your server, with no account, no key and no limits, not eve
 * **Inbound suggestions**: the same panel lists other entries whose text mentions the one you are editing and could link to it. Pressing *Link* writes the link in that other entry, see "How and when it changes your content".
 * Only the entries and block types where a link can be inserted safely are proposed. Paragraphs and lists are always used; headings, quotes and tables are left alone unless you turn them on in Settings (or a developer allows them with a filter).
 * **Dismiss**: a suggestion you do not want can be dismissed for good, from either side, and restored with *Undo*.
-* **Improve with AI (optional)**: if your site has an AI connector (WordPress 7.0 or later, Settings > Connectors), the *Outbound* tab shows an *Improve with AI* button. One click sends the best 20 suggestions to your AI provider in a single request; it puts the best ones first, marks the ones it does not recommend and may propose a better anchor text (always a stretch of the same sentence, and only used if you accept it). It shows what that request cost. See "AI and your privacy".
+* **Improve with AI (optional)**: with an AI connector (WordPress 7.0 or later), *Improve with AI* sends the best 20 suggestions to your AI provider in one request. It reorders them, marks the ones it does not recommend, may propose a better anchor text from the same sentence and shows what the request cost. See "AI and your privacy".
 
 **Automatic rules**
 
@@ -45,10 +45,10 @@ It works entirely on your server, with no account, no key and no limits, not eve
 
 **History**
 
-* Every link Magic Linking changes is listed with who did it, when, where and the anchor text: links added from an inbound suggestion, links you add from the editor panel (they appear once you save the entry; Magic Linking only records them, and marks them as undone if you remove them and save) and fixes made from the broken links list.
-* Changes are grouped by entry, newest first, with a date on each one. Filter by status, source or title, switch to a view by batch, and undo or redo one change, all the changes of an entry, or a whole batch.
-* Undo and redo from the screen or with WP-CLI (`wp magic-linking history undo --post=<id>`). A large group is undone in the background.
-* Export the history to CSV, one row per change and no row limit, from the **Export CSV** button (it exports what the current filters show) or with WP-CLI (`wp magic-linking history export --format=csv`). It includes the date, user, entry, destination, anchor text, source and, for links you added after "Improve with AI", whether the AI recommended them and with which model.
+* Every link Magic Linking changes is listed with who did it, when, where and the anchor text: links from inbound suggestions, from the editor panel (once you save the entry), from rules and fixes from the broken links list.
+* Changes are grouped by entry, newest first. Filter by status, source or title, view by batch, and undo or redo one change, an entry or a whole batch.
+* Undo and redo also with WP-CLI (`wp magic-linking history undo --post=<id>`).
+* Export to CSV, with no row limit, from **Export CSV** (what the current filters show) or with WP-CLI (`wp magic-linking history export --format=csv`). It includes whether the AI recommended each link and with which model.
 * The history is kept 90 days by default; you can choose 30 days, a year or forever.
 
 **Report**
@@ -71,16 +71,14 @@ It works entirely on your server, with no account, no key and no limits, not eve
 
 **What it does not do (in this version)**
 
-* It does not need artificial intelligence. Everything works without it. When you use it, it is only through the AI client and the *Connectors* screen that WordPress itself provides, never with keys or credit of its own.
 * It does not check links over the network: a link is "broken" when it points to an address on your own site that leads nowhere, according to WordPress. Links to other sites are counted, not checked.
-* It does not add links by itself, except for the rules you create yourself. Suggestions always need a click of yours.
-* It does not apply a rule to all your existing entries at once: you review and add them one by one.
+* It does not add links by itself, except for the rules you create. Suggestions always need a click of yours.
 
 **How links are counted**
 
 * Only the links written inside the content of each entry are counted. Links in menus, widgets, theme templates or blocks that are pulled from somewhere else are not, so your home page or a page that is only linked from the menu can appear as an orphan.
 * Content that a page builder keeps outside the normal post content is not read. If your builder saves rendered HTML in the post content, it is read.
-* Inbound = how many different entries link to this one, counting only links that work. Outbound = internal links to other pages of your site; every appearance counts. A link to the same entry, to a file (uploads, PDF, images) or to `mailto:` and `tel:` addresses is not counted.
+* Inbound = how many different entries link to this one, counting only links that work. Outbound = internal links to other pages; every appearance counts. Links to the same entry, to files or to `mailto:` and `tel:` are not counted.
 * Category, tag, author, date and search pages, the home page and feeds are valid destinations and are never reported as broken.
 * Tracking parameters (`utm_*`, `gclid`, `fbclid`…) and anchors (`#…`) are ignored when matching a link to an entry.
 
@@ -94,7 +92,7 @@ It works entirely on your server, with no account, no key and no limits, not eve
 
 **Roadmap**
 
-Next: several phrases per destination and adjustable anchor text and, with the AI connectors that WordPress already provides, suggestions by meaning (when WordPress offers embeddings).
+Next: suggestions by meaning with the AI connectors of WordPress, when WordPress offers embeddings.
 
 == Installation ==
 
@@ -258,6 +256,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 
 == Changelog ==
 
+= 0.23.1 =
+* Fixed: the plugin page on WordPress.org cut off the end of the readme (Privacy and Third-party libraries) because the description was too long. The description is shorter; the plugin does not change.
+
 = 0.23.0 =
 * New: automatic rules. In Magic Linking > Rules, say that a phrase (and its variants, with an optional gap of one word) links to an entry; there is no limit on the number of rules. They are applied in the background when you publish or update an entry, waiting if it is open in an editor, and you can apply a rule to the entries you already have, one by one, with a preview and Undo.
 * New: rules respect quality limits and only add links. The new setting "Links to the same target from one entry" (Settings > Suggestions) caps how many links one entry gets to the same target, and a link you undo does not come back.
@@ -328,6 +329,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 0.23.1 =
+Only the readme changes: a shorter description so the plugin page shows it complete.
 
 = 0.23.0 =
 Adds automatic rules (Magic Linking > Rules) and lets you add links one by one from the report. Rules only add links, use the table of rules that already existed and are applied to existing entries only one at a time. The update does not touch your content.
