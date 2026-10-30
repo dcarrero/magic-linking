@@ -30,7 +30,7 @@ import type {
 	Job,
 	ReportFilter,
 	ReportResponse,
-	ReportRowResponse,
+	ReportRowsResponse,
 	SettingsResponse,
 	SettingsValues,
 	SortKey,
@@ -76,14 +76,15 @@ export const api = {
 			signal,
 		} ),
 	/**
-	 * La fila de una entrada con las cifras de ahora (tras añadir o deshacer un enlace desde el informe).
+	 * Las filas de varias entradas con las cifras de ahora y el resumen (tras añadir o deshacer un enlace desde el
+	 * informe), en una sola petición.
 	 *
-	 * @param postId Entrada.
-	 * @param signal Para cancelar.
+	 * @param postIds Entradas (hasta 50).
+	 * @param signal  Para cancelar.
 	 */
-	reportRow: ( postId: number, signal?: AbortSignal ) =>
-		apiFetch< ReportRowResponse >( {
-			path: path( `/report/${ postId }` ),
+	reportRows: ( postIds: number[], signal?: AbortSignal ) =>
+		apiFetch< ReportRowsResponse >( {
+			path: path( '/report/rows', { ids: postIds.join( ',' ) } ),
 			signal,
 		} ),
 	broken: ( q: BrokenQuery, signal?: AbortSignal ) =>

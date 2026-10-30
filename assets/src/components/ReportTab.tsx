@@ -69,9 +69,11 @@ export function ReportTab( {
 		row: ReportItem;
 		direction: SuggestionDirection;
 	} | null >( null );
-	const [ patches, setPatches ] = useState< Record< number, ReportItem > >(
-		{}
-	);
+	// Filas y resumen releídos del servidor tras un cambio; hasta la siguiente carga, mandan sobre los de la página.
+	const [ fresh, setFresh ] = useState< {
+		rows: Record< number, ReportItem >;
+		summary: Summary | null;
+	} >( { rows: {}, summary: null } );
 
 	const query = {
 		filter,
@@ -100,46 +102,67 @@ export function ReportTab( {
 		__( 'Could not load the report.', 'magic-linking' )
 	);
 
+	// Una sola fuente para el resumen: lo leen la cabecera (onSummary) y las pestañas de filtro.
+	const summary = fresh.summary ?? data?.summary;
 	useEffect( () => {
-		if ( data ) {
-			onSummary( data.summary );
+		if ( summary ) {
+			onSummary( summary );
 		}
-	}, [ data, onSummary ] );
+	}, [ summary, onSummary ] );
 
-	// Una carga nueva trae las cifras al día: las filas parcheadas a mano ya no hacen falta.
-	useEffect( () => {
-		setPatches( {} );
-	}, [ data ] );
-
-	const rows = ( data?.items ?? [] ).map(
-		( row ) => patches[ row.id ] ?? row
-	);
 	const rowIds = new Set( ( data?.items ?? [] ).map( ( row ) => row.id ) );
 	const rowIdsRef = useRef( rowIds );
 	rowIdsRef.current = rowIds;
+	const pending = useRef( new Set< number >() );
+	const inFlight = useRef< AbortController | null >( null );
+
+	// Una carga nueva trae las cifras al día: lo releído a mano y lo que estuviera en vuelo ya no hacen falta.
+	useEffect( () => {
+		inFlight.current?.abort();
+		pending.current.clear();
+		setFresh( { rows: {}, summary: null } );
+	}, [ data ] );
+	useEffect( () => () => inFlight.current?.abort(), [] );
+
+	const rows = ( data?.items ?? [] ).map(
+		( row ) => fresh.rows[ row.id ] ?? row
+	);
 
 	/**
-	 * Vuelve a leer del servidor las filas visibles que cambiaron (la del panel y el origen o destino del enlace).
-	 * No se vuelve a pedir la página: reordenaría las filas y se perdería el sitio del usuario.
+	 * Vuelve a leer del servidor, en una sola petición, las filas visibles que cambiaron (la del panel y el origen o
+	 * destino del enlace). No se vuelve a pedir la página: reordenaría las filas y se perdería el sitio del usuario.
+	 * Cada petición cancela la anterior y solo la última puede escribir; lo que la anterior no llegó a traer se pide
+	 * de nuevo, así una respuesta vieja nunca pisa a una nueva.
 	 */
-	const refreshRows = useCallback(
-		( ids: number[] ) => {
-			Array.from( new Set( ids ) )
-				.filter( ( id ) => rowIdsRef.current.has( id ) )
-				.forEach( ( id ) => {
-					api.reportRow( id )
-						.then( ( response ) => {
-							setPatches( ( previous ) => ( {
-								...previous,
-								[ id ]: response.item,
-							} ) );
-							onSummary( response.summary );
-						} )
-						.catch( () => undefined );
-				} );
-		},
-		[ onSummary ]
-	);
+	const refreshRows = useCallback( ( ids: number[] ) => {
+		ids.filter( ( id ) => rowIdsRef.current.has( id ) ).forEach( ( id ) =>
+			pending.current.add( id )
+		);
+		const wanted = Array.from( pending.current );
+		if ( wanted.length === 0 ) {
+			return;
+		}
+		inFlight.current?.abort();
+		const controller = new AbortController();
+		inFlight.current = controller;
+		api.reportRows( wanted, controller.signal )
+			.then( ( response ) => {
+				if ( controller.signal.aborted ) {
+					return;
+				}
+				wanted.forEach( ( id ) => pending.current.delete( id ) );
+				setFresh( ( previous ) => ( {
+					rows: {
+						...previous.rows,
+						...Object.fromEntries(
+							response.items.map( ( item ) => [ item.id, item ] )
+						),
+					},
+					summary: response.summary,
+				} ) );
+			} )
+			.catch( () => undefined );
+	}, [] );
 
 	useEffect( () => {
 		if ( ! data || first ) {
@@ -164,7 +187,6 @@ export function ReportTab( {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ data ] );
 
-	const summary = data?.summary;
 	const multilingual = summary?.multilingual ?? false;
 	const views: { id: ReportFilter; label: string; count?: number }[] = [
 		{
