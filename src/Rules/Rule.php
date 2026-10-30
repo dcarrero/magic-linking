@@ -75,21 +75,14 @@ final class Rule {
 	}
 
 	/**
-	 * Huella de lo que hace la regla (frases, destino y opciones que cambian dónde enlaza): si el usuario la edita,
-	 * cuenta como una regla nueva a efectos de «ya se aplicó a esta entrada».
-	 */
-	public function fingerprint(): string {
-		return md5( (string) wp_json_encode( array( $this->variants, $this->target_id, $this->gap, $this->first_only, $this->max_per_post ) ) );
-	}
-
-	/**
-	 * Clave que se anota en el historial con cada enlace de la regla en una entrada: sirve para no volver a aplicar
-	 * sola una regla que ya se aplicó (o se deshizo) en esa entrada.
+	 * Clave de «esta regla ya se aplicó (o se deshizo) en esta entrada»: regla, entrada y destino. Editar las frases o
+	 * las opciones no la cambia, así que un enlace que el usuario deshizo no vuelve por editar la regla; cambiar el
+	 * destino sí cuenta como regla nueva. Se guarda en un metadato de la entrada, no en el Historial (que caduca).
 	 *
 	 * @param int $post_id Entrada.
 	 */
 	public function key_for( int $post_id ): string {
-		return sha1( sprintf( 'rule|%d|%d|%s', $this->id, $post_id, $this->fingerprint() ) );
+		return sha1( sprintf( 'rule|%d|%d|%d', $this->id, $post_id, $this->target_id ) );
 	}
 
 	/**

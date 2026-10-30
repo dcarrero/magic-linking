@@ -37,7 +37,7 @@ final class RuleMatcher {
 	 *
 	 * @phpstan-param callable(string): int $sites
 	 */
-	public function plan( Document $source, RuleSpec $rule, RuleLimits $limits, callable $sites ): RulePlan {
+	public function plan( Document $source, RuleSpec $rule, RuleLimits $limits, callable $sites, array $ignored_words = array() ): RulePlan {
 		if ( $source->id === $rule->target_id ) {
 			return new RulePlan( array(), RulePlan::SELF );
 		}
@@ -87,6 +87,11 @@ final class RuleMatcher {
 			}
 			if ( $rule->first_only && isset( $seen[ $match->key ] ) ) {
 				continue;
+			}
+			foreach ( $ignored_words as $word ) {
+				if ( 1 === preg_match( '/(?<![\p{L}\p{N}])' . preg_quote( $word, '/' ) . '(?![\p{L}\p{N}])/iu', $match->anchor ) ) {
+					continue 2;
+				}
 			}
 			$cache[ $match->key ] ??= $sites( $match->key );
 			if ( $cache[ $match->key ] >= $limits->same_anchor_max ) {

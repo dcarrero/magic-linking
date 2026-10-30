@@ -63,6 +63,8 @@ final class RuleRunner implements Module {
 	public function register(): void {
 		add_action( 'wp_after_insert_post', array( $this, 'on_post_saved' ), 30, 4 );
 		add_action( self::HOOK, array( $this, 'run' ), 10, 2 );
+		// El metadato de «regla ya aplicada» no sale en «Campos personalizados».
+		add_filter( 'is_protected_meta', static fn( $protected, $key ) => RuleService::APPLIED_META === $key ? true : $protected, 10, 2 );
 	}
 
 	/**

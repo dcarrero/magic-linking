@@ -43,7 +43,15 @@ final class RuleService {
 	public const OTHER_LANGUAGE    = 'other_language';
 	public const BAD_TARGET        = 'bad_target';
 	public const ALREADY_APPLIED   = 'already_applied';
-	public const LOCKED            = 'locked';
+	public const IGNORED           = 'ignored';
+	public const CREATOR_CANNOT    = 'creator_cannot';
+
+	/**
+	 * Metadato de la entrada con las claves de las reglas ya aplicadas (o deshechas) en ella. Persistente, sin autoload
+	 * y fuera del Historial: no caduca con la retención.
+	 */
+	public const APPLIED_META = 'magiclinking_rules_applied';
+	public const LOCKED       = 'locked';
 
 	/**
 	 * Origen que se anota en el Historial.
@@ -92,6 +100,8 @@ final class RuleService {
 			self::OTHER_LANGUAGE     => __( 'The entry is in a different language than the destination.', 'magic-linking' ),
 			self::BAD_TARGET         => __( 'The destination is not a published entry that can be linked.', 'magic-linking' ),
 			self::ALREADY_APPLIED    => __( 'This rule was already applied to the entry (or undone there), so it is not applied again by itself.', 'magic-linking' ),
+			self::IGNORED            => __( 'The entry or the destination is in your list of ignored URLs.', 'magic-linking' ),
+			self::CREATOR_CANNOT     => __( 'The person who created the rule can no longer manage the site or edit this entry.', 'magic-linking' ),
 			self::LOCKED             => __( 'Someone has the entry open in the editor.', 'magic-linking' ),
 			RulePlan::SELF           => __( 'The entry is the destination itself.', 'magic-linking' ),
 			RulePlan::DENSITY        => __( 'The entry already has as many internal links as its length allows.', 'magic-linking' ),
@@ -110,6 +120,11 @@ final class RuleService {
 	public function why_not( WP_Post $post, Rule $rule ): ?string {
 		if ( 'publish' !== $post->post_status ) {
 			return self::NOT_PUBLISHED;
+		}
+		// «URLs ignoradas» (Ajustes) vale igual que en las sugerencias: ni como origen ni como destino.
+		$ignored = $this->settings->all()['ignored_ids'];
+		if ( in_array( $post->ID, $ignored, true ) || in_array( $rule->target_id, $ignored, true ) ) {
+			return self::IGNORED;
 		}
 		if ( ! in_array( $post->post_type, $this->settings->post_types(), true ) ) {
 			return self::TYPE_NOT_ANALYZED;
@@ -143,7 +158,7 @@ final class RuleService {
 		$document = $this->documents->from_post( $post );
 		$analyzer = Analyzer::for_language( $document->lang );
 
-		return $this->matcher->plan( $document, $rule->spec(), $this->settings->rule_limits(), $this->anchors->counter( $rule->target_id, $post->ID, $analyzer ) );
+		return $this->matcher->plan( $document, $rule->spec(), $this->settings->rule_limits(), $this->anchors->counter( $rule->target_id, $post->ID, $analyzer ), $this->settings->all()['ignored_words'] );
 	}
 
 	/**
@@ -186,7 +201,7 @@ final class RuleService {
 	 */
 	public function apply( WP_Post $post, Rule $rule, ?int $user_id = null, ?string $batch_id = null, bool $auto = false ): RuleOutcome {
 		$key = $rule->key_for( $post->ID );
-		if ( $auto && array() !== $this->changes->ids_for_origin_keys( array( $key ) ) ) {
+		if ( $auto && in_array( $key, get_post_meta( $post->ID, self::APPLIED_META, false ), true ) ) {
 			return new RuleOutcome( $post->ID, $rule->id, 0, array(), self::ALREADY_APPLIED );
 		}
 
@@ -237,12 +252,19 @@ final class RuleService {
 			}
 		}
 
+		if ( $inserted > 0 ) {
+			// Aunque el usuario lo deshaga, la regla no vuelve a aplicarse sola en esta entrada.
+			add_post_meta( $post->ID, self::APPLIED_META, $key );
+		}
+
 		return new RuleOutcome( $post->ID, $rule->id, $inserted, $failed, null, $inserted > 0 ? $batch : '' );
 	}
 
 	/**
-	 * Aplica todas las reglas activas a una entrada recién guardada, como el sistema (sin comprobar capacidades: la
-	 * regla la creó un administrador) y en un solo lote del Historial. Una entrada abierta en el editor no se toca.
+	 * Aplica todas las reglas activas a una entrada recién guardada, en un solo lote del Historial. Cada regla escribe
+	 * **como quien la creó** (el Historial y la revisión llevan su nombre y `kses` filtra con sus capacidades), y solo si
+	 * esa persona sigue gestionando el sitio y puede editar la entrada; si no, la regla se salta. Una regla sin autor
+	 * (creada desde WP-CLI sin usuario) escribe como el sistema. Una entrada abierta en el editor no se toca.
 	 *
 	 * @param int $post_id Entrada.
 	 *
@@ -260,7 +282,7 @@ final class RuleService {
 				break;
 			}
 			try {
-				$outcome = $this->apply( $post, $rule, 0, $batch, true );
+				$outcome = $this->apply_as_creator( $post, $rule, $batch );
 			} catch ( Throwable $e ) {
 				PostWriter::log( sprintf( 'La regla %d falló en la entrada %d: %s', $rule->id, $post_id, $e->getMessage() ) );
 				continue;
@@ -269,6 +291,31 @@ final class RuleService {
 		}
 
 		return $outcomes;
+	}
+
+	/**
+	 * Aplica una regla como quien la creó, con la sesión de esa persona durante la escritura y restaurada después.
+	 *
+	 * @param WP_Post $post  Entrada.
+	 * @param Rule    $rule  Regla.
+	 * @param string  $batch Lote del Historial.
+	 */
+	private function apply_as_creator( WP_Post $post, Rule $rule, string $batch ): RuleOutcome {
+		$creator = $rule->created_by;
+		if ( $creator < 1 ) {
+			return $this->apply( $post, $rule, 0, $batch, true );
+		}
+		if ( ! user_can( $creator, 'manage_options' ) || ! user_can( $creator, 'edit_post', $post->ID ) ) {
+			return new RuleOutcome( $post->ID, $rule->id, 0, array(), self::CREATOR_CANNOT );
+		}
+
+		$previous = get_current_user_id();
+		wp_set_current_user( $creator );
+		try {
+			return $this->apply( $post, $rule, $creator, $batch, true );
+		} finally {
+			wp_set_current_user( $previous );
+		}
 	}
 
 	/**
@@ -291,7 +338,7 @@ final class RuleService {
 		$cursor   = $after;
 
 		while ( true ) {
-			$ids = $this->graph->eligible_ids( $types, $cursor, 50 );
+			$ids = $this->graph->eligible_ids( $types, $cursor, 50, $this->settings->all()['ignored_ids'] );
 			if ( array() === $ids ) {
 				return array(
 					'items'    => $items,

@@ -49,14 +49,26 @@ final class RuleValidator {
 	 */
 	public function validate( array $input, ?Rule $existing = null, int $user_id = 0 ): Rule|WP_Error {
 		$base      = $existing ?? new Rule( 0, array(), 0, '', '' );
-		$target_id = isset( $input['target_id'] ) ? (int) $input['target_id'] : ( $base->target_id );
-		$target    = get_post( $target_id );
-		if ( ! $target instanceof WP_Post || 'publish' !== $target->post_status || '' !== $target->post_password || ! in_array( $target->post_type, $this->settings->post_types(), true ) ) {
-			return $this->error( __( 'The destination must be a published entry of a content type that Magic Linking analyzes.', 'magic-linking' ) );
-		}
-		$lang = $this->language->for_post( $target_id );
+		$target_id = isset( $input['target_id'] ) ? (int) $input['target_id'] : $base->target_id;
 
-		$phrases = array_key_exists( 'phrases', $input ) ? $this->variants( $input['phrases'], $lang ) : ( $base->variants );
+		// Pausar, reactivar o cambiar opciones no exige que el destino siga siendo válido (puede haberse despublicado):
+		// solo se valida al crear y cuando se dan el destino o las frases.
+		$check = null === $existing || isset( $input['target_id'] ) || array_key_exists( 'phrases', $input );
+		$lang  = $base->lang;
+		$url   = $base->target_url;
+		if ( $check ) {
+			$target = get_post( $target_id );
+			if ( ! $target instanceof WP_Post || 'publish' !== $target->post_status || '' !== $target->post_password || ! in_array( $target->post_type, $this->settings->post_types(), true ) ) {
+				return $this->error( __( 'The destination must be a published entry of a content type that Magic Linking analyzes.', 'magic-linking' ) );
+			}
+			if ( in_array( $target_id, $this->settings->all()['ignored_ids'], true ) ) {
+				return $this->error( __( 'That entry is in your list of ignored URLs, so it cannot be a destination.', 'magic-linking' ) );
+			}
+			$lang = $this->language->for_post( $target_id );
+			$url  = (string) get_permalink( $target );
+		}
+
+		$phrases = array_key_exists( 'phrases', $input ) ? $this->variants( $input['phrases'], $lang ) : $base->variants;
 		if ( $phrases instanceof WP_Error ) {
 			return $phrases;
 		}
@@ -82,7 +94,7 @@ final class RuleValidator {
 			$base->id,
 			$phrases,
 			$target_id,
-			(string) get_permalink( $target ),
+			$url,
 			$lang,
 			$max,
 			array_key_exists( 'first_only', $input ) ? self::flag( $input['first_only'] ) : $base->first_only,
