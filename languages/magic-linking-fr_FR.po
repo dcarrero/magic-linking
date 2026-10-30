@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-30T15:47:47+00:00\n"
+"POT-Creation-Date: 2026-10-30T15:52:17+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Français\n"
@@ -258,7 +258,7 @@ msgid_plural "%d history rows deleted."
 msgstr[0] "%d ligne de l’historique supprimée."
 msgstr[1] "%d lignes de l’historique supprimées."
 
-#: src/Cli/Command.php:804 src/Cli/RulesCommand.php:293
+#: src/Cli/Command.php:804 src/Cli/RulesCommand.php:301
 #: src/Rest/AiController.php:225 src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
 #: src/Rest/SuggestionsController.php:590
@@ -307,12 +307,16 @@ msgstr ""
 msgid "Rule %d deleted."
 msgstr ""
 
-#: src/Cli/RulesCommand.php:200
+#: src/Cli/RulesCommand.php:203
 msgid "That rule does not exist."
 msgstr ""
 
+#: src/Cli/RulesCommand.php:225
+msgid "No entry found using the index, which can miss some matches. Run it again with --full to check every entry."
+msgstr ""
+
 #. translators: %d: number of entries.
-#: src/Cli/RulesCommand.php:219
+#: src/Cli/RulesCommand.php:227
 #, php-format
 msgid "%d entry where the rule fits."
 msgid_plural "%d entries where the rule fits."
@@ -320,30 +324,30 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: number of entries shown, 2: entry ID to continue after.
-#: src/Cli/RulesCommand.php:222
+#: src/Cli/RulesCommand.php:230
 #, php-format
 msgid "%1$d entries shown. Continue with --after=%2$d"
 msgstr ""
 
-#: src/Cli/RulesCommand.php:246 src/Rest/RulesController.php:646
+#: src/Cli/RulesCommand.php:254 src/Rest/RulesController.php:646
 msgid "That rule or entry does not exist."
 msgstr ""
 
-#: src/Cli/RulesCommand.php:252
+#: src/Cli/RulesCommand.php:260
 msgid "Nothing to link."
 msgstr ""
 
-#: src/Cli/RulesCommand.php:259
+#: src/Cli/RulesCommand.php:267
 msgid "Nothing was written. Add --yes to add these links."
 msgstr ""
 
-#: src/Cli/RulesCommand.php:270 src/Cli/RulesCommand.php:311
+#: src/Cli/RulesCommand.php:278 src/Cli/RulesCommand.php:319
 #: assets/build/index.js:85
 msgid "Nothing was added."
 msgstr ""
 
 #. translators: 1: number of links added, 2: history batch ID.
-#: src/Cli/RulesCommand.php:274
+#: src/Cli/RulesCommand.php:282
 #, php-format
 msgid "%1$d link added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
 msgid_plural "%1$d links added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
@@ -351,13 +355,13 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: 1: rule ID, 2: reason.
-#: src/Cli/RulesCommand.php:303 src/Cli/RulesCommand.php:307
+#: src/Cli/RulesCommand.php:311 src/Cli/RulesCommand.php:315
 #, php-format
 msgid "Rule %1$d: %2$s"
 msgstr ""
 
 #. translators: %d: number of links added.
-#: src/Cli/RulesCommand.php:314 assets/build/index.js:85
+#: src/Cli/RulesCommand.php:322 assets/build/index.js:85
 #, php-format
 msgid "%d link added."
 msgid_plural "%d links added."
