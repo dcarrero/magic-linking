@@ -161,6 +161,9 @@ final class SettingsController implements Module {
 						'same_anchor_max'              => array(
 							'type' => 'integer',
 						),
+						'links_per_target_max'         => array(
+							'type' => 'integer',
+						),
 						'ignored_urls'                 => array(
 							'type'  => 'array',
 							'items' => array( 'type' => 'string' ),

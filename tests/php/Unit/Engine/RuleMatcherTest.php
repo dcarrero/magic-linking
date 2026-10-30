@@ -53,7 +53,7 @@ final class RuleMatcherTest extends TestCase {
 	private function plan( Document $doc, array $variants, array $options = array(), ?RuleLimits $limits = null, ?callable $sites = null ): RulePlan {
 		$rule = new RuleSpec( $variants, self::TARGET, $options['max'] ?? 1, $options['first'] ?? true, $options['gap'] ?? false );
 
-		return $this->matcher->plan( $doc, $rule, $limits ?? new RuleLimits(), $sites ?? static fn( string $key ): int => 0 );
+		return $this->matcher->plan( $doc, $rule, $limits ?? new RuleLimits(), $sites ?? static fn(): int => 0 );
 	}
 
 	/**
@@ -115,14 +115,47 @@ final class RuleMatcherTest extends TestCase {
 		$doc  = $this->long_doc( array( 'La bomba de calor ahorra.', 'Una bomba de calor más cara.' ) );
 		$many = new RuleLimits( 100, 3 );
 
-		$this->assertCount( 1, $this->plan( $doc, array( 'bomba de calor' ), array( 'max' => 3, 'first' => true ), $many )->matches );
-		$this->assertCount( 2, $this->plan( $doc, array( 'bomba de calor' ), array( 'max' => 3, 'first' => false ), $many )->matches );
+		$this->assertCount(
+			1,
+			$this->plan(
+				$doc,
+				array( 'bomba de calor' ),
+				array(
+					'max'   => 3,
+					'first' => true,
+				),
+				$many
+			)->matches
+		);
+		$this->assertCount(
+			2,
+			$this->plan(
+				$doc,
+				array( 'bomba de calor' ),
+				array(
+					'max'   => 3,
+					'first' => false,
+				),
+				$many
+			)->matches
+		);
 	}
 
 	public function test_max_per_post_is_capped_by_links_per_target(): void {
 		$doc = $this->doc( array( 'La bomba de calor ahorra. ' . self::FILLER, 'Una bomba de calor más cara. ' . self::FILLER ) );
 
-		$this->assertCount( 1, $this->plan( $doc, array( 'bomba de calor' ), array( 'max' => 5, 'first' => false ) )->matches, 'Un enlace por destino y entrada por defecto.' );
+		$this->assertCount(
+			1,
+			$this->plan(
+				$doc,
+				array( 'bomba de calor' ),
+				array(
+					'max'   => 5,
+					'first' => false,
+				)
+			)->matches,
+			'Un enlace por destino y entrada por defecto.'
+		);
 	}
 
 	public function test_density_cap_blocks_when_the_post_has_the_links_its_length_allows(): void {
@@ -153,14 +186,14 @@ final class RuleMatcherTest extends TestCase {
 	public function test_same_anchor_cap_site_wide(): void {
 		$doc = $this->doc( array( 'La bomba de calor ahorra. ' . self::FILLER ) );
 
-		$full = $this->plan( $doc, array( 'bomba de calor' ), array(), null, static fn( string $key ): int => 5 );
+		$full = $this->plan( $doc, array( 'bomba de calor' ), array(), null, static fn(): int => 5 );
 		$this->assertSame( RulePlan::ANCHOR_OVERUSE, $full->skipped );
 		$this->assertSame( array(), $full->matches );
 
-		$room = $this->plan( $doc, array( 'bomba de calor' ), array(), null, static fn( string $key ): int => 4 );
+		$room = $this->plan( $doc, array( 'bomba de calor' ), array(), null, static fn(): int => 4 );
 		$this->assertCount( 1, $room->matches );
 
-		$custom = $this->plan( $doc, array( 'bomba de calor' ), array(), new RuleLimits( 100, 1, 2 ), static fn( string $key ): int => 2 );
+		$custom = $this->plan( $doc, array( 'bomba de calor' ), array(), new RuleLimits( 100, 1, 2 ), static fn(): int => 2 );
 		$this->assertSame( RulePlan::ANCHOR_OVERUSE, $custom->skipped );
 	}
 
@@ -177,7 +210,15 @@ final class RuleMatcherTest extends TestCase {
 	}
 
 	public function test_overlapping_variants_do_not_overlap_links(): void {
-		$plan = $this->plan( $this->doc( array( 'La bomba de calor aerotérmica ahorra. ' . self::FILLER ) ), array( 'bomba de calor', 'bomba de calor aerotérmica' ), array( 'max' => 2, 'first' => false ), new RuleLimits( 100, 2 ) );
+		$plan = $this->plan(
+			$this->doc( array( 'La bomba de calor aerotérmica ahorra. ' . self::FILLER ) ),
+			array( 'bomba de calor', 'bomba de calor aerotérmica' ),
+			array(
+				'max'   => 2,
+				'first' => false,
+			),
+			new RuleLimits( 100, 2 )
+		);
 
 		$this->assertCount( 1, $plan->matches );
 	}

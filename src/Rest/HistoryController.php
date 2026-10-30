@@ -111,7 +111,7 @@ final class HistoryController implements Module {
 					),
 					'origin'   => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::ORIGIN_RULE ),
 					),
 					'ai'       => array( 'type' => 'boolean' ),
 					'search'   => array(
@@ -132,7 +132,7 @@ final class HistoryController implements Module {
 				'args'                => array(
 					'origin' => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::ORIGIN_RULE ),
 					),
 					'ai'     => array( 'type' => 'boolean' ),
 				),
@@ -160,7 +160,7 @@ final class HistoryController implements Module {
 					),
 					'origin'   => array(
 						'type' => 'string',
-						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+						'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::ORIGIN_RULE ),
 					),
 					'ai'       => array( 'type' => 'boolean' ),
 				),
@@ -243,7 +243,7 @@ final class HistoryController implements Module {
 						),
 						'origin'     => array(
 							'type' => 'string',
-							'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR ),
+							'enum' => array( ChangeRepository::ORIGIN_PLUGIN, ChangeRepository::ORIGIN_EDITOR, ChangeRepository::ORIGIN_RULE ),
 						),
 						'ai'         => array( 'type' => 'boolean' ),
 						'change_ids' => array(

@@ -29,10 +29,10 @@ final class RuleMatcher {
 	/**
 	 * Enlaces que la regla pondría en el documento.
 	 *
-	 * @param Document          $source Entrada tal como está ahora, con sus enlaces internos.
-	 * @param RuleSpec          $rule   Regla.
-	 * @param RuleLimits        $limits Topes duros.
-	 * @param callable          $sites  Recibe la clave de un ancla y devuelve en cuántas entradas distintas del sitio (sin contar esta) ya enlaza al destino de la regla.
+	 * @param Document   $source Entrada tal como está ahora, con sus enlaces internos.
+	 * @param RuleSpec   $rule   Regla.
+	 * @param RuleLimits $limits Topes duros.
+	 * @param callable   $sites  Recibe la clave de un ancla y devuelve en cuántas entradas distintas del sitio (sin contar esta) ya enlaza al destino de la regla.
 	 * @return RulePlan
 	 *
 	 * @phpstan-param callable(string): int $sites
@@ -76,11 +76,11 @@ final class RuleMatcher {
 		}
 		$found = $this->finder->find( $analyzed, $phrases, $analyzer, array(), $blocked, $rule->target_id );
 
-		$matches   = array();
-		$taken     = array();
-		$seen      = array();
-		$overused  = false;
-		$cache     = array();
+		$matches  = array();
+		$taken    = array();
+		$seen     = array();
+		$overused = false;
+		$cache    = array();
 		foreach ( $found as $match ) {
 			if ( count( $matches ) >= $room ) {
 				break;
@@ -102,7 +102,7 @@ final class RuleMatcher {
 			$taken[ $match->sentence ][] = array( $match->offset, $end );
 			$seen[ $match->key ]         = true;
 			$matches[]                   = new RuleMatch( $analyzed->sentences[ $match->sentence ]->text, $match->offset, $match->anchor, $match->key );
-		}
+		}//end foreach
 
 		if ( array() === $matches ) {
 			return new RulePlan( array(), $overused ? RulePlan::ANCHOR_OVERUSE : RulePlan::NO_MATCH );

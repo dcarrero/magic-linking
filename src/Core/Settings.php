@@ -12,6 +12,7 @@ namespace MagicLinking\Core;
 use MagicLinking\AI\Models;
 
 use MagicLinking\AI\Budget;
+use MagicLinking\Engine\RuleLimits;
 
 /**
  * Lee y guarda la opción magiclinking_settings, la única en autoload.
@@ -29,7 +30,8 @@ final class Settings {
 	public const DEFAULTS = array(
 		'post_types'                   => array( 'post', 'page' ),
 		'low_inbound_threshold'        => 2,
-		'words_per_link'               => 100,
+		'words_per_link'               => RuleLimits::WORDS_PER_LINK,
+		'links_per_target_max'         => RuleLimits::LINKS_PER_TARGET,
 		self::RETENTION_SETTING        => 90,
 		Installer::DELETE_DATA_SETTING => false,
 		'link_in_headings'             => false,
@@ -39,7 +41,7 @@ final class Settings {
 		'extra_rel'                    => '',
 		'outbound_shown'               => 15,
 		'inbound_per_page'             => 10,
-		'same_anchor_max'              => 5,
+		'same_anchor_max'              => RuleLimits::SAME_ANCHOR,
 		'ignored_urls'                 => array(),
 		'ignored_words'                => array(),
 		'ignored_ids'                  => array(),
@@ -66,6 +68,8 @@ final class Settings {
 		'outbound_shown'        => array( 1, 50 ),
 		'inbound_per_page'      => array( 5, 50 ),
 		'same_anchor_max'       => array( 1, 50 ),
+		// Enlaces al mismo destino desde una entrada (docs/04 §6.1): tope duro de las reglas.
+		'links_per_target_max'  => array( 1, 10 ),
 		// Tope diario de tokens de IA (docs/05 §5.3): 0 = sin IA.
 		'ai_daily_token_limit'  => array( 0, Budget::MAX_LIMIT ),
 	);
@@ -129,6 +133,16 @@ final class Settings {
 	 */
 	public function words_per_link(): int {
 		return $this->all()['words_per_link'];
+	}
+
+	/**
+	 * Topes de calidad duros de las reglas automáticas (docs/04 §6.1): son ajustes del usuario, con los mismos
+	 * valores por defecto y rangos en la gratuita y en Pro.
+	 */
+	public function rule_limits(): RuleLimits {
+		$all = $this->all();
+
+		return new RuleLimits( $all['words_per_link'], $all['links_per_target_max'], $all['same_anchor_max'] );
 	}
 
 	/**

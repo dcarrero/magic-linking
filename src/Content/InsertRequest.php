@@ -41,6 +41,8 @@ final class InsertRequest {
 	 * @param bool          $quotes     Permitir enlaces en citas (ajuste del usuario).
 	 * @param bool          $tables     Permitir enlaces en tablas (ajuste del usuario).
 	 * @param AiOrigin|null $ai       Si el enlace lo recomendó la IA (F1-38); solo se guarda en el historial.
+	 * @param string        $origin     Origen que se anota en el historial (`plugin` por defecto, `rule` en las reglas automáticas, F1-13).
+	 * @param string|null   $origin_key Clave que se anota con el cambio (en las reglas, la de la regla y la entrada); null = ninguna.
 	 *
 	 * @phpstan-param array<string, string> $attributes
 	 */
@@ -56,7 +58,9 @@ final class InsertRequest {
 		public readonly bool $headings = false,
 		public readonly bool $quotes = false,
 		public readonly bool $tables = false,
-		public readonly ?AiOrigin $ai = null
+		public readonly ?AiOrigin $ai = null,
+		public readonly string $origin = 'plugin',
+		public readonly ?string $origin_key = null
 	) {
 	}
 
@@ -80,7 +84,9 @@ final class InsertRequest {
 			$this->headings || ! empty( $scope['headings'] ),
 			$this->quotes || ! empty( $scope['quotes'] ),
 			$this->tables || ! empty( $scope['tables'] ),
-			$this->ai
+			$this->ai,
+			$this->origin,
+			$this->origin_key
 		);
 	}
 

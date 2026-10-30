@@ -640,7 +640,7 @@ final class Command {
 			$user,
 			array(
 				'status' => in_array( $assoc_args['status'] ?? '', array( 'active', 'undone' ), true ) ? (string) $assoc_args['status'] : '',
-				'origin' => in_array( $assoc_args['origin'] ?? '', array( 'plugin', 'editor' ), true ) ? (string) $assoc_args['origin'] : '',
+				'origin' => in_array( $assoc_args['origin'] ?? '', array( 'plugin', 'editor', 'rule' ), true ) ? (string) $assoc_args['origin'] : '',
 				'ai'     => ! empty( $assoc_args['ai'] ),
 				'search' => sanitize_text_field( (string) ( $assoc_args['search'] ?? '' ) ),
 			)
