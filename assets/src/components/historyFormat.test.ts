@@ -2,6 +2,8 @@ import {
 	aiDetails,
 	batchAiLabel,
 	batchOriginLabel,
+	formatDate,
+	formatFullDate,
 	originKey,
 	parseServerDate,
 	sourceLabel,
@@ -105,5 +107,42 @@ describe( 'AI marks', () => {
 		expect( batchAiLabel( 2, 3 ) ).toBe(
 			'2 of 3 links recommended by the AI'
 		);
+	} );
+} );
+
+describe( 'formatDate', () => {
+	it( 'does not throw with a WordPress locale that is not valid BCP 47', () => {
+		document.documentElement.lang = 'pt-PT-ao90';
+		expect( () => formatDate( '2026-10-30T10:00:00Z' ) ).not.toThrow();
+		expect( formatDate( '2026-10-30T10:00:00Z' ) ).toMatch( /2026/ );
+	} );
+
+	it( 'returns the original text for an invalid date', () => {
+		expect( formatDate( '' ) ).toBe( '' );
+		expect( formatDate( '0000-00-00 00:00:00' ) ).toBe(
+			'0000-00-00 00:00:00'
+		);
+	} );
+
+	it( 'reuses one formatter per language', () => {
+		const spy = jest.spyOn( Intl, 'DateTimeFormat' );
+		document.documentElement.lang = 'fr-FR';
+		formatDate( '2026-10-30T10:00:00Z' );
+		formatDate( '2026-10-31T10:00:00Z' );
+		formatFullDate( '2026-10-30T10:00:00Z' );
+		formatFullDate( '2026-10-31T10:00:00Z' );
+		expect( spy ).toHaveBeenCalledTimes( 2 );
+		spy.mockRestore();
+	} );
+
+	afterEach( () => {
+		document.documentElement.lang = '';
+	} );
+
+	it( 'follows the language of the page', () => {
+		document.documentElement.lang = 'es-ES';
+		expect( formatDate( '2026-10-30T10:00:00Z' ) ).toMatch( /oct/i );
+		document.documentElement.lang = 'en-US';
+		expect( formatDate( '2026-10-30T10:00:00Z' ) ).toMatch( /Oct/ );
 	} );
 } );

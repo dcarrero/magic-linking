@@ -1,3 +1,4 @@
+// The Jest globalSetup (tests/js/global-setup.js) sets TZ=Asia/Tokyo (not UTC), so reading the server date as local time would change the hour.
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { api } from '../api';
@@ -166,4 +167,24 @@ describe( 'ReportTab refreshing rows after a change', () => {
 		expect( inboundCell() ).toBe( '2' );
 		expect( host.textContent ).toContain( 'Orphans (3)' );
 	} );
+} );
+
+describe( 'ReportTab dates', () => {
+	afterEach( () => {
+		document.documentElement.lang = '';
+	} );
+
+	it.each( [
+		[ 'es-ES', /^30 oct 2026,\s19:00$/ ],
+		[ 'en-US', /^Oct 30, 2026,\s7:00\sPM$/ ],
+	] )(
+		'shows "Analyzed" in %s with the UTC instant converted to the browser zone',
+		async ( lang, expected ) => {
+			document.documentElement.lang = lang;
+			await mount();
+			expect( host.querySelector( 'tbody time' )?.textContent ).toMatch(
+				expected
+			);
+		}
+	);
 } );

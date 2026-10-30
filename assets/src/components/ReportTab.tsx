@@ -6,6 +6,7 @@ import { api } from '../api';
 import { useDebounced, useIsFirstRender, useLoad } from '../hooks';
 import type { ReportFilter, ReportItem, SortKey, Summary } from '../types';
 import { Column, DataTable } from './DataTable';
+import { formatDate } from './historyFormat';
 import {
 	SuggestionsDrawer,
 	type SuggestionDirection,
@@ -339,7 +340,7 @@ export function ReportTab( {
 			sortKey: 'indexed_at',
 			render: ( row ) => (
 				<time dateTime={ row.indexed_at }>
-					{ new Date( row.indexed_at ).toLocaleDateString() }
+					{ formatDate( row.indexed_at ) }
 				</time>
 			),
 		},

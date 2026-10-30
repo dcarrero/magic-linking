@@ -6,6 +6,7 @@ import { api } from '../api';
 import { engineText, money, tokensText } from '../editor/aiText';
 import { useLoad } from '../hooks';
 import type { AiLastFailure, AiStatus, AiStatusEntry } from '../types';
+import { formatDate } from './historyFormat';
 import { SettingsSection, type SectionInfo } from './SettingsSection';
 
 interface Props {
@@ -477,8 +478,7 @@ function costCell( row: { local: boolean; cost: number | null } ): string {
  * @param iso Fecha ISO 8601.
  */
 function whenText( iso: string ): string {
-	const date = new Date( iso );
-	return Number.isNaN( date.getTime() ) ? iso : date.toLocaleString();
+	return formatDate( iso );
 }
 
 /**

@@ -26,6 +26,7 @@
 /composer.lock
 /package-lock.json
 /phpcs.xml.dist
+/jest.config.js
 /phpstan.neon.dist
 /phpunit.xml.dist
 /HOOKS.md
