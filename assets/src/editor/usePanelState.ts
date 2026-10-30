@@ -8,6 +8,7 @@ import type { AiLinkInfo } from './ai';
 import { createInsertionLog, shortKey } from './insertions';
 import { InsertionSync } from './sync';
 import { suggestionKey } from './keys';
+import { withGhosts, withoutGhosts } from './ghosts';
 import { useInbound, useOutbound } from './useSuggestions';
 import type { Fetched } from './useSuggestions';
 
@@ -62,14 +63,7 @@ export function usePanelState(
 
 	// Las filas de «descartada» son de la página que se dejó: al cambiar de página se olvidan.
 	const changePage = useCallback( ( next: number ) => {
-		setStatuses( ( previous ) =>
-			Object.fromEntries(
-				Object.entries( previous ).filter(
-					( [ , status ] ) =>
-						! ( status.kind === 'dismissed' && status.ghost )
-				)
-			)
-		);
+		setStatuses( withoutGhosts );
 		setPage( next );
 	}, [] );
 
@@ -156,28 +150,10 @@ export function usePanelState(
 
 	// Al descartar una entrante se vuelve a pedir la página (los demás elementos suben y no se salta ninguno);
 	// la descartada ya no viene del servidor y se pone aquí donde estaba, con su *Deshacer*.
-	const inboundItems = useMemo( () => {
-		const items = [ ...( inbound.data?.items ?? [] ) ];
-		const keys = new Set( items.map( suggestionKey ) );
-		Object.values( statuses )
-			.flatMap( ( status ) =>
-				status.kind === 'dismissed' && status.ghost
-					? [ status.ghost ]
-					: []
-			)
-			.filter(
-				( ghost ) => ! keys.has( suggestionKey( ghost.suggestion ) )
-			)
-			.sort( ( a, b ) => a.index - b.index )
-			.forEach( ( ghost ) =>
-				items.splice(
-					Math.min( ghost.index, items.length ),
-					0,
-					ghost.suggestion
-				)
-			);
-		return items;
-	}, [ inbound.data, statuses ] );
+	const inboundItems = useMemo(
+		() => withGhosts( inbound.data?.items ?? [], statuses ),
+		[ inbound.data, statuses ]
+	);
 
 	// El total del servidor ya no cuenta lo descartado antes de pedirlo; solo hay que restar lo descartado
 	// ahora mismo que sigue en la lista que se tiene.

@@ -12,6 +12,10 @@ export type CardStatus =
 			message: string;
 			/** Deshace el enlace; devuelve el mensaje de lo ocurrido o null si no se pudo. */
 			undo?: () => Promise< string | null >;
+			/** Se escribió en el servidor: ya está en el Historial y la fila enseña el enlace a él. */
+			history?: boolean;
+			/** Solo entrantes: el servidor ya no la devuelve; se pinta donde estaba. */
+			ghost?: { suggestion: Suggestion; index: number };
 	  }
 	| { kind: 'error'; message: string }
 	/** Descartada para siempre; se puede deshacer hasta que se vuelva a pedir la lista. */
@@ -34,6 +38,8 @@ interface Props {
 	/** Deshace el descarte. */
 	onRestore: ( suggestion: Suggestion ) => void;
 	onUndo: ( suggestion: Suggestion ) => void | Promise< void >;
+	/** Mientras se vuelve a pedir la lista, la tarjeta no se puede enlazar ni descartar (podría estar ya hecho). */
+	locked?: boolean;
 	/** Tras un Deshacer del usuario, la tarjeta que se despliega recibe el foco (un solo sitio: aquí). */
 	focusRequested?: boolean;
 	onFocusDone?: () => void;
@@ -57,6 +63,7 @@ interface Props {
  * @param root0.onRestore
  * @param root0.onUndo
  * @param root0.onHighlight
+ * @param root0.locked
  * @param root0.focusRequested
  * @param root0.onFocusDone
  * @param root0.ai
@@ -72,6 +79,7 @@ export function SuggestionCard( {
 	onRestore,
 	onUndo,
 	onHighlight,
+	locked = false,
 	focusRequested,
 	onFocusDone,
 	ai,
@@ -229,7 +237,7 @@ export function SuggestionCard( {
 						{ __( 'Undo', 'magic-linking' ) }
 					</Button>
 				) }
-				{ isAdded && inbound && (
+				{ isAdded && status.history && (
 					<a
 						className="magiclinking-fold__history"
 						href={ historyUrl }
@@ -336,7 +344,7 @@ export function SuggestionCard( {
 						variant="primary"
 						size="compact"
 						isBusy={ busy }
-						disabled={ busy || dismissing }
+						disabled={ busy || dismissing || locked }
 						accessibleWhenDisabled
 						onClick={ () => onLink( suggestion ) }
 						aria-label={ sprintf(
@@ -358,7 +366,7 @@ export function SuggestionCard( {
 						size="compact"
 						isBusy={ dismissing }
 						aria-busy={ dismissing }
-						disabled={ busy || dismissing }
+						disabled={ busy || dismissing || locked }
 						accessibleWhenDisabled
 						onClick={ () => onDismiss( suggestion ) }
 						aria-label={ sprintf(
