@@ -182,6 +182,10 @@ test.describe( 'Automatic rules', () => {
 		await form.getByLabel( 'Allow one extra word inside a phrase' ).check();
 		await form.getByLabel( 'Links per entry' ).fill( '2' );
 		await form.getByRole( 'button', { name: 'Save rule' } ).click();
+		// Los ajustes permiten un enlace al mismo destino por entrada: el servidor lo explica y no guarda.
+		await expect( form.getByRole( 'alert' ) ).toContainText( 'Your settings allow 1 link' );
+		await form.getByLabel( 'Links per entry' ).fill( '1' );
+		await form.getByRole( 'button', { name: 'Save rule' } ).click();
 		await expect( page.locator( '.magiclinking-fix-notice' ) ).toContainText( 'saved' );
 		await expect( table ).toContainText( 'one extra word allowed' );
 
