@@ -122,7 +122,7 @@ final class TranslationsTest extends TestCase {
 	/**
 	 * Todo lo que un bundle compilado usa y el .po ya traduce tiene que estar en el JSON de ese bundle.
 	 *
-	 * make-json reparte cada cadena según las referencias del .po. Con referencias viejas, un componente
+	 * Make-json reparte cada cadena según las referencias del .po. Con referencias viejas, un componente
 	 * compartido (SuggestionCard, Pager...) quedaba traducido en el editor y en inglés en el Informe.
 	 * Se regenera con `npm run i18n`. Necesita assets/build (npm run build).
 	 */
@@ -156,8 +156,9 @@ final class TranslationsTest extends TestCase {
 					if ( isset( $messages[ $key ] ) ) {
 						continue;
 					}
-					$double = substr( (string) json_encode( $text, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ), 1, -1 );
-					$single = str_replace( "'", "\\'", $text );
+					$encoded = json_encode( $text, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Prueba unitaria sin WordPress.
+					$double  = substr( (string) $encoded, 1, -1 );
+					$single  = str_replace( "'", "\\'", $text );
 					if ( str_contains( $source, '"' . $double . '"' ) || str_contains( $source, "'" . $single . "'" ) || str_contains( $source, '`' . $text . '`' ) ) {
 						$problems[] = "{$locale} {$bundle}.js: {$text}";
 					}
