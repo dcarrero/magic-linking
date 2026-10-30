@@ -119,6 +119,55 @@ final class TranslationsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Todo lo que un bundle compilado usa y el .po ya traduce tiene que estar en el JSON de ese bundle.
+	 *
+	 * make-json reparte cada cadena según las referencias del .po. Con referencias viejas, un componente
+	 * compartido (SuggestionCard, Pager...) quedaba traducido en el editor y en inglés en el Informe.
+	 * Se regenera con `npm run i18n`. Necesita assets/build (npm run build).
+	 */
+	public function test_every_translated_string_a_bundle_uses_is_in_its_json(): void {
+		$bundles = array( 'index', 'editor', 'classic' );
+		foreach ( $bundles as $bundle ) {
+			if ( ! is_file( self::ROOT . "assets/build/{$bundle}.js" ) ) {
+				$this->markTestSkipped( 'Falta assets/build; ejecuta npm run build.' );
+			}
+		}
+
+		$problems = array();
+		foreach ( glob( self::ROOT . 'languages/magic-linking-*.po' ) as $po_file ) {
+			$locale = substr( basename( $po_file, '.po' ), strlen( 'magic-linking-' ) );
+			$keys   = array();
+			foreach ( preg_split( '/\n\n/', (string) file_get_contents( $po_file ) ) as $block ) {
+				if ( preg_match( '/^msgid "(.*)"$/m', $block, $id ) && '' !== $id[1] && preg_match( '/^msgstr(?:\[0\])? "(.+)"$/m', $block ) ) {
+					$ctx    = preg_match( '/^msgctxt "(.*)"$/m', $block, $c ) ? stripcslashes( $c[1] ) . "\x04" : '';
+					$keys[] = array( $ctx . stripcslashes( $id[1] ), stripcslashes( $id[1] ) );
+				}
+			}
+
+			foreach ( $bundles as $bundle ) {
+				$source = (string) file_get_contents( self::ROOT . "assets/build/{$bundle}.js" );
+				$json   = self::ROOT . "languages/magic-linking-{$locale}-" . md5( "assets/build/{$bundle}.js" ) . '.json';
+				$this->assertFileExists( $json );
+				$data     = json_decode( (string) file_get_contents( $json ), true );
+				$messages = $data['locale_data']['messages'] ?? array();
+
+				foreach ( $keys as list( $key, $text ) ) {
+					if ( isset( $messages[ $key ] ) ) {
+						continue;
+					}
+					$double = substr( (string) json_encode( $text, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ), 1, -1 );
+					$single = str_replace( "'", "\\'", $text );
+					if ( str_contains( $source, '"' . $double . '"' ) || str_contains( $source, "'" . $single . "'" ) || str_contains( $source, '`' . $text . '`' ) ) {
+						$problems[] = "{$locale} {$bundle}.js: {$text}";
+					}
+				}
+			}
+		}
+
+		$this->assertSame( array(), $problems, 'Cadenas traducidas que usa el bundle y faltan en su JSON; ejecuta npm run i18n.' );
+	}
+
 	private function is_plural( string $text ): bool {
 		return in_array( $text, array( '%d entry analyzed.', '%d outbound suggestion', '%d broken link', '%s entry', '%s link', '%d entry', 'About %s minute left.', 'About %s hour left.', '%s new or modified entry pending.', '%s link added', '%s link undone.', '%s link added again.', '%s link will be taken out.', '%s undone link will be added again, as it was.', '%s batch in the history.', '%s older batch shown.', '%d change could not be applied by itself.', '%d history row has expired.', '%d history row deleted.', '%d entry found', '%d suggestion', '%s link destination changed', '%s link removed', '%s more change shown.', '%1$s change will be undone in “%2$s”, newest first.', '%1$s undone change will be applied again in “%2$s”, as it was.', '%s entry with changes.', '%1$s of %2$s change active', 'Changes are kept for %s day.', '%1$s, %2$d outbound suggestion', '%d suggestion is marked as not recommended.', 'Suggestions improved with AI. %d is not recommended.', '%1$s of %2$s link recommended by the AI', '%s rule', 'Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value.', '%d entry where the rule fits.', '%1$d link added (batch %2$s). Undo with: wp magic-linking history undo %2$s', '%d link added.', '%d link per entry', 'skips %d category', 'The most links this rule adds to one entry. Your settings allow %d link to the same target from one entry, so that is the real maximum.', '%s rule', '%d link added.', '%d link per entry', 'skips %d category', 'The most links this rule adds to one entry. Your settings allow %d link to the same target from one entry, so that is the real maximum.' ), true );
 	}

@@ -152,6 +152,8 @@ jobs:
       - run: composer install --no-interaction --no-progress
       - run: npm ci
       - run: npm run zip
+      # Con assets/build ya generado, comprueba que los JSON de traducción cubren lo que usa cada bundle.
+      - run: composer test -- --filter TranslationsTest
       - uses: actions/upload-artifact@v4
         with:
           name: magic-linking
