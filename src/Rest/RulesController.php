@@ -14,6 +14,7 @@ use MagicLinking\Core\Module;
 use MagicLinking\Core\PostTitle;
 use MagicLinking\Core\Settings;
 use MagicLinking\Rules\Rule;
+use MagicLinking\Rules\RuleLog;
 use MagicLinking\Rules\RuleRepository;
 use MagicLinking\Rules\RuleService;
 use MagicLinking\Rules\RuleValidator;
@@ -112,6 +113,16 @@ final class RulesController implements Module {
 					'permission_callback' => array( $this, 'can_manage' ),
 					'args'                => $fields,
 				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/rules/stalled/(?P<post_id>\d+)',
+			array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'dismiss_stalled' ),
+				'permission_callback' => array( $this, 'can_manage' ),
 			)
 		);
 
@@ -236,9 +247,10 @@ final class RulesController implements Module {
 
 		$response = new WP_REST_Response(
 			array(
-				'items'  => array_map( array( $this, 'present' ), $page['items'] ),
-				'total'  => $page['total'],
-				'limits' => $this->limits(),
+				'items'   => array_map( array( $this, 'present' ), $page['items'] ),
+				'total'   => $page['total'],
+				'limits'  => $this->limits(),
+				'stalled' => $this->stalled(),
 			)
 		);
 		$response->header( 'X-WP-Total', (string) $page['total'] );
@@ -311,6 +323,40 @@ final class RulesController implements Module {
 				'id'      => $id,
 			)
 		);
+	}
+
+	/**
+	 * DELETE /rules/stalled/{post_id}: descarta el aviso de una entrada donde las reglas no pudieron escribir.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	public function dismiss_stalled( WP_REST_Request $request ): WP_REST_Response {
+		RuleLog::remove( (int) $request['post_id'] );
+
+		return new WP_REST_Response( array( 'stalled' => $this->stalled() ) );
+	}
+
+	/**
+	 * Entradas donde las reglas no pudieron escribir porque siguieron abiertas en el editor durante un día.
+	 *
+	 * @return list<array{post_id: int, title: string, edit_url: string, time: int}>
+	 */
+	private function stalled(): array {
+		$out = array();
+		foreach ( RuleLog::all() as $row ) {
+			$post = get_post( $row['post_id'] );
+			if ( ! $post instanceof WP_Post ) {
+				continue;
+			}
+			$out[] = array(
+				'post_id'  => $row['post_id'],
+				'title'    => PostTitle::of( $post ),
+				'edit_url' => (string) get_edit_post_link( $row['post_id'], 'raw' ),
+				'time'     => $row['time'],
+			);
+		}
+
+		return $out;
 	}
 
 	/**

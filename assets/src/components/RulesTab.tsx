@@ -337,6 +337,53 @@ export function RulesTab( { settingsUrl }: Props ) {
 				) }
 			</div>
 
+			{ data && data.stalled.length > 0 && (
+				<div
+					className="magiclinking-fix-notice"
+					role="region"
+					aria-labelledby="magiclinking-stalled-title"
+				>
+					<p
+						id="magiclinking-stalled-title"
+						className="magiclinking-warn"
+					>
+						{ __(
+							'Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed.',
+							'magic-linking'
+						) }
+					</p>
+					<ul>
+						{ data.stalled.map( ( item ) => (
+							<li key={ item.post_id }>
+								<a href={ item.edit_url }>{ item.title }</a>{ ' ' }
+								<button
+									type="button"
+									className="button-link"
+									onClick={ async () => {
+										await api.dismissStalledRule(
+											item.post_id
+										);
+										setVersion( ( value ) => value + 1 );
+										speak(
+											__(
+												'Notice dismissed.',
+												'magic-linking'
+											),
+											'polite'
+										);
+									} }
+								>
+									{ __( 'Dismiss', 'magic-linking' ) }
+									<span className="screen-reader-text">
+										{ ' ' + item.title }
+									</span>
+								</button>
+							</li>
+						) ) }
+					</ul>
+				</div>
+			) }
+
 			{ editing && (
 				<RuleForm
 					rule={ editing === 'new' ? null : editing }

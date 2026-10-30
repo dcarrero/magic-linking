@@ -52,8 +52,9 @@ final class RuleValidator {
 		$target_id = isset( $input['target_id'] ) ? (int) $input['target_id'] : $base->target_id;
 
 		// Pausar, reactivar o cambiar opciones no exige que el destino siga siendo válido (puede haberse despublicado):
-		// solo se valida al crear y cuando se dan el destino o las frases.
-		$check = null === $existing || isset( $input['target_id'] ) || array_key_exists( 'phrases', $input );
+		// solo se valida al crear o cuando el destino cambia respecto a lo guardado. Las frases se revalidan siempre que
+		// llegan, con el idioma del destino guardado.
+		$check = null === $existing || ( isset( $input['target_id'] ) && $target_id !== $base->target_id );
 		$lang  = $base->lang;
 		$url   = $base->target_url;
 		if ( $check ) {

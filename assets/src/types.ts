@@ -734,10 +734,19 @@ export interface RuleLimitsInfo {
 	same_anchor_max: number;
 }
 
+export interface RuleStalled {
+	post_id: number;
+	title: string;
+	edit_url: string;
+	time: number;
+}
+
 export interface RulesResponse {
 	items: RuleItem[];
 	total: number;
 	limits: RuleLimitsInfo;
+	/** Entradas que siguieron abiertas en el editor durante un día y a las que no se pudo aplicar las reglas. */
+	stalled: RuleStalled[];
 }
 
 export interface RuleOptions {

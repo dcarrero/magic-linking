@@ -32,6 +32,7 @@ import type {
 	RuleItem,
 	RuleOptions,
 	RulesResponse,
+	RuleStalled,
 	RuleTarget,
 	RunResponse,
 	Job,
@@ -84,6 +85,11 @@ export const api = {
 		apiFetch< RulesResponse >( {
 			path: path( '/rules', { page, per_page: RULES_PER_PAGE } ),
 			signal,
+		} ),
+	dismissStalledRule: ( postId: number ) =>
+		apiFetch< { stalled: RuleStalled[] } >( {
+			path: path( `/rules/stalled/${ postId }` ),
+			method: 'DELETE',
 		} ),
 	ruleOptions: ( signal?: AbortSignal ) =>
 		apiFetch< RuleOptions >( { path: path( '/rules/options' ), signal } ),

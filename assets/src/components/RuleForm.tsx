@@ -113,8 +113,13 @@ export function RuleForm( { rule, options, onSaved, onCancel }: Props ) {
 		setBusy( true );
 		setFailure( '' );
 		try {
+			// Al editar, el destino solo se envía si cambió: así el servidor no lo revalida sin necesidad.
+			const { target_id: chosen, ...rest } = input;
 			const response = rule
-				? await api.updateRule( rule.id, input )
+				? await api.updateRule(
+						rule.id,
+						chosen === rule.target_id ? rest : input
+				  )
 				: await api.createRule( input );
 			onSaved( response.rule, ! rule );
 		} catch ( error ) {

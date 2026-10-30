@@ -252,7 +252,9 @@ final class RuleService {
 
 		if ( $inserted > 0 ) {
 			// Aunque el usuario lo deshaga, la regla no vuelve a aplicarse sola en esta entrada.
-			add_post_meta( $post->ID, self::APPLIED_META, $key );
+			if ( ! in_array( $key, get_post_meta( $post->ID, self::APPLIED_META, false ), true ) ) {
+				add_post_meta( $post->ID, self::APPLIED_META, $key );
+			}
 		}
 
 		return new RuleOutcome( $post->ID, $rule->id, $inserted, $failed, null, $inserted > 0 ? $batch : '' );
@@ -279,6 +281,12 @@ final class RuleService {
 			if ( ! $post instanceof WP_Post ) {
 				break;
 			}
+			// Una regla pausada o borrada mientras la cola esperaba no se aplica.
+			$fresh = $this->rules->find( $rule->id );
+			if ( null === $fresh || ! $fresh->active ) {
+				continue;
+			}
+			$rule = $fresh;
 			try {
 				$outcome = $this->apply_as_creator( $post, $rule, $batch );
 			} catch ( Throwable $e ) {
@@ -286,7 +294,7 @@ final class RuleService {
 				continue;
 			}
 			$outcomes[] = $outcome;
-		}
+		}//end foreach
 
 		return $outcomes;
 	}

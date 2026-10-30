@@ -31,20 +31,6 @@ final class RuleRepository {
 	private string $table;
 
 	/**
-	 * Si hay alguna regla activa, ya consultado en esta petición.
-	 *
-	 * @var bool|null
-	 */
-	private ?bool $any_active = null;
-
-	/**
-	 * Reglas activas ya leídas en esta petición.
-	 *
-	 * @var list<Rule>|null
-	 */
-	private ?array $active = null;
-
-	/**
 	 * Constructor.
 	 *
 	 * @param wpdb $wpdb Conexión.
@@ -86,30 +72,25 @@ final class RuleRepository {
 	}
 
 	/**
-	 * Si hay alguna regla activa (una sola consulta por petición).
+	 * Si hay alguna regla activa. Sin caché: una cola larga de Action Scheduler o WP-CLI tiene que ver enseguida lo que
+	 * se pausa o se borra desde otra petición.
 	 */
 	public function has_active(): bool {
-		if ( null === $this->any_active ) {
-			$wpdb             = $this->wpdb;
-			$this->any_active = null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE active = 1 LIMIT 1', $this->table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
-		}
+		$wpdb = $this->wpdb;
 
-		return $this->any_active;
+		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE active = 1 LIMIT 1', $this->table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
 	}
 
 	/**
-	 * Todas las reglas activas, de la más antigua a la más reciente.
+	 * Todas las reglas activas, de la más antigua a la más reciente (leídas en cada llamada, sin caché).
 	 *
 	 * @return list<Rule>
 	 */
 	public function active(): array {
-		if ( null === $this->active ) {
-			$wpdb         = $this->wpdb;
-			$rows         = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE active = 1 ORDER BY id ASC', $this->table ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
-			$this->active = array_map( static fn( array $row ): Rule => Rule::from_row( $row ), (array) $rows );
-		}
+		$wpdb = $this->wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE active = 1 ORDER BY id ASC', $this->table ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
 
-		return $this->active;
+		return array_map( static fn( array $row ): Rule => Rule::from_row( $row ), (array) $rows );
 	}
 
 	/**
@@ -129,7 +110,6 @@ final class RuleRepository {
 			),
 			array( '%s', '%d', '%s', '%s', '%d', '%d', '%s', '%d', '%s', '%d' )
 		);
-		$this->forget();
 
 		return false === $done ? 0 : (int) $wpdb->insert_id;
 	}
@@ -142,7 +122,6 @@ final class RuleRepository {
 	public function update( Rule $rule ): bool {
 		$wpdb = $this->wpdb;
 		$done = $wpdb->update( $this->table, $this->columns( $rule ), array( 'id' => $rule->id ), array( '%s', '%d', '%s', '%s', '%d', '%d', '%s', '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
-		$this->forget();
 
 		return false !== $done;
 	}
@@ -155,17 +134,8 @@ final class RuleRepository {
 	public function delete( int $id ): bool {
 		$wpdb = $this->wpdb;
 		$done = $wpdb->delete( $this->table, array( 'id' => $id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Tabla propia.
-		$this->forget();
 
 		return is_int( $done ) && $done > 0;
-	}
-
-	/**
-	 * Olvida lo leído en esta petición (las pruebas, que vacían la tabla por fuera, lo necesitan).
-	 */
-	public function forget(): void {
-		$this->any_active = null;
-		$this->active     = null;
 	}
 
 	/**

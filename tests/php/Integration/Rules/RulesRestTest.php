@@ -229,4 +229,15 @@ final class RulesRestTest extends RulesTestCase {
 		$this->assertCount( 2, $ids );
 		$this->assertSame( array(), $this->request( 'GET', '/rules/targets' )->get_data()['items'] );
 	}
+
+	public function test_stalled_entries_are_listed_and_can_be_dismissed(): void {
+		$post = $this->entry( $this->body( array( 'Texto.' ) ) );
+		\MagicLinking\Rules\RuleLog::add( $post->ID );
+
+		$list = $this->request( 'GET', '/rules' )->get_data();
+		$this->assertSame( array( $post->ID ), array_column( $list['stalled'], 'post_id' ) );
+
+		$this->assertSame( 403, $this->request( 'DELETE', '/rules/stalled/' . $post->ID, array(), $this->editor )->get_status() );
+		$this->assertSame( array(), $this->request( 'DELETE', '/rules/stalled/' . $post->ID )->get_data()['stalled'] );
+	}
 }

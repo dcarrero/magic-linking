@@ -31,7 +31,6 @@ abstract class RulesTestCase extends GraphTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		Plugin::container()->get( RuleRepository::class )->forget();
 		// Todo en castellano, como los textos de las pruebas (el sitio de pruebas está en inglés).
 		add_filter( 'magiclinking_post_language', static fn( $lang ) => $lang ?? 'es' );
 		$this->admin = self::factory()->user->create( array( 'role' => 'administrator' ) );

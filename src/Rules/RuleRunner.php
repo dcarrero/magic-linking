@@ -38,14 +38,35 @@ final class RuleRunner implements Module {
 	public const HOOK = 'magiclinking_apply_rules';
 
 	/**
-	 * Veces que se reintenta una entrada que tiene abierta alguien en el editor.
+	 * Metadato de la entrada con el estado de la espera: `since` (marca de tiempo del primer bloqueo) y `attempts`. Va en
+	 * la entrada y no en los argumentos de la acción para que haya **una sola** acción pendiente por entrada.
 	 */
-	public const MAX_ATTEMPTS = 12;
+	public const RETRY_META = 'magiclinking_rules_retry';
 
 	/**
-	 * Segundos entre reintentos.
+	 * Primera espera, en segundos; las siguientes se duplican hasta {@see self::MAX_WAIT}.
 	 */
 	public const RETRY_SECONDS = 300;
+
+	/**
+	 * Espera máxima entre intentos.
+	 */
+	public const MAX_WAIT = 2 * HOUR_IN_SECONDS;
+
+	/**
+	 * Cuánto se insiste con una entrada que sigue abierta antes de dejar constancia en la pantalla de reglas. El
+	 * bloqueo de edición caduca unos 150 s después de cerrar la pestaña, así que un día cubre cualquier sesión normal.
+	 */
+	public const GIVE_UP_AFTER = DAY_IN_SECONDS;
+
+	/**
+	 * Espera antes del siguiente intento, creciente y con techo.
+	 *
+	 * @param int $attempts Intentos ya hechos con esta entrada bloqueada (0 = el primero).
+	 */
+	public static function wait_for( int $attempts ): int {
+		return (int) min( self::MAX_WAIT, self::RETRY_SECONDS * ( 2 ** min( max( 0, $attempts ), 10 ) ) );
+	}
 
 	/**
 	 * Constructor.
@@ -64,7 +85,7 @@ final class RuleRunner implements Module {
 		add_action( 'wp_after_insert_post', array( $this, 'on_post_saved' ), 30, 4 );
 		add_action( self::HOOK, array( $this, 'run' ), 10, 2 );
 		// El metadato de «regla ya aplicada» no sale en «Campos personalizados».
-		add_filter( 'is_protected_meta', static fn( $is_protected, $key ) => RuleService::APPLIED_META === $key ? true : $is_protected, 10, 2 );
+		add_filter( 'is_protected_meta', static fn( $is_protected, $key ) => in_array( $key, array( RuleService::APPLIED_META, self::RETRY_META ), true ) ? true : $is_protected, 10, 2 );
 	}
 
 	/**
@@ -89,16 +110,17 @@ final class RuleRunner implements Module {
 			return;
 		}
 
-		$this->enqueue( $post_id, 0, 0 );
+		$this->enqueue( $post_id, 0 );
 	}
 
 	/**
 	 * Manejador de Action Scheduler.
 	 *
 	 * @param int $post_id ID de la entrada.
-	 * @param int $attempt Intento actual (0 la primera vez).
+	 * @param int $legacy  Número de intento de las acciones encoladas por versiones anteriores (se ignora).
 	 */
-	public function run( int $post_id, int $attempt = 0 ): void {
+	public function run( int $post_id, int $legacy = 0 ): void {
+		unset( $legacy );
 		if ( ! $this->ready() || ! $this->rules->has_active() ) {
 			return;
 		}
@@ -110,6 +132,7 @@ final class RuleRunner implements Module {
 			return;
 		}
 
+		$locked = false;
 		foreach ( $outcomes as $outcome ) {
 			foreach ( $outcome->failed as $failure ) {
 				// Un fallo que no es «alguien tiene la entrada abierta» no se reintenta: queda en el registro de depuración.
@@ -117,11 +140,33 @@ final class RuleRunner implements Module {
 					PostWriter::log( sprintf( 'La regla %d no pudo enlazar en la entrada %d (%s): %s', $outcome->rule_id, $post_id, $failure['reason'], $failure['message'] ) );
 				}
 			}
-			if ( array() !== $outcome->failed && $this->was_locked( $outcome ) && $attempt < self::MAX_ATTEMPTS ) {
-				$this->enqueue( $post_id, $attempt + 1, self::RETRY_SECONDS );
-				return;
-			}
+			$locked = $locked || $this->was_locked( $outcome );
 		}
+
+		if ( ! $locked ) {
+			delete_post_meta( $post_id, self::RETRY_META );
+			RuleLog::remove( $post_id );
+			return;
+		}
+
+		// Alguien tiene la entrada abierta: se espera cada vez más y, pasado un día, queda constancia en la pantalla.
+		$state = get_post_meta( $post_id, self::RETRY_META, true );
+		$since = is_array( $state ) && isset( $state['since'] ) ? (int) $state['since'] : time();
+		$tries = is_array( $state ) && isset( $state['attempts'] ) ? (int) $state['attempts'] : 0;
+		if ( time() - $since > self::GIVE_UP_AFTER ) {
+			delete_post_meta( $post_id, self::RETRY_META );
+			RuleLog::add( $post_id );
+			return;
+		}
+		update_post_meta(
+			$post_id,
+			self::RETRY_META,
+			array(
+				'since'    => $since,
+				'attempts' => $tries + 1,
+			)
+		);
+		$this->enqueue( $post_id, self::wait_for( $tries ) );
 	}
 
 	/**
@@ -140,23 +185,38 @@ final class RuleRunner implements Module {
 	}
 
 	/**
-	 * Encola la aplicación (una sola acción pendiente por entrada).
+	 * Encola la aplicación: **una sola acción pendiente por entrada**, sea cual sea el momento para el que esté
+	 * programada (la espera y los intentos viven en la entrada, no en los argumentos).
 	 *
 	 * @param int $post_id ID.
-	 * @param int $attempt Intento.
-	 * @param int $delay   Segundos de espera.
+	 * @param int $delay   Segundos de espera (0 = en cuanto pueda).
 	 */
-	private function enqueue( int $post_id, int $attempt, int $delay ): void {
+	private function enqueue( int $post_id, int $delay ): void {
 		if ( ! function_exists( 'as_enqueue_async_action' ) || ! function_exists( 'as_schedule_single_action' ) ) {
+			return;
+		}
+		// Solo cuentan las pendientes: `as_has_scheduled_action()` también cuenta la que está en ejecución, y un guardado
+		// que llega mientras corre se perdería.
+		$pending = as_get_scheduled_actions(
+			array(
+				'hook'     => self::HOOK,
+				'args'     => array( $post_id ),
+				'group'    => Installer::ACTION_GROUP,
+				'status'   => 'pending',
+				'per_page' => 1,
+			),
+			'ids'
+		);
+		if ( array() !== $pending ) {
 			return;
 		}
 
 		if ( $delay > 0 ) {
-			as_schedule_single_action( time() + $delay, self::HOOK, array( $post_id, $attempt ), Installer::ACTION_GROUP, true );
+			as_schedule_single_action( time() + $delay, self::HOOK, array( $post_id ), Installer::ACTION_GROUP );
 			return;
 		}
 
-		as_enqueue_async_action( self::HOOK, array( $post_id, $attempt ), Installer::ACTION_GROUP, true );
+		as_enqueue_async_action( self::HOOK, array( $post_id ), Installer::ACTION_GROUP );
 	}
 
 	/**
