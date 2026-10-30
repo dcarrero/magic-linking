@@ -216,6 +216,13 @@ export function HistoryEntries( { onRetention, leading, exportUrl }: Props ) {
 							'magic-linking'
 						) }
 					</option>
+					<option value="rule">
+						{ _x(
+							'Automatic rules',
+							'history origin filter',
+							'magic-linking'
+						) }
+					</option>
 				</select>
 				<label htmlFor="magiclinking-history-ai">
 					<input

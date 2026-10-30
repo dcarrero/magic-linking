@@ -46,6 +46,6 @@ describe( 'tab data', () => {
 	it( 'gives every setting exactly one tab', () => {
 		const all = Object.values( TAB_FIELDS ).flat();
 		expect( new Set( all ).size ).toBe( all.length );
-		expect( all ).toHaveLength( 17 );
+		expect( all ).toHaveLength( 18 );
 	} );
 } );

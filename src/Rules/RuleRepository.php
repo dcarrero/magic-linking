@@ -156,9 +156,9 @@ final class RuleRepository {
 	}
 
 	/**
-	 * Olvida lo leído en esta petición.
+	 * Olvida lo leído en esta petición (las pruebas, que vacían la tabla por fuera, lo necesitan).
 	 */
-	private function forget(): void {
+	public function forget(): void {
 		$this->any_active = null;
 		$this->active     = null;
 	}

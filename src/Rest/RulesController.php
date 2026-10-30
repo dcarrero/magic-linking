@@ -67,10 +67,8 @@ final class RulesController implements Module {
 	public function routes(): void {
 		$ns     = ReportController::NAMESPACE;
 		$fields = array(
-			'phrases'            => array(
-				'type'  => array( 'array', 'string' ),
-				'items' => array( 'type' => 'string' ),
-			),
+			// `phrases` no se declara: una lista (o un texto con una frase por línea) la sanea RuleValidator; el saneado de
+			// matrices de la API partiría un texto por espacios.
 			'target_id'          => array( 'type' => 'integer' ),
 			'max_per_post'       => array( 'type' => 'integer' ),
 			'first_only'         => array( 'type' => 'boolean' ),

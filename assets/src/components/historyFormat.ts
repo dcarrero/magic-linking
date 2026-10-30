@@ -65,7 +65,7 @@ export function actionLabel( kind: ChangeKind ): string {
 	}
 }
 
-export type OriginKey = 'panel' | 'other_panel' | 'broken';
+export type OriginKey = 'panel' | 'other_panel' | 'broken' | 'rule';
 
 /**
  * Desde dónde se puso un cambio (la única clasificación de origen de la pantalla): el panel de la propia entrada,
@@ -79,6 +79,9 @@ export function originKey(
 ): OriginKey {
 	if ( origin === 'editor' ) {
 		return 'panel';
+	}
+	if ( origin === 'rule' ) {
+		return 'rule';
 	}
 	return kind === 'insert' ? 'other_panel' : 'broken';
 }
@@ -113,6 +116,10 @@ export function sourceLabel(
 						'history origin',
 						'magic-linking'
 				  );
+		case 'rule':
+			return ai
+				? _x( 'Automatic rule · AI', 'history origin', 'magic-linking' )
+				: _x( 'Automatic rule', 'history origin', 'magic-linking' );
 		default:
 			return _x( 'Broken links', 'history origin', 'magic-linking' );
 	}
@@ -178,6 +185,8 @@ export function batchOriginLabel(
 			return __( 'Added from the editor panel', 'magic-linking' );
 		case 'other_panel':
 			return __( "Added from another entry's panel", 'magic-linking' );
+		case 'rule':
+			return __( 'Added by an automatic rule', 'magic-linking' );
 		default:
 			return __( 'Fixed from Broken links', 'magic-linking' );
 	}

@@ -50,6 +50,7 @@ function whole(
 type NumberKey =
 	| 'words_per_link'
 	| 'same_anchor_max'
+	| 'links_per_target_max'
 	| 'outbound_shown'
 	| 'inbound_per_page'
 	| 'low_inbound_threshold'
@@ -62,6 +63,7 @@ const NUMBER_RULES: Record<
 > = {
 	words_per_link: { fallback: 100, min: 20, max: 1000 },
 	same_anchor_max: { fallback: 5, min: 1, max: 50 },
+	links_per_target_max: { fallback: 1, min: 1, max: 10 },
 	outbound_shown: { fallback: 15, min: 1, max: 50 },
 	inbound_per_page: { fallback: 10, min: 5, max: 50 },
 	low_inbound_threshold: { fallback: 2, min: 1, max: 20 },
@@ -490,7 +492,18 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 									'magic-linking'
 								),
 								__(
-									'An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed).',
+									'An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed). Automatic rules never add a link to an entry that already has that many.',
+									'magic-linking'
+								)
+							) }
+							{ number(
+								'links_per_target_max',
+								__(
+									'Links to the same target from one entry',
+									'magic-linking'
+								),
+								__(
+									'Automatic rules add at most this many links from an entry to the same target. Existing links are never removed.',
 									'magic-linking'
 								)
 							) }
@@ -501,7 +514,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 									'magic-linking'
 								),
 								__(
-									'Beyond this many entries, the same anchor text towards the same target is suggested less.',
+									'Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries.',
 									'magic-linking'
 								)
 							) }

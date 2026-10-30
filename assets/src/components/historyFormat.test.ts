@@ -34,6 +34,7 @@ describe( 'originKey', () => {
 		expect( originKey( 'plugin' ) ).toBe( 'other_panel' );
 		expect( originKey( 'plugin', 'unlink' ) ).toBe( 'broken' );
 		expect( originKey( 'plugin', 'retarget' ) ).toBe( 'broken' );
+		expect( originKey( 'rule', 'insert' ) ).toBe( 'rule' );
 	} );
 } );
 
@@ -45,6 +46,13 @@ describe( 'sourceLabel', () => {
 		);
 		expect( sourceLabel( 'plugin', 'unlink' ) ).toBe( 'Broken links' );
 		expect( sourceLabel( 'plugin', 'retarget' ) ).toBe( 'Broken links' );
+		expect( sourceLabel( 'rule', 'insert' ) ).toBe( 'Automatic rule' );
+		expect( sourceLabel( 'rule', 'insert', true ) ).toBe(
+			'Automatic rule · AI'
+		);
+		expect( batchOriginLabel( 'rule', 'insert' ) ).toBe(
+			'Added by an automatic rule'
+		);
 	} );
 } );
 

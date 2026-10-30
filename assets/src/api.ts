@@ -26,6 +26,13 @@ import type {
 	OutboundResponse,
 	RerankItem,
 	RerankResponse,
+	RuleApplyResponse,
+	RuleCandidatesResponse,
+	RuleInput,
+	RuleItem,
+	RuleOptions,
+	RulesResponse,
+	RuleTarget,
 	RunResponse,
 	Job,
 	ReportFilter,
@@ -70,6 +77,51 @@ export interface BrokenQuery {
 }
 
 export const api = {
+	rules: ( page: number, signal?: AbortSignal ) =>
+		apiFetch< RulesResponse >( {
+			path: path( '/rules', { page, per_page: 50 } ),
+			signal,
+		} ),
+	ruleOptions: ( signal?: AbortSignal ) =>
+		apiFetch< RuleOptions >( { path: path( '/rules/options' ), signal } ),
+	ruleTargets: ( search: string, signal?: AbortSignal ) =>
+		apiFetch< { items: RuleTarget[] } >( {
+			path: path( '/rules/targets', { search } ),
+			signal,
+		} ),
+	createRule: ( input: RuleInput ) =>
+		apiFetch< { rule: RuleItem } >( {
+			path: path( '/rules' ),
+			method: 'POST',
+			data: input,
+		} ),
+	updateRule: ( id: number, input: Partial< RuleInput > ) =>
+		apiFetch< { rule: RuleItem } >( {
+			path: path( `/rules/${ id }` ),
+			method: 'POST',
+			data: input,
+		} ),
+	deleteRule: ( id: number ) =>
+		apiFetch< { deleted: boolean; id: number } >( {
+			path: path( `/rules/${ id }` ),
+			method: 'DELETE',
+		} ),
+	ruleCandidates: (
+		id: number,
+		cursor: number,
+		limit: number,
+		signal?: AbortSignal
+	) =>
+		apiFetch< RuleCandidatesResponse >( {
+			path: path( `/rules/${ id }/candidates`, { cursor, limit } ),
+			signal,
+		} ),
+	applyRule: ( id: number, postId: number ) =>
+		apiFetch< RuleApplyResponse >( {
+			path: path( `/rules/${ id }/apply` ),
+			method: 'POST',
+			data: { post_id: postId },
+		} ),
 	report: ( q: ReportQuery, signal?: AbortSignal ) =>
 		apiFetch< ReportResponse >( {
 			path: path( '/report', { ...q } ),

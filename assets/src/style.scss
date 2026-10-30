@@ -942,3 +942,79 @@
 		min-height: 24px;
 	}
 }
+
+// Reglas automáticas (F1-13).
+.magiclinking-rule-form {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid var(--wp-admin-theme-color, #2271b1);
+	margin: 12px 0 20px;
+	max-width: 720px;
+	padding: 8px 16px 16px;
+
+	h2:focus {
+		outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+		outline-offset: 2px;
+	}
+
+	fieldset {
+		border: 0;
+		margin: 0 0 12px;
+		padding: 0;
+	}
+
+	legend {
+		margin-bottom: 6px;
+		padding: 0;
+	}
+
+	.description {
+		color: #50575e;
+	}
+
+	.magiclinking-targets[role="group"]:focus {
+		outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+		outline-offset: 2px;
+	}
+}
+
+.magiclinking-candidates {
+	list-style: none;
+	margin: 12px 0;
+	max-height: 55vh;
+	overflow-y: auto;
+	padding: 0;
+
+	li {
+		border-bottom: 1px solid #dcdcde;
+		margin: 0;
+		padding: 12px 0;
+	}
+
+	p {
+		margin: 0 0 6px;
+	}
+
+	.magiclinking-actions {
+		align-items: center;
+		margin-top: 8px;
+	}
+}
+
+.magiclinking-preview {
+	background: #f6f7f7;
+	border-left: 3px solid #c3c4c7;
+	color: #1d2327;
+	padding: 6px 10px;
+
+	mark {
+		background: #fcf0c0;
+		color: #1d2327;
+		font-weight: 600;
+		padding: 0 2px;
+	}
+}
+
+.magiclinking-badge--undone {
+	color: #50575e;
+}
