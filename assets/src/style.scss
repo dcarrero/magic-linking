@@ -1,5 +1,8 @@
 // Pantalla «Internal links». Usa los colores del administrador; los estados llevan siempre texto.
 
+// Tarjetas de sugerencias del panel lateral del informe (las mismas que las del editor).
+@use './editor/cards';
+
 .magiclinking-wrap {
 	max-width: 1400px;
 
@@ -890,4 +893,42 @@
 
 .magiclinking-ai-notice {
 	margin: 12px 0;
+}
+
+// Panel lateral de sugerencias del informe (F1-26): un cuadro de diálogo pegado a la derecha. Las tarjetas son las del
+// editor (editor/cards.scss).
+.magiclinking-drawer-overlay.components-modal__screen-overlay {
+	align-items: stretch;
+	justify-content: flex-end;
+}
+
+.magiclinking-drawer.components-modal__frame {
+	border-radius: 0;
+	height: 100%;
+	margin: 0;
+	max-height: none;
+	max-width: 100%;
+	width: 560px;
+}
+
+.magiclinking-drawer {
+	font-size: 13px;
+	overflow-wrap: anywhere;
+
+	a,
+	.components-button.is-link,
+	.components-button.is-tertiary:not(:disabled, [aria-disabled='true']) {
+		// Mismo oscurecimiento que en el editor: el azul del administrador no llega a AA sobre el gris de las tarjetas.
+		color: color-mix(in srgb, var(--wp-admin-theme-color, #2271b1) 80%, #000);
+	}
+
+	.components-button.is-compact {
+		// Objetivo de 24 px (WCAG 2.5.8).
+		min-height: 24px;
+		min-width: 24px;
+	}
+}
+
+.magiclinking-drawer__body .description {
+	margin-top: 0;
 }

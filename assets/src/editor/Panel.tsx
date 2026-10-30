@@ -9,6 +9,7 @@ import type { Suggestion } from '../types';
 import type { ApplyFailure, EditorAdapter } from './adapters/types';
 import type { EditorBoot } from './boot';
 import { suggestionKey } from './keys';
+import { Pager } from './Pager';
 import { SuggestionCard } from './SuggestionCard';
 import { EmptyState, ErrorState, Loading } from './States';
 import type { PanelState } from './usePanelState';
@@ -66,64 +67,6 @@ function failureText( reason: ApplyFailure ): string {
 				'magic-linking'
 			);
 	}
-}
-
-/**
- * Pager de la lista de entrantes: Anterior, «Página 2 de 4», Siguiente.
- *
- * @param root0
- * @param root0.page
- * @param root0.totalPages
- * @param root0.onPage
- * @param root0.disabled
- */
-function Pager( {
-	page,
-	totalPages,
-	onPage,
-	disabled,
-}: {
-	page: number;
-	totalPages: number;
-	onPage: ( page: number ) => void;
-	disabled: boolean;
-} ) {
-	if ( totalPages <= 1 ) {
-		return null;
-	}
-	return (
-		<nav
-			className="magiclinking-pager"
-			aria-label={ __( 'Inbound suggestions pages', 'magic-linking' ) }
-		>
-			<Button
-				variant="secondary"
-				size="compact"
-				disabled={ disabled || page <= 1 }
-				accessibleWhenDisabled
-				onClick={ () => onPage( page - 1 ) }
-			>
-				{ __( 'Previous', 'magic-linking' ) }
-			</Button>
-			<span aria-live="off">
-				{ sprintf(
-					/* translators: 1: current page, 2: total pages. */
-					__( 'Page %1$s of %2$s', 'magic-linking' ),
-					String( page ),
-					String( totalPages )
-				) }
-			</span>
-			<Button
-				variant="secondary"
-				size="compact"
-				disabled={ disabled || page >= totalPages }
-				accessibleWhenDisabled
-				onClick={ () => onPage( page + 1 ) }
-			>
-				{ __( 'Next', 'magic-linking' ) }
-			</Button>
-		</nav>
-	);
 }
 
 /**
@@ -613,6 +556,10 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 											) }
 										</ul>
 										<Pager
+											label={ __(
+												'Inbound suggestions pages',
+												'magic-linking'
+											) }
 											page={ state.page }
 											totalPages={
 												inbound.data.total_pages

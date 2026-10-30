@@ -30,6 +30,7 @@ import type {
 	Job,
 	ReportFilter,
 	ReportResponse,
+	ReportRowResponse,
 	SettingsResponse,
 	SettingsValues,
 	SortKey,
@@ -72,6 +73,17 @@ export const api = {
 	report: ( q: ReportQuery, signal?: AbortSignal ) =>
 		apiFetch< ReportResponse >( {
 			path: path( '/report', { ...q } ),
+			signal,
+		} ),
+	/**
+	 * La fila de una entrada con las cifras de ahora (tras añadir o deshacer un enlace desde el informe).
+	 *
+	 * @param postId Entrada.
+	 * @param signal Para cancelar.
+	 */
+	reportRow: ( postId: number, signal?: AbortSignal ) =>
+		apiFetch< ReportRowResponse >( {
+			path: path( `/report/${ postId }` ),
 			signal,
 		} ),
 	broken: ( q: BrokenQuery, signal?: AbortSignal ) =>
@@ -321,7 +333,7 @@ export const api = {
 	 *
 	 * @param postId  Destino.
 	 * @param page    Página.
-	 * @param perPage Por página (1 a 50).
+	 * @param perPage Por página (1 a 50); 0 deja el ajuste del usuario.
 	 * @param signal  Para cancelar.
 	 */
 	inbound: (
