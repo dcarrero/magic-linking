@@ -109,6 +109,12 @@ final class RuleRunner implements Module {
 		}
 
 		foreach ( $outcomes as $outcome ) {
+			foreach ( $outcome->failed as $failure ) {
+				// Un fallo que no es «alguien tiene la entrada abierta» no se reintenta: queda en el registro de depuración.
+				if ( ! in_array( $failure['reason'], array( 'locked', 'busy' ), true ) ) {
+					PostWriter::log( sprintf( 'La regla %d no pudo enlazar en la entrada %d (%s): %s', $outcome->rule_id, $post_id, $failure['reason'], $failure['message'] ) );
+				}
+			}
 			if ( array() !== $outcome->failed && $this->was_locked( $outcome ) && $attempt < self::MAX_ATTEMPTS ) {
 				$this->enqueue( $post_id, $attempt + 1, self::RETRY_SECONDS );
 				return;
