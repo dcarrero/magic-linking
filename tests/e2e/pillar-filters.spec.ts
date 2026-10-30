@@ -34,6 +34,8 @@ function seedPillar(): Ids {
 		$rank = $make( 'pf-rank', 'Suelo radiante en casas', $block( 'El suelo radiante con una bomba de calor reparte la calefacción de forma uniforme por toda la casa.' ) );
 		$origen = $make( 'pf-origen', 'Guía de calefacción para casas', $block( 'La instalación de una bomba de calor reduce el consumo de energía en las casas con buen aislamiento.' ) );
 		wp_set_post_categories( $origen, array( $cat ) );
+		if ( ! is_dir( WPMU_PLUGIN_DIR ) ) { mkdir( WPMU_PLUGIN_DIR ); }
+		file_put_contents( WPMU_PLUGIN_DIR . '/magiclinking-e2e-seo.php', "<?php add_filter( 'magiclinking_seo_plugin_active', '__return_true' );" );
 		update_post_meta( $yoast, '_yoast_wpseo_is_cornerstone', '1' );
 		update_post_meta( $rank, 'rank_math_pillar_content', 'on' );
 		echo wp_json_encode( array( 'origen' => $origen, 'yoast' => $yoast, 'rank' => $rank ) );
@@ -100,6 +102,7 @@ test.describe("Pillar content and filters", () => {
 			foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'pf-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
 			foreach ( array( 'docs', 'links', 'jobs', 'changes', 'dismissed' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
 			delete_option( 'magiclinking_settings' );
+			@unlink( WPMU_PLUGIN_DIR . '/magiclinking-e2e-seo.php' );
 			`,
 		);
 	});
@@ -153,21 +156,43 @@ test.describe("Pillar content and filters", () => {
 		await openBlockEditor(page, ids.yoast);
 		panel = await openSidebar(page);
 		box = panel.getByRole("checkbox", { name: "Pillar content" });
-		await expect(box).toBeChecked();
-		await expect(box).toBeDisabled();
+		await expect(box).not.toBeChecked();
+		await expect(box).toBeEnabled();
 		await expect(panel).toContainText(
-			"Marked as cornerstone content in Yoast SEO. Change it there.",
+			"Also marked as cornerstone content in Yoast SEO. Change that mark there.",
+		);
+		await expect(panel).toContainText(
+			"Counts as pillar content because of that mark",
 		);
 		await expectAccessible(page, ".magiclinking-panel");
+
+		// La propia se marca y se quita aunque Yoast la marque; la nota sigue.
+		await box.check();
+		await expect(box).toBeChecked();
+		await expect
+			.poll(() =>
+				wp(
+					"post",
+					"meta",
+					"get",
+					String(ids.yoast),
+					"_magiclinking_pillar",
+				).trim(),
+			)
+			.toBe("1");
+		await expect(panel).toContainText("Counts as pillar content.");
+		await box.uncheck();
+		await expect(box).not.toBeChecked();
+		await expect(panel).toContainText("whatever this box says");
 
 		// Rank Math, igual.
 		await openBlockEditor(page, ids.rank);
 		panel = await openSidebar(page);
 		box = panel.getByRole("checkbox", { name: "Pillar content" });
-		await expect(box).toBeChecked();
-		await expect(box).toBeDisabled();
+		await expect(box).not.toBeChecked();
+		await expect(box).toBeEnabled();
 		await expect(panel).toContainText(
-			"Marked as pillar content in Rank Math. Change it there.",
+			"Also marked as pillar content in Rank Math. Change that mark there.",
 		);
 	});
 

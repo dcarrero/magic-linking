@@ -17,6 +17,7 @@ use MagicLinking\Content\InsertRequest;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\Suggester;
 use MagicLinking\Engine\Suggestion;
 use MagicLinking\History\AiOrigin;
 use MagicLinking\History\BatchId;
@@ -115,6 +116,21 @@ final class SuggestionsController implements Module {
 							'required' => true,
 						),
 						'title'   => array( 'type' => 'string' ),
+						// Categorías y etiquetas que el editor tiene ahora (aún sin guardar): taxonomía lógica → IDs o nombres.
+						'terms'   => array(
+							'type'                 => 'object',
+							'properties'           => array(
+								'category' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => array( 'integer', 'string' ) ),
+								),
+								'post_tag' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => array( 'integer', 'string' ) ),
+								),
+							),
+							'additionalProperties' => false,
+						),
 					),
 				),
 			)
@@ -254,7 +270,9 @@ final class SuggestionsController implements Module {
 
 		$title = $request->has_param( 'title' ) ? wp_strip_all_tags( (string) $request['title'] ) : null;
 
-		return $this->outbound( (int) $request['post_id'], $content, $title );
+		$terms = $request->has_param( 'terms' ) && is_array( $request['terms'] ) ? $request['terms'] : null;
+
+		return $this->outbound( (int) $request['post_id'], $content, $title, $terms );
 	}
 
 	/**
@@ -263,10 +281,13 @@ final class SuggestionsController implements Module {
 	 * @param int         $post_id ID.
 	 * @param string|null $content Contenido del editor; null = el guardado.
 	 * @param string|null $title   Título del editor.
+	 * @param array|null  $terms   Categorías y etiquetas del editor, sin guardar.
+	 *
+	 * @phpstan-param array<string, mixed>|null $terms
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
-	private function outbound( int $post_id, ?string $content, ?string $title ) {
+	private function outbound( int $post_id, ?string $content, ?string $title, ?array $terms = null ) {
 		$post = get_post( $post_id );
 		if ( ! $post instanceof WP_Post ) {
 			return $this->not_found();
@@ -279,7 +300,7 @@ final class SuggestionsController implements Module {
 
 		// Solo se guardan las de una entrada publicada: la de un borrador cambia con cada guardado y no invalida nada.
 		if ( null !== $content ) {
-			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title );
+			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms );
 		} elseif ( 'publish' === $post->post_status ) {
 			$found = SuggestionCache::remember( 'out', $post_id, fn(): array => $this->suggestions->outgoing( $post_id ) );
 		} else {
@@ -301,7 +322,7 @@ final class SuggestionsController implements Module {
 				'items'    => array_map( array( $this->presenter, 'present' ), $found ),
 				'post_id'  => $post_id,
 				// Filtros en modo Exigir (type, category, tag): sin sugerencias, el estado vacío los explica.
-				'required' => $this->settings->filters_in_mode( 'require' ),
+				'required' => $this->settings->filters_in_mode( Suggester::REQUIRE ),
 			)
 		);
 	}
@@ -378,7 +399,7 @@ final class SuggestionsController implements Module {
 				'per_page'    => $per_page,
 				'items'       => array_map( array( $this->presenter, 'present' ), $cut ),
 				'post_id'     => $post_id,
-				'required'    => $this->settings->filters_in_mode( 'require' ),
+				'required'    => $this->settings->filters_in_mode( Suggester::REQUIRE ),
 			)
 		);
 		$response->header( 'X-WP-Total', (string) $total );

@@ -49,6 +49,70 @@ final class Taxonomies {
 	}
 
 	/**
+	 * De dónde lee el editor las categorías y etiquetas de un tipo: taxonomía lógica → taxonomía real, atributo de
+	 * la API REST y si es jerárquica. Solo las que el tipo tiene.
+	 *
+	 * @param string $post_type Tipo de contenido.
+	 *
+	 * @return array<string, array{taxonomy: string, field: string, hierarchical: bool}>
+	 */
+	public static function sources( string $post_type ): array {
+		$out = array();
+		foreach ( array( 'category', 'post_tag' ) as $logical ) {
+			$name     = self::primary( $post_type, $logical );
+			$taxonomy = null === $name ? null : get_taxonomy( $name );
+			if ( $taxonomy ) {
+				$out[ $logical ] = array(
+					'taxonomy'     => $name,
+					'field'        => is_string( $taxonomy->rest_base ) && '' !== $taxonomy->rest_base ? $taxonomy->rest_base : $name,
+					'hierarchical' => (bool) $taxonomy->hierarchical,
+				);
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Valores a partir de lo que el editor tiene ahora (sin guardar): taxonomía lógica → términos elegidos.
+	 *
+	 * Cada término es un ID (categorías) o un nombre (etiquetas del editor clásico). Solo cuentan los términos que
+	 * existen en la taxonomía principal del tipo: lo demás se descarta. Una taxonomía lógica que no viene se
+	 * deja fuera, para que mande lo guardado.
+	 *
+	 * @param string $post_type Tipo de contenido.
+	 * @param array  $terms     Lo que envía el editor.
+	 *
+	 * @phpstan-param array<string, mixed> $terms
+	 *
+	 * @return array<string, list<string>>
+	 */
+	public static function resolve( string $post_type, array $terms ): array {
+		$out = array();
+		foreach ( array( 'category', 'post_tag' ) as $logical ) {
+			if ( ! isset( $terms[ $logical ] ) || ! is_array( $terms[ $logical ] ) ) {
+				continue;
+			}
+			$taxonomy = self::primary( $post_type, $logical );
+			$ids      = array();
+			foreach ( array_slice( $terms[ $logical ], 0, 100 ) as $value ) {
+				if ( null === $taxonomy || ! is_scalar( $value ) ) {
+					continue;
+				}
+				$term = is_int( $value ) || ( is_string( $value ) && ctype_digit( $value ) )
+					? get_term( (int) $value, $taxonomy )
+					: get_term_by( 'name', wp_strip_all_tags( (string) $value ), $taxonomy );
+				if ( $term instanceof \WP_Term ) {
+					$ids[ (string) $term->term_taxonomy_id ] = true;
+				}
+			}
+			$out[ $logical ] = array_map( 'strval', array_keys( $ids ) );
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Valores de una entrada: taxonomía lógica → `term_taxonomy_id` como texto.
 	 *
 	 * Usa la caché de términos de WordPress, que se carga por lotes con `update_object_term_cache()`.

@@ -6,8 +6,9 @@ import { api, errorMessage } from '../api';
 import type { PillarState } from '../types';
 
 /**
- * Casilla «Contenido pilar» (docs/07 §3.4). Si Yoast SEO o Rank Math ya la marcan, aparece marcada, con la nota de
- * dónde, y se cambia allí. Guardar es inmediato: no espera a guardar la entrada.
+ * Casilla «Contenido pilar» (docs/07 §3.4). La casilla es siempre y solo la marca propia de Magic Linking, editable;
+ * la de Yoast SEO o Rank Math se enseña aparte, en una nota, y se cambia en su plugin. Que la entrada cuente como
+ * pilar es propia o externa. Guardar es inmediato: no espera a guardar la entrada.
  *
  * @param root0
  * @param root0.postId Entrada que se edita.
@@ -47,13 +48,19 @@ export function PillarBox( { postId }: { postId: number } ) {
 		setError( '' );
 		// La casilla responde al momento; si el servidor no lo guarda, vuelve a como estaba.
 		setState( ( current ) =>
-			current ? { ...current, pillar: checked, own: checked } : current
+			current
+				? {
+						...current,
+						own: checked,
+						pillar: checked || current.external !== null,
+				  }
+				: current
 		);
 		api.setPillar( postId, checked )
 			.then( ( saved ) => {
 				setState( saved );
 				speak(
-					saved.pillar
+					saved.own
 						? __( 'Marked as pillar content.', 'magic-linking' )
 						: __( 'Pillar content mark removed.', 'magic-linking' ),
 					'polite'
@@ -74,20 +81,26 @@ export function PillarBox( { postId }: { postId: number } ) {
 			.finally( () => setSaving( false ) );
 	};
 
-	let help: string = __(
-		'Suggestions that link to this entry rank a little higher. Nothing else changes.',
-		'magic-linking'
-	);
+	let external = '';
 	if ( state?.external === 'yoast' ) {
-		help = __(
-			'Marked as cornerstone content in Yoast SEO. Change it there.',
+		external = __(
+			'Also marked as cornerstone content in Yoast SEO. Change that mark there.',
 			'magic-linking'
 		);
 	} else if ( state?.external === 'rank_math' ) {
-		help = __(
-			'Marked as pillar content in Rank Math. Change it there.',
+		external = __(
+			'Also marked as pillar content in Rank Math. Change that mark there.',
 			'magic-linking'
 		);
+	}
+	let effective = '';
+	if ( state?.pillar ) {
+		effective = state.own
+			? __( 'Counts as pillar content.', 'magic-linking' )
+			: __(
+					'Counts as pillar content because of that mark, whatever this box says.',
+					'magic-linking'
+			  );
 	}
 
 	return (
@@ -95,11 +108,19 @@ export function PillarBox( { postId }: { postId: number } ) {
 			<CheckboxControl
 				__nextHasNoMarginBottom
 				label={ __( 'Pillar content', 'magic-linking' ) }
-				help={ help }
-				checked={ state?.pillar ?? false }
-				disabled={ state === null || saving || !! state.external }
+				help={ __(
+					'Suggestions that link to this entry rank a little higher. Nothing else changes.',
+					'magic-linking'
+				) }
+				checked={ state?.own ?? false }
+				disabled={ state === null || saving }
 				onChange={ change }
 			/>
+			{ external && (
+				<p className="magiclinking-panel__pillar-note">
+					{ external } { effective }
+				</p>
+			) }
 			{ error && (
 				<p className="magiclinking-panel__pillar-error" role="alert">
 					{ error }

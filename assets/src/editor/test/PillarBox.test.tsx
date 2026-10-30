@@ -71,23 +71,42 @@ describe( 'PillarBox', () => {
 		mockSetPillar.mockReset();
 	} );
 
-	it( 'si Yoast la marca aparece marcada, con la nota, y no se cambia aquí', async () => {
+	it( 'si Yoast la marca, la casilla sigue siendo la propia y editable, y la marca externa va en una nota', async () => {
 		mockPillar.mockResolvedValue(
 			state( { pillar: true, external: 'yoast' } )
 		);
 		const host = await mount();
 		const box = host.querySelector( 'input' ) as HTMLInputElement;
-		expect( box.checked ).toBe( true );
-		expect( box.disabled ).toBe( true );
-		expect( host.textContent ).toContain( 'cornerstone content in Yoast' );
+		expect( box.checked ).toBe( false );
+		expect( box.disabled ).toBe( false );
+		expect( host.textContent ).toContain(
+			'Also marked as cornerstone content in Yoast'
+		);
+		expect( host.textContent ).toContain(
+			'Counts as pillar content because of that mark'
+		);
 	} );
 
-	it( 'con Rank Math lo mismo', async () => {
+	it( 'con marca propia y externa se puede quitar la propia y se explica que sigue contando', async () => {
 		mockPillar.mockResolvedValue(
-			state( { pillar: true, external: 'rank_math' } )
+			state( { pillar: true, own: true, external: 'rank_math' } )
+		);
+		mockSetPillar.mockResolvedValue(
+			state( { pillar: true, own: false, external: 'rank_math' } )
 		);
 		const host = await mount();
+		const box = host.querySelector( 'input' ) as HTMLInputElement;
+		expect( box.checked ).toBe( true );
 		expect( host.textContent ).toContain( 'pillar content in Rank Math' );
+		expect( host.textContent ).toContain( 'Counts as pillar content.' );
+
+		await act( async () => {
+			box.click();
+		} );
+		expect( mockSetPillar ).toHaveBeenCalledWith( 5, false );
+		const after = host.querySelector( 'input' ) as HTMLInputElement;
+		expect( after.checked ).toBe( false );
+		expect( host.textContent ).toContain( 'whatever this box says' );
 	} );
 
 	it( 'marca la casilla propia y guarda al momento', async () => {

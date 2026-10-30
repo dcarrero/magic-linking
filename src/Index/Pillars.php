@@ -14,12 +14,19 @@ use wpdb;
 
 /**
  * Una entrada es pilar si está marcada en cualquiera de los tres sitios; no se pide nada al usuario que ya la
- * tenga marcada en su plugin de SEO (docs/04 §6, docs/07 §3.4). Se lee la meta de cada plugin aunque ya no esté
- * activo: así se detecta sin tocar nada y sin depender de sus clases.
+ * tenga marcada en su plugin de SEO (docs/04 §6, docs/07 §3.4). La meta de cada plugin solo se lee mientras ese
+ * plugin está activo (decisión del usuario): con Yoast SEO o Rank Math desactivados, su marca se ignora. Se sabe por la
+ * constante que cada uno define en su fichero principal, sin depender de sus clases:
+ *  - `WPSEO_VERSION` (https://github.com/Yoast/wordpress-seo/blob/trunk/wp-seo-main.php).
+ *  - `RANK_MATH_VERSION` (https://github.com/rankmath/seo-by-rank-math/blob/master/rank-math.php).
+ * El filtro `magiclinking_seo_plugin_active` permite a las pruebas decidirlo.
  *
- * Nombres de las metas (comprobados en el código de cada plugin):
- *  - Yoast SEO: `_yoast_wpseo_is_cornerstone`, valor `1`.
- *  - Rank Math: `rank_math_pillar_content`, valor `on`.
+ * Nombres y valores de las metas, contrastados el 30-10-2026 con el código de cada plugin:
+ *  - Yoast SEO: `_yoast_wpseo_is_cornerstone`, valor `1`
+ *    (https://github.com/Yoast/wordpress-seo/blob/trunk/inc/class-upgrade.php renombra la clave antigua a esa;
+ *    https://github.com/Yoast/wordpress-seo/blob/trunk/tests/Unit/Builders/Indexable_Post_Builder_Test.php usa `'1'`).
+ *  - Rank Math: `rank_math_pillar_content`, valor `on`
+ *    (https://github.com/rankmath/seo-by-rank-math/blob/master/includes/admin/class-post-columns.php compara con `'on'`).
  *
  * Los metadatos de entrada no se cargan automáticamente (no son opciones, regla 8). La lista de pilares se
  * guarda en la caché de objetos de la petición, atada al mismo contador que las sugerencias.
@@ -78,31 +85,42 @@ final class Pillars implements Module {
 	}
 
 	/**
+	 * Si un plugin de SEO está activo.
+	 *
+	 * @param string $plugin `yoast` o `rank_math`.
+	 */
+	public function active( string $plugin ): bool {
+		$constant = 'yoast' === $plugin ? 'WPSEO_VERSION' : 'RANK_MATH_VERSION';
+
+		return (bool) apply_filters( 'magiclinking_seo_plugin_active', defined( $constant ), $plugin ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals -- Filtro propio.
+	}
+
+	/**
 	 * IDs de todas las entradas marcadas como pilar (una consulta por petición y estado de las sugerencias).
 	 *
 	 * @return list<int>
 	 */
 	public function ids(): array {
-		$key    = 'ids_' . wp_cache_get_last_changed( SuggestionCache::GROUP );
+		$yoast  = $this->active( 'yoast' );
+		$rank   = $this->active( 'rank_math' );
+		$key    = 'ids_' . (int) $yoast . (int) $rank . '_' . wp_cache_get_last_changed( SuggestionCache::GROUP );
 		$cached = wp_cache_get( $key, self::CACHE_GROUP );
 		if ( is_array( $cached ) ) {
 			return array_map( 'intval', $cached );
 		}
 
-		$wpdb = $this->wpdb;
-		$ids  = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Se guarda en la caché de objetos justo debajo.
-			$wpdb->prepare(
-				'SELECT DISTINCT post_id FROM %i WHERE ( meta_key = %s AND meta_value = %s ) OR ( meta_key = %s AND meta_value = %s ) OR ( meta_key = %s AND meta_value = %s ) ORDER BY post_id ASC',
-				$wpdb->postmeta,
-				self::OWN_KEY,
-				'1',
-				self::YOAST_KEY,
-				'1',
-				self::RANK_MATH_KEY,
-				'on'
-			)
+		$wpdb  = $this->wpdb;
+		$where = array( $wpdb->prepare( '( meta_key = %s AND meta_value = %s )', self::OWN_KEY, '1' ) );
+		if ( $yoast ) {
+			$where[] = $wpdb->prepare( '( meta_key = %s AND meta_value = %s )', self::YOAST_KEY, '1' );
+		}
+		if ( $rank ) {
+			$where[] = $wpdb->prepare( '( meta_key = %s AND meta_value = %s )', self::RANK_MATH_KEY, 'on' );
+		}
+		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Condiciones ya preparadas; se guarda en la caché de objetos justo debajo.
+			$wpdb->prepare( 'SELECT DISTINCT post_id FROM %i WHERE ', $wpdb->postmeta ) . implode( ' OR ', $where ) . ' ORDER BY post_id ASC'
 		);
-		$ids  = array_map( 'intval', (array) $ids );
+		$ids = array_map( 'intval', (array) $ids );
 
 		wp_cache_set( $key, $ids, self::CACHE_GROUP, SuggestionCache::TTL );
 
@@ -110,34 +128,15 @@ final class Pillars implements Module {
 	}
 
 	/**
-	 * Dónde está marcada una entrada, en este orden: `own` (la casilla del plugin), `yoast`, `rank_math`; null si no es pilar.
-	 *
-	 * @param int $post_id ID.
-	 */
-	public function source( int $post_id ): ?string {
-		if ( '1' === (string) get_post_meta( $post_id, self::OWN_KEY, true ) ) {
-			return 'own';
-		}
-		if ( '1' === (string) get_post_meta( $post_id, self::YOAST_KEY, true ) ) {
-			return 'yoast';
-		}
-		if ( 'on' === (string) get_post_meta( $post_id, self::RANK_MATH_KEY, true ) ) {
-			return 'rank_math';
-		}
-
-		return null;
-	}
-
-	/**
-	 * Marca de un plugin de SEO, si la hay: `yoast` o `rank_math`. Esa se cambia en su plugin, no aquí.
+	 * Marca de un plugin de SEO, si la hay: `yoast` o `rank_math` (en ese orden). Esa se cambia en su plugin, no aquí.
 	 *
 	 * @param int $post_id ID.
 	 */
 	public function external( int $post_id ): ?string {
-		if ( '1' === (string) get_post_meta( $post_id, self::YOAST_KEY, true ) ) {
+		if ( $this->active( 'yoast' ) && '1' === (string) get_post_meta( $post_id, self::YOAST_KEY, true ) ) {
 			return 'yoast';
 		}
-		if ( 'on' === (string) get_post_meta( $post_id, self::RANK_MATH_KEY, true ) ) {
+		if ( $this->active( 'rank_math' ) && 'on' === (string) get_post_meta( $post_id, self::RANK_MATH_KEY, true ) ) {
 			return 'rank_math';
 		}
 

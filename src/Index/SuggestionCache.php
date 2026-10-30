@@ -12,6 +12,7 @@ namespace MagicLinking\Index;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\Suggester;
 use WP_Post;
 
 /**
@@ -50,8 +51,24 @@ final class SuggestionCache implements Module {
 		add_action( 'save_post', array( $this, 'on_save' ), 10, 2 );
 		add_action( 'deleted_post', array( $this, 'on_save' ), 10, 2 );
 		add_action( 'transition_post_status', array( $this, 'on_transition' ), 10, 3 );
+		// Categorías y etiquetas (filtros de taxonomía, docs/04 §4.3): solo cuentan si hay alguno activo.
+		add_action( 'set_object_terms', array( $this, 'on_terms' ) );
+		add_action( 'deleted_term_relationships', array( $this, 'on_terms' ) );
+		add_action( 'delete_term', array( $this, 'on_terms' ) );
+		add_action( 'edited_term', array( $this, 'on_terms' ) );
 		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $prefix ) {
 			add_action( $prefix . Installer::SETTINGS_OPTION, array( self::class, 'bump' ) );
+		}
+	}
+
+	/**
+	 * Cambian los términos de una entrada o un término: renueva la época si algún filtro de categoría o
+	 * etiqueta está en modo Considerar o Exigir (con todos en Ignorar, las sugerencias no dependen de ellos).
+	 */
+	public function on_terms(): void {
+		$filters = ( new Settings() )->filters();
+		if ( Suggester::IGNORE !== $filters['category'] || Suggester::IGNORE !== $filters['tag'] ) {
+			self::bump();
 		}
 	}
 

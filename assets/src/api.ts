@@ -384,12 +384,14 @@ export const api = {
 	 * @param content Contenido actual (bloques serializados o HTML).
 	 * @param title   Título actual.
 	 * @param signal  Para cancelar.
+	 * @param terms   Categorías y etiquetas elegidas en el editor, sin guardar.
 	 */
 	outboundDraft: (
 		postId: number,
 		content: string,
 		title?: string,
-		signal?: AbortSignal
+		signal?: AbortSignal,
+		terms?: Record< string, ( number | string )[] >
 	) =>
 		apiFetch< OutboundResponse >( {
 			path: path( '/suggestions/outbound' ),
@@ -398,6 +400,8 @@ export const api = {
 				post_id: postId,
 				content,
 				...( title !== undefined ? { title } : {} ),
+				// Las categorías y etiquetas del editor mandan sobre las guardadas (filtros por taxonomía).
+				...( terms !== undefined ? { terms } : {} ),
 			},
 			signal,
 		} ),

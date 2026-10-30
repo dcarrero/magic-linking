@@ -50,11 +50,23 @@ final class PillarFiltersTest extends GraphTestCase {
 	 */
 	private int $stray = 0;
 
+	/**
+	 * Plugins de SEO que la prueba da por activos: `yoast` y `rank_math`.
+	 *
+	 * @var array<string, bool>
+	 */
+	private array $seo_active = array(
+		'yoast'     => true,
+		'rank_math' => true,
+	);
+
 	public function set_up(): void {
 		parent::set_up();
 
 		add_filter( 'locale', static fn(): string => 'es_ES' );
 		add_filter( 'magiclinking_post_language', fn( $lang, $id ) => (int) $id === $this->english ? 'en' : null, 10, 2 );
+
+		add_filter( 'magiclinking_seo_plugin_active', fn( $active, $plugin ) => $this->seo_active[ $plugin ] ?? $active, 10, 2 );
 
 		$this->admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->admin );
@@ -171,20 +183,57 @@ final class PillarFiltersTest extends GraphTestCase {
 		$expected = array( $this->same, $this->other );
 		sort( $expected );
 		$this->assertSame( $expected, $ids, 'La lista se renueva sola al cambiar la meta y solo cuenta los valores activos.' );
-		$this->assertSame( 'yoast', $pillars->source( $this->same ) );
-		$this->assertSame( 'rank_math', $pillars->source( $this->other ) );
-		$this->assertNull( $pillars->source( $this->page ) );
+		$this->assertSame( 'yoast', $pillars->external( $this->same ) );
+		$this->assertSame( 'rank_math', $pillars->external( $this->other ) );
+		$this->assertNull( $pillars->external( $this->page ) );
 		$this->assertFalse( $pillars->own( $this->same ), 'No se ha tocado la casilla propia.' );
 	}
 
-	public function test_own_mark_wins_the_label_and_is_removed_not_zeroed(): void {
+	public function test_the_mark_of_a_seo_plugin_is_only_read_while_that_plugin_is_active(): void {
+		$pillars = Plugin::container()->get( Pillars::class );
+		update_post_meta( $this->same, '_yoast_wpseo_is_cornerstone', '1' );
+		update_post_meta( $this->other, 'rank_math_pillar_content', 'on' );
+		$pillars->set_own( $this->page, true );
+
+		$this->seo_active = array(
+			'yoast'     => false,
+			'rank_math' => false,
+		);
+		$this->assertSame( array( $this->page ), $pillars->ids(), 'Con los dos plugins inactivos solo cuenta la marca propia.' );
+		$this->assertNull( $pillars->external( $this->same ) );
+		$this->assertNull( $pillars->external( $this->other ) );
+		$data = $this->request( 'GET', '/pillar/' . $this->same )->get_data();
+		$this->assertFalse( $data['pillar'] );
+		$this->assertNull( $data['external'] );
+		$this->assertSame( array(), $this->bonuses( $this->service()->outgoing( $this->source ), $this->same ) );
+
+		$this->seo_active['yoast'] = true;
+		$this->assertEqualsCanonicalizing( array( $this->page, $this->same ), $pillars->ids() );
+		$this->assertSame( 'yoast', $pillars->external( $this->same ) );
+		$this->assertNull( $pillars->external( $this->other ), 'Rank Math sigue inactivo.' );
+
+		$this->seo_active['rank_math'] = true;
+		$this->assertEqualsCanonicalizing( array( $this->page, $this->same, $this->other ), $pillars->ids() );
+		$this->assertSame( 'rank_math', $pillars->external( $this->other ) );
+	}
+
+	public function test_the_plugin_is_active_when_it_defines_its_constant(): void {
+		remove_all_filters( 'magiclinking_seo_plugin_active' );
+		$pillars = Plugin::container()->get( Pillars::class );
+		$this->assertSame( defined( 'WPSEO_VERSION' ), $pillars->active( 'yoast' ) );
+		$this->assertSame( defined( 'RANK_MATH_VERSION' ), $pillars->active( 'rank_math' ) );
+	}
+
+	public function test_own_mark_is_independent_of_the_external_one_and_is_removed_not_zeroed(): void {
 		$pillars = Plugin::container()->get( Pillars::class );
 		update_post_meta( $this->same, '_yoast_wpseo_is_cornerstone', '1' );
 		$pillars->set_own( $this->same, true );
-		$this->assertSame( 'own', $pillars->source( $this->same ) );
+		$this->assertTrue( $pillars->own( $this->same ) );
+		$this->assertSame( 'yoast', $pillars->external( $this->same ) );
 
 		$pillars->set_own( $this->same, false );
-		$this->assertSame( 'yoast', $pillars->source( $this->same ) );
+		$this->assertFalse( $pillars->own( $this->same ), 'La propia se puede quitar aunque Yoast la marque.' );
+		$this->assertContains( $this->same, $pillars->ids(), 'Sigue contando por la de Yoast.' );
 		$this->assertSame( array(), get_post_meta( $this->same, Pillars::OWN_KEY, false ), 'Desmarcada, la meta se borra.' );
 	}
 
@@ -297,6 +346,7 @@ final class PillarFiltersTest extends GraphTestCase {
 		$this->assertNotEmpty( $tt );
 		$best = $repo->similar( $weights, 'es', 1, array( $this->source ) );
 		$kept = $repo->similar( $weights, 'es', 1, array( $this->source ), array( 'taxonomies' => array( 'category' => $tt ) ) );
+		$this->assertNotContains( $energia, wp_get_post_categories( (int) array_key_first( $best ) ), 'La mejor a secas está fuera de la categoría.' );
 		$this->assertCount( 1, $kept, 'Con un límite de 1 la consulta devuelve la mejor que cumple, no la mejor a secas filtrada después.' );
 		$this->assertContains( $energia, wp_get_post_categories( (int) array_key_first( $kept ) ) );
 
@@ -309,6 +359,116 @@ final class PillarFiltersTest extends GraphTestCase {
 		);
 		$this->assertSame( array( $this->page ), array_keys( $repo->containing( array_keys( $weights ), 'es', 10, array( $this->source ), array( 'types' => array( 'page' ) ) ) ) );
 		$repo->use_taxonomies( false );
+	}
+
+	public function test_chunked_ranking_with_require_does_not_validate_candidates_one_by_one(): void {
+		global $wpdb;
+		$energia = $this->category( 'energia' );
+		// Muchas entradas de otra categoría que se parecen más al origen que la única de «energia» elegida.
+		for ( $i = 0; $i < 8; $i++ ) {
+			$this->post( 'Aerotermia bricolaje ' . $i, 'La aerotermia, las placas solares y el suelo radiante en el taller número ' . $i . '.', 'bricolaje', 'taller' );
+		}
+		$job = Plugin::container()->get( Jobs::class )->start_index( 0, true, true, true, true );
+		Plugin::container()->get( Jobs::class )->run_to_completion( $job['id'] );
+
+		$repo    = new \MagicLinking\Index\TableRepository( $wpdb, 2 );
+		$weights = Plugin::container()->get( \MagicLinking\Index\TableRepository::class )->terms( $this->source );
+		$tt      = array_map( 'strval', wp_get_object_terms( $this->same, 'category', array( 'fields' => 'tt_ids' ) ) );
+
+		$before = $wpdb->num_queries;
+		$found  = $repo->similar( $weights, 'es', 1, array( $this->source ), array( 'taxonomies' => array( 'category' => $tt ) ) );
+		$used   = $wpdb->num_queries - $before;
+
+		$this->assertCount( 1, $found );
+		$this->assertContains( $energia, wp_get_post_categories( (int) array_key_first( $found ) ) );
+		$count = count( $weights );
+		$this->assertLessThanOrEqual( (int) ceil( $count / 2 ) + 3, $used, 'Sumas por trozos de términos más una comprobación: ninguna consulta por candidata descartada.' );
+	}
+
+	public function test_unsaved_editor_terms_win_over_the_saved_ones(): void {
+		$energia = $this->category( 'energia' );
+		$bare    = self::factory()->post->create(
+			array(
+				'post_title'   => 'Entrada nueva',
+				'post_status'  => 'auto-draft',
+				'post_content' => '',
+			)
+		);
+		wp_set_post_categories( $bare, array() );
+		$this->filters( array( 'category' => 'require' ) );
+		$content = $this->p( 'Hoy hablamos de la aerotermia en casa.' );
+
+		$saved = $this->service()->outgoing( $bare, array(), $content, 'Entrada nueva' );
+		$this->assertSame( array(), $saved, 'Sin términos del editor, manda lo guardado (nada).' );
+
+		$chosen = $this->service()->outgoing( $bare, array(), $content, 'Entrada nueva', array( 'category' => array( $energia ) ) );
+		$this->assertContains( $this->same, self::targets( $chosen ), 'La categoría elegida en el editor, aunque no esté guardada, la comparte.' );
+		foreach ( self::targets( $chosen ) as $id ) {
+			$this->assertContains( $energia, wp_get_post_categories( $id ) );
+		}
+
+		// Lo que no existe en la taxonomía se descarta.
+		$bogus = $this->service()->outgoing( $bare, array(), $content, 'Entrada nueva', array( 'category' => array( 999999 ) ) );
+		$this->assertSame( array(), $bogus );
+
+		// Por la API REST.
+		$data = $this->request(
+			'POST',
+			'/suggestions/outbound',
+			array(
+				'post_id' => $bare,
+				'content' => $content,
+				'terms'   => array( 'category' => array( $energia ) ),
+			)
+		)->get_data();
+		$this->assertGreaterThan( 0, $data['total'] );
+	}
+
+	public function test_editor_terms_by_name_for_tags_and_unknown_names_are_dropped(): void {
+		$values = \MagicLinking\Index\Taxonomies::resolve(
+			'post',
+			array(
+				'post_tag' => array( 'hogar', 'no-existe' ),
+				'category' => array( 'x' ),
+			)
+		);
+		$hogar  = get_term_by( 'name', 'hogar', 'post_tag' );
+		$this->assertSame( array( (string) $hogar->term_taxonomy_id ), $values['post_tag'] );
+		$this->assertSame( array(), $values['category'] );
+		$this->assertArrayNotHasKey( 'post_tag', \MagicLinking\Index\Taxonomies::resolve( 'post', array( 'category' => array() ) ) );
+	}
+
+	public function test_changing_terms_renews_the_cache_epoch_only_with_taxonomy_filters(): void {
+		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+		wp_set_post_categories( $this->same, array( $this->category( 'bricolaje' ) ) );
+		$this->assertSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'Con todos los filtros en Ignorar, los términos no importan.' );
+
+		$this->filters( array( 'category' => 'consider' ) );
+		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+		wp_set_post_categories( $this->same, array( $this->category( 'energia' ) ) );
+		$this->assertNotSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'set_object_terms' );
+
+		$term  = self::factory()->category->create( array( 'name' => 'efimera' ) );
+		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+		wp_update_term( $term, 'category', array( 'name' => 'efimera dos' ) );
+		$this->assertNotSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'edited_term' );
+		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+		wp_delete_term( $term, 'category' );
+		$this->assertNotSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'delete_term' );
+	}
+
+	public function test_documents_carry_taxonomies_only_on_the_suggestion_path(): void {
+		$this->filters( array( 'category' => 'require' ) );
+		$source = Plugin::container()->get( \MagicLinking\Index\PostSource::class );
+		$post   = get_post( $this->source );
+
+		$this->assertSame( array(), $source->from_post( $post )->taxonomies, 'El indexado y las reglas no leen términos aunque haya filtros.' );
+		$source->use_taxonomies( true );
+		$this->assertNotEmpty( $source->from_post( $post )->taxonomies['category'] );
+		$source->use_taxonomies( false );
+
+		$this->service()->outgoing( $this->source );
+		$this->assertFalse( $source->taxonomies_enabled(), 'Tras calcular sugerencias, la bandera vuelve a apagarse.' );
 	}
 
 	public function test_require_type_and_tag(): void {

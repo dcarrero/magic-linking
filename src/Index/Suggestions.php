@@ -109,12 +109,15 @@ final class Suggestions {
 	 * @param array       $options Opciones del motor (`never`, `now`…; ver {@see Suggester::__construct()}).
 	 * @param string|null $content Contenido (HTML o bloques) tal como está ahora en el editor, sin guardar; null = el guardado.
 	 * @param string|null $title   Título tal como está en el editor; solo con `$content`.
+	 * @param array|null  $terms   Categorías y etiquetas elegidas en el editor, sin guardar (ver {@see Taxonomies::resolve()}); solo con `$content`.
+	 *                             Mandan sobre las guardadas, que en una entrada nueva no existen todavía.
 	 *
 	 * @return list<Suggestion> Vacío si el índice no está listo o la entrada no se analiza.
 	 *
 	 * @phpstan-param array<string, mixed> $options
+	 * @phpstan-param array<string, mixed>|null $terms
 	 */
-	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null ): array {
+	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null, ?array $terms = null ): array {
 		$post = get_post( $post_id );
 		// Con el contenido del editor, una entrada nueva (borrador automático) también se analiza: aún no hay nada guardado.
 		if ( ! $post instanceof WP_Post || ! $this->analyzes( $post, null !== $content ) || ! $this->ready() ) {
@@ -135,11 +138,17 @@ final class Suggestions {
 		$options['penalized'] = $this->dismissals->penalized_targets( $this->settings->post_types() );
 
 		try {
-			$found = $this->suggester( $options )->outgoing( $this->documents->from_post( $post ) );
+			$suggester = $this->suggester( $options );
+			$document  = $this->documents->from_post( $post );
+			if ( null !== $content && null !== $terms && $this->documents->taxonomies_enabled() ) {
+				$document = $document->with_taxonomies( Taxonomies::resolve( $post->post_type, $terms ) + $document->taxonomies );
+			}
+			$found = $suggester->outgoing( $document );
 
 			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
 		} finally {
 			$this->repository->use_taxonomies( false );
+			$this->documents->use_taxonomies( false );
 			$this->documents->release();
 		}
 	}
@@ -169,6 +178,7 @@ final class Suggestions {
 			return $this->without_ignored( $this->suggester( $options )->incoming( $post_id ) );
 		} finally {
 			$this->repository->use_taxonomies( false );
+			$this->documents->use_taxonomies( false );
 			$this->documents->release();
 		}
 	}
@@ -217,8 +227,10 @@ final class Suggestions {
 		}
 
 		// Los filtros en modo Considerar o Exigir (docs/04 §4.3) y el contenido pilar (§6).
-		$filters = array_filter( $all['filters'], static fn( string $mode ): bool => Suggester::IGNORE !== $mode );
-		$this->repository->use_taxonomies( isset( $filters['category'] ) || isset( $filters['tag'] ) );
+		$filters    = array_filter( $all['filters'], static fn( string $mode ): bool => Suggester::IGNORE !== $mode );
+		$taxonomies = isset( $filters['category'] ) || isset( $filters['tag'] );
+		$this->repository->use_taxonomies( $taxonomies );
+		$this->documents->use_taxonomies( $taxonomies );
 		$defaults['filters'] = $filters;
 		$defaults['pillars'] = $this->pillars->ids();
 

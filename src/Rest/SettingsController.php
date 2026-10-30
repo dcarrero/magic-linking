@@ -178,15 +178,15 @@ final class SettingsController implements Module {
 							'properties'           => array(
 								'type'     => array(
 									'type' => 'string',
-									'enum' => array( Suggester::IGNORE, Suggester::CONSIDER, Suggester::REQUIRE ),
+									'enum' => Suggester::MODES,
 								),
 								'category' => array(
 									'type' => 'string',
-									'enum' => array( Suggester::IGNORE, Suggester::CONSIDER, Suggester::REQUIRE ),
+									'enum' => Suggester::MODES,
 								),
 								'tag'      => array(
 									'type' => 'string',
-									'enum' => array( Suggester::IGNORE, Suggester::CONSIDER, Suggester::REQUIRE ),
+									'enum' => Suggester::MODES,
 								),
 							),
 							'additionalProperties' => false,

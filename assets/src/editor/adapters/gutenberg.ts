@@ -14,6 +14,7 @@ import {
 	toHTMLString,
 } from '@wordpress/rich-text';
 import type { Suggestion } from '../../types';
+import type { EditorTerms } from '../boot';
 import { locate, occurrences, rangeFromOffsets } from '../locate';
 import type { TextUnit } from '../locate';
 import { ownEditable } from '../dom';
@@ -398,6 +399,23 @@ export function gutenbergAdapter(
 			String(
 				select( editorStore ).getEditedPostAttribute( 'title' ) ?? ''
 			),
+
+		getTerms: () => {
+			const out: EditorTerms = {};
+			for ( const [ logical, source ] of Object.entries(
+				options.terms ?? {}
+			) ) {
+				const value: unknown = select(
+					editorStore
+				).getEditedPostAttribute( source.field );
+				if ( Array.isArray( value ) ) {
+					out[ logical as 'category' | 'post_tag' ] = value.filter(
+						( id ): id is number => typeof id === 'number'
+					);
+				}
+			}
+			return Object.keys( out ).length > 0 ? out : undefined;
+		},
 
 		onSaved: ( callback ) => watchSaves( { saved: callback } ),
 

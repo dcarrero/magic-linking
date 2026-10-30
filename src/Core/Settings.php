@@ -270,7 +270,7 @@ final class Settings {
 		$kept    = is_array( $base['filters'] ?? null ) ? $base['filters'] : array();
 		foreach ( self::DEFAULTS['filters'] as $filter => $default ) {
 			$mode               = $given[ $filter ] ?? $kept[ $filter ] ?? $default;
-			$filters[ $filter ] = is_string( $mode ) && in_array( $mode, array( Suggester::IGNORE, Suggester::CONSIDER, Suggester::REQUIRE ), true ) ? $mode : $default;
+			$filters[ $filter ] = is_string( $mode ) && in_array( $mode, Suggester::MODES, true ) ? $mode : $default;
 		}
 		$out['filters'] = $filters;
 

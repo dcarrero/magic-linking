@@ -1,4 +1,5 @@
 import { Button, Spinner } from '@wordpress/components';
+import { createInterpolateElement } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import type { FilterName, SuggestionState } from '../types';
 
@@ -102,23 +103,19 @@ export function EmptyState( {
 							),
 							requiredNames( required )
 					  ) }{ ' ' }
-				{ settingsUrl ? (
-					<>
-						{ __(
-							'If you want more, change the filter in',
+				{ settingsUrl
+					? createInterpolateElement(
+							__(
+								'If you want more, change the filter in <a>Settings → Suggestions</a>.',
+								'magic-linking'
+							),
+							// eslint-disable-next-line jsx-a11y/anchor-has-content -- El contenido lo pone createInterpolateElement.
+							{ a: <a href={ settingsUrl } /> }
+					  )
+					: __(
+							'If you want more, ask an administrator to change the filter in Settings → Suggestions.',
 							'magic-linking'
-						) }{ ' ' }
-						<a href={ settingsUrl }>
-							{ __( 'Settings → Suggestions', 'magic-linking' ) }
-						</a>
-						{ '.' }
-					</>
-				) : (
-					__(
-						'If you want more, ask an administrator to change the filter in Settings → Suggestions.',
-						'magic-linking'
-					)
-				) }
+					  ) }
 			</p>
 		);
 	}

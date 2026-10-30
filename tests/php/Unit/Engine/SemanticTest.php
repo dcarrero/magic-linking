@@ -98,6 +98,20 @@ final class SemanticTest extends TestCase {
 		$this->assertSame( 'Solo título', Semantic::text( new Document( 2, 'post', 'es', 'Solo título' ) ) );
 	}
 
+	public function test_memory_vectors_apply_the_allowed_filter_before_the_cut(): void {
+		$store = new MemoryVectors();
+		$store->put( 1, 'es', array( 1.0, 0.0 ) );
+		$store->put( 2, 'es', array( 1.0, 0.2 ) );
+		$store->put( 3, 'es', array( 1.0, 1.0 ) );
+
+		$this->assertSame( array( 1 ), array_keys( $store->nearest( array( 1.0, 0.0 ), 'es', 1 ) ) );
+		$this->assertSame(
+			array( 3 ),
+			array_keys( $store->nearest( array( 1.0, 0.0 ), 'es', 1, array(), static fn( int $id ): bool => 3 === $id ) ),
+			'Con un límite de 1 sale la mejor permitida, no la mejor a secas filtrada después.'
+		);
+	}
+
 	public function test_memory_vectors_nearest_by_language_with_exclusions(): void {
 		$store = new MemoryVectors();
 		$store->put( 1, 'es', array( 1.0, 0.0 ) );

@@ -53,6 +53,13 @@ final class PostSource implements DocumentSource {
 	private GraphRepository $graph;
 
 	/**
+	 * Los documentos llevan sus categorías y etiquetas (lo decide {@see self::use_taxonomies()}).
+	 *
+	 * @var bool
+	 */
+	private bool $with_taxonomies = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param ContentExtractor $extractor Extractor de texto.
@@ -137,18 +144,26 @@ final class PostSource implements DocumentSource {
 			$content->paragraphs,
 			array(),
 			Fingerprint::focus( $post->ID ),
-			$this->wants_taxonomies() ? Taxonomies::of( $post->ID, $post->post_type ) : array()
+			$this->with_taxonomies ? Taxonomies::of( $post->ID, $post->post_type ) : array()
 		);
 	}
 
 	/**
-	 * Si hay filtros por categoría o etiqueta en modo Considerar o Exigir: solo entonces los documentos llevan sus
-	 * términos (sin filtros, no se hace ninguna consulta más).
+	 * Activa o desactiva que los documentos lleven sus categorías y etiquetas. Solo lo activa el cálculo de
+	 * sugerencias, y solo si hay filtros por taxonomía en modo Considerar o Exigir: el indexado y las reglas no
+	 * hacen ninguna consulta de términos.
+	 *
+	 * @param bool $enabled Activado.
 	 */
-	public function wants_taxonomies(): bool {
-		$filters = $this->settings->filters();
+	public function use_taxonomies( bool $enabled ): void {
+		$this->with_taxonomies = $enabled;
+	}
 
-		return 'ignore' !== $filters['category'] || 'ignore' !== $filters['tag'];
+	/**
+	 * Si los documentos llevan ahora sus categorías y etiquetas.
+	 */
+	public function taxonomies_enabled(): bool {
+		return $this->with_taxonomies;
 	}
 
 	/**

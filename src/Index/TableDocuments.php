@@ -68,7 +68,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 			return;
 		}
 
-		_prime_post_caches( $ids, $this->posts->wants_taxonomies(), true );
+		_prime_post_caches( $ids, $this->posts->taxonomies_enabled(), true );
 
 		$links        = $this->graph->links_from( $ids );
 		$this->stored = array();
@@ -140,6 +140,22 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 		}
 
 		return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+	}
+
+	/**
+	 * Activa o desactiva la lectura de categorías y etiquetas en los documentos (ver {@see PostSource::use_taxonomies()}).
+	 *
+	 * @param bool $enabled Activada.
+	 */
+	public function use_taxonomies( bool $enabled ): void {
+		$this->posts->use_taxonomies( $enabled );
+	}
+
+	/**
+	 * Si los documentos llevan ahora sus categorías y etiquetas.
+	 */
+	public function taxonomies_enabled(): bool {
+		return $this->posts->taxonomies_enabled();
 	}
 
 	/**

@@ -1016,8 +1016,15 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		foreach ( array_chunk( $by_id, $this->query_terms, true ) as $chunk ) {
 			$query = $this->weights_table( $chunk, $args );
 			$args  = array_merge( $args, array( $this->postings ) );
-			$rows  = $wpdb->get_results( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $query solo lleva marcadores %d y %s generados por weights_table(); los valores van en $args.
-				$wpdb->prepare( "SELECT p.post_id, SUM(p.weight * q.w) FROM ({$query}) q JOIN %i p ON p.term_id = q.term_id GROUP BY p.post_id", $args ),
+			$join  = '';
+			if ( array() !== $needs ) {
+				// Con Exigir, el filtro va en esta misma suma: solo se acumulan entradas del idioma que lo cumplen, y
+				// la comprobación por tandas de abajo no descarta casi nada (una consulta por tanda, no una por candidata).
+				$args = array_merge( $args, array( $this->docs, $lang ) );
+				$join = ' JOIN %i d ON d.post_id = p.post_id WHERE d.lang = %s AND d.status = 1' . $this->require_sql( 'd', $needs, $args );
+			}
+			$rows = $wpdb->get_results( // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $query y $join solo llevan marcadores generados por weights_table() y require_sql(); los valores van en $args.
+				$wpdb->prepare( "SELECT p.post_id, SUM(p.weight * q.w) FROM ({$query}) q JOIN %i p ON p.term_id = q.term_id{$join} GROUP BY p.post_id", $args ),
 				ARRAY_N
 			);
 
@@ -1027,7 +1034,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 					$scores[ $id ] = ( $scores[ $id ] ?? 0.0 ) + (float) $row[1];
 				}
 			}
-		}
+		}//end foreach
 
 		uksort(
 			$scores,

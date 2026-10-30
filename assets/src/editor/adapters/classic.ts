@@ -6,6 +6,7 @@
  * dentro de una transacción de TinyMCE, así que el deshacer del editor lo quita de una vez.
  */
 import type { Suggestion } from '../../types';
+import type { EditorTerms } from '../boot';
 import { locate, rangeFromOffsets } from '../locate';
 import type { TextUnit } from '../locate';
 import { classicTextElements } from '../dom';
@@ -84,6 +85,40 @@ export function classicAdapter(
 		getTitle: () =>
 			( document.getElementById( 'title' ) as HTMLInputElement | null )
 				?.value ?? '',
+
+		getTerms: () => {
+			const out: EditorTerms = {};
+			for ( const [ logical, source ] of Object.entries(
+				options.terms ?? {}
+			) ) {
+				if ( source.hierarchical ) {
+					// Caja de categorías: las casillas marcadas (`post_category[]` para `category`).
+					const name =
+						source.taxonomy === 'category'
+							? 'post_category[]'
+							: `tax_input[${ source.taxonomy }][]`;
+					out[ logical as 'category' | 'post_tag' ] = Array.from(
+						document.querySelectorAll< HTMLInputElement >(
+							`input[name="${ name }"]:checked`
+						)
+					)
+						.map( ( box ) => Number( box.value ) )
+						.filter( ( id ) => id > 0 );
+				} else {
+					// Caja de etiquetas: un texto con los nombres separados por comas.
+					const field = document.querySelector< HTMLTextAreaElement >(
+						`textarea[name="tax_input[${ source.taxonomy }]"]`
+					);
+					if ( field ) {
+						out[ logical as 'category' | 'post_tag' ] = field.value
+							.split( ',' )
+							.map( ( name ) => name.trim() )
+							.filter( Boolean );
+					}
+				}
+			}
+			return Object.keys( out ).length > 0 ? out : undefined;
+		},
 
 		// Al guardar, el editor clásico recarga la página y el panel se vuelve a montar con lo guardado.
 		onSaved: () => () => undefined,

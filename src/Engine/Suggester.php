@@ -42,6 +42,11 @@ final class Suggester {
 	public const REQUIRE  = 'require';
 
 	/**
+	 * Todos los modos válidos de un filtro.
+	 */
+	public const MODES = array( self::IGNORE, self::CONSIDER, self::REQUIRE );
+
+	/**
 	 * Filtros y la taxonomía de cada uno; `type` es el tipo de contenido.
 	 */
 	public const FILTERS = array(
@@ -280,9 +285,15 @@ final class Suggester {
 			return array();
 		}
 		if ( null !== $vectors && null !== $query && $this->semantic_retrieval ) {
-			$cosines = $vectors->nearest( $query, $source->lang, Retriever::CANDIDATES, $exclude );
+			// Con Exigir, el filtro va antes del corte por CANDIDATES (no después, que lo dejaría casi vacío).
+			$allowed = $required
+				? function ( int $id ) use ( $source ): bool {
+					$meta = $this->index->meta( $id );
+					return null !== $meta && $this->passes_required( $source, $meta );
+				}
+				: null;
+			$cosines = $vectors->nearest( $query, $source->lang, Retriever::CANDIDATES, $exclude, $allowed );
 			$this->preload( array_keys( $cosines ) );
-			$cosines    = $required ? $this->restrict( $source, $cosines ) : $cosines;
 			$candidates = array();
 			foreach ( array_keys( $cosines ) as $target ) {
 				$candidates[ $target ] = self::lexical( $weights, $this->index->terms( $target ) );
@@ -654,24 +665,6 @@ final class Suggester {
 			}
 		}
 		return true;
-	}
-
-	/**
-	 * Candidatas que cumplen los filtros Exigir.
-	 *
-	 * @param Document          $source     Origen.
-	 * @param array<int, float> $candidates ID → similitud.
-	 * @return array<int, float>
-	 */
-	private function restrict( Document $source, array $candidates ): array {
-		return array_filter(
-			$candidates,
-			function ( int $id ) use ( $source ): bool {
-				$meta = $this->index->meta( $id );
-				return null !== $meta && $this->passes_required( $source, $meta );
-			},
-			ARRAY_FILTER_USE_KEY
-		);
 	}
 
 	/**
