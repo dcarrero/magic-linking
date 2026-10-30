@@ -11,6 +11,7 @@ namespace MagicLinking\Tests\Integration\Rules;
 
 use MagicLinking\Cli\RulesCommand;
 use MagicLinking\Core\Plugin;
+use MagicLinking\Jobs\Jobs;
 use MagicLinking\Rules\RuleValidator;
 use RuntimeException;
 use WP_CLI;
@@ -89,6 +90,55 @@ final class RulesCliTest extends RulesTestCase {
 		$output = implode( "\n", WP_CLI::$lines );
 		$this->assertStringContainsString( (string) $post->ID, $output );
 		$this->assertStringContainsString( '1 entry where the rule fits', $output );
+	}
+
+	/**
+	 * D-66 punto 8: el índice pierde coincidencias; sin --full avisa y con --full las encuentra.
+	 */
+	public function test_scan_warns_when_the_index_finds_nothing_and_full_checks_every_entry(): void {
+		$this->entry( $this->body( array( 'Una entrada que ya estaba en el índice.' ) ) );
+		$rule = $this->rule();
+
+		$jobs = Plugin::container()->get( Jobs::class );
+		$job  = $jobs->start_index( 0, false, true, true, true );
+		$jobs->run_to_completion( $job['id'] );
+
+		// Entrada posterior al índice: contiene la frase, pero el índice no la conoce.
+		$late = $this->entry( $this->body( array( 'Una bomba de calor ahorra energía.' ) ) );
+
+		$this->command->scan( array( (string) $rule->id ), array() );
+		$output = implode( "\n", WP_CLI::$lines );
+		$this->assertStringContainsString( '0 entries where the rule fits', $output );
+		$this->assertStringContainsString( '--full', $output );
+		$this->assertStringContainsString( 'Warning', $output );
+
+		WP_CLI::reset();
+		$this->command->scan( array( (string) $rule->id ), array( 'full' => true ) );
+		$output = implode( "\n", WP_CLI::$lines );
+		$this->assertStringContainsString( (string) $late->ID, $output );
+		$this->assertStringContainsString( '1 entry where the rule fits', $output );
+		$this->assertStringNotContainsString( 'Warning', $output );
+	}
+
+	public function test_scan_does_not_suggest_full_when_it_already_checked_every_entry(): void {
+		$this->entry( $this->body( array( 'Nada de nada.' ) ) );
+		$rule = $this->rule();
+
+		// Sin índice léxico la búsqueda ya recorre todas las entradas: el aviso sería falso.
+		$this->command->scan( array( (string) $rule->id ), array() );
+
+		$output = implode( "\n", WP_CLI::$lines );
+		$this->assertStringContainsString( '0 entries where the rule fits', $output );
+		$this->assertStringNotContainsString( '--full', $output );
+	}
+
+	public function test_scan_prints_the_sentence_as_it_is_written(): void {
+		$post = $this->entry( $this->body( array( 'La guía está completa, ten una bomba de calor, con cuidado.' ) ) );
+		$rule = $this->rule();
+
+		$this->command->scan( array( (string) $rule->id ), array() );
+
+		$this->assertStringContainsString( 'ten una [bomba de calor], con cuidado.', implode( "\n", WP_CLI::$lines ), (string) $post->ID );
 	}
 
 	public function test_run_applies_every_active_rule_like_saving_does(): void {

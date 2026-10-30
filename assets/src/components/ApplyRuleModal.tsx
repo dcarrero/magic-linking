@@ -1,3 +1,4 @@
+import { PreviewSentence } from './PreviewSentence';
 import { useEffect, useRef, useState } from '@wordpress/element';
 import { Button, Modal } from '@wordpress/components';
 import { speak } from '@wordpress/a11y';
@@ -281,9 +282,11 @@ export function ApplyRuleModal( { rule, onClose }: Props ) {
 												'magic-linking'
 											) }{ ' ' }
 										</span>
-										{ link.before }{ ' ' }
-										<mark>{ link.anchor }</mark>{ ' ' }
-										{ link.after }
+										<PreviewSentence
+											before={ link.before }
+											anchor={ link.anchor }
+											after={ link.after }
+										/>
 									</p>
 								) ) }
 								<p className="magiclinking-actions">

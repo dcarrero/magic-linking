@@ -203,6 +203,24 @@ test.describe( 'Automatic rules', () => {
 		await expect( page.getByText( 'There are no rules yet.' ) ).toBeVisible();
 	} );
 
+	test( 'Enter in the target search neither navigates nor loses what was typed', async ( { page } ) => {
+		await login( page );
+		await page.goto( SCREEN_RULES );
+		await page.getByRole( 'button', { name: 'Add rule' } ).first().click();
+		const form = page.locator( '.magiclinking-rule-form' );
+		await form.getByLabel( 'Phrases to link' ).fill( 'heat pump' );
+		const search = form.getByRole( 'searchbox' );
+		await search.fill( 'Heat pump guide' );
+		const url = page.url();
+		await search.press( 'Enter' );
+		// Un <form> dentro del <form> de la regla enviaba el formulario de fuera y dejaba admin.php? en blanco.
+		await expect( page ).toHaveURL( url );
+		await expect( form ).toBeVisible();
+		await expect( form.getByLabel( 'Phrases to link' ) ).toHaveValue( 'heat pump' );
+		await expect( search ).toHaveValue( 'Heat pump guide' );
+		await expect( form.locator( 'form' ) ).toHaveCount( 0 );
+	} );
+
 	test( 'an invalid rule explains why and writes nothing', async ( { page } ) => {
 		await login( page );
 		await page.goto( SCREEN_RULES );

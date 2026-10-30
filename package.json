@@ -16,6 +16,7 @@
     "env": "wp-env",
     "plugin-check": "bash bin/plugin-check.sh",
     "zip": "bash bin/zip.sh",
+    "i18n": "bash bin/i18n.sh",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

@@ -75,15 +75,81 @@ final class TranslationsTest extends TestCase {
 	 */
 	private function catalog( string $file ): array {
 		$entries = array();
-		foreach ( preg_split( '/\n\n/', (string) file_get_contents( self::ROOT . 'languages/' . $file ) ) as $block ) {
-			if ( preg_match( '/^msgid "(.*)"$/m', $block, $id ) && '' !== $id[1] ) {
-				preg_match( '/^msgstr "(.*)"$/m', $block, $str );
-				$context                                       = preg_match( '/^msgctxt "(.*)"$/m', $block, $ctx ) ? stripcslashes( $ctx[1] ) . "\x04" : '';
-				$entries[ $context . stripcslashes( $id[1] ) ] = stripcslashes( $str[1] ?? '' );
-			}
+		foreach ( $this->parse_po( (string) file_get_contents( self::ROOT . 'languages/' . $file ), true ) as $entry ) {
+			$entries[ $entry['key'] ] = $entry['str'];
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * Entradas de un .po: junta las líneas de continuación (`msgid ""` seguido de cadenas), toma msgstr[0] de los
+	 * plurales y descarta la cabecera, las obsoletas (#~) y, salvo que se pida lo contrario, las `#, fuzzy`, que
+	 * msgfmt no compila y por tanto no están traducidas.
+	 *
+	 * @param string $contents      Contenido del .po o .pot.
+	 * @param bool   $include_empty Incluir también las que no tienen traducción (el .pot).
+	 *
+	 * @return list<array{key: string, id: string, str: string}>
+	 */
+	private function parse_po( string $contents, bool $include_empty = false ): array {
+		$entries = array();
+		foreach ( preg_split( '/\R\R+/', $contents ) as $block ) {
+			$fields = array();
+			$field  = null;
+			$fuzzy  = false;
+			foreach ( preg_split( '/\R/', $block ) as $line ) {
+				if ( str_starts_with( $line, '#,' ) && str_contains( $line, 'fuzzy' ) ) {
+					$fuzzy = true;
+				} elseif ( preg_match( '/^(msgctxt|msgid|msgid_plural|msgstr(?:\[0\])?)\s+"(.*)"$/', $line, $m ) ) {
+					$field            = $m[1];
+					$fields[ $field ] = stripcslashes( $m[2] );
+				} elseif ( null !== $field && preg_match( '/^"(.*)"$/', $line, $m ) ) {
+					$fields[ $field ] .= stripcslashes( $m[1] );
+				} elseif ( str_starts_with( $line, 'msgstr[' ) ) {
+					$field = null; // Formas plurales distintas de la primera.
+				}
+			}
+			$id  = $fields['msgid'] ?? '';
+			$str = $fields['msgstr[0]'] ?? $fields['msgstr'] ?? '';
+			if ( '' === $id || $fuzzy || ( ! $include_empty && '' === $str ) ) {
+				continue;
+			}
+			$ctx       = isset( $fields['msgctxt'] ) ? $fields['msgctxt'] . "\x04" : '';
+			$entries[] = array(
+				'key' => $ctx . $id,
+				'id'  => $id,
+				'str' => $str,
+			);
+		}
+
+		return $entries;
+	}
+
+	/**
+	 * Primer argumento de las llamadas `__`, `_x`, `_n` y `_nx` de un bundle minificado.
+	 *
+	 * Tras la minificación (wp-scripts) la llamada queda como `(0,r.__)("texto","magic-linking")`: el nombre
+	 * importado cambia (`r`, `a`...) pero siempre es un acceso `.__` / `._x` / `._n` / `._nx` seguido de `)(` y el
+	 * literal. Riesgo conocido: si algún día se importan con otro alias (`import { __ as t }`), el minificador deja
+	 * de usar el acceso con punto y esta lectura no los ve; la prueba lo avisa porque exige que
+	 * el bundle contenga alguna llamada.
+	 *
+	 * @param string $source Código del bundle.
+	 *
+	 * @return array<string, true>
+	 */
+	private function bundle_strings( string $source ): array {
+		$strings = array();
+		preg_match_all( '/\.(?:__|_x|_n|_nx)\)\(\s*("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')/s', $source, $m );
+		foreach ( $m[1] as $literal ) {
+			$inner = substr( $literal, 1, -1 );
+			// Los escapes \uXXXX y \xXX del minificador se leen como JSON; el resto, como PHP.
+			$inner                              = (string) preg_replace_callback( '/\\\\u([0-9a-fA-F]{4})/', static fn( array $u ): string => html_entity_decode( '&#x' . $u[1] . ';', ENT_QUOTES, 'UTF-8' ), $inner );
+			$strings[ stripcslashes( $inner ) ] = true;
+		}
+
+		return $strings;
 	}
 
 	public function test_every_string_is_in_the_pot(): void {
@@ -117,6 +183,104 @@ final class TranslationsTest extends TestCase {
 		foreach ( array( 'index', 'editor', 'classic' ) as $script ) {
 			$this->assertFileExists( self::ROOT . 'languages/magic-linking-es_ES-' . md5( "assets/build/{$script}.js" ) . '.json', "Falta el JSON de traducción de assets/build/{$script}.js." );
 		}
+	}
+
+	/**
+	 * Todo lo que un bundle compilado usa y el .po ya traduce tiene que estar en el JSON de ese bundle.
+	 *
+	 * Make-json reparte cada cadena según las referencias del .po. Con referencias viejas, un componente
+	 * compartido (SuggestionCard, Pager...) quedaba traducido en el editor y en inglés en el Informe.
+	 * Se regenera con `npm run i18n`. Necesita assets/build (npm run build).
+	 */
+	public function test_every_translated_string_a_bundle_uses_is_in_its_json(): void {
+		$bundles = array( 'index', 'editor', 'classic' );
+		foreach ( $bundles as $bundle ) {
+			if ( ! is_file( self::ROOT . "assets/build/{$bundle}.js" ) ) {
+				$this->markTestSkipped( 'Falta assets/build; ejecuta npm run build.' );
+			}
+		}
+
+		$used = array();
+		foreach ( $bundles as $bundle ) {
+			$used[ $bundle ] = $this->bundle_strings( (string) file_get_contents( self::ROOT . "assets/build/{$bundle}.js" ) );
+			$this->assertNotSame( array(), $used[ $bundle ], "No se ha leído ninguna llamada a __() en {$bundle}.js; revisa bundle_strings()." );
+		}
+
+		$problems = array();
+		foreach ( glob( self::ROOT . 'languages/magic-linking-*.po' ) as $po_file ) {
+			$locale  = substr( basename( $po_file, '.po' ), strlen( 'magic-linking-' ) );
+			$entries = $this->parse_po( (string) file_get_contents( $po_file ) );
+
+			foreach ( $bundles as $bundle ) {
+				$json = self::ROOT . "languages/magic-linking-{$locale}-" . md5( "assets/build/{$bundle}.js" ) . '.json';
+				$this->assertFileExists( $json );
+				$data     = json_decode( (string) file_get_contents( $json ), true );
+				$messages = $data['locale_data']['messages'] ?? array();
+
+				foreach ( $entries as $entry ) {
+					if ( isset( $used[ $bundle ][ $entry['id'] ] ) && ! isset( $messages[ $entry['key'] ] ) ) {
+						$problems[] = "{$locale} {$bundle}.js: {$entry['id']}";
+					}
+				}
+			}
+		}
+
+		$this->assertSame( array(), $problems, 'Cadenas traducidas que usa el bundle y faltan en su JSON; ejecuta npm run i18n.' );
+	}
+
+	public function test_the_po_parser_joins_continuations_and_skips_fuzzy_and_empty_entries(): void {
+		$po   = <<<'PO'
+msgid ""
+msgstr ""
+"Language: es_ES\n"
+
+#: a.js:1
+msgid ""
+"A long sentence that "
+"continues here."
+msgstr ""
+"Una frase larga que "
+"sigue aquí."
+
+#, fuzzy
+msgid "Fuzzy one"
+msgstr "Dudosa"
+
+msgid "Untranslated"
+msgstr ""
+
+msgctxt "state"
+msgid "Linked"
+msgstr "Enlazada"
+
+msgid "%d link"
+msgid_plural "%d links"
+msgstr[0] "%d enlace"
+msgstr[1] "%d enlaces"
+
+#~ msgid "Gone"
+#~ msgstr "Fuera"
+PO;
+		$keys = array_column( $this->parse_po( $po ), 'str', 'key' );
+
+		$this->assertSame(
+			array(
+				'A long sentence that continues here.' => 'Una frase larga que sigue aquí.',
+				"state\x04Linked"                      => 'Enlazada',
+				'%d link'                              => '%d enlace',
+			),
+			$keys
+		);
+	}
+
+	public function test_the_bundle_reader_only_takes_i18n_calls(): void {
+		$source = '(0,r.__)("Refresh","magic-linking"),(0,r._x)("Linked","state","magic-linking"),(0,r._n)("%d link","%d links",n,"magic-linking"),'
+			. '(0,r.__)(\'It\\\'s\',"magic-linking"),children:"Dismiss",title:"Not translated"';
+
+		$this->assertSame(
+			array( 'Refresh', 'Linked', '%d link', "It's" ),
+			array_keys( $this->bundle_strings( $source ) )
+		);
 	}
 
 	private function is_plural( string $text ): bool {
