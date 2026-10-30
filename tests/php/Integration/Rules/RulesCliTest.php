@@ -120,6 +120,27 @@ final class RulesCliTest extends RulesTestCase {
 		$this->assertStringNotContainsString( 'Warning', $output );
 	}
 
+	public function test_scan_does_not_suggest_full_when_it_already_checked_every_entry(): void {
+		$this->entry( $this->body( array( 'Nada de nada.' ) ) );
+		$rule = $this->rule();
+
+		// Sin índice léxico la búsqueda ya recorre todas las entradas: el aviso sería falso.
+		$this->command->scan( array( (string) $rule->id ), array() );
+
+		$output = implode( "\n", WP_CLI::$lines );
+		$this->assertStringContainsString( '0 entries where the rule fits', $output );
+		$this->assertStringNotContainsString( '--full', $output );
+	}
+
+	public function test_scan_prints_the_sentence_as_it_is_written(): void {
+		$post = $this->entry( $this->body( array( 'La guía está completa, ten una bomba de calor, con cuidado.' ) ) );
+		$rule = $this->rule();
+
+		$this->command->scan( array( (string) $rule->id ), array() );
+
+		$this->assertStringContainsString( 'ten una [bomba de calor], con cuidado.', implode( "\n", WP_CLI::$lines ), (string) $post->ID );
+	}
+
 	public function test_run_applies_every_active_rule_like_saving_does(): void {
 		$post = $this->entry( $this->body( array( 'Una bomba de calor ahorra energía.' ) ) );
 		$this->rule();

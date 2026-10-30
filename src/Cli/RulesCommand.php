@@ -220,7 +220,7 @@ final class RulesCommand {
 		} while ( ! $found['done'] && $shown < $limit );
 
 		if ( $found['done'] ) {
-			if ( 0 === $shown && ! $full ) {
+			if ( 0 === $shown && $found['narrowed'] ) {
 				// El índice guarda los términos de más peso de cada entrada, no todas sus palabras: puede dejarse alguna.
 				WP_CLI::warning( __( 'No entry found using the index, which can miss some matches. Run it again with --full to check every entry.', 'magic-linking' ) );
 			}
