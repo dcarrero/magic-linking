@@ -188,7 +188,8 @@ final class PhraseFinder {
 				if ( $end < $start ) {
 					continue;
 				}
-				if ( $grown[1] - $grown[0] + 1 > $this->max_words ) {
+				// Con hueco la aparición ocupa una palabra más que la frase: una frase de la longitud máxima sigue valiendo.
+				if ( $grown[1] - $grown[0] + 1 > $this->max_words + ( $length > $size ? 1 : 0 ) ) {
 					continue;
 				}
 				// «más información» sigue siendo genérica aunque al recortarla quede «información».

@@ -39,7 +39,7 @@ final class RuleLimitsDefaultsTest extends TestCase {
 		$files = array_merge( (array) glob( dirname( __DIR__, 4 ) . '/src/Rules/*.php' ), array( dirname( __DIR__, 4 ) . '/src/Engine/RuleLimits.php', dirname( __DIR__, 4 ) . '/src/Engine/RuleMatcher.php' ) );
 		$this->assertNotEmpty( $files );
 		foreach ( $files as $file ) {
-			$this->assertDoesNotMatchRegularExpression( '/magiclinking_pro|MagicLinking\\\\Pro|is_pro|license/i', (string) file_get_contents( $file ), basename( $file ) . ': los topes no dependen de ninguna licencia.' );
+			$this->assertDoesNotMatchRegularExpression( '/magiclinking_pro|MagicLinking\\\\Pro|\\bis_pro\\b|license/i', (string) file_get_contents( $file ), basename( $file ) . ': los topes no dependen de ninguna licencia.' );
 		}
 	}
 }

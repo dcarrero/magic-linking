@@ -91,6 +91,14 @@ final class RuleMatcherTest extends TestCase {
 		$this->assertSame( array( 'reforma de la cocina' ), self::anchors( $this->plan( $doc, array( 'reforma de cocina' ), array( 'gap' => true ) ) ) );
 	}
 
+	public function test_gap_works_with_phrases_of_the_maximum_length(): void {
+		$phrase = 'energía solar térmica casa nueva barata moderna eficiente';
+		$this->assertSame( 8, count( explode( ' ', $phrase ) ) );
+		$doc = $this->doc( array( 'Hablamos de energía solar térmica casa muy nueva barata moderna eficiente hoy. ' . self::FILLER ) );
+
+		$this->assertSame( array( 'energía solar térmica casa muy nueva barata moderna eficiente' ), self::anchors( $this->plan( $doc, array( $phrase ), array( 'gap' => true ) ) ) );
+	}
+
 	public function test_gap_does_not_accept_two_words_nor_punctuation(): void {
 		$two   = $this->doc( array( 'Quiero una reforma de toda la cocina pronto. ' . self::FILLER ) );
 		$comma = $this->doc( array( 'Quiero una reforma de, la cocina pronto. ' . self::FILLER ) );
