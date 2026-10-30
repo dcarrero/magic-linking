@@ -241,4 +241,24 @@ final class RulesRestTest extends RulesTestCase {
 		$this->assertSame( 403, $this->request( 'DELETE', '/rules/stalled/' . $post->ID, array(), $this->editor )->get_status() );
 		$this->assertSame( array(), $this->request( 'DELETE', '/rules/stalled/' . $post->ID )->get_data()['stalled'] );
 	}
+
+	public function test_a_rule_notice_is_listed_dismissed_and_removed_with_the_rule(): void {
+		$rule = $this->rule();
+		\MagicLinking\Rules\RuleLog::add_rule( $rule->id );
+
+		$this->assertSame( array( $rule->id ), array_column( $this->request( 'GET', '/rules' )->get_data()['stalled_rules'], 'rule_id' ) );
+		$this->assertSame( 403, $this->request( 'DELETE', "/rules/{$rule->id}/stalled", array(), $this->editor )->get_status() );
+		$this->assertSame( array(), $this->request( 'DELETE', "/rules/{$rule->id}/stalled" )->get_data()['stalled_rules'] );
+
+		\MagicLinking\Rules\RuleLog::add_rule( $rule->id );
+		$this->request( 'DELETE', "/rules/{$rule->id}" );
+		$this->assertSame( array(), \MagicLinking\Rules\RuleLog::all() );
+	}
+
+	public function test_candidates_report_when_the_index_narrowed_the_search(): void {
+		$rule = $this->rule();
+		$data = $this->request( 'GET', "/rules/{$rule->id}/candidates", array( 'full' => true ) )->get_data();
+
+		$this->assertFalse( $data['narrowed'] );
+	}
 }

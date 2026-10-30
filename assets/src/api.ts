@@ -86,6 +86,11 @@ export const api = {
 			path: path( '/rules', { page, per_page: RULES_PER_PAGE } ),
 			signal,
 		} ),
+	dismissStalledRuleNotice: ( ruleId: number ) =>
+		apiFetch< { stalled: RuleStalled[] } >( {
+			path: path( `/rules/${ ruleId }/stalled` ),
+			method: 'DELETE',
+		} ),
 	dismissStalledRule: ( postId: number ) =>
 		apiFetch< { stalled: RuleStalled[] } >( {
 			path: path( `/rules/stalled/${ postId }` ),
@@ -119,10 +124,15 @@ export const api = {
 		id: number,
 		cursor: number,
 		limit: number,
-		signal?: AbortSignal
+		signal?: AbortSignal,
+		full = false
 	) =>
 		apiFetch< RuleCandidatesResponse >( {
-			path: path( `/rules/${ id }/candidates`, { cursor, limit } ),
+			path: path( `/rules/${ id }/candidates`, {
+				cursor,
+				limit,
+				full: full ? 1 : 0,
+			} ),
 			signal,
 		} ),
 	applyRule: ( id: number, postId: number ) =>

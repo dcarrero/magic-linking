@@ -32,19 +32,27 @@ export function ApplyRuleModal( { rule, onClose }: Props ) {
 	const [ done, setDone ] = useState( false );
 	const [ examined, setExamined ] = useState( 0 );
 	const [ searching, setSearching ] = useState( false );
+	const [ narrowed, setNarrowed ] = useState( false );
 	const [ error, setError ] = useState( '' );
 	const [ rows, setRows ] = useState< Record< number, RowState > >( {} );
 	const statusRefs = useRef< Record< number, HTMLSpanElement | null > >( {} );
 	const started = useRef( false );
 
-	const search = async ( from: number ) => {
+	const search = async ( from: number, full = false ) => {
 		setSearching( true );
 		setError( '' );
 		try {
-			const response = await api.ruleCandidates( rule.id, from, 10 );
+			const response = await api.ruleCandidates(
+				rule.id,
+				from,
+				10,
+				undefined,
+				full
+			);
 			setItems( ( previous ) => [ ...previous, ...response.items ] );
 			setCursor( response.cursor );
 			setDone( response.done );
+			setNarrowed( response.narrowed );
 			setExamined( ( previous ) => previous + response.examined );
 			speak(
 				response.items.length === 0 && response.done
@@ -211,6 +219,15 @@ export function ApplyRuleModal( { rule, onClose }: Props ) {
 						  ) }
 				</p>
 
+				{ narrowed && (
+					<p className="description">
+						{ __(
+							'Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower).',
+							'magic-linking'
+						) }
+					</p>
+				) }
+
 				{ error && (
 					<p className="magiclinking-error" role="alert">
 						{ error }
@@ -322,6 +339,22 @@ export function ApplyRuleModal( { rule, onClose }: Props ) {
 				</ul>
 
 				<div className="magiclinking-actions">
+					{ narrowed && (
+						<Button
+							variant="tertiary"
+							disabled={ searching }
+							accessibleWhenDisabled
+							onClick={ () => {
+								setItems( [] );
+								setRows( {} );
+								setExamined( 0 );
+								setNarrowed( false );
+								search( 0, true );
+							} }
+						>
+							{ __( 'Search every entry', 'magic-linking' ) }
+						</Button>
+					) }
 					{ ! done && (
 						<Button
 							variant="secondary"

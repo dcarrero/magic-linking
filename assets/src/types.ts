@@ -741,12 +741,20 @@ export interface RuleStalled {
 	time: number;
 }
 
+export interface RuleStalledRule {
+	rule_id: number;
+	phrase: string;
+	time: number;
+}
+
 export interface RulesResponse {
 	items: RuleItem[];
 	total: number;
 	limits: RuleLimitsInfo;
 	/** Entradas que siguieron abiertas en el editor durante un día y a las que no se pudo aplicar las reglas. */
 	stalled: RuleStalled[];
+	/** Reglas que no se aplican porque quien las creó ya no puede gestionar el sitio. */
+	stalled_rules: RuleStalledRule[];
 }
 
 export interface RuleOptions {
@@ -796,6 +804,8 @@ export interface RuleCandidatesResponse {
 	cursor: number;
 	done: boolean;
 	examined: number;
+	/** La búsqueda se acotó con el índice léxico (hay un recorrido completo disponible). */
+	narrowed: boolean;
 }
 
 export interface RuleApplyResponse {

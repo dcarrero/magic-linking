@@ -350,7 +350,7 @@ export function RuleForm( { rule, options, onSaved, onCancel }: Props ) {
 					id="magiclinking-rule-max"
 					type="number"
 					min={ 1 }
-					max={ 10 }
+					max={ limits?.links_per_target ?? 10 }
 					className="small-text"
 					value={ values.maxPerPost }
 					onChange={ ( event ) =>

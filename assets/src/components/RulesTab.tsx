@@ -121,6 +121,13 @@ export function RulesTab( { settingsUrl }: Props ) {
 		options.data?.post_types.find( ( type ) => type.name === name )
 			?.label ?? name;
 
+	// Lo que la regla añade de verdad por entrada: nunca más de lo que permiten los ajustes.
+	const effective = ( rule: RuleItem ) =>
+		Math.min(
+			rule.max_per_post,
+			data?.limits.links_per_target ?? rule.max_per_post
+		);
+
 	const columns: Column< RuleItem, never >[] = [
 		{
 			id: 'phrases',
@@ -164,10 +171,10 @@ export function RulesTab( { settingsUrl }: Props ) {
 						_n(
 							'%d link per entry',
 							'%d links per entry',
-							rule.max_per_post,
+							effective( rule ),
 							'magic-linking'
 						),
-						rule.max_per_post
+						effective( rule )
 					),
 				];
 				if ( rule.first_only ) {
@@ -337,52 +344,87 @@ export function RulesTab( { settingsUrl }: Props ) {
 				) }
 			</div>
 
-			{ data && data.stalled.length > 0 && (
-				<div
-					className="magiclinking-fix-notice"
-					role="region"
-					aria-labelledby="magiclinking-stalled-title"
-				>
-					<p
-						id="magiclinking-stalled-title"
-						className="magiclinking-warn"
+			{ data &&
+				( data.stalled.length > 0 ||
+					data.stalled_rules.length > 0 ) && (
+					<div
+						className="magiclinking-fix-notice"
+						role="region"
+						aria-labelledby="magiclinking-stalled-title"
 					>
-						{ __(
-							'Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed.',
-							'magic-linking'
-						) }
-					</p>
-					<ul>
-						{ data.stalled.map( ( item ) => (
-							<li key={ item.post_id }>
-								<a href={ item.edit_url }>{ item.title }</a>{ ' ' }
-								<button
-									type="button"
-									className="button-link"
-									onClick={ async () => {
-										await api.dismissStalledRule(
-											item.post_id
-										);
-										setVersion( ( value ) => value + 1 );
-										speak(
+						<p
+							id="magiclinking-stalled-title"
+							className="magiclinking-warn"
+						>
+							{ __(
+								'Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed.',
+								'magic-linking'
+							) }
+						</p>
+						<ul>
+							{ data.stalled_rules.map( ( item ) => (
+								<li key={ `rule-${ item.rule_id }` }>
+									<span className="magiclinking-warn">
+										{ sprintf(
+											/* translators: %s: main phrase of a rule. */
 											__(
-												'Notice dismissed.',
+												'The rule “%s” is not being applied: the person who created it can no longer manage the site.',
 												'magic-linking'
 											),
-											'polite'
-										);
-									} }
-								>
-									{ __( 'Dismiss', 'magic-linking' ) }
-									<span className="screen-reader-text">
-										{ ' ' + item.title }
-									</span>
-								</button>
-							</li>
-						) ) }
-					</ul>
-				</div>
-			) }
+											item.phrase
+										) }
+									</span>{ ' ' }
+									<button
+										type="button"
+										className="button-link"
+										onClick={ async () => {
+											await api.dismissStalledRuleNotice(
+												item.rule_id
+											);
+											setVersion(
+												( value ) => value + 1
+											);
+										} }
+									>
+										{ __( 'Dismiss', 'magic-linking' ) }
+										<span className="screen-reader-text">
+											{ ' ' + item.phrase }
+										</span>
+									</button>
+								</li>
+							) ) }
+							{ data.stalled.map( ( item ) => (
+								<li key={ item.post_id }>
+									<a href={ item.edit_url }>{ item.title }</a>{ ' ' }
+									<button
+										type="button"
+										className="button-link"
+										onClick={ async () => {
+											await api.dismissStalledRule(
+												item.post_id
+											);
+											setVersion(
+												( value ) => value + 1
+											);
+											speak(
+												__(
+													'Notice dismissed.',
+													'magic-linking'
+												),
+												'polite'
+											);
+										} }
+									>
+										{ __( 'Dismiss', 'magic-linking' ) }
+										<span className="screen-reader-text">
+											{ ' ' + item.title }
+										</span>
+									</button>
+								</li>
+							) ) }
+						</ul>
+					</div>
+				) }
 
 			{ editing && (
 				<RuleForm
