@@ -479,25 +479,26 @@ final class RuleService {
 	}
 
 	/**
-	 * Últimos caracteres de un texto.
+	 * Últimos caracteres de un texto. Solo se recorta el extremo lejano: el espacio (o su falta) junto al ancla se conserva,
+	 * para pintar la frase tal cual, con sus elisiones, comillas y espacios de puntuación.
 	 *
 	 * @param string $text  Texto.
 	 * @param int    $chars Caracteres.
 	 */
 	private static function tail( string $text, int $chars ): string {
-		$text = trim( $text );
+		$text = ltrim( $text );
 
 		return mb_strlen( $text, 'UTF-8' ) > $chars ? '…' . mb_substr( $text, -$chars, null, 'UTF-8' ) : $text;
 	}
 
 	/**
-	 * Primeros caracteres de un texto.
+	 * Primeros caracteres de un texto. Solo se recorta el extremo lejano (ver `tail()`).
 	 *
 	 * @param string $text  Texto.
 	 * @param int    $chars Caracteres.
 	 */
 	private static function head( string $text, int $chars ): string {
-		$text = trim( $text );
+		$text = rtrim( $text );
 
 		return mb_strlen( $text, 'UTF-8' ) > $chars ? mb_substr( $text, 0, $chars, 'UTF-8' ) . '…' : $text;
 	}

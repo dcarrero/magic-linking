@@ -21,19 +21,25 @@ function text( before: string, anchor: string, after: string ): string {
 }
 
 describe( 'PreviewSentence', () => {
-	it( 'no deja un espacio antes de la coma que sigue a la frase', () => {
-		expect( text( 'Esta guía está', 'completa', ', ten' ) ).toBe(
+	it( 'pinta el contexto tal cual: sin espacio antes de la coma', () => {
+		expect( text( 'Esta guía está ', 'completa', ', ten' ) ).toBe(
 			'Esta guía está completa, ten'
 		);
 	} );
 
-	it( 'separa con un espacio en el caso normal', () => {
-		expect( text( 'Lee la', 'guía de enlaces', 'antes de empezar' ) ).toBe(
-			'Lee la guía de enlaces antes de empezar'
+	it( 'conserva el espacio cuando el servidor lo manda', () => {
+		expect( text( 'Lee la ', 'guía', ' antes de empezar' ) ).toBe(
+			'Lee la guía antes de empezar'
 		);
 	} );
 
-	it( 'no separa de un paréntesis de apertura ni de un cierre', () => {
+	it( 'no separa elisiones, comillas ni la tipografía francesa', () => {
+		expect( text( "Sobre l'", 'energia', ' solar' ) ).toBe(
+			"Sobre l'energia solar"
+		);
+		expect( text( 'Dit « ', 'énergie', ' » !' ) ).toBe(
+			'Dit « énergie » !'
+		);
 		expect( text( 'Mira (', 'este tema', ').' ) ).toBe(
 			'Mira (este tema).'
 		);
