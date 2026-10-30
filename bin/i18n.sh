@@ -33,5 +33,17 @@ for po in languages/magic-linking-*.po; do
 	msgfmt -o "${po%.po}.mo" "${po}"
 done
 
+# Los JSON se generan aparte y sustituyen a los actuales solo si todo ha ido bien: si make-json falla a medias,
+# el plugin no se queda sin traducciones de JavaScript.
+TMP_DIR=".i18n-json-tmp"
+trap 'rm -rf "${TMP_DIR}"' EXIT
+rm -rf "${TMP_DIR}"
+mkdir "${TMP_DIR}"
+wpcli i18n make-json languages "${TMP_DIR}" --no-purge
+
+if ! compgen -G "${TMP_DIR}/*.json" > /dev/null; then
+	echo "make-json no ha generado ningún JSON; se dejan los actuales." >&2
+	exit 1
+fi
 rm -f languages/*.json
-wpcli i18n make-json languages --no-purge
+mv "${TMP_DIR}"/*.json languages/
