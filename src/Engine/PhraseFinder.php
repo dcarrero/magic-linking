@@ -176,11 +176,13 @@ final class PhraseFinder {
 				if ( $sentence->has_link || $i + $size > count( $sentence->keys ) ) {
 					continue;
 				}
-				if ( ! $this->matches( $sentence, $i, $phrase->keys ) ) {
+				// Tokens que cubre la aparición: los de la frase y, con hueco, una palabra más en una posición.
+				$length = $this->matches( $sentence, $i, $phrase->keys ) ? $size : ( $phrase->gap ? $this->gapped( $sentence, $i, $phrase->keys, $analyzer, $generic ) : null );
+				if ( null === $length ) {
 					continue;
 				}
 
-				[ $start, $end ] = $this->expand( $sentence, $i, $i + $size - 1, $expand );
+				[ $start, $end ] = $this->expand( $sentence, $i, $i + $length - 1, $expand );
 				$grown           = array( $start, $end );
 				[ $start, $end ] = $analyzer->trim_edges( $sentence->tokens, $start, $end, $analyzer->foreign_language( $sentence ) );
 				if ( $end < $start ) {
@@ -296,6 +298,43 @@ final class PhraseFinder {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Aparición de una frase objetivo con hueco: las mismas palabras con una más intercalada, en una sola
+	 * posición (docs/04 §4.2). «reforma de cocina» encaja en «reforma de la cocina» pero no en «reforma de
+	 * toda la cocina». La palabra del hueco no puede ser verbal ni genérica ni estar separada por puntuación.
+	 *
+	 * @param Sentence            $sentence Frase.
+	 * @param int                 $i        Posición del primer token.
+	 * @param string[]            $keys     Claves de la frase objetivo.
+	 * @param Analyzer            $analyzer Analizador del idioma.
+	 * @param array<string, true> $generic  Anclas genéricas por clave.
+	 * @return int|null Tokens que cubre la aparición (uno más que la frase); null si no encaja.
+	 *
+	 * @phpstan-param list<string> $keys
+	 */
+	private function gapped( Sentence $sentence, int $i, array $keys, Analyzer $analyzer, array $generic ): ?int {
+		$size  = count( $keys );
+		$count = count( $sentence->keys );
+		if ( $size < 2 || $i + $size + 1 > $count ) {
+			return null;
+		}
+		for ( $p = 1; $p < $size; $p++ ) {
+			$word = $sentence->tokens[ $i + $p ];
+			if ( $word->break_before || $analyzer->is_verb_like( $word ) || isset( $generic[ $word->key ] ) || isset( $generic[ $analyzer->tokenizer()->key( $word->surface ) ] ) ) {
+				continue;
+			}
+			$fits = true;
+			for ( $n = 0; $n < $size && $fits; $n++ ) {
+				$at   = $n < $p ? $i + $n : $i + $n + 1;
+				$fits = $sentence->keys[ $at ] === $keys[ $n ] && ( 0 === $n || ! $sentence->tokens[ $at ]->break_before );
+			}
+			if ( $fits ) {
+				return $size + 1;
+			}
+		}
+		return null;
 	}
 
 	/**
