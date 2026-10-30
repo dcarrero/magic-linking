@@ -23,6 +23,8 @@ export interface EditorBoot {
 	linkAttrs: LinkAttributes;
 	historyUrl: string;
 	reportUrl: string;
+	/** Ajustes → Sugerencias; vacío si el usuario no puede cambiar los ajustes. */
+	settingsUrl?: string;
 }
 
 declare global {

@@ -24,6 +24,7 @@ import type {
 	InsertLink,
 	InsertResponse,
 	OutboundResponse,
+	PillarState,
 	RerankItem,
 	RerankResponse,
 	RuleApplyResponse,
@@ -523,6 +524,29 @@ export const api = {
 			path: path( '/wizard' ),
 			method: 'POST',
 			data: { dismissed },
+		} ),
+	/**
+	 * Estado de la casilla «Contenido pilar» de una entrada.
+	 *
+	 * @param postId Entrada.
+	 * @param signal Para cancelar.
+	 */
+	pillar: ( postId: number, signal?: AbortSignal ) =>
+		apiFetch< PillarState >( {
+			path: path( `/pillar/${ postId }` ),
+			signal,
+		} ),
+	/**
+	 * Marca o desmarca la casilla propia de contenido pilar.
+	 *
+	 * @param postId Entrada.
+	 * @param pillar Marcada.
+	 */
+	setPillar: ( postId: number, pillar: boolean ) =>
+		apiFetch< PillarState >( {
+			path: path( `/pillar/${ postId }` ),
+			method: 'POST',
+			data: { pillar },
 		} ),
 	saveSettings: ( values: SettingsValues ) =>
 		apiFetch< SettingsResponse >( {

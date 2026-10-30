@@ -52,6 +52,14 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 				'magic-linking'
 			),
 		},
+		filters: {
+			...SECTION_META.filters,
+			title: __( 'Which entries are suggested', 'magic-linking' ),
+			description: __(
+				'Quality settings, not limits: you can always insert any link yourself. Suggestions never mix languages.',
+				'magic-linking'
+			),
+		},
 		underlinked: {
 			...SECTION_META.underlinked,
 			title: __( 'Under-linked entries', 'magic-linking' ),

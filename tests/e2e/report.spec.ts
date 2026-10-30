@@ -208,6 +208,7 @@ test.describe( 'Internal links', () => {
 				[
 					'Suggestions shown',
 					'To avoid overloading your texts',
+					'Which entries are suggested',
 					'Under-linked entries',
 				],
 			],

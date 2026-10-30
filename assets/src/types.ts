@@ -149,6 +149,24 @@ export interface StatusResponse {
 	last_done: Job | null;
 }
 
+/** Modo de un filtro de las sugerencias. */
+export type FilterMode = 'ignore' | 'consider' | 'require';
+
+export type FilterName = 'type' | 'category' | 'tag';
+
+export type SuggestionFilters = Record< FilterName, FilterMode >;
+
+/** Estado de la casilla «Contenido pilar» de una entrada (`GET|POST /pillar/{id}`). */
+export interface PillarState {
+	post_id: number;
+	/** Cuenta como pilar: la casilla propia o la marca de un plugin de SEO. */
+	pillar: boolean;
+	/** La casilla propia de Magic Linking. */
+	own: boolean;
+	/** Quién más la marca: Yoast SEO o Rank Math. Se cambia en su plugin. */
+	external: 'yoast' | 'rank_math' | null;
+}
+
 export interface SettingsValues {
 	post_types: string[];
 	low_inbound_threshold: number;
@@ -169,6 +187,8 @@ export interface SettingsValues {
 	links_per_target_max: number;
 	ignored_urls: string[];
 	ignored_words: string[];
+	/** Filtros de las sugerencias por tipo, categoría y etiqueta (docs/04 §4.3). */
+	filters: SuggestionFilters;
 	/** Tope diario de tokens de IA; 0 = sin IA (docs/05 §5.3). */
 	ai_daily_token_limit: number;
 	/** Modelo de texto preferido; vacío = automático (docs/05 §4). */
@@ -466,6 +486,8 @@ export interface OutboundResponse {
 	total: number;
 	items: Suggestion[];
 	post_id?: number;
+	/** Filtros en modo Exigir; sin sugerencias, el estado vacío los explica. */
+	required?: FilterName[];
 }
 
 export interface InboundResponse extends Paged {
@@ -474,6 +496,7 @@ export interface InboundResponse extends Paged {
 	per_page: number;
 	items: Suggestion[];
 	post_id?: number;
+	required?: FilterName[];
 }
 
 /** Respuesta de descartar una sugerencia o de deshacer el descarte. */

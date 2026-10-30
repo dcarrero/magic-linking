@@ -21,6 +21,7 @@ export type SectionKey =
 	| 'suggestions'
 	| 'overload'
 	| 'underlinked'
+	| 'filters'
 	| 'insertion'
 	| 'manner'
 	| 'aiConnector'
@@ -41,6 +42,7 @@ export const SECTION_META: Record<
 	suggestions: { id: 'magiclinking-s-suggestions', tab: 'suggestions' },
 	overload: { id: 'magiclinking-s-overload', tab: 'suggestions' },
 	underlinked: { id: 'magiclinking-s-underlinked', tab: 'suggestions' },
+	filters: { id: 'magiclinking-s-filters', tab: 'suggestions' },
 	insertion: { id: 'magiclinking-s-insertion', tab: 'links' },
 	manner: { id: 'magiclinking-s-manner', tab: 'links' },
 	exclusions: { id: 'magiclinking-s-exclusions', tab: 'links' },
@@ -73,6 +75,7 @@ const TAB_OF: Record< keyof SettingsValues, SettingsTabName > = {
 	same_anchor_max: 'suggestions',
 	links_per_target_max: 'suggestions',
 	low_inbound_threshold: 'suggestions',
+	filters: 'suggestions',
 	link_in_headings: 'links',
 	link_in_quotes: 'links',
 	link_in_tables: 'links',

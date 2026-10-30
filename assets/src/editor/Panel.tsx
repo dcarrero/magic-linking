@@ -9,6 +9,7 @@ import type { ApplyFailure, EditorAdapter } from './adapters/types';
 import type { EditorBoot } from './boot';
 import { suggestionKey } from './keys';
 import { Pager } from './Pager';
+import { PillarBox } from './PillarBox';
 import { SuggestionCard } from './SuggestionCard';
 import { useServerLinkActions } from './useServerLinkActions';
 import { EmptyState, ErrorState, Loading } from './States';
@@ -227,6 +228,8 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 									! outbound.loading && (
 										<EmptyState
 											state={ outbound.data.state }
+											required={ outbound.data.required }
+											settingsUrl={ boot.settingsUrl }
 											direction="outbound"
 											reportUrl={ boot.reportUrl }
 										/>
@@ -349,6 +352,8 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 									) : (
 										<EmptyState
 											state={ inbound.data.state }
+											required={ inbound.data.required }
+											settingsUrl={ boot.settingsUrl }
 											direction="inbound"
 											reportUrl={ boot.reportUrl }
 										/>
@@ -440,6 +445,7 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 					)
 				}
 			</TabPanel>
+			<PillarBox postId={ boot.postId } />
 		</div>
 	);
 }
