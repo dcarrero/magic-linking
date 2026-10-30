@@ -3594,3 +3594,11 @@ msgstr ""
 #: assets/build/index.js:108
 msgid "Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries."
 msgstr ""
+
+#: assets/build/index.js:93
+msgid "Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed."
+msgstr ""
+
+#: assets/build/index.js:93
+msgid "Notice dismissed."
+msgstr ""

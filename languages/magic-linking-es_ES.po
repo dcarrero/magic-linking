@@ -3223,3 +3223,11 @@ msgstr "Las reglas automáticas añaden como máximo tantos enlaces desde una en
 #: assets/build/index.js:108
 msgid "Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries."
 msgstr "A partir de tantas entradas, el mismo texto de ancla hacia el mismo destino se sugiere menos, y las reglas automáticas dejan de usarlo en entradas nuevas."
+
+#: assets/build/index.js:93
+msgid "Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed."
+msgstr "Algunas entradas han estado abiertas en el editor durante un día, así que no se han podido aplicar las reglas. Vuelve a guardarlas cuando estén cerradas."
+
+#: assets/build/index.js:93
+msgid "Notice dismissed."
+msgstr "Aviso descartado."
