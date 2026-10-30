@@ -39,7 +39,16 @@ final class RuleCrudTest extends RulesTestCase {
 		$this->assertSame( $this->admin, $rule->created_by );
 		$this->assertSame( (string) get_permalink( $this->target ), $rule->target_url );
 
-		$edited = $this->validator()->validate( array( 'phrases' => array( 'calefacción eficiente' ), 'active' => false, 'exclude_post_types' => array( 'page' ), 'exclude_categories' => array( 3, 3, 0 ) ), $rule, $this->admin );
+		$edited = $this->validator()->validate(
+			array(
+				'phrases'            => array( 'calefacción eficiente' ),
+				'active'             => false,
+				'exclude_post_types' => array( 'page' ),
+				'exclude_categories' => array( 3, 3, 0 ),
+			),
+			$rule,
+			$this->admin
+		);
 		$this->assertInstanceOf( Rule::class, $edited );
 		$this->assertTrue( $this->repo()->update( $edited ) );
 
@@ -74,17 +83,24 @@ final class RuleCrudTest extends RulesTestCase {
 
 		foreach (
 			array(
-				'sin frases'                  => array( 'phrases' => array( '  ', '' ) ),
-				'solo palabras vacías'        => array( 'phrases' => array( 'de la' ) ),
-				'demasiado larga'             => array( 'phrases' => array( str_repeat( 'a', 130 ) ) ),
-				'demasiadas palabras'         => array( 'phrases' => array( 'uno dos tres cuatro cinco seis siete ocho nueve' ) ),
-				'destino en borrador'         => array( 'target_id' => $draft ),
-				'destino que no existe'       => array( 'target_id' => 999999 ),
-				'más enlaces que el máximo'   => array( 'max_per_post' => 11 ),
-				'cero enlaces por entrada'    => array( 'max_per_post' => 0 ),
+				'sin frases'                => array( 'phrases' => array( '  ', '' ) ),
+				'solo palabras vacías'      => array( 'phrases' => array( 'de la' ) ),
+				'demasiado larga'           => array( 'phrases' => array( str_repeat( 'a', 130 ) ) ),
+				'demasiadas palabras'       => array( 'phrases' => array( 'uno dos tres cuatro cinco seis siete ocho nueve' ) ),
+				'destino en borrador'       => array( 'target_id' => $draft ),
+				'destino que no existe'     => array( 'target_id' => 999999 ),
+				'más enlaces que el máximo' => array( 'max_per_post' => 11 ),
+				'cero enlaces por entrada'  => array( 'max_per_post' => 0 ),
 			) as $case => $input
 		) {
-			$result = $this->validator()->validate( $input + array( 'phrases' => array( 'bomba de calor' ), 'target_id' => $this->target ), null, $this->admin );
+			$result = $this->validator()->validate(
+				$input + array(
+					'phrases'   => array( 'bomba de calor' ),
+					'target_id' => $this->target,
+				),
+				null,
+				$this->admin
+			);
 			$this->assertWPError( $result, $case );
 			$this->assertSame( 400, $result->get_error_data()['status'], $case );
 			$this->assertNotSame( '', $result->get_error_message(), $case );
@@ -93,11 +109,30 @@ final class RuleCrudTest extends RulesTestCase {
 
 	public function test_a_target_with_a_password_or_of_an_ignored_type_is_refused(): void {
 		$locked = self::factory()->post->create( array( 'post_password' => 'secreto' ) );
-		$this->assertWPError( $this->validator()->validate( array( 'phrases' => array( 'bomba de calor' ), 'target_id' => $locked ), null, 1 ) );
+		$this->assertWPError(
+			$this->validator()->validate(
+				array(
+					'phrases'   => array( 'bomba de calor' ),
+					'target_id' => $locked,
+				),
+				null,
+				1
+			)
+		);
 
 		register_post_type( 'ficha', array( 'public' => true ) );
 		$ficha = self::factory()->post->create( array( 'post_type' => 'ficha' ) );
-		$this->assertWPError( $this->validator()->validate( array( 'phrases' => array( 'bomba de calor' ), 'target_id' => $ficha ), null, 1 ), 'Los tipos que no se analizan no son destino.' );
+		$this->assertWPError(
+			$this->validator()->validate(
+				array(
+					'phrases'   => array( 'bomba de calor' ),
+					'target_id' => $ficha,
+				),
+				null,
+				1
+			),
+			'Los tipos que no se analizan no son destino.'
+		);
 		unregister_post_type( 'ficha' );
 	}
 
@@ -109,7 +144,12 @@ final class RuleCrudTest extends RulesTestCase {
 
 	public function test_active_rules_exclude_the_inactive_ones(): void {
 		$on  = $this->rule();
-		$off = $this->rule( array( 'active' => false, 'phrases' => array( 'otra frase distinta' ) ) );
+		$off = $this->rule(
+			array(
+				'active'  => false,
+				'phrases' => array( 'otra frase distinta' ),
+			)
+		);
 
 		$this->assertSame( array( $on->id ), array_map( static fn( Rule $r ): int => $r->id, $this->repo()->active() ) );
 		$this->assertNotSame( $on->id, $off->id );

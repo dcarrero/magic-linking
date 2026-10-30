@@ -75,7 +75,15 @@ final class RulesRestTest extends RulesTestCase {
 	}
 
 	public function test_crud_over_rest(): void {
-		$created = $this->request( 'POST', '/rules', array( 'phrases' => "bomba de calor\naerotermia", 'target_id' => $this->target, 'word_gap' => true ) );
+		$created = $this->request(
+			'POST',
+			'/rules',
+			array(
+				'phrases'   => "bomba de calor\naerotermia",
+				'target_id' => $this->target,
+				'word_gap'  => true,
+			)
+		);
 		$this->assertSame( 201, $created->get_status(), (string) wp_json_encode( $created->get_data() ) );
 		$data = $created->get_data()['rule'];
 		$this->assertSame( array( 'bomba de calor', 'aerotermia' ), $data['phrases'] );
@@ -87,13 +95,30 @@ final class RulesRestTest extends RulesTestCase {
 		$this->assertSame( 1, $list->get_data()['total'] );
 		$this->assertSame( 100, $list->get_data()['limits']['words_per_link'] );
 
-		$updated = $this->request( 'POST', '/rules/' . $data['id'], array( 'active' => false, 'max_per_post' => 3 ) );
+		$updated = $this->request(
+			'POST',
+			'/rules/' . $data['id'],
+			array(
+				'active'       => false,
+				'max_per_post' => 3,
+			)
+		);
 		$this->assertSame( 200, $updated->get_status() );
 		$this->assertFalse( $updated->get_data()['rule']['active'] );
 		$this->assertSame( 3, $updated->get_data()['rule']['max_per_post'] );
 		$this->assertSame( array( 'bomba de calor', 'aerotermia' ), $updated->get_data()['rule']['phrases'] );
 
-		$this->assertSame( 400, $this->request( 'POST', '/rules', array( 'phrases' => array( 'x' ), 'target_id' => $this->target ) )->get_status() );
+		$this->assertSame(
+			400,
+			$this->request(
+				'POST',
+				'/rules',
+				array(
+					'phrases'   => array( 'x' ),
+					'target_id' => $this->target,
+				)
+			)->get_status()
+		);
 		$this->assertSame( 404, $this->request( 'POST', '/rules/9999', array( 'active' => true ) )->get_status() );
 
 		$this->assertSame( 200, $this->request( 'DELETE', '/rules/' . $data['id'] )->get_status() );
@@ -127,10 +152,28 @@ final class RulesRestTest extends RulesTestCase {
 		$this->assertSame( 0, $again['inserted'] );
 		$this->assertNotSame( '', $again['skipped_message'], 'Dice por qué no.' );
 
-		$history = $this->request( 'GET', '/history', array( 'origin' => 'rule', 'group' => 'post' ) )->get_data();
+		$history = $this->request(
+			'GET',
+			'/history',
+			array(
+				'origin' => 'rule',
+				'group'  => 'post',
+			)
+		)->get_data();
 		$this->assertSame( 1, $history['total'] );
 		$this->assertSame( 'rule', $history['items'][0]['changes'][0]['origin'] );
-		$this->assertSame( 0, $this->request( 'GET', '/history', array( 'origin' => 'plugin', 'group' => 'post' ) )->get_data()['total'], 'No se mezcla con el resto de orígenes.' );
+		$this->assertSame(
+			0,
+			$this->request(
+				'GET',
+				'/history',
+				array(
+					'origin' => 'plugin',
+					'group'  => 'post',
+				)
+			)->get_data()['total'],
+			'No se mezcla con el resto de orígenes.'
+		);
 
 		$undo = $this->request( 'POST', '/undo', array( 'batch_id' => $batch ) );
 		$this->assertSame( 200, $undo->get_status() );
@@ -164,8 +207,18 @@ final class RulesRestTest extends RulesTestCase {
 	}
 
 	public function test_targets_search_only_returns_published_linkable_entries(): void {
-		self::factory()->post->create( array( 'post_title' => 'Calor borrador', 'post_status' => 'draft' ) );
-		self::factory()->post->create( array( 'post_title' => 'Calor privado', 'post_password' => 'x' ) );
+		self::factory()->post->create(
+			array(
+				'post_title'  => 'Calor borrador',
+				'post_status' => 'draft',
+			)
+		);
+		self::factory()->post->create(
+			array(
+				'post_title'    => 'Calor privado',
+				'post_password' => 'x',
+			)
+		);
 		$ok = self::factory()->post->create( array( 'post_title' => 'Calor público' ) );
 
 		$items = $this->request( 'GET', '/rules/targets', array( 'search' => 'Calor' ) )->get_data()['items'];

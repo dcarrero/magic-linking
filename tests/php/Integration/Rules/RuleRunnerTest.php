@@ -49,17 +49,37 @@ final class RuleRunnerTest extends RulesTestCase {
 		$this->assertFalse( $this->scheduled( $id ), 'Sin reglas.' );
 
 		$this->rule( array( 'active' => false ) );
-		wp_update_post( array( 'ID' => $id, 'post_title' => 'Otro título' ) );
+		wp_update_post(
+			array(
+				'ID'         => $id,
+				'post_title' => 'Otro título',
+			)
+		);
 		$this->assertFalse( $this->scheduled( $id ), 'Sin reglas activas.' );
 
 		$this->rule( array( 'phrases' => array( 'bomba de calor' ) ) );
-		$draft = self::factory()->post->create( array( 'post_status' => 'draft', 'post_content' => $this->body( array( 'Una bomba de calor ahorra.' ) ) ) );
+		$draft = self::factory()->post->create(
+			array(
+				'post_status'  => 'draft',
+				'post_content' => $this->body( array( 'Una bomba de calor ahorra.' ) ),
+			)
+		);
 		$this->assertFalse( $this->scheduled( $draft ), 'Un borrador no se enlaza.' );
 
-		wp_update_post( array( 'ID' => $id, 'post_title' => 'Y otro título más' ) );
+		wp_update_post(
+			array(
+				'ID'         => $id,
+				'post_title' => 'Y otro título más',
+			)
+		);
 		$this->assertFalse( $this->scheduled( $id ), 'Si el texto no cambia, no se reaplica.' );
 
-		wp_update_post( array( 'ID' => $draft, 'post_status' => 'publish' ) );
+		wp_update_post(
+			array(
+				'ID'          => $draft,
+				'post_status' => 'publish',
+			)
+		);
 		$this->assertTrue( $this->scheduled( $draft ), 'Al publicar sí.' );
 	}
 
@@ -73,7 +93,12 @@ final class RuleRunnerTest extends RulesTestCase {
 		$this->assertFalse( $this->scheduled( $id ), 'Lo que escribe la propia regla no vuelve a encolar nada.' );
 
 		// Guardar otra vez la misma entrada tampoco duplica el enlace.
-		wp_update_post( array( 'ID' => $id, 'post_content' => $this->content_of( $id ) . $this->p( 'Más texto sobre la bomba de calor.' ) ) );
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => $this->content_of( $id ) . $this->p( 'Más texto sobre la bomba de calor.' ),
+			)
+		);
 		$this->run_job( $id );
 		$this->assertSame( 1, $this->links_in( $id ) );
 		$this->assertNotNull( $rule );
@@ -92,7 +117,12 @@ final class RuleRunnerTest extends RulesTestCase {
 		$this->assertFalse( $this->scheduled( $id ), 'Deshacer no dispara las reglas.' );
 
 		// El usuario edita la entrada y vuelve a guardarla: la regla ya se aplicó (y se deshizo) aquí.
-		wp_update_post( array( 'ID' => $id, 'post_content' => $this->content_of( $id ) . $this->p( 'Una bomba de calor más.' ) ) );
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => $this->content_of( $id ) . $this->p( 'Una bomba de calor más.' ),
+			)
+		);
 		$this->run_job( $id );
 		$this->assertSame( 0, $this->links_in( $id ) );
 	}
@@ -105,7 +135,12 @@ final class RuleRunnerTest extends RulesTestCase {
 
 		$other = Plugin::container()->get( RuleValidator::class )->validate( array( 'phrases' => array( 'aerotermia' ) ), $rule, $this->admin );
 		$this->repo()->update( $other );
-		wp_update_post( array( 'ID' => $id, 'post_content' => $this->content_of( $id ) . $this->p( 'Algo nuevo.' ) ) );
+		wp_update_post(
+			array(
+				'ID'           => $id,
+				'post_content' => $this->content_of( $id ) . $this->p( 'Algo nuevo.' ),
+			)
+		);
 		$this->run_job( $id );
 
 		// El destino ya está enlazado una vez (tope de un enlace por destino): no se añade otro.

@@ -92,10 +92,14 @@ abstract class RulesTestCase extends GraphTestCase {
 	 * @param array<string, mixed> $input Campos de la regla.
 	 */
 	protected function rule( array $input = array() ): Rule {
-		$rule = Plugin::container()->get( RuleValidator::class )->validate( $input + array(
-			'phrases'   => array( 'bomba de calor' ),
-			'target_id' => $this->target,
-		), null, $this->admin );
+		$rule = Plugin::container()->get( RuleValidator::class )->validate(
+			$input + array(
+				'phrases'   => array( 'bomba de calor' ),
+				'target_id' => $this->target,
+			),
+			null,
+			$this->admin
+		);
 		$this->assertInstanceOf( Rule::class, $rule, is_wp_error( $rule ) ? $rule->get_error_message() : '' );
 		$id    = $this->repo()->insert( $rule );
 		$saved = $this->repo()->find( $id );

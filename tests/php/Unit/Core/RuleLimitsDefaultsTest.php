@@ -36,7 +36,7 @@ final class RuleLimitsDefaultsTest extends TestCase {
 	}
 
 	public function test_no_rule_code_knows_about_pro(): void {
-		$files = array_merge( glob( dirname( __DIR__, 4 ) . '/src/Rules/*.php' ) ?: array(), array( dirname( __DIR__, 4 ) . '/src/Engine/RuleLimits.php', dirname( __DIR__, 4 ) . '/src/Engine/RuleMatcher.php' ) );
+		$files = array_merge( (array) glob( dirname( __DIR__, 4 ) . '/src/Rules/*.php' ), array( dirname( __DIR__, 4 ) . '/src/Engine/RuleLimits.php', dirname( __DIR__, 4 ) . '/src/Engine/RuleMatcher.php' ) );
 		$this->assertNotEmpty( $files );
 		foreach ( $files as $file ) {
 			$this->assertDoesNotMatchRegularExpression( '/magiclinking_pro|MagicLinking\\\\Pro|is_pro|license/i', (string) file_get_contents( $file ), basename( $file ) . ': los topes no dependen de ninguna licencia.' );

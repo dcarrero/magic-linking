@@ -48,10 +48,15 @@ final class RuleApplyTest extends RulesTestCase {
 	}
 
 	public function test_never_removes_or_changes_an_existing_link_and_never_links_inside_one(): void {
-		$other   = self::factory()->post->create( array( 'post_title' => 'Otra guía', 'post_name' => 'otra-guia' ) );
+		$other    = self::factory()->post->create(
+			array(
+				'post_title' => 'Otra guía',
+				'post_name'  => 'otra-guia',
+			)
+		);
 		$existing = '<a href="' . get_permalink( $other ) . '" title="x">la bomba de calor</a>';
-		$content = $this->body( array( "Mira {$existing} primero.", 'Aquí hay una bomba de calor suelta.' ), 300 );
-		$post    = $this->entry( $content );
+		$content  = $this->body( array( "Mira {$existing} primero.", 'Aquí hay una bomba de calor suelta.' ), 300 );
+		$post     = $this->entry( $content );
 
 		$outcome = $this->service()->apply( $post, $this->rule(), $this->admin );
 
@@ -89,7 +94,12 @@ final class RuleApplyTest extends RulesTestCase {
 
 	public function test_one_link_per_destination_in_a_post_by_default_and_more_if_the_user_allows(): void {
 		$content = $this->body( array( 'Una bomba de calor ahorra.', 'Otra bomba de calor distinta.' ), 400 );
-		$rule    = $this->rule( array( 'first_only' => false, 'max_per_post' => 3 ) );
+		$rule    = $this->rule(
+			array(
+				'first_only'   => false,
+				'max_per_post' => 3,
+			)
+		);
 
 		$one = $this->entry( $content );
 		$this->assertSame( 1, $this->service()->apply( $one, $rule, $this->admin )->inserted );
@@ -138,14 +148,24 @@ final class RuleApplyTest extends RulesTestCase {
 		wp_set_post_categories( $tagged->ID, array( $cat ) );
 		$page = $this->entry( $this->body( array( 'Una bomba de calor ahorra.' ) ), array( 'post_type' => 'page' ) );
 
-		$rule = $this->rule( array( 'exclude_categories' => array( $cat ), 'exclude_post_types' => array( 'page' ) ) );
+		$rule = $this->rule(
+			array(
+				'exclude_categories' => array( $cat ),
+				'exclude_post_types' => array( 'page' ),
+			)
+		);
 
 		$this->assertSame( RuleService::EXCLUDED_CATEGORY, $this->service()->apply( get_post( $tagged->ID ), $rule, $this->admin )->skipped );
 		$this->assertSame( RuleService::EXCLUDED_TYPE, $this->service()->apply( $page, $rule, $this->admin )->skipped );
 	}
 
 	public function test_variants_and_the_word_gap_work_end_to_end(): void {
-		$rule = $this->rule( array( 'phrases' => array( 'reforma de cocina', 'obra de baño' ), 'word_gap' => true ) );
+		$rule = $this->rule(
+			array(
+				'phrases'  => array( 'reforma de cocina', 'obra de baño' ),
+				'word_gap' => true,
+			)
+		);
 		$post = $this->entry( $this->body( array( 'Quiero una reforma de la cocina cuanto antes.' ) ) );
 
 		$this->assertSame( 1, $this->service()->apply( $post, $rule, $this->admin )->inserted );
@@ -202,7 +222,7 @@ final class RuleApplyTest extends RulesTestCase {
 	}
 
 	public function test_scan_only_lists_entries_the_user_can_edit(): void {
-		$mine = $this->entry( $this->body( array( 'Una bomba de calor ahorra.' ) ), array( 'post_author' => $this->admin ) );
+		$mine   = $this->entry( $this->body( array( 'Una bomba de calor ahorra.' ) ), array( 'post_author' => $this->admin ) );
 		$author = self::factory()->user->create( array( 'role' => 'author' ) );
 		$theirs = $this->entry( $this->body( array( 'Una bomba de calor ahorra.' ) ), array( 'post_author' => $author ) );
 

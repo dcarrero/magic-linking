@@ -41,7 +41,13 @@ final class RuleLimitsProTest extends RulesTestCase {
 
 	public function test_the_ranges_are_the_same_through_the_api_with_a_pro_user(): void {
 		$settings = Plugin::container()->get( Settings::class );
-		$saved    = $settings->update( array( 'words_per_link' => 5, 'links_per_target_max' => 99, 'same_anchor_max' => 0 ) );
+		$saved    = $settings->update(
+			array(
+				'words_per_link'       => 5,
+				'links_per_target_max' => 99,
+				'same_anchor_max'      => 0,
+			)
+		);
 
 		$this->assertSame( 20, $saved['words_per_link'] );
 		$this->assertSame( 10, $saved['links_per_target_max'] );
