@@ -67,4 +67,29 @@ describe( 'SearchBox', () => {
 		} );
 		expect( event.defaultPrevented ).toBe( true );
 	} );
+
+	it( 'anidado, Intro durante una composición IME no se cancela', () => {
+		const host = mount(
+			<form>
+				<SearchBox
+					id="s"
+					label="Buscar"
+					value="に"
+					onChange={ jest.fn() }
+					nested
+				/>
+			</form>
+		);
+		const input = host.querySelector( 'input' ) as HTMLInputElement;
+		const event = new KeyboardEvent( 'keydown', {
+			key: 'Enter',
+			isComposing: true,
+			bubbles: true,
+			cancelable: true,
+		} );
+		act( () => {
+			input.dispatchEvent( event );
+		} );
+		expect( event.defaultPrevented ).toBe( false );
+	} );
 } );

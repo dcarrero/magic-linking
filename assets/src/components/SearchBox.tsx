@@ -1,3 +1,4 @@
+import type { FormEvent } from 'react';
 import { __ } from '@wordpress/i18n';
 
 interface Props {
@@ -25,32 +26,16 @@ export function SearchBox( {
 	onChange,
 	nested = false,
 }: Props ) {
-	if ( nested ) {
-		// Un `<form>` dentro de otro no es HTML válido: Intro enviaba el de fuera y navegaba a admin.php?.
-		return (
-			<div role="search">
-				<p className="search-box">
-					<label className="screen-reader-text" htmlFor={ id }>
-						{ label }
-					</label>
-					<input
-						type="search"
-						id={ id }
-						value={ value }
-						onChange={ ( event ) => onChange( event.target.value ) }
-						onKeyDown={ ( event ) => {
-							if ( event.key === 'Enter' ) {
-								event.preventDefault();
-							}
-						} }
-					/>
-				</p>
-			</div>
-		);
-	}
+	// Un `<form>` dentro de otro no es HTML válido: Intro enviaba el de fuera y navegaba a admin.php?.
+	const Wrapper = nested ? 'div' : 'form';
+	const wrapperProps = nested
+		? {}
+		: {
+				onSubmit: ( event: FormEvent ) => event.preventDefault(),
+		  };
 
 	return (
-		<form role="search" onSubmit={ ( event ) => event.preventDefault() }>
+		<Wrapper role="search" { ...wrapperProps }>
 			<p className="search-box">
 				<label className="screen-reader-text" htmlFor={ id }>
 					{ label }
@@ -60,13 +45,28 @@ export function SearchBox( {
 					id={ id }
 					value={ value }
 					onChange={ ( event ) => onChange( event.target.value ) }
-				/>{ ' ' }
-				<input
-					type="submit"
-					className="button"
-					value={ __( 'Search', 'magic-linking' ) }
+					onKeyDown={ ( event ) => {
+						// Intro con un IME (japonés, chino...) confirma la composición: no se toca.
+						if (
+							nested &&
+							event.key === 'Enter' &&
+							! event.nativeEvent.isComposing
+						) {
+							event.preventDefault();
+						}
+					} }
 				/>
+				{ nested ? null : (
+					<>
+						{ ' ' }
+						<input
+							type="submit"
+							className="button"
+							value={ __( 'Search', 'magic-linking' ) }
+						/>
+					</>
+				) }
 			</p>
-		</form>
+		</Wrapper>
 	);
 }
