@@ -29,4 +29,18 @@ final class RuleMatch {
 		public readonly string $key
 	) {
 	}
+
+	/**
+	 * Texto de la frase antes del ancla.
+	 */
+	public function before(): string {
+		return substr( $this->sentence, 0, $this->offset );
+	}
+
+	/**
+	 * Texto de la frase después del ancla.
+	 */
+	public function after(): string {
+		return substr( $this->sentence, $this->offset + strlen( $this->anchor ) );
+	}
 }

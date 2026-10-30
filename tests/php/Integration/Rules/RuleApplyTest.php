@@ -94,13 +94,15 @@ final class RuleApplyTest extends RulesTestCase {
 
 	public function test_one_link_per_destination_in_a_post_by_default_and_more_if_the_user_allows(): void {
 		$content = $this->body( array( 'Una bomba de calor ahorra.', 'Otra bomba de calor distinta.' ), 400 );
-		$rule    = $this->rule(
+		$this->allow_links( 3 );
+		$rule = $this->rule(
 			array(
 				'first_only'   => false,
 				'max_per_post' => 3,
 			)
 		);
 
+		$this->allow_links( 1 );
 		$one = $this->entry( $content );
 		$this->assertSame( 1, $this->service()->apply( $one, $rule, $this->admin )->inserted );
 		$again = $this->service()->apply( get_post( $one->ID ), $rule, $this->admin );

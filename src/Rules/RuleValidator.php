@@ -69,7 +69,12 @@ final class RuleValidator {
 			$url  = (string) get_permalink( $target );
 		}
 
-		$phrases = array_key_exists( 'phrases', $input ) ? $this->variants( $input['phrases'], $lang ) : $base->variants;
+		// Con otro destino cambia el idioma: las frases que ya había se revalidan con el idioma nuevo.
+		if ( array_key_exists( 'phrases', $input ) ) {
+			$phrases = $this->variants( $input['phrases'], $lang );
+		} else {
+			$phrases = $check ? $this->variants( $base->variants, $lang ) : $base->variants;
+		}
 		if ( $phrases instanceof WP_Error ) {
 			return $phrases;
 		}
@@ -80,6 +85,13 @@ final class RuleValidator {
 		$max = isset( $input['max_per_post'] ) ? (int) $input['max_per_post'] : ( $base->max_per_post );
 		if ( $max < 1 || $max > Rule::MAX_PER_POST ) {
 			return $this->error( sprintf( /* translators: %d: maximum number of links a rule can add to one entry. */ __( 'Links per entry must be between 1 and %d.', 'magic-linking' ), Rule::MAX_PER_POST ) );
+		}
+		// «Enlaces por entrada» no puede pasar de lo que permite el ajuste «enlaces al mismo destino desde una entrada»: lo que
+		// pasara no haría nada y el formulario lo diría.
+		$allowed = min( Rule::MAX_PER_POST, $this->settings->rule_limits()->links_per_target );
+		// Solo cuando el valor cambia: pausar o editar otra cosa de una regla antigua no falla porque se bajara el ajuste.
+		if ( $max > $allowed && ( null === $existing || $max !== $base->max_per_post ) ) {
+			return $this->error( sprintf( /* translators: %d: links to the same target allowed from one entry (a setting). */ _n( 'Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value.', 'Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value.', $allowed, 'magic-linking' ), $allowed ) );
 		}
 
 		$types = $base->exclude_post_types;

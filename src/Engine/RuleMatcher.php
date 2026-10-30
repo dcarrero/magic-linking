@@ -29,23 +29,24 @@ final class RuleMatcher {
 	/**
 	 * Enlaces que la regla pondría en el documento.
 	 *
-	 * @param Document   $source Entrada tal como está ahora, con sus enlaces internos.
-	 * @param RuleSpec   $rule   Regla.
-	 * @param RuleLimits $limits Topes duros.
-	 * @param callable   $sites  Recibe la clave de un ancla y devuelve en cuántas entradas distintas del sitio (sin contar esta) ya enlaza al destino de la regla.
-	 * @param array      $ignored_words Palabras o frases ignoradas (Ajustes): un ancla que las contiene como palabra completa no se enlaza.
+	 * @param Document              $source Entrada tal como está ahora, con sus enlaces internos.
+	 * @param RuleSpec              $rule   Regla.
+	 * @param RuleLimits            $limits Topes duros.
+	 * @param callable              $sites  Recibe la clave de un ancla y devuelve en cuántas entradas distintas del sitio (sin contar esta) ya enlaza al destino de la regla.
+	 * @param array                 $ignored_words Palabras o frases ignoradas (Ajustes): un ancla que las contiene como palabra completa no se enlaza.
+	 * @param AnalyzedDocument|null $analyzed Documento ya analizado (con frases); si falta, se analiza aquí. Permite analizar una sola vez para muchas reglas.
 	 * @return RulePlan
 	 *
 	 * @phpstan-param callable(string): int $sites
 	 * @phpstan-param list<string> $ignored_words
 	 */
-	public function plan( Document $source, RuleSpec $rule, RuleLimits $limits, callable $sites, array $ignored_words = array() ): RulePlan {
+	public function plan( Document $source, RuleSpec $rule, RuleLimits $limits, callable $sites, array $ignored_words = array(), ?AnalyzedDocument $analyzed = null ): RulePlan {
 		if ( $source->id === $rule->target_id ) {
 			return new RulePlan( array(), RulePlan::SELF );
 		}
 
-		$analyzer = Analyzer::for_language( $source->lang );
-		$analyzed = $analyzer->analyze( $source, true );
+		$analyzer   = Analyzer::for_language( $source->lang );
+		$analyzed ??= $analyzer->analyze( $source, true );
 
 		// Topes de la entrada: nunca se quita nada, solo se calcula cuánto cabe.
 		// Los enlaces rotos (sin destino) no llenan el cupo: el lector no puede seguirlos y el usuario los va a arreglar o
@@ -82,6 +83,7 @@ final class RuleMatcher {
 		}
 		$found = $this->finder->find( $analyzed, $phrases, $analyzer, array(), $blocked, $rule->target_id );
 
+		$ignored  = IgnoredWords::patterns( $ignored_words );
 		$matches  = array();
 		$taken    = array();
 		$seen     = array();
@@ -94,10 +96,8 @@ final class RuleMatcher {
 			if ( $rule->first_only && isset( $seen[ $match->phrase ] ) ) {
 				continue;
 			}
-			foreach ( $ignored_words as $word ) {
-				if ( 1 === preg_match( '/(?<![\p{L}\p{N}])' . preg_quote( $word, '/' ) . '(?![\p{L}\p{N}])/iu', $match->anchor ) ) {
-					continue 2;
-				}
+			if ( IgnoredWords::matches( $ignored, $match->anchor ) ) {
+				continue;
 			}
 			$cache[ $match->key ] ??= $sites( $match->key );
 			if ( $cache[ $match->key ] >= $limits->same_anchor_max ) {

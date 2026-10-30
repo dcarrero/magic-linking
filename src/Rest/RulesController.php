@@ -128,6 +128,16 @@ final class RulesController implements Module {
 
 		register_rest_route(
 			$ns,
+			'/rules/(?P<id>\d+)/stalled',
+			array(
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'dismiss_stalled_rule' ),
+				'permission_callback' => array( $this, 'can_manage' ),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/rules/options',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -189,6 +199,10 @@ final class RulesController implements Module {
 						'minimum' => 1,
 						'maximum' => 50,
 					),
+					'full'   => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
 				),
 			)
 		);
@@ -247,10 +261,11 @@ final class RulesController implements Module {
 
 		$response = new WP_REST_Response(
 			array(
-				'items'   => array_map( array( $this, 'present' ), $page['items'] ),
-				'total'   => $page['total'],
-				'limits'  => $this->limits(),
-				'stalled' => $this->stalled(),
+				'items'         => array_map( array( $this, 'present' ), $page['items'] ),
+				'total'         => $page['total'],
+				'limits'        => $this->limits(),
+				'stalled'       => $this->stalled(),
+				'stalled_rules' => $this->stalled_rules(),
 			)
 		);
 		$response->header( 'X-WP-Total', (string) $page['total'] );
@@ -316,6 +331,7 @@ final class RulesController implements Module {
 		if ( ! $this->rules->delete( $id ) ) {
 			return $this->failed();
 		}
+		RuleLog::remove_rule( $id );
 
 		return new WP_REST_Response(
 			array(
@@ -333,7 +349,49 @@ final class RulesController implements Module {
 	public function dismiss_stalled( WP_REST_Request $request ): WP_REST_Response {
 		RuleLog::remove( (int) $request['post_id'] );
 
-		return new WP_REST_Response( array( 'stalled' => $this->stalled() ) );
+		return new WP_REST_Response(
+			array(
+				'stalled'       => $this->stalled(),
+				'stalled_rules' => $this->stalled_rules(),
+			)
+		);
+	}
+
+	/**
+	 * DELETE /rules/{id}/stalled: descarta el aviso de una regla que no se aplica porque su creador ya no puede.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 */
+	public function dismiss_stalled_rule( WP_REST_Request $request ): WP_REST_Response {
+		RuleLog::remove_rule( (int) $request['id'] );
+
+		return new WP_REST_Response(
+			array(
+				'stalled'       => $this->stalled(),
+				'stalled_rules' => $this->stalled_rules(),
+			)
+		);
+	}
+
+	/**
+	 * Reglas que no se aplican porque quien las creó ya no gestiona el sitio.
+	 *
+	 * @return list<array{rule_id: int, phrase: string, time: int}>
+	 */
+	private function stalled_rules(): array {
+		$out = array();
+		foreach ( RuleLog::all() as $row ) {
+			$rule = 0 < $row['rule_id'] ? $this->rules->find( $row['rule_id'] ) : null;
+			if ( null !== $rule ) {
+				$out[] = array(
+					'rule_id' => $rule->id,
+					'phrase'  => $rule->variants[0] ?? '',
+					'time'    => $row['time'],
+				);
+			}
+		}
+
+		return $out;
 	}
 
 	/**
@@ -344,7 +402,7 @@ final class RulesController implements Module {
 	private function stalled(): array {
 		$out = array();
 		foreach ( RuleLog::all() as $row ) {
-			$post = get_post( $row['post_id'] );
+			$post = 0 < $row['post_id'] ? get_post( $row['post_id'] ) : null;
 			if ( ! $post instanceof WP_Post ) {
 				continue;
 			}
@@ -442,7 +500,7 @@ final class RulesController implements Module {
 		if ( null === $rule ) {
 			return $this->not_found();
 		}
-		$found = $this->service->scan( $rule, get_current_user_id(), (int) $request['cursor'], (int) $request['limit'], 3.0 );
+		$found = $this->service->scan( $rule, get_current_user_id(), (int) $request['cursor'], (int) $request['limit'], 3.0, (bool) $request['full'] );
 
 		foreach ( $found['items'] as &$item ) {
 			$item = $this->present_preview( $item );

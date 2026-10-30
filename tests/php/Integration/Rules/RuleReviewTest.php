@@ -21,6 +21,11 @@ use MagicLinking\Rules\RuleValidator;
 
 final class RuleReviewTest extends RulesTestCase {
 
+	public function set_up(): void {
+		parent::set_up();
+		$this->allow_links( 3 );
+	}
+
 	private function links_in( int $post_id ): int {
 		return substr_count( $this->content_of( $post_id ), '<a ' );
 	}

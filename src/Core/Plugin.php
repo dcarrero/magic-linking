@@ -266,7 +266,9 @@ final class Plugin {
 				$c->get( Settings::class ),
 				$c->get( SiteAnchors::class ),
 				$c->get( GraphRepository::class ),
-				$c->get( RuleRepository::class )
+				$c->get( RuleRepository::class ),
+				$c->get( TableRepository::class ),
+				$c->get( LexicalIndexer::class )
 			),
 			RuleRunner::class              => static fn( Container $c ): RuleRunner => new RuleRunner( $c->get( RuleRepository::class ), $c->get( RuleService::class ), $c->get( Settings::class ) ),
 			RulesController::class         => static fn( Container $c ): RulesController => new RulesController(

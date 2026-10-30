@@ -15,6 +15,11 @@ use MagicLinking\Rules\RuleValidator;
 
 final class RuleCrudTest extends RulesTestCase {
 
+	public function set_up(): void {
+		parent::set_up();
+		$this->allow_links( 3 );
+	}
+
 	private function validator(): RuleValidator {
 		return Plugin::container()->get( RuleValidator::class );
 	}

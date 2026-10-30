@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Cli;
 
 use MagicLinking\Rules\Rule;
+use MagicLinking\Engine\RulePlan;
 use MagicLinking\Rules\RuleRepository;
 use MagicLinking\Rules\RuleRunner;
 use MagicLinking\Rules\RuleService;
@@ -292,9 +293,23 @@ final class RulesCommand {
 			WP_CLI::error( __( 'That entry does not exist.', 'magic-linking' ) );
 			return;
 		}
-		$added = 0;
+		$added   = 0;
+		$blocked = false;
+		$reasons = RuleService::reasons();
 		foreach ( $this->service->apply_saved( $post_id ) as $outcome ) {
 			$added += $outcome->inserted;
+			foreach ( $outcome->failed as $failure ) {
+				$blocked = true;
+				WP_CLI::warning( sprintf( /* translators: 1: rule ID, 2: reason. */ __( 'Rule %1$d: %2$s', 'magic-linking' ), $outcome->rule_id, $failure['message'] ) );
+			}
+			if ( null !== $outcome->skipped && ! in_array( $outcome->skipped, array( RulePlan::NO_MATCH, RuleService::ALREADY_APPLIED ), true ) ) {
+				$blocked = $blocked || in_array( $outcome->skipped, array( RuleService::CREATOR_CANNOT, RuleService::LOCKED ), true );
+				WP_CLI::warning( sprintf( /* translators: 1: rule ID, 2: reason. */ __( 'Rule %1$d: %2$s', 'magic-linking' ), $outcome->rule_id, $reasons[ $outcome->skipped ] ?? $outcome->skipped ) );
+			}
+		}
+		if ( 0 === $added && $blocked ) {
+			WP_CLI::warning( __( 'Nothing was added.', 'magic-linking' ) );
+			return;
 		}
 		WP_CLI::success( sprintf( /* translators: %d: number of links added. */ _n( '%d link added.', '%d links added.', $added, 'magic-linking' ), $added ) );
 	}

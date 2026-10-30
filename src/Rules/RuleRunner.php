@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Rules;
 
+use MagicLinking\Content\InsertionException;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
@@ -42,6 +43,11 @@ final class RuleRunner implements Module {
 	 * la entrada y no en los argumentos de la acción para que haya **una sola** acción pendiente por entrada.
 	 */
 	public const RETRY_META = 'magiclinking_rules_retry';
+
+	/**
+	 * Motivos de fallo por los que se espera y se reintenta: alguien tiene la entrada abierta o hay otra escritura en curso.
+	 */
+	public const RETRYABLE = array( InsertionException::LOCKED, InsertionException::BUSY );
 
 	/**
 	 * Primera espera, en segundos; las siguientes se duplican hasta {@see self::MAX_WAIT}.
@@ -83,7 +89,7 @@ final class RuleRunner implements Module {
 	 */
 	public function register(): void {
 		add_action( 'wp_after_insert_post', array( $this, 'on_post_saved' ), 30, 4 );
-		add_action( self::HOOK, array( $this, 'run' ), 10, 2 );
+		add_action( self::HOOK, array( $this, 'run' ), 10, 1 );
 		// El metadato de «regla ya aplicada» no sale en «Campos personalizados».
 		add_filter( 'is_protected_meta', static fn( $is_protected, $key ) => in_array( $key, array( RuleService::APPLIED_META, self::RETRY_META ), true ) ? true : $is_protected, 10, 2 );
 	}
@@ -117,10 +123,8 @@ final class RuleRunner implements Module {
 	 * Manejador de Action Scheduler.
 	 *
 	 * @param int $post_id ID de la entrada.
-	 * @param int $legacy  Número de intento de las acciones encoladas por versiones anteriores (se ignora).
 	 */
-	public function run( int $post_id, int $legacy = 0 ): void {
-		unset( $legacy );
+	public function run( int $post_id ): void {
 		if ( ! $this->ready() || ! $this->rules->has_active() ) {
 			return;
 		}
@@ -136,7 +140,7 @@ final class RuleRunner implements Module {
 		foreach ( $outcomes as $outcome ) {
 			foreach ( $outcome->failed as $failure ) {
 				// Un fallo que no es «alguien tiene la entrada abierta» no se reintenta: queda en el registro de depuración.
-				if ( ! in_array( $failure['reason'], array( 'locked', 'busy' ), true ) ) {
+				if ( ! in_array( $failure['reason'], self::RETRYABLE, true ) ) {
 					PostWriter::log( sprintf( 'La regla %d no pudo enlazar en la entrada %d (%s): %s', $outcome->rule_id, $post_id, $failure['reason'], $failure['message'] ) );
 				}
 			}
@@ -176,7 +180,7 @@ final class RuleRunner implements Module {
 	 */
 	private function was_locked( RuleOutcome $outcome ): bool {
 		foreach ( $outcome->failed as $failure ) {
-			if ( in_array( $failure['reason'], array( 'locked', 'busy' ), true ) ) {
+			if ( in_array( $failure['reason'], self::RETRYABLE, true ) ) {
 				return true;
 			}
 		}

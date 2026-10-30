@@ -63,6 +63,15 @@ abstract class RulesTestCase extends GraphTestCase {
 		return implode( "\n\n", $blocks );
 	}
 
+	/**
+	 * Ajuste «enlaces al mismo destino desde una entrada» (tope de `max_per_post`).
+	 *
+	 * @param int $links Enlaces.
+	 */
+	protected function allow_links( int $links ): void {
+		Plugin::container()->get( \MagicLinking\Core\Settings::class )->update( array( 'links_per_target_max' => $links ) );
+	}
+
 	protected function entry( string $content, array $extra = array() ): WP_Post {
 		$id = self::factory()->post->create(
 			array_merge(

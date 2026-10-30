@@ -103,12 +103,14 @@ final class InsertRequest {
 	 * @param int|null      $user_id    Ver el constructor.
 	 * @param bool          $headings   Ver el constructor.
 	 * @param AiOrigin|null $ai       Ver el constructor.
+	 * @param string        $origin     Ver el constructor.
+	 * @param string|null   $origin_key Ver el constructor.
 	 *
 	 * @phpstan-param array<string, string> $attributes
 	 *
 	 * @throws InsertionException Si el ancla no es un tramo literal de la frase.
 	 */
-	public static function from_sentence( int $post_id, string $url, string $sentence, int $offset, string $anchor, array $attributes = array(), ?string $block_path = null, ?int $user_id = null, bool $headings = false, ?AiOrigin $ai = null ): self {
+	public static function from_sentence( int $post_id, string $url, string $sentence, int $offset, string $anchor, array $attributes = array(), ?string $block_path = null, ?int $user_id = null, bool $headings = false, ?AiOrigin $ai = null, string $origin = 'plugin', ?string $origin_key = null ): self {
 		if ( '' === $anchor || $offset < 0 || substr( $sentence, $offset, strlen( $anchor ) ) !== $anchor ) {
 			throw new InsertionException( InsertionException::BAD_REQUEST, __( 'The anchor is not part of the sentence.', 'magic-linking' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Mensaje ya traducido; quien lo muestra lo escapa al imprimirlo.
 		}
@@ -125,7 +127,9 @@ final class InsertRequest {
 			$headings,
 			false,
 			false,
-			$ai
+			$ai,
+			$origin,
+			$origin_key
 		);
 	}
 

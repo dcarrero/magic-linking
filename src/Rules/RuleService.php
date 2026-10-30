@@ -24,7 +24,9 @@ use MagicLinking\Graph\GraphRepository;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\ChangeRepository;
 use MagicLinking\I18n\Language;
+use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\TableDocuments;
+use MagicLinking\Index\TableRepository;
 use Throwable;
 use WP_Post;
 
@@ -69,6 +71,8 @@ final class RuleService {
 	 * @param SiteAnchors     $anchors     Anclas ya usadas hacia cada destino.
 	 * @param GraphRepository $graph       Grafo (recorre las entradas).
 	 * @param RuleRepository  $rules       Reglas.
+	 * @param TableRepository $index       Índice léxico (acota la búsqueda de candidatas).
+	 * @param LexicalIndexer  $lexical     Estado del índice léxico.
 	 * @param RuleMatcher     $matcher     Coincidencia.
 	 */
 	public function __construct(
@@ -80,6 +84,8 @@ final class RuleService {
 		private SiteAnchors $anchors,
 		private GraphRepository $graph,
 		private RuleRepository $rules,
+		private TableRepository $index,
+		private LexicalIndexer $lexical,
 		private RuleMatcher $matcher = new RuleMatcher()
 	) {
 	}
@@ -142,21 +148,33 @@ final class RuleService {
 	}
 
 	/**
-	 * Lo que una regla haría en una entrada tal como está guardada, sin escribir nada.
+	 * Lee y analiza una entrada para aplicarle reglas.
 	 *
 	 * @param WP_Post $post Entrada.
-	 * @param Rule    $rule Regla.
 	 */
-	public function plan( WP_Post $post, Rule $rule ): RulePlan {
+	public function prepare( WP_Post $post ): Prepared {
+		$document = $this->documents->from_post( $post );
+
+		return new Prepared( $document, Analyzer::for_language( $document->lang )->analyze( $document, true ) );
+	}
+
+	/**
+	 * Lo que una regla haría en una entrada tal como está guardada, sin escribir nada.
+	 *
+	 * @param WP_Post       $post     Entrada.
+	 * @param Rule          $rule     Regla.
+	 * @param Prepared|null $prepared La entrada ya leída y analizada, si se tiene; si no, se prepara aquí.
+	 */
+	public function plan( WP_Post $post, Rule $rule, ?Prepared $prepared = null ): RulePlan {
 		$why = $this->why_not( $post, $rule );
 		if ( null !== $why ) {
 			return new RulePlan( array(), $why );
 		}
 
-		$document = $this->documents->from_post( $post );
-		$analyzer = Analyzer::for_language( $document->lang );
+		$prepared ??= $this->prepare( $post );
+		$analyzer   = Analyzer::for_language( $prepared->document->lang );
 
-		return $this->matcher->plan( $document, $rule->spec(), $this->settings->rule_limits(), $this->anchors->counter( $rule->target_id, $post->ID, $analyzer ), $this->settings->all()['ignored_words'] );
+		return $this->matcher->plan( $prepared->document, $rule->spec(), $this->settings->rule_limits(), $this->anchors->counter( $rule->target_id, $post->ID, $analyzer ), $this->settings->all()['ignored_words'], $prepared->analyzed );
 	}
 
 	/**
@@ -171,12 +189,10 @@ final class RuleService {
 		$plan  = $this->plan( $post, $rule );
 		$links = array();
 		foreach ( $plan->matches as $match ) {
-			$before  = substr( $match->sentence, 0, $match->offset );
-			$after   = substr( $match->sentence, $match->offset + strlen( $match->anchor ) );
 			$links[] = array(
 				'anchor' => $match->anchor,
-				'before' => self::tail( $before, 70 ),
-				'after'  => self::head( $after, 70 ),
+				'before' => self::tail( $match->before(), 70 ),
+				'after'  => self::head( $match->after(), 70 ),
 			);
 		}
 
@@ -191,19 +207,20 @@ final class RuleService {
 	/**
 	 * Aplica una regla a una entrada.
 	 *
-	 * @param WP_Post     $post     Entrada.
-	 * @param Rule        $rule     Regla.
-	 * @param int|null    $user_id  Quien lo pide (null = el usuario actual, con `edit_post`; 0 = el sistema, al guardar).
-	 * @param string|null $batch_id Lote del Historial; null = uno nuevo.
-	 * @param bool        $auto     Si es la aplicación al guardar: no repite una regla ya aplicada (o deshecha) en la entrada.
+	 * @param WP_Post       $post     Entrada.
+	 * @param Rule          $rule     Regla.
+	 * @param int|null      $user_id  Quien lo pide (null = el usuario actual, con `edit_post`; 0 = el sistema, al guardar).
+	 * @param string|null   $batch_id Lote del Historial; null = uno nuevo.
+	 * @param bool          $auto     Si es la aplicación al guardar: no repite una regla ya aplicada (o deshecha) en la entrada.
+	 * @param Prepared|null $prepared La entrada ya leída y analizada, si se tiene.
 	 */
-	public function apply( WP_Post $post, Rule $rule, ?int $user_id = null, ?string $batch_id = null, bool $auto = false ): RuleOutcome {
+	public function apply( WP_Post $post, Rule $rule, ?int $user_id = null, ?string $batch_id = null, bool $auto = false, ?Prepared $prepared = null ): RuleOutcome {
 		$key = $rule->key_for( $post->ID );
 		if ( $auto && in_array( $key, get_post_meta( $post->ID, self::APPLIED_META, false ), true ) ) {
 			return new RuleOutcome( $post->ID, $rule->id, 0, array(), self::ALREADY_APPLIED );
 		}
 
-		$plan = $this->plan( $post, $rule );
+		$plan = $this->plan( $post, $rule, $prepared );
 		if ( array() === $plan->matches ) {
 			return new RuleOutcome( $post->ID, $rule->id, 0, array(), $plan->skipped ?? RulePlan::NO_MATCH );
 		}
@@ -215,22 +232,7 @@ final class RuleService {
 
 		$requests = array();
 		foreach ( $plan->matches as $match ) {
-			$requests[] = new InsertRequest(
-				$post->ID,
-				$url,
-				$match->anchor,
-				substr( $match->sentence, 0, $match->offset ),
-				substr( $match->sentence, $match->offset + strlen( $match->anchor ) ),
-				null,
-				array(),
-				$user_id,
-				false,
-				false,
-				false,
-				null,
-				self::ORIGIN,
-				$key
-			);
+			$requests[] = InsertRequest::from_sentence( $post->ID, $url, $match->sentence, $match->offset, $match->anchor, array(), null, $user_id, false, null, self::ORIGIN, $key );
 		}
 
 		$batch   = $batch_id ?? BatchId::generate();
@@ -272,27 +274,46 @@ final class RuleService {
 	 */
 	public function apply_saved( int $post_id ): array {
 		$outcomes = array();
-		$batch    = BatchId::generate();
+		$rules    = $this->rules->active();
+		$post     = get_post( $post_id );
+		if ( array() === $rules || ! $post instanceof WP_Post ) {
+			return $outcomes;
+		}
 
-		foreach ( $this->rules->active() as $rule ) {
-			// Cada regla ve el contenido que dejó la anterior.
-			clean_post_cache( $post_id );
-			$post = get_post( $post_id );
-			if ( ! $post instanceof WP_Post ) {
-				break;
+		// El documento se lee y se analiza una vez; con cientos de reglas, solo las que pueden encajar se procesan y solo
+		// se vuelve a leer cuando una regla ha escrito en la entrada.
+		$batch    = BatchId::generate();
+		$prepared = $this->prepare( $post );
+		$dirty    = false;
+
+		foreach ( $rules as $rule ) {
+			if ( ! $this->could_fit( $rule, $prepared ) ) {
+				continue;
+			}
+			if ( $dirty ) {
+				clean_post_cache( $post_id );
+				$post = get_post( $post_id );
+				if ( ! $post instanceof WP_Post ) {
+					break;
+				}
+				$prepared = $this->prepare( $post );
+				$dirty    = false;
+				if ( ! $this->could_fit( $rule, $prepared ) ) {
+					continue;
+				}
 			}
 			// Una regla pausada o borrada mientras la cola esperaba no se aplica.
 			$fresh = $this->rules->find( $rule->id );
 			if ( null === $fresh || ! $fresh->active ) {
 				continue;
 			}
-			$rule = $fresh;
 			try {
-				$outcome = $this->apply_as_creator( $post, $rule, $batch );
+				$outcome = $this->apply_as_creator( $post, $fresh, $batch, $prepared );
 			} catch ( Throwable $e ) {
 				PostWriter::log( sprintf( 'La regla %d falló en la entrada %d: %s', $rule->id, $post_id, $e->getMessage() ) );
 				continue;
 			}
+			$dirty      = $outcome->inserted > 0;
 			$outcomes[] = $outcome;
 		}//end foreach
 
@@ -300,25 +321,52 @@ final class RuleService {
 	}
 
 	/**
+	 * Prefiltro barato: una regla solo puede encajar si la raíz de la primera palabra de alguna de sus variantes está en
+	 * el texto (es lo primero que busca el buscador de frases).
+	 *
+	 * @param Rule     $rule     Regla.
+	 * @param Prepared $prepared Entrada analizada.
+	 */
+	private function could_fit( Rule $rule, Prepared $prepared ): bool {
+		$analyzer  = Analyzer::for_language( $prepared->document->lang );
+		$positions = $prepared->analyzed->positions();
+		foreach ( $rule->variants as $variant ) {
+			$keys = $analyzer->keys( $analyzer->tokenizer()->tokenize( $variant ) );
+			if ( array() !== $keys && isset( $positions[ $keys[0] ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Aplica una regla como quien la creó, con la sesión de esa persona durante la escritura y restaurada después.
 	 *
-	 * @param WP_Post $post  Entrada.
-	 * @param Rule    $rule  Regla.
-	 * @param string  $batch Lote del Historial.
+	 * @param WP_Post  $post  Entrada.
+	 * @param Rule     $rule  Regla.
+	 * @param string   $batch Lote del Historial.
+	 * @param Prepared $prepared Entrada analizada.
 	 */
-	private function apply_as_creator( WP_Post $post, Rule $rule, string $batch ): RuleOutcome {
+	private function apply_as_creator( WP_Post $post, Rule $rule, string $batch, Prepared $prepared ): RuleOutcome {
 		$creator = $rule->created_by;
 		if ( $creator < 1 ) {
-			return $this->apply( $post, $rule, 0, $batch, true );
+			return $this->apply( $post, $rule, 0, $batch, true, $prepared );
 		}
-		if ( ! user_can( $creator, 'manage_options' ) || ! user_can( $creator, 'edit_post', $post->ID ) ) {
+		if ( ! user_can( $creator, 'manage_options' ) ) {
+			// Quien la creó ya no gestiona el sitio: la regla no se aplica y la pantalla de reglas lo dice (una sola vez).
+			RuleLog::add_rule( $rule->id );
 			return new RuleOutcome( $post->ID, $rule->id, 0, array(), self::CREATOR_CANNOT );
 		}
+		if ( ! user_can( $creator, 'edit_post', $post->ID ) ) {
+			return new RuleOutcome( $post->ID, $rule->id, 0, array(), self::CREATOR_CANNOT );
+		}
+		RuleLog::remove_rule( $rule->id );
 
 		$previous = get_current_user_id();
 		wp_set_current_user( $creator );
 		try {
-			return $this->apply( $post, $rule, $creator, $batch, true );
+			return $this->apply( $post, $rule, $creator, $batch, true, $prepared );
 		} finally {
 			wp_set_current_user( $previous );
 		}
@@ -333,24 +381,32 @@ final class RuleService {
 	 * @param int   $after   Cursor: solo entradas con ID mayor.
 	 * @param int   $want    Entradas que se quieren encontrar como máximo.
 	 * @param float $budget  Segundos como máximo.
+	 * @param bool  $full    Recorrer todas las entradas aunque haya índice léxico.
 	 *
-	 * @return array{items: list<array{post_id: int, title: string, skipped: string|null, links: list<array{anchor: string, before: string, after: string}>}>, cursor: int, done: bool, examined: int}
+	 * @return array{items: list<array{post_id: int, title: string, skipped: string|null, links: list<array{anchor: string, before: string, after: string}>}>, cursor: int, done: bool, examined: int, narrowed: bool}
 	 */
-	public function scan( Rule $rule, int $user_id, int $after, int $want, float $budget ): array {
-		$types    = array_values( array_diff( $this->settings->post_types(), $rule->exclude_post_types ) );
-		$deadline = microtime( true ) + $budget;
-		$items    = array();
-		$examined = 0;
-		$cursor   = $after;
+	public function scan( Rule $rule, int $user_id, int $after, int $want, float $budget, bool $full = false ): array {
+		$types      = array_values( array_diff( $this->settings->post_types(), $rule->exclude_post_types ) );
+		$ignored    = $this->settings->all()['ignored_ids'];
+		$deadline   = microtime( true ) + $budget;
+		$items      = array();
+		$examined   = 0;
+		$cursor     = $after;
+		$candidates = $full ? null : $this->candidates( $rule, $ignored );
 
 		while ( true ) {
-			$ids = $this->graph->eligible_ids( $types, $cursor, 50, $this->settings->all()['ignored_ids'] );
+			if ( null === $candidates ) {
+				$ids = $this->graph->eligible_ids( $types, $cursor, 50, $ignored );
+			} else {
+				$ids = array_slice( array_values( array_filter( $candidates, static fn( int $id ): bool => $id > $cursor ) ), 0, 50 );
+			}
 			if ( array() === $ids ) {
 				return array(
 					'items'    => $items,
 					'cursor'   => $cursor,
 					'done'     => true,
 					'examined' => $examined,
+					'narrowed' => null !== $candidates,
 				);
 			}
 			_prime_post_caches( $ids, true, true );
@@ -375,10 +431,51 @@ final class RuleService {
 						'cursor'   => $cursor,
 						'done'     => false,
 						'examined' => $examined,
+						'narrowed' => null !== $candidates,
 					);
 				}
 			}//end foreach
 		}//end while
+	}
+
+	/**
+	 * Entradas candidatas según el índice léxico: las que tienen entre sus términos principales la raíz de la primera
+	 * palabra con contenido de alguna variante. Es un atajo con pérdida (el índice guarda los términos de más peso de
+	 * cada entrada, no todas sus palabras), así que la pantalla ofrece *Search every entry* para el recorrido completo.
+	 *
+	 * @param Rule            $rule    Regla.
+	 * @param array<int, int> $ignored Entradas ignoradas.
+	 *
+	 * @return list<int>|null IDs en orden ascendente; null si no hay índice o no se puede acotar (recorrido completo).
+	 */
+	private function candidates( Rule $rule, array $ignored ): ?array {
+		if ( ! $this->lexical->is_built() ) {
+			return null;
+		}
+		$analyzer = Analyzer::for_language( $rule->lang );
+		$keys     = array();
+		foreach ( $rule->variants as $variant ) {
+			$tokens = $analyzer->tokenizer()->tokenize( $variant );
+			$key    = null;
+			foreach ( $tokens as $token ) {
+				if ( $analyzer->is_content( $token ) ) {
+					$key = $analyzer->key( $token );
+					break;
+				}
+			}
+			if ( null === $key ) {
+				return null;
+			}
+			$keys[ $key ] = true;
+		}
+		if ( array() === $keys ) {
+			return null;
+		}
+
+		$ids = array_map( 'intval', array_keys( $this->index->containing( array_map( 'strval', array_keys( $keys ) ), $rule->lang, 1000000, $ignored ) ) );
+		sort( $ids );
+
+		return $ids;
 	}
 
 	/**

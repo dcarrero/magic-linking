@@ -20,6 +20,7 @@ final class RulesRestTest extends RulesTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		$this->allow_links( 3 );
 
 		$this->editor = self::factory()->user->create( array( 'role' => 'editor' ) );
 		global $wp_rest_server;
