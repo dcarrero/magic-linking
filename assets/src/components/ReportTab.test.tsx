@@ -1,4 +1,4 @@
-// The `test:js` script sets TZ=Asia/Tokyo (not UTC), so reading the server date as local time would change the hour.
+// The Jest globalSetup (tests/js/global-setup.js) sets TZ=Asia/Tokyo (not UTC), so reading the server date as local time would change the hour.
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { api } from '../api';
