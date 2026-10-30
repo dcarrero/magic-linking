@@ -2,13 +2,15 @@ import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { Button, Modal } from '@wordpress/components';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { api, errorMessage } from '../api';
+import { api } from '../api';
 import { useLoad } from '../hooks';
 import type { Suggestion } from '../types';
+import { withGhosts, withoutGhosts } from '../editor/ghosts';
 import { suggestionKey } from '../editor/keys';
 import { Pager } from '../editor/Pager';
 import { SuggestionCard, type CardStatus } from '../editor/SuggestionCard';
 import { EmptyState, ErrorState, Loading } from '../editor/States';
+import { useServerLinkActions } from '../editor/useServerLinkActions';
 
 /** Sugerencias salientes por página (el servidor las da todas juntas). */
 const OUTBOUND_PER_PAGE = 10;
@@ -58,6 +60,10 @@ export function SuggestionsDrawer( {
 	);
 	const [ focusKey, setFocusKey ] = useState< string | null >( null );
 	const clearFocusKey = useCallback( () => setFocusKey( null ), [] );
+	// Qué anunciar cuando lleguen datos nuevos: el total (al abrir y con *Refresh*) o la página (al cambiarla).
+	const announce = useRef< 'count' | 'page' | null >( 'count' );
+	// El estado de las tarjetas se limpia cuando llega la lista nueva, no antes: mientras tanto siguen las viejas.
+	const clearOnArrival = useRef( false );
 
 	const { data, loading, error } = useLoad(
 		( signal ) =>
@@ -68,35 +74,60 @@ export function SuggestionsDrawer( {
 		__( 'The suggestions could not be loaded.', 'magic-linking' )
 	);
 
-	// Anuncia el resultado cuando llega una carga nueva.
-	const announced = useRef< unknown >( null );
+	// Una sola frase por carga: «Página 2 de 3» al cambiar de página y el total al abrir o refrescar. Lo que
+	// cambia al enlazar o descartar ya lo dice su propio anuncio.
+	const seen = useRef< unknown >( null );
 	useEffect( () => {
-		if ( ! data || data === announced.current ) {
+		if ( ! data || data === seen.current ) {
 			return;
 		}
-		announced.current = data;
-		speak(
-			sprintf(
-				/* translators: %d: number of suggestions. */
-				_n(
-					'%d suggestion',
-					'%d suggestions',
-					data.total,
-					'magic-linking'
+		seen.current = data;
+		if ( clearOnArrival.current ) {
+			clearOnArrival.current = false;
+			setStatuses( {} );
+		}
+		const kind = announce.current;
+		announce.current = null;
+		if ( kind === 'count' ) {
+			speak(
+				sprintf(
+					/* translators: %d: number of suggestions. */
+					_n(
+						'%d suggestion',
+						'%d suggestions',
+						data.total,
+						'magic-linking'
+					),
+					data.total
 				),
-				data.total
-			),
-			'polite'
-		);
-	}, [ data ] );
+				'polite'
+			);
+		} else if ( kind === 'page' ) {
+			const pages = inbound
+				? ( data as { total_pages?: number } ).total_pages ?? 1
+				: Math.max(
+						1,
+						Math.ceil( data.items.length / OUTBOUND_PER_PAGE )
+				  );
+			speak(
+				sprintf(
+					/* translators: 1: current page, 2: total pages. */
+					__( 'Page %1$s of %2$s', 'magic-linking' ),
+					String( page ),
+					String( pages )
+				),
+				'polite'
+			);
+		}
+	}, [ data, inbound, page ] );
 
-	// Si se enlaza o descarta lo último de una página y esta deja de existir, se vuelve a la última.
 	const totalPages = inbound
 		? ( data as { total_pages?: number } | null )?.total_pages ?? 1
 		: Math.max(
 				1,
 				Math.ceil( ( data?.items.length ?? 0 ) / OUTBOUND_PER_PAGE )
 		  );
+	// Si se enlaza o descarta lo último de una página y esta deja de existir, se vuelve a la última.
 	useEffect( () => {
 		if ( ! loading && page > totalPages ) {
 			setPage( totalPages );
@@ -119,181 +150,53 @@ export function SuggestionsDrawer( {
 		[]
 	);
 
-	const items = ( data?.items ?? [] ).slice(
-		inbound ? 0 : ( page - 1 ) * OUTBOUND_PER_PAGE,
-		inbound ? undefined : page * OUTBOUND_PER_PAGE
+	// Entrantes: lo enlazado o descartado ya no lo devuelve el servidor y se pinta donde estaba. Salientes: la lista
+	// es del cliente y se parte en páginas; el estado de cada tarjeta es el de su par origen-destino en todas ellas.
+	const all = inbound
+		? withGhosts( data?.items ?? [], statuses )
+		: data?.items ?? [];
+	const items = inbound
+		? all
+		: all.slice(
+				( page - 1 ) * OUTBOUND_PER_PAGE,
+				page * OUTBOUND_PER_PAGE
+		  );
+
+	const refreshInbound = useCallback(
+		() => setVersion( ( v ) => v + 1 ),
+		[]
 	);
-
-	const link = async ( suggestion: Suggestion ) => {
-		if ( ! suggestion.insert ) {
-			return;
-		}
-		setStatus( suggestion, { kind: 'busy' } );
-		try {
-			const response = await api.insertLinks( [ suggestion.insert ] );
-			const result = response.results[ 0 ];
-			if ( result?.status === 'inserted' && response.batch_id ) {
-				const batch = response.batch_id;
-				const message = inbound
-					? sprintf(
-							/* translators: %s: title of the entry that got the link. */
-							__( 'Link added in “%s”.', 'magic-linking' ),
-							suggestion.source.title ?? ''
-					  )
-					: sprintf(
-							/* translators: %s: title of the destination. */
-							__( 'Link to “%s” added.', 'magic-linking' ),
-							suggestion.target.title ?? ''
-					  );
-				const ids = [ suggestion.source.id, suggestion.target.id ];
-				setStatus( suggestion, {
-					kind: 'added',
-					message,
-					undo: async () => {
-						const undone = await api.runHistory( 'undo', {
-							batchId: batch,
-						} );
-						const first = undone.results[ 0 ];
-						const ok =
-							!! first &&
-							[
-								'restored',
-								'link_removed',
-								'already_gone',
-							].includes( first.status );
-						// Haya salido bien o no, el servidor puede haber cambiado: se vuelven a leer las cifras.
-						onChanged( ids );
-						return ok
-							? __( 'Link removed.', 'magic-linking' )
-							: null;
-					},
-				} );
-				onChanged( ids );
-				speak( message, 'polite' );
-				return;
-			}
-			const message =
-				result?.message ||
-				__( 'The link could not be added.', 'magic-linking' );
-			setStatus( suggestion, { kind: 'error', message } );
-			speak( message, 'assertive' );
-		} catch ( failure ) {
-			const message = errorMessage(
-				failure,
-				__(
-					'The link could not be added. Check your connection and try again.',
-					'magic-linking'
-				)
-			);
-			setStatus( suggestion, { kind: 'error', message } );
-			speak( message, 'assertive' );
-		}
-	};
-
-	const undo = async ( suggestion: Suggestion ) => {
-		const status = statuses[ suggestionKey( suggestion ) ];
-		if ( status?.kind !== 'added' || ! status.undo ) {
-			return;
-		}
-		try {
-			const message = await status.undo();
-			if ( message ) {
-				setFocusKey( suggestionKey( suggestion ) );
-				setStatus( suggestion, null );
-				speak( message, 'polite' );
-				return;
-			}
-			const fallback = __(
-				'The text has changed since the link was added, so it could not be removed automatically. Open the history to see why.',
-				'magic-linking'
-			);
-			setStatus( suggestion, { kind: 'error', message: fallback } );
-			speak( fallback, 'assertive' );
-		} catch ( failure ) {
-			const message = errorMessage(
-				failure,
-				__( 'The link could not be removed.', 'magic-linking' )
-			);
-			setStatus( suggestion, { kind: 'error', message } );
-			speak( message, 'assertive' );
-		}
-	};
-
-	const dismiss = async ( suggestion: Suggestion ) => {
-		setStatus( suggestion, { kind: 'dismissing' } );
-		try {
-			await api.dismissSuggestion(
-				suggestion.source.id,
-				suggestion.target.id
-			);
-		} catch ( failure ) {
-			const message = errorMessage(
-				failure,
-				__(
-					'The suggestion could not be dismissed. Check your connection and try again.',
-					'magic-linking'
-				)
-			);
-			setStatus( suggestion, { kind: 'error', message } );
-			speak( message, 'assertive' );
-			return;
-		}
-		setStatus( suggestion, { kind: 'dismissed' } );
-		speak(
-			__(
-				'Suggestion dismissed. It will not be proposed again.',
-				'magic-linking'
-			),
-			'polite'
-		);
-	};
-
-	const restore = async ( suggestion: Suggestion ) => {
-		setStatus( suggestion, { kind: 'dismissed', busy: true } );
-		try {
-			await api.restoreSuggestion(
-				suggestion.source.id,
-				suggestion.target.id
-			);
-		} catch ( failure ) {
-			setStatus( suggestion, { kind: 'dismissed' } );
-			speak(
-				errorMessage(
-					failure,
-					__(
-						'The dismissal could not be undone. Check your connection and try again.',
-						'magic-linking'
-					)
-				),
-				'assertive'
-			);
-			return;
-		}
-		setFocusKey( suggestionKey( suggestion ) );
-		setStatus( suggestion, null );
-		speak( __( 'Suggestion restored.', 'magic-linking' ), 'polite' );
-	};
+	const actions = useServerLinkActions( {
+		statuses,
+		setStatus,
+		requestFocus: setFocusKey,
+		undoFailedMessage: __(
+			'The text has changed since the link was added, so it could not be removed automatically. Open the history to see why.',
+			'magic-linking'
+		),
+		inboundItems: all,
+		refreshInbound,
+		ghostOnLink: true,
+		onChanged,
+	} );
 
 	const refresh = () => {
-		setStatuses( {} );
+		clearOnArrival.current = true;
+		announce.current = 'count';
 		setVersion( ( value ) => value + 1 );
 	};
 
 	const changePage = ( next: number ) => {
-		setStatuses( {} );
+		if ( inbound ) {
+			setStatuses( withoutGhosts );
+		}
+		announce.current = 'page';
 		setPage( next );
-		speak(
-			sprintf(
-				/* translators: 1: current page, 2: total pages. */
-				__( 'Page %1$s of %2$s', 'magic-linking' ),
-				String( next ),
-				String( totalPages )
-			),
-			'polite'
-		);
 	};
 
 	const title = entry.title || __( '(no title)', 'magic-linking' );
+	// Mientras se vuelve a pedir la lista las tarjetas que se ven pueden estar ya hechas: no se pueden accionar.
+	const locked = loading;
 
 	return (
 		<Modal
@@ -356,14 +259,18 @@ export function SuggestionsDrawer( {
 				) }
 				{ loading && ! data && <Loading /> }
 				{ data &&
-					( data.items.length === 0 ? (
-						! loading && (
+					( all.length === 0 ? (
+						! loading &&
+						( data.total > 0 ? (
+							// La página pedida ya no existe (se enlazó o descartó la última de ella): se vuelve a la última.
+							<Loading />
+						) : (
 							<EmptyState
 								state={ data.state }
 								direction={ direction }
 								reportUrl={ reportUrl }
 							/>
-						)
+						) )
 					) : (
 						<>
 							<ul
@@ -372,6 +279,7 @@ export function SuggestionsDrawer( {
 							>
 								{ items.map( ( item ) => (
 									<SuggestionCard
+										locked={ locked }
 										key={ suggestionKey( item ) }
 										suggestion={ item }
 										direction={ direction }
@@ -379,10 +287,16 @@ export function SuggestionsDrawer( {
 											statuses[ suggestionKey( item ) ]
 										}
 										historyUrl={ historyUrl }
-										onLink={ link }
-										onDismiss={ dismiss }
-										onRestore={ restore }
-										onUndo={ undo }
+										onLink={ ( card ) =>
+											actions.link( card, direction )
+										}
+										onDismiss={ ( card ) =>
+											actions.dismiss( card, direction )
+										}
+										onRestore={ ( card ) =>
+											actions.restore( card, direction )
+										}
+										onUndo={ actions.undo }
 										focusRequested={
 											focusKey === suggestionKey( item )
 										}
