@@ -385,10 +385,7 @@ final class Tokenizer {
 				$normal = $this->lower( $surface );
 				$key    = $this->fold( $normal );
 				$form   = array( $normal, $key, isset( $this->stopwords[ $key ] ) );
-				if ( count( $this->forms ) >= self::FORMS_CACHE_SIZE ) {
-					$this->forms = array();
-				}
-				$this->forms[ $surface ] = $form;
+				Memo::put( $this->forms, $surface, $form, self::FORMS_CACHE_SIZE );
 			}
 			// Lo habitual es un solo espacio entre palabras: sin expresión regular.
 			$gap   = null === $prev_end ? '' : substr( $masked, $prev_end, $offset - $prev_end );

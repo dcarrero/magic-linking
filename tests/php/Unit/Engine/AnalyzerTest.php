@@ -9,7 +9,10 @@ declare(strict_types=1);
 
 namespace MagicLinking\Tests\Unit\Engine;
 
+use MagicLinking\Engine\AnalyzedDocument;
 use MagicLinking\Engine\Analyzer;
+use MagicLinking\Engine\Indexer;
+use MagicLinking\Engine\IndexStats;
 use PHPUnit\Framework\TestCase;
 
 final class AnalyzerTest extends TestCase {
@@ -123,7 +126,7 @@ final class AnalyzerTest extends TestCase {
 	 * Con los términos pedidos (las entrantes) el análisis no cuenta el documento, pero las frases, las palabras y las formas
 	 * para mostrar de esos términos son exactamente las del análisis completo (F1-32).
 	 */
-	public function test_wanted_terms_skip_the_counts_and_keep_sentences_and_forms(): void {
+	public function test_anchor_source_keeps_sentences_and_forms_and_cannot_be_weighed(): void {
 		$source   = new ArraySource();
 		$document = $source->add(
 			1,
@@ -147,10 +150,9 @@ final class AnalyzerTest extends TestCase {
 			'inexistente'   => true,
 		);
 
-		$lean = $analyzer->analyze( $document, true, $wanted );
+		$lean = $analyzer->analyze_for_anchors( $document, $wanted );
 
-		$this->assertSame( array(), $lean->counts[ Analyzer::BODY ] );
-		$this->assertSame( 0, $lean->length );
+		$this->assertNotInstanceOf( AnalyzedDocument::class, $lean );
 		$this->assertSame( $full->words, $lean->words );
 		$this->assertEquals( $full->sentences, $lean->sentences );
 		$this->assertSame( $full->positions(), $lean->positions() );
@@ -161,6 +163,10 @@ final class AnalyzerTest extends TestCase {
 			$this->assertSame( $full->surfaces[ $term ] ?? null, $lean->surfaces[ $term ] ?? null, $term );
 		}
 		$this->assertSame( array_keys( $lean->surfaces ), array_keys( array_intersect_key( $lean->surfaces, $wanted ) ), 'solo las formas pedidas' );
+
+		// Sin recuento de términos no se puede pesar: falla en voz alta, no da ceros.
+		$this->expectException( \TypeError::class );
+		( new Indexer() )->weigh( $lean, new IndexStats( 1, 1.0, array() ) );
 	}
 
 	public function test_display_term_drops_edge_stopwords_and_unusable_terms(): void {

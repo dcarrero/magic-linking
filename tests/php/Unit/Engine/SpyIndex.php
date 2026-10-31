@@ -32,6 +32,13 @@ final class SpyIndex implements IndexRepository, TermStats, Preloads {
 	/** @var list<string> */
 	public array $asked = array();
 
+	/**
+	 * Lecturas de ficha y de términos por entrada: «meta:ID», «terms:ID» y «linking_to:ID».
+	 *
+	 * @var list<string>
+	 */
+	public array $reads = array();
+
 	public bool $fail_on_preload = false;
 
 	public function __construct( public MemoryIndex $inner ) {
@@ -69,11 +76,13 @@ final class SpyIndex implements IndexRepository, TermStats, Preloads {
 	}
 
 	public function meta( int $id ): ?DocMeta {
-		$this->log[] = 'meta';
+		$this->log[]   = 'meta';
+		$this->reads[] = 'meta:' . $id;
 		return $this->inner->meta( $id );
 	}
 
 	public function terms( int $id ): array {
+		$this->reads[] = 'terms:' . $id;
 		return $this->inner->terms( $id );
 	}
 
@@ -95,6 +104,7 @@ final class SpyIndex implements IndexRepository, TermStats, Preloads {
 	}
 
 	public function linking_to( int $target ): array {
+		$this->reads[] = 'linking_to:' . $target;
 		return $this->inner->linking_to( $target );
 	}
 

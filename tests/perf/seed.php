@@ -66,11 +66,12 @@ $wpdb->query( 'SET autocommit=0' );
 
 for ( $i = $existing + 1; $i <= $existing + $count; $i++ ) {
 	$paras = array();
-	$np = $long ? mt_rand( 25, 45 ) : mt_rand( 6, 12 );
-	for ( $p = 0; $p < $np; $p++ ) {
+	// El corpus por defecto (y el del CI) no cambia: la condición se vuelve a sortear en cada vuelta, como siempre.
+	$np = $long ? mt_rand( 25, 45 ) : 0;
+	for ( $p = 0; $long ? $p < $np : $p < mt_rand( 6, 12 ); $p++ ) {
 		$s = array();
-		$nwords = $long ? mt_rand( 60, 90 ) : mt_rand( 40, 90 );
-		for ( $w = 0; $w < $nwords; $w++ ) {
+		$nwords = $long ? mt_rand( 60, 90 ) : 0;
+		for ( $w = 0; $w < ( $long ? $nwords : mt_rand( 40, 90 ) ); $w++ ) {
 			$s[] = $words[ $zipf ? $pick() : mt_rand( 0, $nw - 1 ) ];
 		}
 		if ( $zipf && $titles && 0 === mt_rand( 0, 2 ) ) {

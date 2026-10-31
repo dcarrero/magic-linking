@@ -60,7 +60,7 @@ final class SuggesterTest extends TestCase {
 
 	/**
 	 * Lo del destino (ficha, términos, frases objetivo) no depende del origen: las entrantes lo calculan una vez, no una por
-	 * origen (F1-32). Cuenta las consultas de la ficha del destino en un índice que anota sus llamadas.
+	 * origen (F1-32). Cuenta las lecturas de la ficha y de los términos del destino en un índice que anota sus llamadas.
 	 */
 	public function test_incoming_reads_the_target_once_for_all_origins(): void {
 		$spy       = new SpyIndex( $this->corpus->index );
@@ -69,8 +69,12 @@ final class SuggesterTest extends TestCase {
 		$found = $suggester->incoming( 1 );
 
 		$this->assertGreaterThanOrEqual( 2, count( $found ), 'varios orígenes proponen enlazar al destino' );
-		$metas = array_keys( $spy->log, 'meta', true );
-		$this->assertLessThanOrEqual( 1, count( $metas ), 'la ficha del destino se pide una vez por cálculo, no una por origen' );
+		$count = array_count_values( $spy->reads );
+		$this->assertSame( 1, $count['meta:1'] ?? 0, 'la ficha del destino se lee una vez, no una por origen' );
+		// Una para excluir los que ya enlazan y otra para contar sus entrantes; no una por origen.
+		$this->assertLessThanOrEqual( 2, $count['linking_to:1'] ?? 0, 'los enlaces entrantes del destino no se cuentan por origen' );
+		// Una para sus frases y, como mucho, otra de la recuperación de respaldo; nunca una por origen.
+		$this->assertLessThanOrEqual( 2, $count['terms:1'] ?? 0, 'los términos del destino no se leen por origen' );
 	}
 
 	public function test_incoming_retrieval_uses_target_phrases_and_skips_existing_sources(): void {

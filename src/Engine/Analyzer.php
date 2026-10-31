@@ -459,10 +459,7 @@ final class Analyzer {
 		$content = $this->content[ $token->key ] ?? null;
 		if ( null === $content ) {
 			$content = 1 !== preg_match( '/^[\p{N}.,]+$/u', $token->key ) && ! isset( $this->numeric[ $token->key ] );
-			if ( count( $this->content ) >= self::CACHE_SIZE ) {
-				$this->content = array();
-			}
-			$this->content[ $token->key ] = $content;
+			Memo::put( $this->content, $token->key, $content, self::CACHE_SIZE );
 		}
 
 		return $content;
@@ -521,10 +518,10 @@ final class Analyzer {
 	 * Lo mismo que {@see foreign_language()} para todo el texto de un origen
 	 * (para los términos que se enseñan en los motivos, que no tienen frase).
 	 *
-	 * @param AnalyzedDocument $document Origen analizado con frases.
+	 * @param AnchorText $document Origen con frases.
 	 * @return string|null Código del otro idioma, o null si el texto es del idioma de la entrada.
 	 */
-	public function foreign_document( AnalyzedDocument $document ): ?string {
+	public function foreign_document( AnchorText $document ): ?string {
 		$tokens = array();
 		foreach ( $document->sentences as $sentence ) {
 			array_push( $tokens, ...$sentence->tokens );
@@ -655,18 +652,19 @@ final class Analyzer {
 	 * @param Token $token Token.
 	 */
 	public function key( Token $token ): string {
-		if ( $token->is_stopword ) {
-			return $token->key;
-		}
-		if ( isset( $this->cache[ $token->normal ] ) ) {
-			return $this->cache[ $token->normal ];
-		}
+		return $token->is_stopword ? $token->key : ( $this->cache[ $token->normal ] ?? $this->stem_key( $token ) );
+	}
+
+	/**
+	 * Raíz de una palabra que no es vacía y no está en la memoria: la calcula y la recuerda.
+	 *
+	 * @param Token $token Token.
+	 */
+	private function stem_key( Token $token ): string {
 		$stem = null === $this->stemmer ? $token->normal : $this->stemmer->stem( $token->normal );
 		$key  = $this->tokenizer->key( $stem );
-		if ( count( $this->cache ) >= self::CACHE_SIZE ) {
-			$this->cache = array();
-		}
-		$this->cache[ $token->normal ] = $key;
+		Memo::put( $this->cache, $token->normal, $key, self::CACHE_SIZE );
+
 		return $key;
 	}
 
@@ -681,8 +679,8 @@ final class Analyzer {
 	public function keys( array $tokens ): array {
 		$keys = array();
 		foreach ( $tokens as $token ) {
-			// Lo mismo que key(), sin la llamada para las palabras vacías y las raíces ya calculadas (la gran mayoría).
-			$keys[] = $token->is_stopword ? $token->key : ( $this->cache[ $token->normal ] ?? $this->key( $token ) );
+			// Lo mismo que key(), sin la llamada: es el bucle más caliente del análisis.
+			$keys[] = $token->is_stopword ? $token->key : ( $this->cache[ $token->normal ] ?? $this->stem_key( $token ) );
 		}
 		return $keys;
 	}
@@ -716,18 +714,11 @@ final class Analyzer {
 	/**
 	 * Analiza un documento.
 	 *
-	 * @param Document   $document  Documento.
-	 * @param bool       $sentences Si se guardan las frases y las formas para mostrar
-	 *                              (para buscar anclas; el indexado no las necesita).
-	 * @param array|null $wanted    Solo con frases: términos de los que hacen falta las formas para mostrar (los principales del
-	 *                              destino, para las sugerencias entrantes). Con ellos no se cuentan los términos del documento:
-	 *                              `counts` queda vacío y `length` en 0, y `surfaces` solo lleva los pedidos, con las mismas formas y
-	 *                              el mismo orden que el análisis completo. Es lo que hace falta para buscar anclas en un origen
-	 *                              cuyos pesos ya están en el índice, a una fracción del coste.
-	 *
-	 * @phpstan-param array<string, mixed>|null $wanted
+	 * @param Document $document  Documento.
+	 * @param bool     $sentences Si se guardan las frases y las formas para mostrar
+	 *                            (para buscar anclas; el indexado no las necesita).
 	 */
-	public function analyze( Document $document, bool $sentences = false, ?array $wanted = null ): AnalyzedDocument {
+	public function analyze( Document $document, bool $sentences = false ): AnalyzedDocument {
 		$counts   = array(
 			self::TITLE   => array(),
 			self::HEADING => array(),
@@ -738,24 +729,61 @@ final class Analyzer {
 		$words    = 0;
 		$list     = array();
 		$surfaces = array();
-		$starts   = array();
-		if ( null !== $wanted ) {
-			// Un término pedido solo puede empezar en una palabra que sea la primera de alguno de ellos.
-			foreach ( array_keys( $wanted ) as $term ) {
-				$starts[ explode( ' ', (string) $term, 2 )[0] ] = true;
-			}
-		}
 
 		$fields = array( array( self::TITLE, array( $document->title ) ), array( self::HEADING, $document->headings ), array( self::FOCUS, $document->focus ) );
 		foreach ( $fields as [ $field, $texts ] ) {
 			foreach ( $texts as $text ) {
 				foreach ( $this->tokenizer->sentences( $text ) as $sentence ) {
+					$tokens  = $this->tokenizer->tokenize( $sentence );
+					$length += $this->count( $tokens, $this->keys( $tokens ), $counts[ $field ], $surfaces, $sentences );
+				}
+			}
+		}
+
+		foreach ( $document->paragraphs as $p => $paragraph ) {
+			$cursor = 0;
+			foreach ( $this->tokenizer->sentences( $paragraph->text ) as $sentence ) {
+				$tokens  = $this->tokenizer->tokenize( $sentence );
+				$keys    = $this->keys( $tokens );
+				$words  += count( $tokens );
+				$length += $this->count( $tokens, $keys, $counts[ self::BODY ], $surfaces, $sentences );
+
+				if ( $sentences && array() !== $tokens ) {
+					$list[] = new Sentence( $sentence, $p, $tokens, $keys, $this->sentence_has_link( $paragraph, $sentence, $cursor ) );
+				}
+			}
+		}
+
+		return new AnalyzedDocument( $document, $counts, $length, $words, $list, self::shown( $surfaces ) );
+	}
+
+	/**
+	 * Analiza un origen de las sugerencias entrantes: sus frases y las formas para mostrar de unos términos concretos (los
+	 * principales del destino). No cuenta los términos del documento —sus pesos ya están en el índice—, así que devuelve un
+	 * {@see AnchorSource}, que no se puede pasar al indexador. Las frases, las palabras y las formas pedidas son exactamente
+	 * las de {@see self::analyze()} con frases, con el mismo orden de formas.
+	 *
+	 * @param Document $document Documento.
+	 * @param array    $wanted   Términos de los que hacen falta las formas para mostrar (como claves).
+	 *
+	 * @phpstan-param array<string, mixed> $wanted
+	 */
+	public function analyze_for_anchors( Document $document, array $wanted ): AnchorSource {
+		$words    = 0;
+		$list     = array();
+		$surfaces = array();
+		// Un término pedido solo puede empezar en una palabra que sea la primera de alguno de ellos.
+		$starts = array();
+		foreach ( array_keys( $wanted ) as $term ) {
+			$starts[ explode( ' ', (string) $term, 2 )[0] ] = true;
+		}
+
+		$fields = array( array( $document->title ), $document->headings, $document->focus );
+		foreach ( $fields as $texts ) {
+			foreach ( $texts as $text ) {
+				foreach ( $this->tokenizer->sentences( $text ) as $sentence ) {
 					$tokens = $this->tokenizer->tokenize( $sentence );
-					if ( null === $wanted ) {
-						$length += $this->count( $tokens, $this->keys( $tokens ), $counts[ $field ], $surfaces, $sentences );
-					} else {
-						$this->count_wanted( $tokens, $this->keys( $tokens ), $wanted, $starts, $surfaces );
-					}
+					$this->count_wanted( $tokens, $this->keys( $tokens ), $wanted, $starts, $surfaces );
 				}
 			}
 		}
@@ -766,25 +794,33 @@ final class Analyzer {
 				$tokens = $this->tokenizer->tokenize( $sentence );
 				$keys   = $this->keys( $tokens );
 				$words += count( $tokens );
-				if ( null === $wanted ) {
-					$length += $this->count( $tokens, $keys, $counts[ self::BODY ], $surfaces, $sentences );
-				} else {
-					$this->count_wanted( $tokens, $keys, $wanted, $starts, $surfaces );
-				}
+				$this->count_wanted( $tokens, $keys, $wanted, $starts, $surfaces );
 
-				if ( $sentences && array() !== $tokens ) {
+				if ( array() !== $tokens ) {
 					$list[] = new Sentence( $sentence, $p, $tokens, $keys, $this->sentence_has_link( $paragraph, $sentence, $cursor ) );
 				}
 			}
 		}
 
+		return new AnchorSource( $document, $words, $list, self::shown( $surfaces ) );
+	}
+
+	/**
+	 * Forma para mostrar de cada término: la más frecuente (a igualdad, la primera que apareció).
+	 *
+	 * @param array $surfaces Término → forma → frecuencia.
+	 * @return array<string, string>
+	 *
+	 * @phpstan-param array<string, array<string, int>> $surfaces
+	 */
+	private static function shown( array $surfaces ): array {
 		$shown = array();
 		foreach ( $surfaces as $term => $forms ) {
 			arsort( $forms );
 			$shown[ $term ] = (string) array_key_first( $forms );
 		}
 
-		return new AnalyzedDocument( $document, $counts, $length, $words, $list, $shown );
+		return $shown;
 	}
 
 	/**

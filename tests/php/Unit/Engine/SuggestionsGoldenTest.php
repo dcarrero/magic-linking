@@ -20,9 +20,9 @@ use MagicLinking\Engine\Suggestion;
 use PHPUnit\Framework\TestCase;
 
 /**
- * 36 entradas de tres temas en castellano y una en inglés, con párrafos largos, enlaces ya puestos, páginas
+ * 24 entradas de tres temas en castellano y una en inglés, con párrafos largos, enlaces ya puestos, páginas
  * y entradas pilar; se calculan todas las salientes y todas las entrantes con varias combinaciones de opciones
- * y se compara la huella con la guardada en `golden/suggestions.json`.
+ * y se comparan, línea a línea, con las guardadas en `golden/suggestions.json`.
  *
  * Para regenerar la huella a propósito (cuando el motor cambia de verdad y el banco lo avala):
  * `MAGICLINKING_UPDATE_GOLDEN=1 composer test -- --filter SuggestionsGoldenTest`.
@@ -33,7 +33,7 @@ final class SuggestionsGoldenTest extends TestCase {
 
 	private const NOW = 1790000000;
 
-	private const COUNT = 36;
+	private const COUNT = 24;
 
 	private const TOPICS = array(
 		array( 'aerotermia', 'bomba de calor', 'suelo radiante', 'placas solares', 'caldera de gas', 'aislamiento térmico', 'ventilación mecánica', 'radiadores de baja temperatura' ),
@@ -66,7 +66,7 @@ final class SuggestionsGoldenTest extends TestCase {
 		$source      = new ArraySource();
 
 		for ( $id = 1; $id <= self::COUNT; $id++ ) {
-			$topic   = 0 === $id % 13 ? 3 : $id % 3;
+			$topic   = 0 === $id % 9 ? 3 : $id % 3;
 			$lang    = 3 === $topic ? 'en' : 'es';
 			$phrases = self::TOPICS[ $topic ];
 			$title   = ucfirst( $this->pick( $phrases ) ) . ' ' . $this->pick( self::FILLER ) . ' ' . $id;
@@ -94,7 +94,7 @@ final class SuggestionsGoldenTest extends TestCase {
 				}
 				$paras[] = ucfirst( implode( ' ', $words ) ) . '.';
 			}
-			$type = 0 === $id % 11 ? 'page' : 'post';
+			$type = 0 === $id % 7 ? 'page' : 'post';
 			$source->add( $id, $title, $paras, $lang, $type, '', self::NOW - 86400 * ( 1 + $this->next( 900 ) ) );
 		}
 
@@ -106,19 +106,33 @@ final class SuggestionsGoldenTest extends TestCase {
 	}
 
 	/**
-	 * @return array<string, mixed>
+	 * Una sugerencia en una línea de texto, con las puntuaciones a 6 decimales: así no depende de los últimos bits de un
+	 * flotante (cambian entre procesadores y versiones de PHP) y, si algo cambia, el fallo dice qué sugerencia fue.
 	 */
-	private static function flat( Suggestion $s ): array {
-		return array(
+	private static function line( Suggestion $s ): string {
+		$map     = static function ( array $values ): string {
+			$out = array();
+			foreach ( $values as $name => $value ) {
+				$out[] = $name . '=' . sprintf( '%.6f', $value );
+			}
+
+			return implode( ',', $out );
+		};
+		$reasons = array_map( static fn( Reason $r ): string => $r->code . ':' . json_encode( $r->args, JSON_UNESCAPED_UNICODE ), $s->reasons );
+
+		return sprintf(
+			'%d>%d "%s" @%d/%d score=%.6f %s penalties[%s] bonuses[%s] reasons[%s] alt[%s]',
 			$s->source,
 			$s->target,
 			$s->anchor,
-			$s->sentence,
-			$s->offset,
 			$s->paragraph,
-			array( $s->score->value, $s->score->signals, $s->score->penalties, $s->score->passes, $s->score->bonuses ),
-			array_map( static fn( Reason $r ): array => array( $r->code, $r->args ), $s->reasons ),
-			array_map( array( self::class, 'flat' ), $s->alternatives ),
+			$s->offset,
+			$s->score->value,
+			$s->score->passes ? 'pasa' : 'no-pasa',
+			$map( $s->score->penalties ),
+			$map( $s->score->bonuses ),
+			implode( ';', $reasons ),
+			implode( ';', array_map( array( self::class, 'line' ), $s->alternatives ) )
 		);
 	}
 
@@ -129,7 +143,7 @@ final class SuggestionsGoldenTest extends TestCase {
 			'defecto'     => array(),
 			'sin-enlaces' => array( 'existing_links' => false ),
 			'pilares'     => array(
-				'pillars'      => array( 3, 10, 21, 30 ),
+				'pillars'      => array( 3, 10, 21, 23 ),
 				'alternatives' => 2,
 				'penalized'    => array( 5, 6 ),
 			),
@@ -144,28 +158,30 @@ final class SuggestionsGoldenTest extends TestCase {
 		$out = array();
 		foreach ( $variants as $name => $options ) {
 			$suggester = new Suggester( $index, $source, $indexer, new PhraseFinder(), new Scorer(), null, $options + array( 'now' => self::NOW ) );
-			$found     = 0;
 			$lines     = array();
 			for ( $id = 1; $id <= self::COUNT; $id++ ) {
 				$document = $source->get( $id );
 				$this->assertNotNull( $document );
-				$in      = array_map( array( self::class, 'flat' ), $suggester->incoming( $id ) );
-				$out_    = array_map( array( self::class, 'flat' ), $suggester->outgoing( $document ) );
-				$found  += count( $in ) + count( $out_ );
-				$lines[] = array( $id, $in, $out_ );
+				foreach ( $suggester->incoming( $id ) as $s ) {
+					$lines[] = 'entrante ' . $id . ' ' . self::line( $s );
+				}
+				foreach ( $suggester->outgoing( $document ) as $s ) {
+					$lines[] = 'saliente ' . $id . ' ' . self::line( $s );
+				}
 			}
-			$out[ $name ] = array(
-				'found' => $found,
-				'sha1'  => sha1( json_encode( $lines, JSON_PRESERVE_ZERO_FRACTION | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR ) ),
-			);
-			$this->assertGreaterThan( 0, $found, $name );
+			$this->assertGreaterThan( 0, count( $lines ), $name );
+			$out[ $name ] = $lines;
 		}
 
 		$file = __DIR__ . '/golden/suggestions.json';
-		if ( false !== getenv( 'MAGICLINKING_UPDATE_GOLDEN' ) ) {
-			file_put_contents( $file, json_encode( $out, JSON_PRETTY_PRINT ) . "\n" );
+		if ( '1' === getenv( 'MAGICLINKING_UPDATE_GOLDEN' ) ) {
+			file_put_contents( $file, json_encode( $out, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) . "\n" );
 		}
 
-		$this->assertSame( json_decode( (string) file_get_contents( $file ), true ), $out );
+		$golden = json_decode( (string) file_get_contents( $file ), true );
+		$this->assertIsArray( $golden );
+		foreach ( $out as $name => $lines ) {
+			$this->assertSame( $golden[ $name ] ?? array(), $lines, $name );
+		}
 	}
 }

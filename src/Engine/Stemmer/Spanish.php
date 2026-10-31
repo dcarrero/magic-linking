@@ -235,13 +235,6 @@ final class Spanish implements StemmerInterface {
 	);
 
 	/**
-	 * Listas ordenadas de mayor a menor longitud, calculadas una vez.
-	 *
-	 * @var array<string, list<string>>
-	 */
-	private array $sorted = array();
-
-	/**
 	 * Cada lista de sufijos como conjunto, con las longitudes que tiene (de mayor a menor): el sufijo más largo de una palabra
 	 * se busca mirando sus últimos bytes en el conjunto, no recorriendo la lista entera (F1-32).
 	 *
@@ -271,23 +264,23 @@ final class Spanish implements StemmerInterface {
 	private int $r2 = 0;
 
 	/**
-	 * Prepara las listas de sufijos ordenadas por longitud.
+	 * Prepara las listas de sufijos como conjuntos, con las longitudes que tiene cada una.
 	 */
 	public function __construct() {
-		$this->sorted = array(
-			'pronouns' => self::by_length( self::PRONOUNS ),
-			'hosts'    => self::by_length( array_keys( self::PRONOUN_HOSTS ) ),
-			'standard' => self::by_length( array_keys( self::STANDARD ) ),
-			'y_verb'   => self::by_length( self::Y_VERB ),
-			'verb'     => self::by_length( array_merge( self::VERB_GU, self::VERB ) ),
-			'residual' => self::by_length( self::RESIDUAL ),
+		$lists = array(
+			'pronouns' => self::PRONOUNS,
+			'hosts'    => array_keys( self::PRONOUN_HOSTS ),
+			'standard' => array_keys( self::STANDARD ),
+			'y_verb'   => self::Y_VERB,
+			'verb'     => array_merge( self::VERB_GU, self::VERB ),
+			'residual' => self::RESIDUAL,
 		);
-		foreach ( $this->sorted as $name => $list ) {
-			$lengths = array_values( array_unique( array_map( 'strlen', $list ) ) );
+		foreach ( $lists as $name => $suffixes ) {
+			$lengths = array_values( array_unique( array_map( 'strlen', $suffixes ) ) );
 			rsort( $lengths );
 			$this->sets[ $name ] = array(
 				'lengths' => $lengths,
-				'set'     => array_fill_keys( $list, true ),
+				'set'     => array_fill_keys( $suffixes, true ),
 			);
 		}
 	}
@@ -605,21 +598,6 @@ final class Spanish implements StemmerInterface {
 		}
 
 		return '';
-	}
-
-	/**
-	 * Ordena sufijos de mayor a menor longitud en bytes.
-	 *
-	 * @param string[] $suffixes Sufijos.
-	 * @return list<string>
-	 */
-	private static function by_length( array $suffixes ): array {
-		usort(
-			$suffixes,
-			static fn( string $a, string $b ): int => strlen( $b ) <=> strlen( $a )
-		);
-
-		return $suffixes;
 	}
 
 	/**
