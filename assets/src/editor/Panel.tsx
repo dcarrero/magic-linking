@@ -8,7 +8,8 @@ import type { Suggestion } from '../types';
 import type { ApplyFailure, EditorAdapter } from './adapters/types';
 import type { EditorBoot } from './boot';
 import { suggestionKey } from './keys';
-import { CurrentLinks, mergeCurrent } from './CurrentLinks';
+import { CurrentLinks } from './CurrentLinks';
+import { useCurrentLinks } from './useCurrentLinks';
 import { Pager } from './Pager';
 import { PillarBox } from './PillarBox';
 import { SuggestionCard, type CardVariants } from './SuggestionCard';
@@ -110,8 +111,8 @@ function cardVariants(
 				'polite'
 			);
 		},
-		onAdjust: ( span ) => {
-			variants.adjust( original, span );
+		onAdjust: ( span, notes ) => {
+			variants.adjust( original, span, notes );
 			speak(
 				sprintf(
 					/* translators: %s: anchor text. */
@@ -223,25 +224,15 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 	const linkInbound = ( suggestion: Suggestion ) =>
 		link( suggestion, 'inbound' );
 
-	// Los enlaces de la entrada: los que dio el servidor y los que se han puesto desde el panel desde entonces.
-	const currentLinks = mergeCurrent(
-		outbound.data?.current_links ?? [],
-		( outbound.data ? state.ai.view( outbound.data.items ) : [] ).flatMap(
-			( row ) => {
-				const shown = state.outVariants.view( row.item, row.original );
-				return shown &&
-					statuses[ suggestionKey( shown.item ) ]?.kind === 'added'
-					? [
-							{
-								id: shown.item.target.id,
-								title: shown.item.target.title,
-								url: shown.item.target.url,
-								anchors: [ shown.item.anchor ],
-							},
-					  ]
-					: [];
-			}
-		)
+	// Los enlaces de la entrada: los del servidor, que se piden otra vez al enlazar o deshacer desde el panel.
+	const currentLinks = useCurrentLinks(
+		adapter,
+		outbound.data?.current_links,
+		Object.entries( statuses )
+			.filter( ( [ , status ] ) => status.kind === 'added' )
+			.map( ( [ key ] ) => key )
+			.sort()
+			.join( '\n' )
 	);
 
 	const outboundCount = state.visibleOutbound.length;

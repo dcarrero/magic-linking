@@ -7,6 +7,7 @@ import type {
 	AnchorCheckResponse,
 	AiCapabilities,
 	AiStatus,
+	CurrentLink,
 	BrokenResponse,
 	BrokenTargetsResponse,
 	FixResponse,
@@ -406,6 +407,30 @@ export const api = {
 				...( terms !== undefined
 					? { terms: terms.ids, term_names: terms.names }
 					: {} ),
+			},
+			signal,
+		} ),
+	/**
+	 * A quién enlaza ya la entrada con lo que hay ahora en el editor, sin calcular sugerencias.
+	 *
+	 * @param postId  Entrada abierta.
+	 * @param content Contenido actual.
+	 * @param title   Título actual.
+	 * @param signal  Para cancelar.
+	 */
+	currentLinks: (
+		postId: number,
+		content: string,
+		title?: string,
+		signal?: AbortSignal
+	) =>
+		apiFetch< { current_links: CurrentLink[] } >( {
+			path: path( '/suggestions/current-links' ),
+			method: 'POST',
+			data: {
+				post_id: postId,
+				content,
+				...( title !== undefined ? { title } : {} ),
 			},
 			signal,
 		} ),

@@ -48,6 +48,17 @@ final class RuleLimits {
 	}
 
 	/**
+	 * Si una ancla que ya usan tantas entradas hacia el mismo destino llegó al tope: una entrada más pasaría de las
+	 * permitidas. Es el criterio de las reglas (que dejan de aplicarse) y el del aviso de ancla sobreexplotada de la
+	 * tarjeta; una sola función para los dos.
+	 *
+	 * @param int $uses Entradas distintas que ya llevan esa ancla a ese destino.
+	 */
+	public function same_anchor_reached( int $uses ): bool {
+		return $uses >= $this->same_anchor_max;
+	}
+
+	/**
 	 * Enlaces internos que admite una entrada según su longitud: `max(1, ⌊palabras / N⌋)`.
 	 *
 	 * @param int $words Palabras de la entrada.

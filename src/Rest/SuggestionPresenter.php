@@ -140,8 +140,22 @@ final class SuggestionPresenter {
 				continue;
 			}
 
-			$out[] = array_merge( $this->post( $link['id'] ), array( 'anchors' => array_values( array_filter( $link['anchors'], static fn( string $anchor ): bool => '' !== trim( $anchor ) ) ) ) );
-		}
+			$anchors = array( 'anchors' => array_values( array_filter( $link['anchors'], static fn( string $anchor ): bool => '' !== trim( $anchor ) ) ) );
+
+			// Ni el título ni la dirección de un destino que el usuario no puede leer o que no está publicado.
+			if ( 'publish' !== $post->post_status || ! current_user_can( 'read_post', $post->ID ) ) {
+				$out[] = array_merge(
+					array(
+						'id'         => $link['id'],
+						'restricted' => true,
+					),
+					$anchors
+				);
+				continue;
+			}
+
+			$out[] = array_merge( $this->post( $link['id'] ), $anchors );
+		}//end foreach
 
 		return $out;
 	}

@@ -253,10 +253,30 @@ describe( 'AnchorAdjuster keyboard', () => {
 		);
 		press( 'Enter' );
 		await wait( 0 );
-		expect( onApply ).toHaveBeenCalledWith( {
-			start,
-			end: sentence.indexOf( 'aerotérmica' ) + 'aerotérmica'.length,
+		expect( onApply ).toHaveBeenCalledWith(
+			{
+				start,
+				end: sentence.indexOf( 'aerotérmica' ) + 'aerotérmica'.length,
+			},
+			undefined
+		);
+	} );
+
+	it( 'hands the notes the server gave when it checked the anchor to the card, so the card does not ask again', async () => {
+		const note = { code: 'overused', text: 'Used in 6 entries.' };
+		check.mockResolvedValue( {
+			valid: true,
+			errors: [],
+			warnings: [],
+			notes: [ note ],
 		} );
+		await mount();
+		press( 'ArrowRight' );
+		await wait( 300 );
+		press( 'Enter' );
+		await wait( 0 );
+
+		expect( onApply ).toHaveBeenCalledWith( expect.anything(), [ note ] );
 	} );
 
 	it( 'does not confirm an invalid anchor and says why in words', async () => {

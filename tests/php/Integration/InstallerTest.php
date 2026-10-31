@@ -46,7 +46,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( array(), $installer->missing_tables() );
 		$this->assertCount( 8, Schema::TABLES );
 		$this->assertSame( MAGICLINKING_DB_VERSION, $installer->installed_version() );
-		$this->assertSame( 6, MAGICLINKING_DB_VERSION );
+		$this->assertSame( 7, MAGICLINKING_DB_VERSION );
 		$this->assertContains( $this->autoload_of( Installer::DB_VERSION_OPTION ), array( 'no', 'off' ) );
 		$this->assertSame( 0, $this->own_autoloaded_options() );
 	}
@@ -90,7 +90,32 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( '0', (string) $row['ai_recommended'] );
 		$this->assertSame( '0', (string) $row['ai_anchor'] );
 		$this->assertNull( $row['ai_model'] );
-		$this->assertSame( 6, $this->installer()->installed_version() );
+		$this->assertSame( 7, $this->installer()->installed_version() );
+	}
+
+	public function test_upgrading_from_schema_6_adds_the_anchor_index_to_links_and_keeps_the_rows(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'links' );
+
+		// Un sitio con el esquema 6: sin el índice por ancla y con un enlace guardado.
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX anchor" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		$wpdb->query( "INSERT INTO {$table} ( source_id, target_id, target_url, anchor, is_internal ) VALUES ( 1, 2, 'http://example.org/a/', 'bomba de calor', 1 )" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		update_option( Installer::DB_VERSION_OPTION, 6, false );
+		Installer::forget_check();
+		$this->assertNotContains( 'anchor', $this->index_names( 'links' ) );
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		$this->assertContains( 'anchor', $this->index_names( 'links' ) );
+		$this->assertSame( 'bomba de calor', $wpdb->get_var( "SELECT anchor FROM {$table} WHERE source_id = 1" ) ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		$this->assertSame( 7, $this->installer()->installed_version() );
+	}
+
+	public function test_a_fresh_install_has_the_anchor_index_on_links(): void {
+		$this->installer()->maybe_upgrade();
+
+		$this->assertContains( 'anchor', $this->index_names( 'links' ) );
 	}
 
 	/**
@@ -134,7 +159,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertFalse( Schema::has_columns( $wpdb, 'changes', Schema::AI_COLUMNS ) );
 
 		$this->assertTrue( $this->installer()->upgrade( 5 ), 'Al reintentar, con el ALTER funcionando, termina.' );
-		$this->assertSame( 6, $this->installer()->installed_version() );
+		$this->assertSame( 7, $this->installer()->installed_version() );
 		$this->assertTrue( Schema::has_columns( $wpdb, 'changes', Schema::AI_COLUMNS ) );
 	}
 
@@ -163,7 +188,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertTrue( $this->installer()->upgrade( 5 ) );
 
 		$this->assertSame( 'rehecho', $wpdb->get_var( "SELECT lex_hash FROM {$docs} WHERE post_id = 7" ), 'Un reintento no repite la migración 3.' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$this->assertSame( 6, $this->installer()->installed_version() );
+		$this->assertSame( 7, $this->installer()->installed_version() );
 	}
 
 	public function test_tables_have_the_documented_columns(): void {
@@ -184,7 +209,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'PRIMARY', 'inbound', 'lang_status', 'type_status' ), $this->index_names( 'docs' ) );
 		$this->assertSame( array( 'PRIMARY', 'lang_stem_n' ), $this->index_names( 'terms' ) );
 		$this->assertSame( array( 'PRIMARY', 'post_id' ), $this->index_names( 'postings' ) );
-		$this->assertSame( array( 'PRIMARY', 'is_broken', 'source_id', 'target_id' ), $this->index_names( 'links' ) );
+		$this->assertSame( array( 'PRIMARY', 'anchor', 'is_broken', 'source_id', 'target_id' ), $this->index_names( 'links' ) );
 		$this->assertSame( array( 'PRIMARY', 'batch_id', 'created_at', 'origin_key', 'post_created' ), $this->index_names( 'changes' ) );
 	}
 

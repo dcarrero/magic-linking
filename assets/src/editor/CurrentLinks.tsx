@@ -4,33 +4,28 @@ import { __, sprintf } from '@wordpress/i18n';
 import type { CurrentLink } from '../types';
 
 /**
- * Suma a los enlaces actuales que dio el servidor los que se han puesto desde el panel desde entonces (el servidor solo
- * los vuelve a dar al pedir la lista otra vez). Un destino no se repite: sus anclas se juntan.
+ * Cómo se nombra el destino: con título y enlace, o sin ellos si el usuario no puede leerlo.
  *
- * @param known Enlaces actuales del servidor.
- * @param added Enlaces puestos desde el panel.
+ * @param root0
+ * @param root0.link
  */
-export function mergeCurrent(
-	known: CurrentLink[],
-	added: CurrentLink[]
-): CurrentLink[] {
-	const merged = known.map( ( link ) => ( {
-		...link,
-		anchors: [ ...link.anchors ],
-	} ) );
-	for ( const link of added ) {
-		const same = merged.find( ( other ) => other.id === link.id );
-		if ( ! same ) {
-			merged.push( { ...link, anchors: [ ...link.anchors ] } );
-			continue;
-		}
-		for ( const anchor of link.anchors ) {
-			if ( ! same.anchors.includes( anchor ) ) {
-				same.anchors.push( anchor );
-			}
-		}
+function LinkName( { link }: { link: CurrentLink } ) {
+	if ( link.restricted ) {
+		return <>{ __( 'Internal link (no access)', 'magic-linking' ) }</>;
 	}
-	return merged;
+	const title = link.title || __( '(no title)', 'magic-linking' );
+	if ( ! link.url ) {
+		return <>{ title }</>;
+	}
+	return (
+		<a href={ link.url } target="_blank" rel="noopener noreferrer">
+			{ title }
+			<span className="screen-reader-text">
+				{ ' ' }
+				{ __( '(opens in a new tab)', 'magic-linking' ) }
+			</span>
+		</a>
+	);
 }
 
 interface Props {
@@ -76,26 +71,7 @@ export function CurrentLinks( { links }: Props ) {
 				{ links.map( ( link ) => (
 					<li key={ link.id } className="magiclinking-current__item">
 						<span className="magiclinking-current__title">
-							{ link.url ? (
-								<a
-									href={ link.url }
-									target="_blank"
-									rel="noopener noreferrer"
-								>
-									{ link.title ||
-										__( '(no title)', 'magic-linking' ) }
-									<span className="screen-reader-text">
-										{ ' ' }
-										{ __(
-											'(opens in a new tab)',
-											'magic-linking'
-										) }
-									</span>
-								</a>
-							) : (
-								link.title ||
-								__( '(no title)', 'magic-linking' )
-							) }
+							<LinkName link={ link } />
 						</span>{ ' ' }
 						<span className="magiclinking-current__mark">
 							<span aria-hidden="true">✓ </span>

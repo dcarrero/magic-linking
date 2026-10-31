@@ -179,6 +179,24 @@ final class SuggestionsController implements Module {
 
 		register_rest_route(
 			$ns,
+			'/suggestions/current-links',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'post_current_links' ),
+				'permission_callback' => array( $this, 'can_edit_post' ),
+				'args'                => array(
+					'post_id' => $post_id,
+					'content' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'title'   => array( 'type' => 'string' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/suggestions/inbound',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -374,6 +392,28 @@ final class SuggestionsController implements Module {
 				'notes'    => $notes,
 			)
 		);
+	}
+
+	/**
+	 * POST /suggestions/current-links: a quién enlaza ya la entrada con lo que hay ahora en el editor, sin calcular
+	 * sugerencias. El panel lo pide tras enlazar o deshacer para que el bloque «Enlaces actuales» sea siempre el real.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function post_current_links( WP_REST_Request $request ) {
+		$post_id = (int) $request['post_id'];
+		if ( ! get_post( $post_id ) instanceof WP_Post ) {
+			return $this->not_found();
+		}
+		$content = (string) $request['content'];
+		if ( strlen( $content ) > self::MAX_DRAFT ) {
+			return new WP_Error( 'magiclinking_too_large', __( 'The content is too long to analyze.', 'magic-linking' ), array( 'status' => 413 ) );
+		}
+		$title = $request->has_param( 'title' ) ? wp_strip_all_tags( (string) $request['title'] ) : null;
+
+		return new WP_REST_Response( array( 'current_links' => $this->presenter->current_links( $this->suggestions->current_links( $post_id, $content, $title ) ) ) );
 	}
 
 	/**

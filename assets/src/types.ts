@@ -521,6 +521,8 @@ export interface CurrentLink {
 	edit_url?: string | null;
 	/** Textos de ancla con los que ya enlaza, sin repetir. */
 	anchors: string[];
+	/** El usuario no puede leer el destino (o no está publicado): no se manda su título ni su dirección. */
+	restricted?: boolean;
 }
 
 export interface OutboundResponse {
@@ -673,6 +675,8 @@ export interface RerankImproved {
 	after: string;
 	anchor_start: number;
 	anchor_end: number;
+	/** Avisos de ancla repetida de esta ancla (docs/07 §3.3), medidos por el servidor con la respuesta. */
+	anchor_notes?: AnchorNote[];
 }
 
 export interface RerankResult {

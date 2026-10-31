@@ -20,16 +20,17 @@ use WP_Post;
  * Convierte el uso que ya tiene un ancla ({@see AnchorUsage}) en avisos con su texto en el idioma del usuario.
  * Los avisos informan; el usuario decide (la regla «misma ancla → un destino por origen» vive en el servidor, D-69).
  *
- * - `cannibalization`: la ancla ya lleva a otro destino desde otras entradas.
- * - `overused`: la ancla ya lleva a este mismo destino desde más entradas que el ajuste «misma ancla hacia el mismo
- *   destino» (la cuenta que penaliza el motor, `04 §6.1`).
+ * - `cannibalization`: la ancla ya lleva a otro destino desde otras entradas. Solo se nombran destinos publicados que
+ *   el usuario puede leer.
+ * - `overused`: la ancla ya llegó al tope «misma ancla hacia el mismo destino» (`RuleLimits::same_anchor_reached()`, el
+ *   mismo criterio que las reglas automáticas, `04 §6.1`).
  *
  * Se miden varios pares de una vez ({@see self::prime()}) y después se leen sin tocar la base de datos.
  */
 final class AnchorNotes {
 
 	/**
-	 * Uso ya medido, por clave de par.
+	 * Uso ya medido, por idioma del origen y par.
 	 *
 	 * @var array<string, array{same: int, elsewhere: list<array{target: int, count: int}>}>
 	 */
@@ -46,8 +47,9 @@ final class AnchorNotes {
 	}
 
 	/**
-	 * Mide de una vez (dos consultas por idioma) los pares que se van a presentar. Lo medido antes se olvida: el grafo
-	 * cambia entre dos peticiones y este servicio vive tanto como el proceso.
+	 * Mide de una vez (dos consultas por idioma) los pares que se van a presentar y carga en la caché de WordPress los
+	 * destinos que se nombrarán. Lo medido antes se olvida: el grafo cambia entre dos peticiones y este servicio vive
+	 * tanto como el proceso.
 	 *
 	 * @param array $items Ancla, destino y origen de cada una.
 	 * @param bool  $reset Olvidar lo medido antes (false = añadir a ello).
@@ -61,13 +63,31 @@ final class AnchorNotes {
 
 		$by_language = array();
 		foreach ( $items as [ $anchor, $target, $source ] ) {
-			if ( ! isset( $this->measured[ AnchorUsage::key( $anchor, $target ) ] ) ) {
-				$by_language[ $this->language->for_post( $source ) ][] = array( $anchor, $target );
+			$language = $this->language->for_post( $source );
+			if ( ! isset( $this->measured[ self::key( $language, $anchor, $target, $source ) ] ) ) {
+				$by_language[ $language ][] = array( $anchor, $target, $source );
 			}
 		}
 
+		$named = array();
 		foreach ( $by_language as $language => $pairs ) {
-			$this->measured += $this->usage->measure( $pairs, Analyzer::for_language( $language ) ) + $this->unseen( $pairs );
+			$language = (string) $language;
+			$found    = $this->usage->measure( $pairs, Analyzer::for_language( $language ) );
+			foreach ( $pairs as [ $anchor, $target, $source ] ) {
+				$use = $found[ AnchorUsage::key( $anchor, $target, $source ) ] ?? array(
+					'same'      => 0,
+					'elsewhere' => array(),
+				);
+				$this->measured[ self::key( $language, $anchor, $target, $source ) ] = $use;
+				foreach ( $use['elsewhere'] as $row ) {
+					$named[] = $row['target'];
+				}
+			}
+		}
+
+		// Los títulos de todos los destinos que se nombrarán, de una vez.
+		if ( array() !== $named ) {
+			_prime_post_caches( array_values( array_unique( $named ) ), false, false );
 		}
 	}
 
@@ -81,7 +101,7 @@ final class AnchorNotes {
 	 * @return list<array{code: string, text: string}>
 	 */
 	public function for_anchor( string $anchor, int $target, int $source ): array {
-		$key = AnchorUsage::key( $anchor, $target );
+		$key = self::key( $this->language->for_post( $source ), $anchor, $target, $source );
 		if ( ! isset( $this->measured[ $key ] ) ) {
 			$this->prime( array( array( $anchor, $target, $source ) ), false );
 		}
@@ -92,13 +112,13 @@ final class AnchorNotes {
 
 		$notes = array();
 
-		// Solo cuentan los destinos que existen y no están en la papelera.
+		// Solo se nombran destinos publicados que el usuario puede leer: el aviso no cuenta lo que no puede ver.
 		$elsewhere = array_values(
 			array_filter(
 				$use['elsewhere'],
 				static function ( array $row ): bool {
 					$post = get_post( $row['target'] );
-					return $post instanceof WP_Post && 'trash' !== $post->post_status;
+					return $post instanceof WP_Post && 'publish' === $post->post_status && current_user_can( 'read_post', $post->ID );
 				}
 			)
 		);
@@ -118,7 +138,7 @@ final class AnchorNotes {
 			);
 		}
 
-		if ( $use['same'] > (int) $this->settings->all()['same_anchor_max'] ) {
+		if ( $this->settings->rule_limits()->same_anchor_reached( $use['same'] ) ) {
 			$notes[] = array(
 				'code' => 'overused',
 				/* translators: %d: number of entries that already use this anchor for this destination. */
@@ -130,23 +150,14 @@ final class AnchorNotes {
 	}
 
 	/**
-	 * Pares sin uso: los que {@see AnchorUsage::measure()} no devolvió (ancla sin contenido) se dan por sin avisos.
+	 * Clave de un par: el idioma del origen decide cómo se comparan las anclas, así que forma parte de ella.
 	 *
-	 * @param array $pairs Pares.
-	 *
-	 * @phpstan-param list<array{0: string, 1: int}> $pairs
-	 *
-	 * @return array<string, array{same: int, elsewhere: list<array{target: int, count: int}>}>
+	 * @param string $language Idioma del origen.
+	 * @param string $anchor   Ancla.
+	 * @param int    $target   Destino.
+	 * @param int    $source   Origen.
 	 */
-	private function unseen( array $pairs ): array {
-		$out = array();
-		foreach ( $pairs as [ $anchor, $target ] ) {
-			$out[ AnchorUsage::key( $anchor, $target ) ] = array(
-				'same'      => 0,
-				'elsewhere' => array(),
-			);
-		}
-
-		return $out;
+	private static function key( string $language, string $anchor, int $target, int $source ): string {
+		return $language . "\0" . AnchorUsage::key( $anchor, $target, $source );
 	}
 }

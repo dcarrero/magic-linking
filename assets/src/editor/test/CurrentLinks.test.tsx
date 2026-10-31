@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { CurrentLink } from '../../types';
-import { CurrentLinks, mergeCurrent } from '../CurrentLinks';
+import { CurrentLinks } from '../CurrentLinks';
 
 jest.mock( '@wordpress/components', () => ( {
 	Button: ( {
@@ -83,30 +83,25 @@ describe( 'CurrentLinks', () => {
 		expect( link?.getAttribute( 'rel' ) ).toBe( 'noopener noreferrer' );
 	} );
 
-	it( 'adds the links made in this session without repeating a destination', () => {
-		const merged = mergeCurrent(
-			[ guide ],
-			[
-				{
-					id: 7,
-					title: 'Guía de ahorro',
-					url: guide.url,
-					anchors: [ 'ahorro' ],
-				},
-				{
-					id: 9,
-					title: 'Otra',
-					url: 'https://example.org/otra/',
-					anchors: [ 'otra' ],
-				},
-			]
+	it( 'shows only that there is an internal link, without title or address, when the user cannot read the destination', async () => {
+		await act( () =>
+			root.render(
+				<CurrentLinks
+					links={ [
+						{
+							id: 9,
+							restricted: true,
+							anchors: [ 'la oferta' ],
+						},
+					] }
+				/>
+			)
 		);
+		await act( () => host.querySelector( 'button' )?.click() );
 
-		expect( merged.map( ( link ) => link.id ) ).toEqual( [ 7, 9 ] );
-		expect( merged[ 0 ]?.anchors ).toEqual( [
-			'la guía de ahorro',
-			'esta guía',
-			'ahorro',
-		] );
+		const row = host.querySelector( 'li' );
+		expect( row?.textContent ).toContain( 'Internal link (no access)' );
+		expect( row?.textContent ).toContain( 'Already linked' );
+		expect( row?.querySelector( 'a' ) ).toBeNull();
 	} );
 } );

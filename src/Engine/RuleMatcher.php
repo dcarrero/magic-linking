@@ -100,7 +100,7 @@ final class RuleMatcher {
 				continue;
 			}
 			$cache[ $match->key ] ??= $sites( $match->key );
-			if ( $cache[ $match->key ] >= $limits->same_anchor_max ) {
+			if ( $limits->same_anchor_reached( $cache[ $match->key ] ) ) {
 				$overused = true;
 				continue;
 			}

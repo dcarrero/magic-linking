@@ -1098,6 +1098,39 @@ final class AiTest extends GraphTestCase {
 		$this->assertArrayHasKey( 'usage', $data );
 	}
 
+	public function test_rest_rerank_brings_the_notices_of_the_improved_anchor_so_the_card_asks_nothing(): void {
+		global $wpdb;
+		$this->needs_ai_client();
+		$this->corpus();
+		// Otra entrada ya lleva esa ancla, con el mismo texto, a este destino: con el tope en 1, está agotada.
+		update_option( 'magiclinking_settings', array( 'same_anchor_max' => 1 ) );
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			\MagicLinking\Core\Schema::table( $wpdb->prefix, 'links' ),
+			array(
+				'source_id'   => 999999,
+				'target_id'   => $this->targets[1],
+				'target_url'  => get_permalink( $this->targets[1] ),
+				'anchor'      => 'bomba de calor reduce',
+				'is_internal' => 1,
+				'is_broken'   => 0,
+			)
+		);
+		$this->reply( '{"results":[{"candidato":1,"apto":false,"confianza":0.1},{"candidato":2,"apto":true,"confianza":0.9,"ancla_mejorada":"bomba de calor reduce"}]}' );
+
+		$data = $this->request(
+			'POST',
+			'/suggestions/rerank',
+			array(
+				'post_id' => $this->source,
+				'items'   => $this->items(),
+			),
+			$this->author
+		)->get_data();
+
+		$this->assertTrue( $data['ok'] );
+		$this->assertSame( array( 'overused' ), array_column( $data['items'][0]['improved']['anchor_notes'], 'code' ) );
+	}
+
 	public function test_rest_rerank_failures_are_a_200_with_a_plain_message(): void {
 		$this->needs_ai_client();
 		$this->corpus();

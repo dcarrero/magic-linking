@@ -14,16 +14,17 @@ use MagicLinking\Engine\Analyzer;
 use wpdb;
 
 /**
- * Para pares (ancla, destino) dice en cuántas entradas distintas esa ancla ya lleva a ese mismo destino y a qué otros
- * destinos lleva y desde cuántas. Son las dos cuentas de los avisos de la tarjeta: ancla sobreexplotada y
- * canibalización.
+ * Para pares (ancla, destino, origen) dice en cuántas entradas distintas (sin contar el origen) esa ancla ya lleva a ese
+ * mismo destino y a qué otros destinos lleva y desde cuántas. Son las dos cuentas de los avisos de la tarjeta: ancla
+ * sobreexplotada y canibalización.
  *
  * - **Mismo destino:** por clave de raíz (`Analyzer::phrase_key()`), como la cuenta que penaliza el motor
- *   (`IndexRepository::anchor_uses()`): «bomba de calor» y «bombas de calor» son la misma ancla.
+ *   (`IndexRepository::anchor_uses()`): «bomba de calor» y «bombas de calor» son la misma ancla. Se leen solo los
+ *   enlaces de esos destinos (índice `target_id`) cuyo texto contiene la raíz de alguna ancla, y se confirma por clave.
  * - **Otros destinos:** por el texto del ancla sin distinguir mayúsculas ni acentos (la intercalación de la tabla),
- *   confirmado después por clave. El grafo no guarda la clave y buscarla por raíz obligaría a recorrer todos los
- *   enlaces del sitio; así es una sola consulta por petición. Una variante de otra raíz («bombas de calor» frente a
- *   «bomba de calor») no se ve como canibalización: el aviso informa, no bloquea.
+ *   con el índice `anchor` (esquema 7), confirmado después por clave. El grafo no guarda la clave y buscarla por raíz
+ *   obligaría a recorrer todos los enlaces del sitio. Una variante de otra raíz («bombas de calor» frente a «bomba de
+ *   calor») no se ve como canibalización: el aviso informa, no bloquea.
  *
  * Dos consultas por llamada, sea cual sea el número de pares, y nunca una por sugerencia.
  */
@@ -42,19 +43,21 @@ final class AnchorUsage {
 	 *
 	 * @param string $anchor    Ancla.
 	 * @param int    $target_id Destino.
+	 * @param int    $source_id Origen.
 	 */
-	public static function key( string $anchor, int $target_id ): string {
-		return $target_id . "\0" . $anchor;
+	public static function key( string $anchor, int $target_id, int $source_id ): string {
+		return $source_id . "\0" . $target_id . "\0" . $anchor;
 	}
 
 	/**
 	 * Uso de cada par: entradas que ya llevan esa ancla al mismo destino (`same`) y los otros destinos a los que
-	 * ya la llevan (`elsewhere`, del más usado al menos, con las entradas distintas de cada uno).
+	 * ya la llevan (`elsewhere`, del más usado al menos, con las entradas distintas de cada uno). Los enlaces del propio
+	 * origen no cuentan.
 	 *
-	 * @param array    $pairs    Pares `[ancla, destino]`.
+	 * @param array    $pairs    Pares `[ancla, destino, origen]`.
 	 * @param Analyzer $analyzer Analizador del idioma con el que se calculan las claves.
 	 *
-	 * @phpstan-param list<array{0: string, 1: int}> $pairs
+	 * @phpstan-param list<array{0: string, 1: int, 2: int}> $pairs
 	 *
 	 * @return array<string, array{same: int, elsewhere: list<array{target: int, count: int}>}>
 	 */
@@ -74,18 +77,19 @@ final class AnchorUsage {
 
 		$wanted = array_flip( array_values( array_unique( $keys ) ) );
 		$same   = $this->same_target( array_values( array_unique( $targets ) ), $wanted, $analyzer );
-		$other  = $this->other_targets( array_keys( $keys ), $wanted, $analyzer );
+		$other  = $this->other_targets( array_map( 'strval', array_keys( $keys ) ), $wanted, $analyzer );
 
 		$out = array();
-		foreach ( $pairs as [ $anchor, $target ] ) {
+		foreach ( $pairs as [ $anchor, $target, $source ] ) {
 			if ( ! isset( $keys[ $anchor ] ) ) {
 				continue;
 			}
 
 			$key       = $keys[ $anchor ];
 			$elsewhere = array();
-			foreach ( $other[ $key ] ?? array() as $to => $count ) {
-				if ( $to !== $target ) {
+			foreach ( $other[ $key ] ?? array() as $to => $sources ) {
+				$count = count( $sources ) - ( isset( $sources[ $source ] ) ? 1 : 0 );
+				if ( $to !== $target && $count > 0 ) {
 					$elsewhere[] = array(
 						'target' => $to,
 						'count'  => $count,
@@ -95,8 +99,10 @@ final class AnchorUsage {
 			// Los más usados primero; a igualdad, el de menor ID, para que el resultado sea estable.
 			usort( $elsewhere, static fn( array $a, array $b ): int => array( $b['count'], $a['target'] ) <=> array( $a['count'], $b['target'] ) );
 
-			$out[ self::key( $anchor, $target ) ] = array(
-				'same'      => $same[ $target ][ $key ] ?? 0,
+			$sources = $same[ $target ][ $key ] ?? array();
+
+			$out[ self::key( $anchor, $target, $source ) ] = array(
+				'same'      => count( $sources ) - ( isset( $sources[ $source ] ) ? 1 : 0 ),
 				'elsewhere' => $elsewhere,
 			);
 		}//end foreach
@@ -105,7 +111,8 @@ final class AnchorUsage {
 	}
 
 	/**
-	 * Entradas distintas que llevan cada ancla a cada destino, por clave. Una consulta por el índice de destino.
+	 * Entradas distintas que llevan cada ancla a cada destino, por clave. Una consulta por el índice de destino que solo
+	 * trae los enlaces cuyo texto contiene la raíz de alguna de las anclas.
 	 *
 	 * @param array    $targets  Destinos.
 	 * @param array    $wanted   Claves de las anclas que importan (como claves del array).
@@ -114,31 +121,40 @@ final class AnchorUsage {
 	 * @phpstan-param list<int> $targets
 	 * @phpstan-param array<string, int> $wanted
 	 *
-	 * @return array<int, array<string, int>> Destino → clave → entradas.
+	 * @return array<int, array<string, array<int, true>>> Destino → clave → entradas.
 	 */
 	private function same_target( array $targets, array $wanted, Analyzer $analyzer ): array {
 		$wpdb  = $this->wpdb;
 		$table = Schema::table( $wpdb->prefix, 'links' );
 		$in    = implode( ',', array_fill( 0, count( $targets ), '%d' ) );
-		$rows  = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia.
-			$wpdb->prepare( "SELECT source_id, target_id, anchor FROM %i WHERE target_id IN ({$in}) AND is_internal = 1 AND is_broken = 0 AND source_id <> target_id", array_merge( array( $table ), $targets ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+
+		// Dos formas de una misma raíz no siempre comparten todas sus letras: se pide solo el comienzo de la raíz más larga.
+		$likes = array();
+		foreach ( array_keys( $wanted ) as $key ) {
+			$stems   = explode( ' ', (string) $key );
+			$longest = '';
+			foreach ( $stems as $stem ) {
+				if ( mb_strlen( $stem ) > mb_strlen( $longest ) ) {
+					$longest = $stem;
+				}
+			}
+			$likes[ '%' . $wpdb->esc_like( mb_substr( $longest, 0, max( 3, mb_strlen( $longest ) - 1 ) ) ) . '%' ] = true;
+		}
+		$likes = array_keys( $likes );
+		$any   = implode( ' OR ', array_fill( 0, count( $likes ), 'anchor LIKE %s' ) );
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia.
+			$wpdb->prepare( "SELECT source_id, target_id, anchor FROM %i WHERE target_id IN ({$in}) AND is_internal = 1 AND is_broken = 0 AND source_id <> target_id AND ({$any})", array_merge( array( $table ), $targets, $likes ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
 			ARRAY_N
 		);
 
-		$seen = array();
+		$out  = array();
 		$memo = array();
 		foreach ( (array) $rows as $row ) {
 			$text = (string) $row[2];
 			$key  = $memo[ $text ] ??= $analyzer->phrase_key( $text );
 			if ( isset( $wanted[ $key ] ) ) {
-				$seen[ (int) $row[1] ][ $key ][ (int) $row[0] ] = true;
-			}
-		}
-
-		$out = array();
-		foreach ( $seen as $target => $by_key ) {
-			foreach ( $by_key as $key => $sources ) {
-				$out[ $target ][ $key ] = count( $sources );
+				$out[ (int) $row[1] ][ $key ][ (int) $row[0] ] = true;
 			}
 		}
 
@@ -155,7 +171,7 @@ final class AnchorUsage {
 	 * @phpstan-param list<string> $anchors
 	 * @phpstan-param array<string, int> $wanted
 	 *
-	 * @return array<string, array<int, int>> Clave → destino → entradas.
+	 * @return array<string, array<int, array<int, true>>> Clave → destino → entradas.
 	 */
 	private function other_targets( array $anchors, array $wanted, Analyzer $analyzer ): array {
 		$wpdb  = $this->wpdb;
@@ -166,20 +182,13 @@ final class AnchorUsage {
 			ARRAY_N
 		);
 
-		$seen = array();
+		$out  = array();
 		$memo = array();
 		foreach ( (array) $rows as $row ) {
 			$text = (string) $row[2];
 			$key  = $memo[ $text ] ??= $analyzer->phrase_key( $text );
 			if ( isset( $wanted[ $key ] ) ) {
-				$seen[ $key ][ (int) $row[1] ][ (int) $row[0] ] = true;
-			}
-		}
-
-		$out = array();
-		foreach ( $seen as $key => $by_target ) {
-			foreach ( $by_target as $target => $sources ) {
-				$out[ $key ][ $target ] = count( $sources );
+				$out[ $key ][ (int) $row[1] ][ (int) $row[0] ] = true;
 			}
 		}
 

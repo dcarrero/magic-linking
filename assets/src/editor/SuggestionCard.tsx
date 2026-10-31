@@ -43,7 +43,10 @@ export interface CardVariants {
 	selected: number;
 	onSelect: ( option: number ) => void;
 	/** El usuario confirmó otro tramo de la frase como ancla (índices UTF-16). */
-	onAdjust: ( span: { start: number; end: number } ) => void;
+	onAdjust: (
+		span: { start: number; end: number },
+		notes?: AnchorNote[]
+	) => void;
 	/** Anclas que otras tarjetas de la lista llevan a otros destinos (solo salientes). */
 	taken?: { anchor: string; target_id: number }[];
 }
@@ -391,8 +394,8 @@ export function SuggestionCard( {
 					sentence={ suggestion.sentence }
 					start={ suggestion.anchor_start }
 					end={ suggestion.anchor_end }
-					onApply={ ( span ) => {
-						variants.onAdjust( span );
+					onApply={ ( span, checked ) => {
+						variants.onAdjust( span, checked );
 						refocus.current = true;
 						setAdjusting( false );
 					} }

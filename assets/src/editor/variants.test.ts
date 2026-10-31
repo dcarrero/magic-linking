@@ -204,6 +204,22 @@ describe( 'applyChoice', () => {
 		expect( chosen.anchor_notes ).toEqual( [ note ] );
 	} );
 
+	it( 'keeps the notes the server gave when it checked the adjusted anchor', () => {
+		const note = { code: 'cannibalization', text: 'Links elsewhere.' };
+		const withNotes = suggestion( 9, { ...main, anchor_notes: [] }, [] );
+		const chosen = applyChoice( withNotes, {
+			option: 0,
+			seq: 1,
+			sig: signature( withNotes ),
+			span: {
+				start: S1.indexOf( 'bomba' ),
+				end: S1.indexOf( 'ahorra' ) - 1,
+			},
+			notes: [ note ],
+		} );
+		expect( chosen.anchor_notes ).toEqual( [ note ] );
+	} );
+
 	it( 'does not know the notes of an anchor the user adjusted, so the card asks the server', () => {
 		const withNotes = suggestion(
 			9,

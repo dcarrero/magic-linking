@@ -145,7 +145,8 @@ final class Schema {
   PRIMARY KEY  (id),
   KEY source_id (source_id),
   KEY target_id (target_id),
-  KEY is_broken (is_broken)
+  KEY is_broken (is_broken),
+  KEY anchor (anchor(40))
 ) {$charset_collate};",
 
 			// Reglas automáticas, sin límite de filas.

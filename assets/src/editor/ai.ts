@@ -151,8 +151,9 @@ export function withAnchor(
 		after: improved.after,
 		anchor_start: improved.anchor_start,
 		anchor_end: improved.anchor_end,
-		// El ancla es otra: los avisos de la anterior no valen y la tarjeta los pide al servidor.
-		anchor_notes: null,
+		// Los avisos de la ancla anterior no valen. El servidor manda los de la nueva con la respuesta de la IA; si no
+		// vinieron, la tarjeta los pide.
+		anchor_notes: improved.anchor_notes ?? null,
 		insert: suggestion.insert && {
 			...suggestion.insert,
 			anchor: improved.anchor,

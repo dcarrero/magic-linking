@@ -380,7 +380,8 @@ final class Plugin {
 				$c->get( Capabilities::class ),
 				$c->get( Client::class ),
 				$c->get( Budget::class ),
-				$c->get( JobRepository::class )
+				$c->get( JobRepository::class ),
+				$c->get( AnchorNotes::class )
 			),
 			JobRepository::class           => static function (): JobRepository {
 				global $wpdb;

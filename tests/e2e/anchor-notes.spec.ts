@@ -221,6 +221,11 @@ test.describe( 'Already linked and repeated anchor', () => {
 			hasText: 'Bomba de calor: cuánto se ahorra',
 		} ) ).toContainText( 'Already linked' );
 		await expectAccessible( page, '.magiclinking-panel' );
+
+		// Deshacer lo quita: la lista se vuelve a pedir al servidor con lo que hay en el editor.
+		await card.getByRole( 'button', { name: 'Undo' } ).click();
+		await expect( toggle ).toContainText( '(1)' );
+		await expect( panel.locator( '.magiclinking-current__item' ) ).toHaveCount( 1 );
 	} );
 
 	test( 'inbound: the card of the other entry carries the notice, counting inflected forms of the anchor', async ( {

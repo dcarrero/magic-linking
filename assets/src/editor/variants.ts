@@ -1,4 +1,4 @@
-import type { Suggestion, SuggestionAlternative } from '../types';
+import type { AnchorNote, Suggestion, SuggestionAlternative } from '../types';
 
 /**
  * Lo que el usuario ha elegido en una tarjeta (docs/07 §3.1 y §3.2): otra frase (`option`: 0 = la principal, 1 y 2 =
@@ -12,6 +12,8 @@ export interface Choice {
 	/** Las frases de la sugerencia cuando se eligió ({@see signature}): si la lista cambia, la elección ya no vale. */
 	sig: string;
 	span?: { start: number; end: number };
+	/** Avisos de ancla repetida del tramo ajustado, los que dio el servidor al comprobarlo. */
+	notes?: AnchorNote[];
 }
 
 /** Elecciones por clave de la sugerencia original (la que dio el servidor). */
@@ -179,8 +181,8 @@ export function applyChoice(
 			offset,
 			anchor_start: start,
 			anchor_end: end,
-			// El ancla es otra: el servidor aún no ha dicho cómo se usa (la tarjeta lo pregunta).
-			anchor_notes: null,
+			// El ancla es otra: lo que dijo el servidor al comprobarla, o nada (entonces la tarjeta lo pregunta).
+			anchor_notes: choice.notes ?? null,
 			insert: result.insert && {
 				...result.insert,
 				anchor,

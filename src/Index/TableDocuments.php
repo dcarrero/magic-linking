@@ -47,6 +47,13 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	private array $stored = array();
 
 	/**
+	 * URL ya resueltas por el grafo de las entradas traídas por adelantado: URL → destino (null si está roto).
+	 *
+	 * @var array<int, array<string, int|null>>
+	 */
+	private array $resolved = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param PostSource      $posts    Entradas como documentos.
@@ -70,8 +77,9 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 
 		_prime_post_caches( $ids, $this->posts->taxonomies_enabled(), true );
 
-		$links        = $this->graph->links_from( $ids );
-		$this->stored = array();
+		$links          = $this->graph->links_from( $ids );
+		$this->resolved = $this->graph->resolved_urls( $ids );
+		$this->stored   = array();
 		foreach ( $this->graph->docs_by_ids( $ids ) as $id => $row ) {
 			$this->stored[ $id ] = array(
 				'hash'  => $row['content_hash'],
@@ -136,7 +144,10 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 		$stored = $this->stored[ $post->ID ] ?? null;
 		if ( null !== $stored && '' !== $stored['hash'] && Fingerprint::of( $post, $html ) === $stored['hash'] ) {
 			foreach ( $stored['links'] as list( $target, $anchor ) ) {
-				$links[] = new Link( $target, $anchor );
+				// Un enlace a la propia entrada no cuenta, venga del grafo o del HTML.
+				if ( $target !== $post->ID ) {
+					$links[] = new Link( $target, $anchor );
+				}
 			}
 
 			return $links;
@@ -147,15 +158,25 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 				continue;
 			}
 
-			$resolution = $this->resolver->resolve( $link->url );
+			// Una URL que la entrada ya tenía al guardarse la resolvió el grafo: no se vuelve a resolver (una consulta o
+			// más por URL). Solo las nuevas pasan por el resolutor.
+			if ( array_key_exists( $link->url, $this->resolved[ $post->ID ] ?? array() ) ) {
+				$target = $this->resolved[ $post->ID ][ $link->url ];
+			} else {
+				$resolution = $this->resolver->resolve( $link->url );
+				if ( $resolution->target_id === $post->ID ) {
+					continue;
+				}
+				$target = BrokenReason::NONE === $resolution->broken ? $resolution->target_id : null;
+			}
 
 			// Un enlace a la propia entrada no cuenta.
-			if ( $resolution->target_id === $post->ID ) {
+			if ( $target === $post->ID ) {
 				continue;
 			}
 
-			$links[] = new Link( BrokenReason::NONE === $resolution->broken ? $resolution->target_id : null, $link->anchor );
-		}
+			$links[] = new Link( $target, $link->anchor );
+		}//end foreach
 
 		return $links;
 	}
@@ -183,7 +204,8 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	 * Olvida lo resuelto (el estado de las entradas puede cambiar entre dos cálculos).
 	 */
 	public function release(): void {
-		$this->stored = array();
+		$this->stored   = array();
+		$this->resolved = array();
 		$this->resolver->flush();
 	}
 

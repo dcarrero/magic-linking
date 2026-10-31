@@ -188,6 +188,22 @@ foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 	$added[ $direction ] = $report( 'avisos ' . $direction, $times, array( 0 ), $cards );
 }
 
+// Lo mismo con el contenido del editor cambiado (otro título, así que la huella ya no es la guardada): los enlaces se leen
+// del HTML y las URL que la entrada ya tenía no se resuelven otra vez.
+$times = array();
+$cards = array();
+foreach ( $sample as $id ) {
+	wp_cache_flush();
+	$repository->release();
+	$post = get_post( $id );
+	wp_cache_flush();
+	$t0      = microtime( true );
+	$links   = $service->current_links( $id, $post->post_content, $post->post_title . ' (editado)' );
+	$times[] = ( microtime( true ) - $t0 ) * 1000;
+	$cards[] = count( $links );
+}
+$added['draft'] = $report( 'avisos borrador', $times, array( 0 ), $cards );
+
 // `09 §4` habla del pico total de la petición: se mide el pico absoluto de cada cálculo (con la caché de
 // objetos vacía al empezar), que aquí incluye la base de WP-CLI. Se imprime también lo que añade el cálculo.
 // En una petición web la base es la de WordPress (unos 25–35 MB con WP_DEBUG); aquí la de WP-CLI, que es mayor,

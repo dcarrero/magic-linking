@@ -207,6 +207,15 @@ describe( 'withAnchor', () => {
 		expect( original.anchor ).toBe( 'bomba de calor' );
 	} );
 
+	it( 'takes the notes of the improved anchor from the AI response, so the card asks nothing', () => {
+		const notes = [ { code: 'overused', text: 'Used in 6 entries.' } ];
+
+		expect(
+			withAnchor( make( 5 ), { ...improved, anchor_notes: notes } )
+				.anchor_notes
+		).toEqual( notes );
+	} );
+
 	it( 'does not keep the notes of the old anchor: they belong to another anchor', () => {
 		const original = {
 			...make( 5 ),
