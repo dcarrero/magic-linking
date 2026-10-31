@@ -9,8 +9,16 @@ import type { AiStatus } from '../types';
  * Aviso «Sin conector de IA» (docs/02 §5): solo dentro de las pantallas del plugin, cerrable para siempre y sin ninguna
  * intención comercial. Solo sale si WordPress trae el cliente de IA pero no hay ningún conector; en WordPress anterior
  * a 7.0 no hay nada que conectar y no se avisa. Averiguarlo no llama a ningún modelo.
+ *
+ * Cuenta como el aviso visible: mientras salga este, el sistema de avisos (`Notices`) no enseña otro (como mucho uno).
+ * @param root0
+ * @param root0.onSettled
  */
-export function AiNotice() {
+export function AiNotice( {
+	onSettled,
+}: {
+	onSettled?: ( visible: boolean ) => void;
+} ) {
 	const [ status, setStatus ] = useState< AiStatus | null >( null );
 	const [ closed, setClosed ] = useState( false );
 
@@ -20,12 +28,19 @@ export function AiNotice() {
 			.then( ( next ) => {
 				if ( ! controller.signal.aborted ) {
 					setStatus( next );
+					onSettled?.(
+						next.state === 'none' && ! next.notice_dismissed
+					);
 				}
 			} )
 			.catch( () => {
 				// Sin respuesta no se avisa de nada.
+				if ( ! controller.signal.aborted ) {
+					onSettled?.( false );
+				}
 			} );
 		return () => controller.abort();
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- Se pregunta una sola vez al abrir la pantalla.
 	}, [] );
 
 	if (

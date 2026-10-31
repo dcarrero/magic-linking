@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Core;
 
+use MagicLinking\Admin\Notices;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\Exclusions;
 use MagicLinking\Index\Pillars;
@@ -162,6 +163,9 @@ final class Installer implements Module {
 		global $wpdb;
 
 		( new self( $wpdb, MAGICLINKING_DB_VERSION ) )->maybe_upgrade();
+
+		// Desde aquí cuentan los 30 días del aviso de reseña (docs/07 §5).
+		Notices::remember_activation();
 
 		// La desactivación cancela lo programado: se vuelve a programar el recálculo nocturno.
 		self::request_reconcile();
@@ -392,7 +396,7 @@ final class Installer implements Module {
 		// Metadatos de usuario: solo las claves propias exactas de este sitio (el prefijo de sus tablas), con la
 		// caché de WordPress al día. Nada de LIKE: las claves de Magic Linking Pro (`magiclinking_pro_*`) y las de
 		// otros sitios de una red no se tocan. Con varios sitios, `uninstall_everywhere()` pasa por cada uno.
-		foreach ( array( 'magiclinking_wizard_dismissed', 'magiclinking_ai_notice_dismissed', 'magiclinking_per_page' ) as $key ) {
+		foreach ( array( 'magiclinking_wizard_dismissed', 'magiclinking_ai_notice_dismissed', 'magiclinking_dismissed_notices', 'magiclinking_per_page' ) as $key ) {
 			delete_metadata( 'user', 0, $wpdb->get_blog_prefix() . $key, '', true );
 		}
 

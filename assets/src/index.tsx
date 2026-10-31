@@ -15,6 +15,7 @@ if ( root ) {
 			canManage={ boot?.canManage ?? false }
 			initialTab={ boot?.initialTab }
 			tabUrls={ boot?.tabUrls }
+			notice={ boot?.notice }
 		/>
 	);
 }

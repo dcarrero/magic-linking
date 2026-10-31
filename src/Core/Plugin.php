@@ -60,6 +60,8 @@ use MagicLinking\Rules\RuleValidator;
 use MagicLinking\Rules\SiteAnchors;
 use MagicLinking\Rest\AiController;
 use MagicLinking\Rest\DismissalsController;
+use MagicLinking\Rest\NoticesController;
+use MagicLinking\Admin\Notices;
 use MagicLinking\Rest\EditorHistoryController;
 use MagicLinking\Rest\FixController;
 use MagicLinking\Rest\HistoryController;
@@ -106,6 +108,7 @@ final class Plugin {
 		ExclusionController::class,
 		SuggestionsController::class,
 		DismissalsController::class,
+		NoticesController::class,
 		RulesController::class,
 		RuleRunner::class,
 		JobsController::class,
@@ -425,7 +428,12 @@ final class Plugin {
 				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ), $c->get( Settings::class ) ),
 				static fn(): RulesCommand => new RulesCommand( $c->get( RuleRepository::class ), $c->get( RuleValidator::class ), $c->get( RuleService::class ) )
 			),
-			Screen::class                  => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ) ),
+			Notices::class                 => static function (): Notices {
+				global $wpdb;
+				return new Notices( $wpdb );
+			},
+			NoticesController::class       => static fn( Container $c ): NoticesController => new NoticesController( $c->get( Notices::class ) ),
+			Screen::class                  => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ), $c->get( Notices::class ) ),
 			EditorPanel::class             => static fn( Container $c ): EditorPanel => new EditorPanel( $c->get( Settings::class ) ),
 			TextDomain::class              => static fn(): TextDomain => new TextDomain(),
 			Installer::class               => static function (): Installer {

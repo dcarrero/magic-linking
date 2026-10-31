@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.24.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T21:09:23+00:00\n"
+"POT-Creation-Date: 2026-10-31T22:17:01+00:00\n"
 "PO-Revision-Date: 2026-10-31 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Português de Portugal\n"
@@ -71,12 +71,12 @@ msgstr "Plugin não ativado"
 msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
 msgstr "Faltam ao Magic Linking as bibliotecas incluídas (a pasta vendor). Reinstale o plugin a partir do wordpress.org. Não foi carregado."
 
-#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:301
+#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:311
 #: assets/build/editor.js:46 assets/build/index.js:131
 msgid "Internal links"
 msgstr "Ligações internas"
 
-#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:302
+#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:312
 #: assets/build/index.js:7 assets/build/index.js:23 assets/build/index.js:35
 #: assets/build/index.js:53 assets/build/index.js:108 assets/build/index.js:117
 #: assets/build/index.js:129
@@ -87,49 +87,65 @@ msgstr "A carregar…"
 msgid "This box needs JavaScript to show the link suggestions."
 msgstr "Esta caixa precisa de JavaScript para mostrar as sugestões de ligações."
 
-#: src/Admin/Screen.php:96
+#: src/Admin/Notices.php:137
+msgid "Do not show again"
+msgstr ""
+
+#: src/Admin/Notices.php:192
+msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
+msgstr ""
+
+#: src/Admin/Notices.php:194
+msgid "Write a review"
+msgstr ""
+
+#: src/Admin/Notices.php:197
+msgid "No, thanks"
+msgstr ""
+
+#: src/Admin/Screen.php:105
 msgid "Open report"
 msgstr "Abrir relatório"
 
-#: src/Admin/Screen.php:142
+#: src/Admin/Screen.php:151
 msgid "Magic Linking"
 msgstr "Magic Linking"
 
-#: src/Admin/Screen.php:147 assets/build/index.js:130
+#: src/Admin/Screen.php:156 assets/build/index.js:130
 msgid "Report"
 msgstr "Relatório"
 
-#: src/Admin/Screen.php:153 assets/build/index.js:130 assets/build/index.js:131
+#: src/Admin/Screen.php:162 assets/build/index.js:130 assets/build/index.js:131
 msgid "Broken links"
 msgstr "Ligações quebradas"
 
-#: src/Admin/Screen.php:157 assets/build/index.js:130
+#: src/Admin/Screen.php:166 assets/build/index.js:130
 msgid "History"
 msgstr "Histórico"
 
-#: src/Admin/Screen.php:161 assets/build/index.js:130
+#: src/Admin/Screen.php:170 assets/build/index.js:130
 msgid "Rules"
 msgstr "Regras"
 
-#: src/Admin/Screen.php:165 assets/build/index.js:23 assets/build/index.js:44
+#: src/Admin/Screen.php:174 assets/build/index.js:23 assets/build/index.js:44
 #: assets/build/index.js:50 assets/build/index.js:53 assets/build/index.js:88
 #: assets/build/index.js:101 assets/build/index.js:130
 msgid "Status"
 msgstr "Estado"
 
-#: src/Admin/Screen.php:169 assets/build/index.js:130
+#: src/Admin/Screen.php:178 assets/build/index.js:130
 msgid "Settings"
 msgstr "Definições"
 
-#: src/Admin/Screen.php:216
+#: src/Admin/Screen.php:225
 msgid "Items per page"
 msgstr "Itens por página"
 
-#: src/Admin/Screen.php:296
+#: src/Admin/Screen.php:306
 msgid "You do not have permission to see this page."
 msgstr "Não tem permissão para ver esta página."
 
-#: src/Admin/Screen.php:303
+#: src/Admin/Screen.php:313
 msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
 msgstr "Este ecrã precisa de JavaScript. Pode obter o mesmo relatório com o WP-CLI: wp magic-linking report"
 
@@ -853,6 +869,10 @@ msgstr "Envie um grupo ou uma única alteração."
 #: src/Rest/JobsController.php:200
 msgid "That process does not exist."
 msgstr "Esse processo não existe."
+
+#: src/Rest/NoticesController.php:70
+msgid "That notice does not exist."
+msgstr ""
 
 #: src/Rest/RulesController.php:653
 msgid "You do not have permission to edit this entry."

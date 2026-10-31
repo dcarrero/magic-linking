@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-import type { ReportFilter, StatusResponse, Summary } from '../types';
+import type {
+	AdminNotice,
+	ReportFilter,
+	StatusResponse,
+	Summary,
+} from '../types';
 import { AiNotice } from './AiNotice';
+import { Notices } from './Notices';
 import { BrokenTab } from './BrokenTab';
 import { HistoryTab } from './HistoryTab';
 import { IndexStatus } from './IndexStatus';
@@ -20,6 +26,8 @@ interface Props {
 	canManage: boolean;
 	initialTab?: Tab;
 	tabUrls?: TabUrls;
+	/** Aviso que el servidor eligió para esta carga (docs/07 §5). */
+	notice?: AdminNotice | null;
 }
 
 const DEFAULT_URLS: TabUrls = {
@@ -64,12 +72,14 @@ function brokenUrl( base: string, entry?: { id: number; title: string } ) {
  * @param root0.canManage
  * @param root0.initialTab
  * @param root0.tabUrls
+ * @param root0.notice
  */
 export function App( {
 	exportUrl,
 	canManage,
 	initialTab,
 	tabUrls = DEFAULT_URLS,
+	notice = null,
 }: Props ) {
 	const tab: Tab =
 		( initialTab === 'settings' || initialTab === 'rules' ) && ! canManage
@@ -86,6 +96,11 @@ export function App( {
 	const [ wizardOpen, setWizardOpen ] = useState( false );
 	const [ reportFilter, setReportFilter ] = useState< ReportFilter >( 'all' );
 	const decided = useRef( false );
+	// El aviso de «Sin conector de IA» se averigua después de cargar; mientras se espera, o si sale, no se enseña otro.
+	const aiNoticeSlot = canManage && tab === 'report';
+	const [ aiNoticeShown, setAiNoticeShown ] = useState< boolean | null >(
+		null
+	);
 
 	// El asistente se abre solo una vez, en un sitio recién instalado (sin análisis) y mientras el usuario no
 	// lo haya cerrado; también cuando se pide a propósito desde Ajustes (?wizard=1).
@@ -171,7 +186,12 @@ export function App( {
 				/>
 			) }
 
-			{ canManage && tab === 'report' && ! wizardOpen && <AiNotice /> }
+			{ aiNoticeSlot && ! wizardOpen && (
+				<AiNotice onSettled={ setAiNoticeShown } />
+			) }
+			{ ! wizardOpen && ( ! aiNoticeSlot || aiNoticeShown === false ) && (
+				<Notices notice={ notice } />
+			) }
 
 			<IndexStatus
 				hideIntro={ wizardOpen && tab === 'report' }

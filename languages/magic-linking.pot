@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-31T21:09:36+00:00\n"
+"POT-Creation-Date: 2026-10-31T22:17:25+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -70,14 +70,14 @@ msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reins
 msgstr ""
 
 #: src/Admin/EditorPanel.php:84
-#: src/Admin/Screen.php:301
+#: src/Admin/Screen.php:311
 #: assets/build/editor.js:46
 #: assets/build/index.js:131
 msgid "Internal links"
 msgstr ""
 
 #: src/Admin/EditorPanel.php:97
-#: src/Admin/Screen.php:302
+#: src/Admin/Screen.php:312
 #: assets/build/index.js:7
 #: assets/build/index.js:23
 #: assets/build/index.js:35
@@ -92,36 +92,52 @@ msgstr ""
 msgid "This box needs JavaScript to show the link suggestions."
 msgstr ""
 
-#: src/Admin/Screen.php:96
+#: src/Admin/Notices.php:137
+msgid "Do not show again"
+msgstr ""
+
+#: src/Admin/Notices.php:192
+msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
+msgstr ""
+
+#: src/Admin/Notices.php:194
+msgid "Write a review"
+msgstr ""
+
+#: src/Admin/Notices.php:197
+msgid "No, thanks"
+msgstr ""
+
+#: src/Admin/Screen.php:105
 msgid "Open report"
 msgstr ""
 
-#: src/Admin/Screen.php:142
+#: src/Admin/Screen.php:151
 msgid "Magic Linking"
 msgstr ""
 
-#: src/Admin/Screen.php:147
+#: src/Admin/Screen.php:156
 #: assets/build/index.js:130
 msgid "Report"
 msgstr ""
 
-#: src/Admin/Screen.php:153
+#: src/Admin/Screen.php:162
 #: assets/build/index.js:130
 #: assets/build/index.js:131
 msgid "Broken links"
 msgstr ""
 
-#: src/Admin/Screen.php:157
+#: src/Admin/Screen.php:166
 #: assets/build/index.js:130
 msgid "History"
 msgstr ""
 
-#: src/Admin/Screen.php:161
+#: src/Admin/Screen.php:170
 #: assets/build/index.js:130
 msgid "Rules"
 msgstr ""
 
-#: src/Admin/Screen.php:165
+#: src/Admin/Screen.php:174
 #: assets/build/index.js:23
 #: assets/build/index.js:44
 #: assets/build/index.js:50
@@ -132,20 +148,20 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: src/Admin/Screen.php:169
+#: src/Admin/Screen.php:178
 #: assets/build/index.js:130
 msgid "Settings"
 msgstr ""
 
-#: src/Admin/Screen.php:216
+#: src/Admin/Screen.php:225
 msgid "Items per page"
 msgstr ""
 
-#: src/Admin/Screen.php:296
+#: src/Admin/Screen.php:306
 msgid "You do not have permission to see this page."
 msgstr ""
 
-#: src/Admin/Screen.php:303
+#: src/Admin/Screen.php:313
 msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
 msgstr ""
 
@@ -907,6 +923,10 @@ msgstr ""
 
 #: src/Rest/JobsController.php:200
 msgid "That process does not exist."
+msgstr ""
+
+#: src/Rest/NoticesController.php:70
+msgid "That notice does not exist."
 msgstr ""
 
 #: src/Rest/RulesController.php:653

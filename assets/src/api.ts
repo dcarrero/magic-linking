@@ -586,6 +586,18 @@ export const api = {
 			method: 'POST',
 			data: { dismissed },
 		} ),
+	/**
+	 * Cierra un aviso para siempre (para este usuario). `keepalive`: la petición sigue aunque el clic navegue a otra página.
+	 *
+	 * @param id Identificador del aviso.
+	 */
+	dismissNotice: ( id: string ) =>
+		apiFetch< { dismissed: string } >( {
+			path: path( '/notices/dismiss' ),
+			method: 'POST',
+			data: { id },
+			keepalive: true,
+		} ),
 	settings: () =>
 		apiFetch< SettingsResponse >( { path: path( '/settings' ) } ),
 	wizard: () => apiFetch< WizardResponse >( { path: path( '/wizard' ) } ),
