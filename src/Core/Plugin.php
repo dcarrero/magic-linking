@@ -257,7 +257,8 @@ final class Plugin {
 				$c->get( Reader::class ),
 				$c->get( Settings::class ),
 				$c->get( SuggestionPresenter::class ),
-				$c->get( Destination::class )
+				$c->get( Destination::class ),
+				$c->get( Language::class )
 			),
 			RuleRepository::class          => static function (): RuleRepository {
 				global $wpdb;

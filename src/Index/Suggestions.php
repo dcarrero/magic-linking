@@ -326,7 +326,11 @@ final class Suggestions {
 	private function suggester( array $options, TableRepository $repository, TableDocuments $documents ): Suggester {
 		$all = $this->settings->all();
 
-		$defaults = array( 'max_outgoing' => $this->candidates( $all ) );
+		$defaults = array(
+			'max_outgoing' => $this->candidates( $all ),
+			// Frases alternativas por sugerencia (docs/04 §5): 0 por defecto, igual que el motor.
+			'alternatives' => (int) $all['alternatives'],
+		);
 		// Las direcciones ignoradas se suman a los destinos descartados; ninguna lista pisa a la otra.
 		if ( array() !== $all['ignored_ids'] ) {
 			$options['never'] = array_values( array_unique( array_merge( $options['never'] ?? array(), $all['ignored_ids'] ) ) );
@@ -365,17 +369,22 @@ final class Suggestions {
 
 		$patterns = IgnoredWords::patterns( $all['ignored_words'] );
 
-		return array_values(
-			array_filter(
-				$found,
-				static function ( Suggestion $suggestion ) use ( $patterns, $all ): bool {
-					if ( in_array( $suggestion->source, $all['ignored_ids'], true ) ) {
-						return false;
-					}
+		$kept = array();
+		foreach ( $found as $suggestion ) {
+			if ( in_array( $suggestion->source, $all['ignored_ids'], true ) || IgnoredWords::matches( $patterns, $suggestion->anchor ) ) {
+				continue;
+			}
 
-					return ! IgnoredWords::matches( $patterns, $suggestion->anchor );
-				}
-			)
-		);
+			// Las frases alternativas siguen las mismas reglas que la principal.
+			$alternatives = array_values(
+				array_filter(
+					$suggestion->alternatives,
+					static fn( Suggestion $alternative ): bool => ! IgnoredWords::matches( $patterns, $alternative->anchor )
+				)
+			);
+			$kept[]       = count( $alternatives ) === count( $suggestion->alternatives ) ? $suggestion : $suggestion->with_alternatives( $alternatives );
+		}
+
+		return $kept;
 	}
 }

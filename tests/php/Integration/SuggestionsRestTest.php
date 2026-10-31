@@ -1167,6 +1167,277 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->assertContains( $this->target, $out(), 'Otra dirección ignorada no afecta.' );
 	}
 
+	// ------------------------------------------------------------------ Más frases y ancla ajustable (F1-22, D-30).
+
+	/**
+	 * Un origen con la misma mención en cuatro frases de párrafos distintos, para que haya alternativas.
+	 *
+	 * @return int Origen.
+	 */
+	private function source_with_many_sentences(): int {
+		$this->corpus( 1 );
+
+		return self::factory()->post->create(
+			array(
+				'post_title'   => 'Notas sueltas de la casa',
+				'post_author'  => $this->admin,
+				'post_content' => $this->p( 'Primero hablamos de la aerotermia como sistema de calefacción para la vivienda.' )
+					. $this->p( 'Después comparamos la aerotermia con la caldera de gas y con los radiadores eléctricos.' )
+					. $this->p( 'Al final la aerotermia gana por consumo y por facilidad de instalación en casa.' )
+					. $this->p( 'Una nota más sobre la aerotermia y el suelo radiante de toda la vivienda.' ),
+			)
+		);
+	}
+
+	public function test_by_default_the_suggestion_has_one_sentence_and_no_alternatives(): void {
+		$source = $this->source_with_many_sentences();
+		$this->build_index();
+
+		$item = $this->first_outbound( $source );
+
+		$this->assertSame( array(), $item['alternatives'] );
+	}
+
+	public function test_with_the_setting_the_suggestion_brings_up_to_two_alternatives_in_other_sentences(): void {
+		$source = $this->source_with_many_sentences();
+		$this->build_index();
+		$this->save_settings( array( 'alternatives' => 2 ) );
+
+		$item = $this->first_outbound( $source );
+
+		$this->assertLessThanOrEqual( 2, count( $item['alternatives'] ) );
+		$this->assertNotEmpty( $item['alternatives'], 'Hay cuatro frases con la mención.' );
+		$sentences = array( $item['sentence'] );
+		foreach ( $item['alternatives'] as $alternative ) {
+			$this->assertNotContains( $alternative['sentence'], $sentences, 'Cada alternativa es otra frase.' );
+			$sentences[] = $alternative['sentence'];
+			$this->assertSame( $alternative['anchor'], substr( $alternative['sentence'], $alternative['offset'], strlen( $alternative['anchor'] ) ) );
+			$this->assertSame( $source, $alternative['insert']['post_id'] );
+			$this->assertSame( $alternative['anchor'], $alternative['insert']['anchor'] );
+			$this->assertSame( $this->target, $alternative['insert']['target_id'] );
+		}
+	}
+
+	public function test_an_alternative_sentence_is_inserted_and_the_rest_stays_identical(): void {
+		$source = $this->source_with_many_sentences();
+		$this->build_index();
+		$this->save_settings( array( 'alternatives' => 2 ) );
+		$before = $this->stored( $source );
+		$item   = $this->first_outbound( $source );
+		$alt    = $item['alternatives'][0];
+
+		$result = $this->request( 'POST', '/links', $alt['insert'] )->get_data();
+
+		$this->assertSame( 1, $result['inserted'], wp_json_encode( $result ) );
+		$after = $this->stored( $source );
+		$this->assertSame( 1, substr_count( $after, '<a href=' ) );
+		$this->assertSame( $before, preg_replace( '#<a href="[^"]*">([^<]*)</a>#', '$1', $after ), 'Fuera del enlace, byte a byte lo mismo (regla 5).' );
+		$this->assertStringContainsString( '>' . $alt['anchor'] . '</a>', $after );
+
+		// Caso 12 de docs/06 §8: deshacer deja el contenido idéntico al original.
+		$undo = $this->request( 'POST', '/undo', array( 'batch_id' => $result['batch_id'] ) );
+		$this->assertSame( 200, $undo->get_status() );
+		$this->assertSame( $before, $this->stored( $source ) );
+	}
+
+	public function test_alternatives_that_cannot_be_inserted_are_not_offered(): void {
+		$this->corpus( 1 );
+		$source = self::factory()->post->create(
+			array(
+				'post_title'   => 'Notas con un encabezado',
+				'post_author'  => $this->admin,
+				'post_content' => $this->p( 'Primero hablamos de la aerotermia como sistema de calefacción para la vivienda.' )
+					. "<!-- wp:heading -->\n<h2>La aerotermia en el título de esta sección de la casa</h2>\n<!-- /wp:heading -->"
+					. $this->p( 'Al final la aerotermia gana por consumo y por facilidad de instalación en casa.' ),
+			)
+		);
+		$this->build_index();
+		$this->save_settings( array( 'alternatives' => 2 ) );
+
+		$item = $this->first_outbound( $source );
+
+		foreach ( $item['alternatives'] as $alternative ) {
+			$this->assertStringNotContainsString( 'título de esta sección', $alternative['sentence'] );
+		}
+	}
+
+	public function test_the_alternatives_do_not_change_the_main_suggestion(): void {
+		$source = $this->source_with_many_sentences();
+		$this->build_index();
+		$plain = $this->first_outbound( $source );
+		$this->save_settings( array( 'alternatives' => 2 ) );
+		$more = $this->first_outbound( $source );
+
+		unset( $plain['alternatives'], $more['alternatives'] );
+		$this->assertSame( $plain, $more );
+	}
+
+	public function test_inbound_suggestions_also_bring_alternatives_and_they_are_inserted_in_the_other_entry(): void {
+		$source = $this->source_with_many_sentences();
+		$this->build_index();
+		$this->save_settings( array( 'alternatives' => 2 ) );
+
+		$data = $this->request(
+			'GET',
+			'/suggestions/inbound',
+			array(
+				'post_id'  => $this->target,
+				'per_page' => 50,
+			)
+		)->get_data();
+		$mine = array_values( array_filter( $data['items'], static fn( array $item ): bool => $item['source']['id'] === $source ) );
+
+		$this->assertCount( 1, $mine );
+		$this->assertNotEmpty( $mine[0]['alternatives'] );
+		$result = $this->request( 'POST', '/links', $mine[0]['alternatives'][0]['insert'] )->get_data();
+		$this->assertSame( 1, $result['inserted'], wp_json_encode( $result ) );
+		$this->assertSame( 1, substr_count( $this->stored( $source ), '<a href=' ) );
+	}
+
+	public function test_the_anchor_check_route_needs_a_login_and_permission_on_the_entry(): void {
+		$this->corpus();
+		$item   = $this->first_outbound( $this->sources[1] );
+		$params = array(
+			'post_id'  => $this->sources[1],
+			'sentence' => $item['sentence'],
+			'offset'   => $item['offset'],
+			'anchor'   => $item['anchor'],
+		);
+
+		$this->assertSame( 401, $this->request( 'POST', '/suggestions/anchor', $params, 0 )->get_status() );
+		$this->assertSame( 403, $this->request( 'POST', '/suggestions/anchor', $params, $this->subscriber )->get_status() );
+		$this->assertSame( 403, $this->request( 'POST', '/suggestions/anchor', $params, $this->author )->get_status(), 'Una entrada ajena.' );
+		$this->assertSame( 200, $this->request( 'POST', '/suggestions/anchor', $params )->get_status() );
+		$this->assertSame( 404, $this->request( 'POST', '/suggestions/anchor', array_merge( $params, array( 'post_id' => 999999 ) ) )->get_status() );
+	}
+
+	public function test_the_anchor_check_route_says_why_an_anchor_is_not_valid_in_words(): void {
+		$this->corpus();
+		$item = $this->first_outbound( $this->sources[1] );
+		$base = array(
+			'post_id'  => $this->sources[1],
+			'sentence' => $item['sentence'],
+			'offset'   => $item['offset'],
+			'anchor'   => $item['anchor'],
+		);
+
+		$ok = $this->request( 'POST', '/suggestions/anchor', $base )->get_data();
+		$this->assertTrue( $ok['valid'] );
+		$this->assertSame( array(), $ok['errors'] );
+
+		$bad = $this->request( 'POST', '/suggestions/anchor', array_merge( $base, array( 'anchor' => 'texto que no está' ) ) )->get_data();
+		$this->assertFalse( $bad['valid'] );
+		$this->assertSame( 'not_literal', $bad['errors'][0]['code'] );
+		$this->assertNotSame( '', $bad['errors'][0]['message'] );
+
+		$long = substr( $item['sentence'], 0, 200 );
+		$many = $this->request(
+			'POST',
+			'/suggestions/anchor',
+			array_merge(
+				$base,
+				array(
+					'sentence' => 'Una frase con aerotermia que tiene muchas palabras de contenido seguidas sin parar nunca jamás.',
+					'offset'   => 4,
+					'anchor'   => 'frase con aerotermia que tiene muchas palabras de contenido seguidas',
+				)
+			)
+		)->get_data();
+		$this->assertFalse( $many['valid'] );
+		$this->assertSame( 'too_many_words', $many['errors'][0]['code'] );
+		$this->assertNotSame( '', $long );
+	}
+
+	public function test_an_adjusted_anchor_is_checked_again_when_inserting(): void {
+		$this->corpus();
+		$item   = $this->first_outbound( $this->sources[1] );
+		$insert = $item['insert'];
+		$before = $this->stored( $this->sources[1] );
+
+		// Ajustada a una palabra vacía: el servidor no se fía de la interfaz.
+		$start  = (int) strpos( $item['sentence'], 'la ' );
+		$result = $this->request(
+			'POST',
+			'/links',
+			array_merge(
+				$insert,
+				array(
+					'offset'   => $start,
+					'anchor'   => 'la',
+					'adjusted' => true,
+				)
+			)
+		)->get_data()['results'][0];
+
+		$this->assertSame( 'failed', $result['status'] );
+		$this->assertSame( 'bad_anchor', $result['reason'] );
+		$this->assertNotSame( '', $result['message'] );
+		$this->assertSame( $before, $this->stored( $this->sources[1] ) );
+	}
+
+	public function test_an_anchor_the_user_extended_is_inserted_with_the_rest_untouched(): void {
+		$this->corpus();
+		$item   = $this->first_outbound( $this->sources[1] );
+		$before = $this->stored( $this->sources[1] );
+		// Una palabra más a la derecha del ancla del motor.
+		$tail = substr( $item['sentence'], $item['offset'] + strlen( $item['anchor'] ) );
+		$this->assertSame( 1, preg_match( '/^ ([\p{L}]{2,})/u', $tail, $m ), $tail );
+		$anchor = $item['anchor'] . ' ' . $m[1];
+
+		$result = $this->request(
+			'POST',
+			'/links',
+			array_merge(
+				$item['insert'],
+				array(
+					'anchor'   => $anchor,
+					'adjusted' => true,
+				)
+			)
+		)->get_data();
+
+		$this->assertSame( 1, $result['inserted'], wp_json_encode( $result ) );
+		$after = $this->stored( $this->sources[1] );
+		$this->assertStringContainsString( '>' . $anchor . '</a>', $after );
+		$this->assertSame( $before, preg_replace( '#<a href="[^"]*">([^<]*)</a>#', '$1', $after ) );
+	}
+
+	public function test_an_anchor_that_crosses_an_existing_link_is_refused_with_a_message(): void {
+		$this->corpus();
+		$item = $this->first_outbound( $this->sources[1] );
+		$post = $this->sources[1];
+		// Entre medias alguien enlazó parte de la frase.
+		$content = $this->stored( $post );
+		$anchor  = $item['anchor'];
+		$words   = explode( ' ', $anchor );
+		$this->assertGreaterThanOrEqual( 1, count( $words ) );
+		$linked = str_replace( $words[ count( $words ) - 1 ], '<a href="https://example.org/otra">' . $words[ count( $words ) - 1 ] . '</a>', $content );
+		$this->assertNotSame( $content, $linked );
+		wp_update_post(
+			array(
+				'ID'           => $post,
+				'post_content' => wp_slash( $linked ),
+			)
+		);
+
+		$result = $this->request( 'POST', '/links', array_merge( $item['insert'], array( 'adjusted' => true ) ) )->get_data()['results'][0];
+
+		$this->assertSame( 'failed', $result['status'] );
+		$this->assertContains( $result['reason'], array( 'already_linked', 'text_changed' ) );
+		$this->assertNotSame( '', $result['message'] );
+		$this->assertSame( $linked, $this->stored( $post ), 'No se toca nada.' );
+	}
+
+	public function test_without_adjusting_nothing_changes_for_the_default_insertion(): void {
+		$this->corpus();
+		$item = $this->first_outbound( $this->sources[1] );
+
+		$result = $this->request( 'POST', '/links', $item['insert'] )->get_data();
+
+		$this->assertSame( 1, $result['inserted'] );
+		$this->assertArrayNotHasKey( 'adjusted', $item['insert'], 'El cuerpo de insertar es el de siempre.' );
+	}
+
 	public function test_the_number_of_outbound_suggestions_shown_comes_from_the_settings(): void {
 		$this->corpus();
 		$source = $this->sources[1];

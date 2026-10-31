@@ -43,6 +43,8 @@ final class Settings {
 		'outbound_shown'               => 15,
 		'inbound_per_page'             => 10,
 		'same_anchor_max'              => RuleLimits::SAME_ANCHOR,
+		// Frases alternativas por sugerencia (docs/04 §5, D-30): 0 hasta que el banco las valide (D-33).
+		'alternatives'                 => 0,
 		'ignored_urls'                 => array(),
 		'ignored_words'                => array(),
 		'ignored_ids'                  => array(),
@@ -74,6 +76,7 @@ final class Settings {
 		'outbound_shown'        => array( 1, 50 ),
 		'inbound_per_page'      => array( 5, 50 ),
 		'same_anchor_max'       => array( 1, 50 ),
+		'alternatives'          => array( 0, Suggester::MAX_ALTERNATIVES ),
 		// Enlaces al mismo destino desde una entrada (docs/04 §6.1): tope duro de las reglas.
 		'links_per_target_max'  => array( 1, 10 ),
 		// Tope diario de tokens de IA (docs/05 §5.3): 0 = sin IA.

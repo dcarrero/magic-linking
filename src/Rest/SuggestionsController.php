@@ -17,11 +17,14 @@ use MagicLinking\Content\InsertRequest;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\Analyzer;
+use MagicLinking\Engine\AnchorCheck;
 use MagicLinking\Engine\Suggester;
 use MagicLinking\Engine\Suggestion;
 use MagicLinking\History\AiOrigin;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\Reader;
+use MagicLinking\I18n\Language;
 use MagicLinking\Index\SuggestionCache;
 use MagicLinking\Index\Suggestions;
 use Throwable;
@@ -65,6 +68,7 @@ final class SuggestionsController implements Module {
 	 * @param Settings            $settings    Ajustes.
 	 * @param SuggestionPresenter $presenter   Forma de la respuesta.
 	 * @param Destination         $destination Comprobación del destino.
+	 * @param Language            $language    Idioma por entrada (para comprobar un ancla ajustada).
 	 */
 	public function __construct(
 		private Suggestions $suggestions,
@@ -72,7 +76,8 @@ final class SuggestionsController implements Module {
 		private Reader $reader,
 		private Settings $settings,
 		private SuggestionPresenter $presenter,
-		private Destination $destination
+		private Destination $destination,
+		private Language $language
 	) {
 	}
 
@@ -174,6 +179,36 @@ final class SuggestionsController implements Module {
 			)
 		);
 
+		register_rest_route(
+			$ns,
+			'/suggestions/anchor',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'post_anchor' ),
+				'permission_callback' => array( $this, 'can_edit_post' ),
+				'args'                => array(
+					'post_id'  => $post_id,
+					'sentence' => array(
+						'type'      => 'string',
+						'required'  => true,
+						'minLength' => 1,
+						'maxLength' => 5000,
+					),
+					'offset'   => array(
+						'type'     => 'integer',
+						'required' => true,
+						'minimum'  => 0,
+					),
+					'anchor'   => array(
+						'type'      => 'string',
+						'required'  => true,
+						'minLength' => 1,
+						'maxLength' => 500,
+					),
+				),
+			)
+		);
+
 		$link = array(
 			'type'       => 'object',
 			'properties' => array(
@@ -199,6 +234,8 @@ final class SuggestionsController implements Module {
 					'minLength' => 1,
 					'maxLength' => 500,
 				),
+				// F1-22: el usuario ajustó el ancla dentro de la frase; el servidor la vuelve a comprobar (docs/04 §5.5).
+				'adjusted'       => array( 'type' => 'boolean' ),
 				// F1-38: lo declara el cliente y solo informa al Historial (no sirve de auditoría); el servidor lo sanea y no
 				// cambia lo que se escribe.
 				'ai_recommended' => array( 'type' => 'boolean' ),
@@ -257,6 +294,32 @@ final class SuggestionsController implements Module {
 		$id = (int) $request['post_id'];
 
 		return ! get_post( $id ) instanceof WP_Post || current_user_can( 'edit_post', $id );
+	}
+
+	/**
+	 * POST /suggestions/anchor: comprueba un ancla que el usuario ha ajustado dentro de la frase de una sugerencia
+	 * (docs/07 §3.2). No escribe nada: dice si se puede enlazar (`valid`), por qué no (`errors`) y qué es dudoso
+	 * (`warnings`), cada uno con su código y su texto.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function post_anchor( WP_REST_Request $request ) {
+		$post_id = (int) $request['post_id'];
+		if ( ! get_post( $post_id ) instanceof WP_Post ) {
+			return $this->not_found();
+		}
+
+		$check = AnchorCheck::of( Analyzer::for_language( $this->language->for_post( $post_id ) ), (string) $request['sentence'], (int) $request['offset'], (string) $request['anchor'] );
+
+		return new WP_REST_Response(
+			array(
+				'valid'    => $check->valid(),
+				'errors'   => AnchorMessages::describe( $check->errors ),
+				'warnings' => AnchorMessages::describe( $check->warnings ),
+			)
+		);
 	}
 
 	/**
@@ -366,14 +429,31 @@ final class SuggestionsController implements Module {
 			} catch ( InsertionException ) {
 				continue;
 			}
+			// Las frases alternativas, por el mismo camino: una que no se puede enlazar no se ofrece (docs/07 §3.1).
+			foreach ( $suggestion->alternatives as $n => $alternative ) {
+				try {
+					$requests[ $key . ':' . $n ] = InsertRequest::from_sentence( $post_id, home_url( '/' ), $alternative->sentence, $alternative->offset, $alternative->anchor );
+				} catch ( InsertionException ) {
+					continue;
+				}
+			}
 		}
 
 		$fits = $this->inserter->can_insert_many( $content, $post_id, $requests );
 		$kept = array();
 		foreach ( $found as $key => $suggestion ) {
-			if ( $fits[ $key ] ?? false ) {
-				$kept[] = $suggestion;
+			if ( ! ( $fits[ $key ] ?? false ) ) {
+				continue;
 			}
+
+			$alternatives = array();
+			foreach ( $suggestion->alternatives as $n => $alternative ) {
+				if ( $fits[ $key . ':' . $n ] ?? false ) {
+					$alternatives[] = $alternative;
+				}
+			}
+
+			$kept[] = count( $alternatives ) === count( $suggestion->alternatives ) ? $suggestion : $suggestion->with_alternatives( $alternatives );
 		}
 
 		return $kept;
@@ -460,6 +540,7 @@ final class SuggestionsController implements Module {
 					'offset'         => $request['offset'],
 					'anchor'         => $request['anchor'],
 					'block_path'     => $request['block_path'],
+					'adjusted'       => $request['adjusted'],
 					'ai_recommended' => $request['ai_recommended'],
 					'ai_anchor'      => $request['ai_anchor'],
 					'ai_model'       => $request['ai_model'],
@@ -501,6 +582,15 @@ final class SuggestionsController implements Module {
 			if ( $url instanceof InsertionException ) {
 				$results[ $index ] = $this->failure( $base, $url );
 				continue;
+			}
+
+			// Un ancla ajustada por el usuario pasa otra vez por los descartes de docs/04 §5.3; la del motor ya los pasó.
+			if ( ! empty( $link['adjusted'] ) ) {
+				$check = AnchorCheck::of( Analyzer::for_language( $this->language->for_post( $post_id ) ), (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] );
+				if ( ! $check->valid() ) {
+					$results[ $index ] = $this->failure( $base, new InsertionException( InsertionException::BAD_ANCHOR, AnchorMessages::text( $check->errors[0] ) ) );
+					continue;
+				}
 			}
 
 			$path = isset( $link['block_path'] ) && is_string( $link['block_path'] ) && '' !== $link['block_path'] ? $link['block_path'] : null;

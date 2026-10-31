@@ -70,6 +70,7 @@ export const LEGACY_ANCHORS: Record< string, SettingsTabName > =
 const TAB_OF: Record< keyof SettingsValues, SettingsTabName > = {
 	post_types: 'general',
 	outbound_shown: 'suggestions',
+	alternatives: 'suggestions',
 	inbound_per_page: 'suggestions',
 	words_per_link: 'suggestions',
 	same_anchor_max: 'suggestions',

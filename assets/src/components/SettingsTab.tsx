@@ -57,6 +57,7 @@ type NumberKey =
 	| 'same_anchor_max'
 	| 'links_per_target_max'
 	| 'outbound_shown'
+	| 'alternatives'
 	| 'inbound_per_page'
 	| 'low_inbound_threshold'
 	| 'ai_daily_token_limit';
@@ -70,6 +71,7 @@ const NUMBER_RULES: Record<
 	same_anchor_max: { fallback: 5, min: 1, max: 50 },
 	links_per_target_max: { fallback: 1, min: 1, max: 10 },
 	outbound_shown: { fallback: 15, min: 1, max: 50 },
+	alternatives: { fallback: 0, min: 0, max: 2 },
 	inbound_per_page: { fallback: 10, min: 5, max: 50 },
 	low_inbound_threshold: { fallback: 2, min: 1, max: 20 },
 	ai_daily_token_limit: { fallback: 2000000, min: 0, max: 1000000000 },
@@ -508,6 +510,17 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 								),
 								__(
 									'The most useful links to add from the entry you are editing.',
+									'magic-linking'
+								)
+							) }
+							{ number(
+								'alternatives',
+								__(
+									'Alternative sentences per suggestion',
+									'magic-linking'
+								),
+								__(
+									'0 shows one sentence per suggestion. With 1 or 2, each card offers “More sentences” to link from another sentence of the same entry.',
 									'magic-linking'
 								)
 							) }

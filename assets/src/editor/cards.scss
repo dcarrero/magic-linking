@@ -174,3 +174,111 @@
 	justify-content: space-between;
 	margin-top: 4px;
 }
+
+// Más frases y ancla ajustable (F1-22, docs/07 §3.1 y §3.2). Todo estado lleva texto, no solo color.
+.magiclinking-card__variants {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 16px;
+	margin: 0 0 6px;
+}
+
+.magiclinking-options {
+	border: 0;
+	margin: 0 0 8px;
+	min-width: 0;
+	padding: 0;
+}
+
+.magiclinking-options__legend {
+	font-size: 12px;
+	font-weight: 600;
+	margin: 0 0 4px;
+	padding: 0;
+}
+
+.magiclinking-options__option {
+	align-items: flex-start;
+	display: flex;
+	gap: 8px;
+	margin: 0 0 6px;
+
+	label {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	input[type='radio'] {
+		flex: none;
+		margin-top: 2px;
+	}
+}
+
+.magiclinking-options__main {
+	color: #50575e;
+}
+
+.magiclinking-adjust {
+	margin: 0 0 8px;
+}
+
+.magiclinking-adjust__hint {
+	color: #50575e;
+	font-size: 12px;
+}
+
+.magiclinking-adjust__words {
+	background: #fff;
+	border: 1px solid #949494;
+	border-radius: 2px;
+	line-height: 2;
+	padding: 4px 8px;
+
+	&:focus {
+		border-color: var(--wp-admin-theme-color, #3858e9);
+		box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
+		outline: 2px solid transparent;
+	}
+}
+
+.magiclinking-adjust__word {
+	background: none;
+	border: 0;
+	border-radius: 2px;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	margin: 0;
+	padding: 0 1px;
+
+	&:hover {
+		text-decoration: underline;
+	}
+
+	&.is-in-anchor {
+		background: #ffe58f;
+		box-shadow: inset 0 -2px 0 #1e1e1e;
+		color: #1e1e1e;
+	}
+}
+
+.magiclinking-adjust__state p {
+	font-size: 12px;
+	margin: 4px 0 0;
+}
+
+.magiclinking-adjust__error {
+	color: #cc1818;
+	font-weight: 600;
+}
+
+.magiclinking-adjust__warning {
+	color: #7a4b00;
+}
+
+@media (forced-colors: active) {
+	.magiclinking-adjust__word.is-in-anchor {
+		background: Highlight;
+		color: HighlightText;
+	}
+}

@@ -183,6 +183,8 @@ export interface SettingsValues {
 	outbound_shown: number;
 	inbound_per_page: number;
 	same_anchor_max: number;
+	/** Frases alternativas por sugerencia (0 a 2; docs/04 §5). */
+	alternatives: number;
 	/** Enlaces al mismo destino desde una entrada: tope duro de las reglas (docs/04 §6.1). */
 	links_per_target_max: number;
 	ignored_urls: string[];
@@ -434,10 +436,25 @@ export interface InsertLink {
 	offset: number;
 	anchor: string;
 	block_path: string | null;
+	/** El usuario ajustó el ancla dentro de la frase: el servidor la vuelve a comprobar (F1-22). */
+	adjusted?: boolean;
 	/** Lo que la IA opina del enlace; solo informativo, el servidor lo guarda en el Historial (F1-38). */
 	ai_recommended?: boolean;
 	ai_anchor?: boolean;
 	ai_model?: string;
+}
+
+/** Un motivo por el que un ancla ajustada no vale (`errors`) o es dudosa (`warnings`), con su texto. */
+export interface AnchorIssue {
+	code: string;
+	message: string;
+}
+
+/** Respuesta de `POST /suggestions/anchor` (docs/07 §3.2). */
+export interface AnchorCheckResponse {
+	valid: boolean;
+	errors: AnchorIssue[];
+	warnings: AnchorIssue[];
 }
 
 export interface SuggestionReason {

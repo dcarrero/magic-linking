@@ -29,6 +29,7 @@ final class InsertionException extends RuntimeException {
 	public const UNSAFE_ANCHOR     = 'unsafe_anchor';
 	public const UNSUPPORTED       = 'unsupported_markup';
 	public const BAD_REQUEST       = 'bad_request';
+	public const BAD_ANCHOR        = 'bad_anchor';
 	public const VERIFY_FAILED     = 'verify_failed';
 	public const WRITE_FAILED      = 'write_failed';
 	public const BUSY              = 'busy';

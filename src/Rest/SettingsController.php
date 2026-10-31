@@ -162,6 +162,9 @@ final class SettingsController implements Module {
 						'same_anchor_max'              => array(
 							'type' => 'integer',
 						),
+						'alternatives'                 => array(
+							'type' => 'integer',
+						),
 						'links_per_target_max'         => array(
 							'type' => 'integer',
 						),
