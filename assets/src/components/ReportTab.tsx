@@ -6,7 +6,7 @@ import { api } from '../api';
 import { useDebounced, useIsFirstRender, useLoad } from '../hooks';
 import type { ReportFilter, ReportItem, SortKey, Summary } from '../types';
 import { Column, DataTable } from './DataTable';
-import { formatDate } from './historyFormat';
+import { dateTimeAttr, formatDate } from './historyFormat';
 import {
 	SuggestionsDrawer,
 	type SuggestionDirection,
@@ -339,7 +339,7 @@ export function ReportTab( {
 			header: __( 'Analyzed', 'magic-linking' ),
 			sortKey: 'indexed_at',
 			render: ( row ) => (
-				<time dateTime={ row.indexed_at }>
+				<time dateTime={ dateTimeAttr( row.indexed_at ) }>
 					{ formatDate( row.indexed_at ) }
 				</time>
 			),

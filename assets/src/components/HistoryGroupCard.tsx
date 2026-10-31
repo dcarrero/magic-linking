@@ -8,7 +8,7 @@ import {
 	entryTitle,
 	formatDate,
 	formatFullDate,
-	parseServerDate,
+	dateTimeAttr,
 	batchAiLabel,
 	batchOriginLabel,
 } from './historyFormat';
@@ -197,11 +197,7 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 			</h2>
 			<p className="magiclinking-batch__meta">
 				{ group.user_name } ·{ ' ' }
-				<time
-					dateTime={ parseServerDate(
-						group.created_at
-					).toISOString() }
-				>
+				<time dateTime={ dateTimeAttr( group.created_at ) }>
 					{ formatDate( group.created_at ) }
 				</time>{ ' ' }
 				·{ ' ' }
@@ -360,9 +356,9 @@ export function HistoryGroupCard( { group, onChange }: Props ) {
 										<tr key={ change.id }>
 											<td>
 												<time
-													dateTime={ parseServerDate(
+													dateTime={ dateTimeAttr(
 														change.created_at
-													).toISOString() }
+													) }
 													title={ formatFullDate(
 														change.created_at
 													) }

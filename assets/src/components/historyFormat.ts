@@ -1,3 +1,4 @@
+import { dateI18n, getSettings } from '@wordpress/date';
 import { __, _n, _x, sprintf } from '@wordpress/i18n';
 import type { ChangeKind, HistoryOrigin } from '../types';
 
@@ -11,75 +12,174 @@ export function parseServerDate( value: string ): Date {
 	return new Date( /(Z|[+-]\d\d:?\d\d)$/.test( iso ) ? iso : iso + 'Z' );
 }
 
-const formatters = new Map< string, Intl.DateTimeFormat >();
+/** Lo que se muestra cuando no hay fecha (vacía, cero de MySQL o ilegible). */
+const NO_DATE = '—';
 
 /**
- * Idioma de la página como etiqueta BCP 47 válida; los locales de WordPress que no lo son
- * (p. ej. `pt-PT-ao90`) caen al idioma del navegador en vez de lanzar.
+ * Fecha del servidor, o `null` si no es una fecha real: vacía, ilegible o la cero de MySQL
+ * (`0000-00-00 00:00:00`, que no existe antes de 1970).
+ * @param value Fecha del servidor.
  */
-function pageLocale(): string | undefined {
-	const lang = document.documentElement.lang;
-	if ( ! lang ) {
-		return undefined;
-	}
-	try {
-		return Intl.getCanonicalLocales( lang )[ 0 ];
-	} catch {
-		return undefined;
-	}
-}
-
-/**
- * Formateador de fechas cacheado por idioma y estilo (se llama una vez por fila en cada render).
- * @param style           Estilos de fecha y hora.
- * @param style.dateStyle
- * @param style.timeStyle
- */
-function formatter( style: {
-	dateStyle: 'medium' | 'full';
-	timeStyle: 'short' | 'medium';
-} ): Intl.DateTimeFormat {
-	const locale = pageLocale();
-	const key = `${ locale ?? '' }|${ style.dateStyle }|${ style.timeStyle }`;
-	let cached = formatters.get( key );
-	if ( ! cached ) {
-		cached = new Intl.DateTimeFormat( locale, style );
-		formatters.set( key, cached );
-	}
-	return cached;
-}
-
-/**
- * Da formato a una fecha del servidor; si no es válida devuelve el texto tal cual.
- * @param value           Fecha del servidor.
- * @param style           Estilos de fecha y hora.
- * @param style.dateStyle
- * @param style.timeStyle
- */
-function format(
-	value: string,
-	style: Parameters< typeof formatter >[ 0 ]
-): string {
+function validServerDate( value: string ): Date | null {
 	const date = parseServerDate( value );
-	return Number.isNaN( date.getTime() )
-		? value
-		: formatter( style ).format( date );
+	return Number.isNaN( date.getTime() ) || date.getTime() <= 0 ? null : date;
 }
 
 /**
- * Fecha y hora en el idioma del usuario, con el formato de la pantalla.
- * @param value Fecha RFC 3339 del servidor.
+ * Valor del atributo `dateTime` de un `<time>`: el instante en ISO 8601, o nada si la fecha no es real.
+ * @param value Fecha del servidor.
+ */
+export function dateTimeAttr( value: string ): string | undefined {
+	return validServerDate( value )?.toISOString();
+}
+
+/**
+ * Quita los caracteres escapados con `\` de un formato de fecha de PHP, para mirar solo sus códigos.
+ * @param pattern Formato.
+ */
+function codes( pattern: string ): string {
+	return pattern.replace( /\\./g, '' );
+}
+
+/**
+ * Si el formato ya muestra la zona (`T`, `e`, `O`, `P`, `Z`, `c`, `r`).
+ * @param pattern Formato.
+ */
+function hasZone( pattern: string ): boolean {
+	return /[TeOPZcr]/.test( codes( pattern ) );
+}
+
+/**
+ * Quita una barra final suelta, que escaparía lo que se pegue detrás.
+ * @param pattern Formato.
+ */
+function closed( pattern: string ): string {
+	return /(?:^|[^\\])(?:\\\\)*\\$/.test( pattern )
+		? pattern.slice( 0, -1 )
+		: pattern;
+}
+
+interface SitePatterns {
+	/** Fecha y hora, como en wp-admin. */
+	short: string;
+	/** Lo mismo más la zona (salvo que el formato ya la muestre), para el `title`. */
+	full: string;
+	/** Desfase que hay que pasar a `dateI18n` cuando moment no tiene datos de la zona con nombre. */
+	offset: number | undefined;
+}
+
+let cached:
+	| {
+			date: string;
+			time: string;
+			zone: string;
+			offset: number;
+			value: SitePatterns;
+	  }
+	| undefined;
+
+/**
+ * Formatos de fecha del sitio. Se construyen una vez por ajustes, porque se piden por cada fila de las tablas.
+ */
+export function sitePatterns(): SitePatterns {
+	const { formats, timezone } = getSettings();
+	if (
+		cached?.date === formats.date &&
+		cached.time === formats.time &&
+		cached.zone === timezone.string &&
+		cached.offset === timezone.offset
+	) {
+		return cached.value;
+	}
+	// Con una zona con nombre que moment no conoce (sin sus datos) `dateI18n` caería a la hora del navegador:
+	// se usa el desfase de los ajustes, igual que con un desfase manual («UTC+2»), que no tiene abreviatura.
+	const named = !! timezone.string && dateI18n( 'e', new Date( 0 ) ) !== '';
+	const date = closed( formats.date );
+	const time = closed( formats.time );
+	let zone = named ? 'T' : 'P';
+	if ( hasZone( date ) || hasZone( time ) ) {
+		zone = '';
+	}
+	const join = ( ...parts: string[] ) => parts.filter( Boolean ).join( ' ' );
+	const value = {
+		short: join( date, time ),
+		full: join( date, time, zone ),
+		offset: timezone.string && ! named ? timezone.offset : undefined,
+	};
+	cached = {
+		date: formats.date,
+		time: formats.time,
+		zone: timezone.string,
+		offset: timezone.offset,
+		value,
+	};
+	return value;
+}
+
+/**
+ * Fecha y hora con la zona horaria y los formatos del sitio (Ajustes → Generales), no los del navegador, para que
+ * coincida con wp-admin, WP-CLI y el CSV. `wp.date` recibe esos ajustes del núcleo.
+ * @param value Fecha del servidor.
+ * @param full  Con la zona (para el atributo `title`).
+ */
+function format( value: string, full: boolean ): string | undefined {
+	const date = validServerDate( value );
+	if ( ! date ) {
+		return undefined;
+	}
+	const patterns = sitePatterns();
+	return dateI18n(
+		full ? patterns.full : patterns.short,
+		date,
+		patterns.offset
+	);
+}
+
+/**
+ * Fecha y hora en la zona y el formato del sitio.
+ * @param value Fecha GMT del servidor.
  */
 export function formatDate( value: string ): string {
-	return format( value, { dateStyle: 'medium', timeStyle: 'short' } );
+	return format( value, false ) ?? NO_DATE;
 }
 
 /**
- * Fecha y hora completas (con segundos), para el atributo `title`.
- * @param value Fecha RFC 3339 del servidor.
+ * Fecha y hora completas (con la zona), para el atributo `title`; `undefined` si no hay fecha real, para
+ * omitir el atributo.
+ * @param value Fecha GMT del servidor.
  */
-export function formatFullDate( value: string ): string {
-	return format( value, { dateStyle: 'full', timeStyle: 'medium' } );
+export function formatFullDate( value: string ): string | undefined {
+	return format( value, true );
+}
+
+/**
+ * Duración legible entre dos fechas.
+ * @param from Inicio.
+ * @param to   Fin.
+ */
+export function formatDuration( from: string, to: string ): string {
+	const start = validServerDate( from );
+	const end = validServerDate( to );
+	if ( ! start || ! end ) {
+		return NO_DATE;
+	}
+	const seconds = Math.max(
+		0,
+		Math.round( ( end.getTime() - start.getTime() ) / 1000 )
+	);
+	if ( seconds < 60 ) {
+		return sprintf(
+			/* translators: %s: number of seconds. */
+			__( '%s s', 'magic-linking' ),
+			String( seconds )
+		);
+	}
+	return sprintf(
+		/* translators: 1: minutes, 2: seconds. */
+		__( '%1$s min %2$s s', 'magic-linking' ),
+		String( Math.floor( seconds / 60 ) ),
+		String( seconds % 60 )
+	);
 }
 
 /**

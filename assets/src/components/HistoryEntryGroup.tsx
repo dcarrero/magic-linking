@@ -10,7 +10,7 @@ import {
 	entryTitle,
 	formatDate,
 	formatFullDate,
-	parseServerDate,
+	dateTimeAttr,
 } from './historyFormat';
 import { JobProgress, OutcomeSummary } from './HistoryJobParts';
 import { HistorySource } from './HistorySource';
@@ -228,9 +228,7 @@ export function HistoryEntryGroup( { entry, origin, ai, onChange }: Props ) {
 					) }{ ' ' }
 					· { __( 'Last change', 'magic-linking' ) }{ ' ' }
 					<time
-						dateTime={ parseServerDate(
-							entry.last_at
-						).toISOString() }
+						dateTime={ dateTimeAttr( entry.last_at ) }
 						title={ formatFullDate( entry.last_at ) }
 					>
 						{ formatDate( entry.last_at ) }
@@ -511,9 +509,7 @@ function ChangeRow( { change, title, disabled, onRun }: RowProps ) {
 				data-label={ __( 'Date', 'magic-linking' ) }
 			>
 				<time
-					dateTime={ parseServerDate(
-						change.created_at
-					).toISOString() }
+					dateTime={ dateTimeAttr( change.created_at ) }
 					title={ formatFullDate( change.created_at ) }
 				>
 					{ formatDate( change.created_at ) }
@@ -570,13 +566,7 @@ function ChangeRow( { change, title, disabled, onRun }: RowProps ) {
 			</td>
 			<td data-label={ __( 'Status', 'magic-linking' ) }>
 				{ undone ? (
-					<span
-						title={
-							change.undone_at
-								? formatFullDate( change.undone_at )
-								: undefined
-						}
-					>
+					<span title={ formatFullDate( change.undone_at ?? '' ) }>
 						{ __( 'Undone', 'magic-linking' ) }
 					</span>
 				) : (

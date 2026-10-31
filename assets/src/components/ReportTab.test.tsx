@@ -1,4 +1,5 @@
 // The Jest globalSetup (tests/js/global-setup.js) sets TZ=Asia/Tokyo (not UTC), so reading the server date as local time would change the hour.
+import { getSettings, setSettings } from '@wordpress/date';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { api } from '../api';
@@ -170,21 +171,32 @@ describe( 'ReportTab refreshing rows after a change', () => {
 } );
 
 describe( 'ReportTab dates', () => {
+	let saved: ReturnType< typeof getSettings >;
+	beforeEach( () => {
+		saved = getSettings();
+	} );
 	afterEach( () => {
-		document.documentElement.lang = '';
+		setSettings( saved );
 	} );
 
-	it.each( [
-		[ 'es-ES', /^30 oct 2026,\s19:00$/ ],
-		[ 'en-US', /^Oct 30, 2026,\s7:00\sPM$/ ],
-	] )(
-		'shows "Analyzed" in %s with the UTC instant converted to the browser zone',
-		async ( lang, expected ) => {
-			document.documentElement.lang = lang;
-			await mount();
-			expect( host.querySelector( 'tbody time' )?.textContent ).toMatch(
-				expected
-			);
-		}
-	);
+	it( 'shows "Analyzed" in the timezone and format of the site, not the browser (Asia/Tokyo)', async () => {
+		setSettings( {
+			...getSettings(),
+			formats: { ...getSettings().formats, date: 'j/n/Y', time: 'H:i' },
+			timezone: {
+				offset: 0,
+				offsetFormatted: '0',
+				string: 'Europe/Madrid',
+				abbr: '',
+			},
+		} );
+		await mount();
+		expect(
+			host.querySelector( 'tbody time' )?.getAttribute( 'datetime' )
+		).toMatch( /Z$/ );
+		// 10:00 UTC del 30 de octubre = 11:00 en Madrid (CET, UTC+1); en Tokio serían las 19:00.
+		expect( host.querySelector( 'tbody time' )?.textContent ).toBe(
+			'30/10/2026 11:00'
+		);
+	} );
 } );
