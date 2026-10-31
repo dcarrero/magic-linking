@@ -136,6 +136,55 @@ final class Suggestions {
 	}
 
 	/**
+	 * Destinos a los que una entrada ya enlaza, con las anclas que usa, en el orden en que aparecen (docs/07 §3.3).
+	 * Salen del contenido que se está viendo (el del editor o el guardado), no del grafo, que va por detrás de lo que
+	 * el usuario tiene delante. Los enlaces rotos, los externos y los que van a la propia entrada no cuentan.
+	 *
+	 * @param int         $post_id ID de la entrada abierta.
+	 * @param string|null $content Contenido del editor, sin guardar; null = el guardado.
+	 * @param string|null $title   Título del editor, sin guardar (forma parte de la huella con la que se reconoce que el
+	 *                             contenido es el guardado y se pueden leer los enlaces del grafo sin resolver cada URL).
+	 *
+	 * @return list<array{id: int, anchors: list<string>}>
+	 */
+	public function current_links( int $post_id, ?string $content = null, ?string $title = null ): array {
+		$post = get_post( $post_id );
+		if ( ! $post instanceof WP_Post ) {
+			return array();
+		}
+		if ( null !== $content ) {
+			// Una copia: el objeto de la caché de WordPress no se toca.
+			$post               = clone $post;
+			$post->post_content = $content;
+			if ( null !== $title ) {
+				$post->post_title = $title;
+			}
+		}
+
+		try {
+			$this->documents->prefetch( array( $post_id ) );
+			$by_target = array();
+			foreach ( $this->documents->links_in( $post ) as $link ) {
+				if ( null !== $link->target && ! in_array( $link->anchor, $by_target[ $link->target ] ?? array(), true ) ) {
+					$by_target[ $link->target ][] = $link->anchor;
+				}
+			}
+		} finally {
+			$this->documents->release();
+		}
+
+		$out = array();
+		foreach ( $by_target as $id => $anchors ) {
+			$out[] = array(
+				'id'      => $id,
+				'anchors' => $anchors,
+			);
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Si el filtro Exigir es lo que deja sin sugerencias salientes a una entrada (con él no hay candidatas y sin él sí).
 	 * Solo para el estado vacío: se llama cuando el resultado ya salió vacío. Mismos argumentos que {@see self::outgoing()}.
 	 *

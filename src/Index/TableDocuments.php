@@ -113,7 +113,25 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	public function from_post( WP_Post $post ): Document {
 		$html     = PostSource::html_of( $post );
 		$document = $this->posts->from_post( $post, $html );
-		$links    = array();
+
+		$links = $this->links_in( $post, $html );
+
+		return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+	}
+
+	/**
+	 * Enlaces internos del contenido de una entrada, en orden: el destino (null si está roto o no es una entrada) y el
+	 * ancla. Si la entrada se trajo por adelantado ({@see self::prefetch()}) y su huella es la del contenido de ahora,
+	 * salen del grafo; si no, del propio HTML, resolviendo cada URL. Un enlace a la propia entrada no cuenta.
+	 *
+	 * @param WP_Post     $post Entrada, con el contenido que se quiere leer.
+	 * @param string|null $html HTML ya preparado (con el filtro `magiclinking_post_html`); null = prepararlo aquí.
+	 *
+	 * @return list<Link>
+	 */
+	public function links_in( WP_Post $post, ?string $html = null ): array {
+		$html ??= PostSource::html_of( $post );
+		$links = array();
 
 		$stored = $this->stored[ $post->ID ] ?? null;
 		if ( null !== $stored && '' !== $stored['hash'] && Fingerprint::of( $post, $html ) === $stored['hash'] ) {
@@ -121,7 +139,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 				$links[] = new Link( $target, $anchor );
 			}
 
-			return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+			return $links;
 		}
 
 		foreach ( $this->parser()->parse( $html ) as $link ) {
@@ -139,7 +157,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 			$links[] = new Link( BrokenReason::NONE === $resolution->broken ? $resolution->target_id : null, $link->anchor );
 		}
 
-		return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+		return $links;
 	}
 
 	/**

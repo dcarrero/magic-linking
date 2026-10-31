@@ -162,6 +162,8 @@ export function applyChoice(
 		score: source.score,
 		insert: choice.option === 0 ? item.insert : source.insert,
 		cardKey: key ?? item.cardKey,
+		// Los avisos de ancla repetida son de la ancla de esa frase, no de la principal.
+		anchor_notes: source.anchor_notes,
 	};
 
 	if ( choice.span ) {
@@ -177,6 +179,8 @@ export function applyChoice(
 			offset,
 			anchor_start: start,
 			anchor_end: end,
+			// El ancla es otra: el servidor aún no ha dicho cómo se usa (la tarjeta lo pregunta).
+			anchor_notes: null,
 			insert: result.insert && {
 				...result.insert,
 				anchor,

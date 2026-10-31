@@ -28,9 +28,10 @@ final class SuggestionPresenter {
 	/**
 	 * Constructor.
 	 *
-	 * @param Language $language Idioma por entrada.
+	 * @param Language    $language Idioma por entrada.
+	 * @param AnchorNotes $notes    Avisos de ancla repetida.
 	 */
-	public function __construct( private Language $language ) {
+	public function __construct( private Language $language, private AnchorNotes $notes ) {
 	}
 
 	/**
@@ -39,15 +40,23 @@ final class SuggestionPresenter {
 	 * @param Suggestion[] $suggestions Sugerencias.
 	 */
 	public function prime( array $suggestions ): void {
-		$ids = array();
+		$ids   = array();
+		$pairs = array();
 		foreach ( $suggestions as $suggestion ) {
-			$ids[] = $suggestion->source;
-			$ids[] = $suggestion->target;
+			$ids[]   = $suggestion->source;
+			$ids[]   = $suggestion->target;
+			$pairs[] = array( $suggestion->anchor, $suggestion->target, $suggestion->source );
+			foreach ( $suggestion->alternatives as $alternative ) {
+				$pairs[] = array( $alternative->anchor, $suggestion->target, $suggestion->source );
+			}
 		}
 		$ids = array_values( array_unique( $ids ) );
 		if ( count( $ids ) > 1 ) {
 			_prime_post_caches( $ids, false, false );
 		}
+
+		// Los avisos de ancla repetida de toda la lista, con dos consultas.
+		$this->notes->prime( $pairs );
 	}
 
 	/**
@@ -55,10 +64,11 @@ final class SuggestionPresenter {
 	 *
 	 * @param Suggestion $suggestion Sugerencia del motor.
 	 * @param bool       $nested     Es una frase alternativa: sin origen, destino, motivos ni más alternativas.
+	 * @param int|null   $target     Destino al que lleva la sugerencia de la que cuelga la alternativa.
 	 *
 	 * @return array<string, mixed>
 	 */
-	public function present( Suggestion $suggestion, bool $nested = false ): array {
+	public function present( Suggestion $suggestion, bool $nested = false, ?int $target = null ): array {
 		$can = current_user_can( 'edit_post', $suggestion->source );
 
 		$item = array_merge(
@@ -71,7 +81,9 @@ final class SuggestionPresenter {
 			array(
 				'paragraph' => $suggestion->paragraph,
 				'score'     => round( $suggestion->score->value, 3 ),
-			)
+			),
+			// Avisos de ancla repetida (docs/07 §3.3): cada frase alternativa trae los de su propia ancla.
+			array( 'anchor_notes' => $this->notes->for_anchor( $suggestion->anchor, $target ?? $suggestion->target, $suggestion->source ) )
 		);
 
 		// Sin permiso sobre el origen no hay nada que enviar: la tarjeta se enseña sin botón de enlazar.
@@ -100,9 +112,38 @@ final class SuggestionPresenter {
 			$item,
 			array(
 				'reasons'      => array_map( array( $this, 'reason' ), $suggestion->reasons ),
-				'alternatives' => array_map( fn( Suggestion $alternative ): array => $this->present( $alternative, true ), $suggestion->alternatives ),
+				'alternatives' => array_map( fn( Suggestion $alternative ): array => $this->present( $alternative, true, $suggestion->target ), $suggestion->alternatives ),
 			)
 		);
+	}
+
+	/**
+	 * Destinos a los que una entrada ya enlaza, con lo que enseña el bloque «Enlaces actuales» (docs/07 §3.3).
+	 *
+	 * @param array $links Destino y anclas de cada uno, en orden.
+	 *
+	 * @phpstan-param list<array{id: int, anchors: list<string>}> $links
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function current_links( array $links ): array {
+		$ids = array_column( $links, 'id' );
+		if ( count( $ids ) > 1 ) {
+			_prime_post_caches( $ids, false, false );
+		}
+
+		$out = array();
+		foreach ( $links as $link ) {
+			$post = get_post( $link['id'] );
+			// Un destino que ya no existe o está en la papelera no es una página a la que se enlace.
+			if ( ! $post instanceof WP_Post || 'trash' === $post->post_status ) {
+				continue;
+			}
+
+			$out[] = array_merge( $this->post( $link['id'] ), array( 'anchors' => array_values( array_filter( $link['anchors'], static fn( string $anchor ): bool => '' !== trim( $anchor ) ) ) ) );
+		}
+
+		return $out;
 	}
 
 	/**

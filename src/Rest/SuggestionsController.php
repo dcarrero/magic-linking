@@ -87,6 +87,7 @@ final class SuggestionsController implements Module {
 	 * @param Destination         $destination Comprobación del destino.
 	 * @param Language            $language    Idioma por entrada (para comprobar un ancla ajustada).
 	 * @param GraphRepository     $graph       Grafo de enlaces (para la unicidad de las anclas ajustadas).
+	 * @param AnchorNotes         $notes       Avisos de ancla repetida (para la comprobación de un ancla ajustada).
 	 */
 	public function __construct(
 		private Suggestions $suggestions,
@@ -96,7 +97,8 @@ final class SuggestionsController implements Module {
 		private SuggestionPresenter $presenter,
 		private Destination $destination,
 		private Language $language,
-		private GraphRepository $graph
+		private GraphRepository $graph,
+		private AnchorNotes $notes
 	) {
 	}
 
@@ -357,11 +359,19 @@ final class SuggestionsController implements Module {
 		$taken = $request->has_param( 'taken' ) && is_array( $request['taken'] ) ? $request['taken'] : array();
 		$check = $this->check_anchor( $post_id, (string) $request['sentence'], (int) $request['offset'], (string) $request['anchor'], (int) $request['target_id'], $taken );
 
+		$notes = array();
+		if ( $check->valid() && (int) $request['target_id'] > 0 ) {
+			$this->notes->prime( array( array( (string) $request['anchor'], (int) $request['target_id'], $post_id ) ) );
+			$notes = $this->notes->for_anchor( (string) $request['anchor'], (int) $request['target_id'], $post_id );
+		}
+
 		return new WP_REST_Response(
 			array(
 				'valid'    => $check->valid(),
 				'errors'   => AnchorMessages::describe( $check->errors ),
 				'warnings' => AnchorMessages::describe( $check->warnings ),
+				// Avisos de ancla repetida (docs/07 §3.3): solo con un ancla válida y un destino con el que compararla.
+				'notes'    => $notes,
 			)
 		);
 	}
@@ -446,14 +456,16 @@ final class SuggestionsController implements Module {
 
 		return new WP_REST_Response(
 			array(
-				'ready'    => true,
-				'state'    => 'ok',
-				'draft'    => null !== $content,
-				'total'    => count( $found ),
-				'items'    => array_map( array( $this->presenter, 'present' ), $found ),
-				'post_id'  => $post_id,
+				'ready'         => true,
+				'state'         => 'ok',
+				'draft'         => null !== $content,
+				'total'         => count( $found ),
+				'items'         => array_map( array( $this->presenter, 'present' ), $found ),
+				'post_id'       => $post_id,
 				// Filtros en modo Exigir (type, category, tag) que son la causa de que no haya sugerencias; si no, vacío.
-				'required' => $required,
+				'required'      => $required,
+				// A quién enlaza ya la entrada, para el bloque «Enlaces actuales» (docs/07 §3.3).
+				'current_links' => $this->presenter->current_links( $this->suggestions->current_links( $post_id, $content, $title ) ),
 			)
 		);
 	}

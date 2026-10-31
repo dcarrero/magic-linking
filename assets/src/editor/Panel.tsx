@@ -8,6 +8,7 @@ import type { Suggestion } from '../types';
 import type { ApplyFailure, EditorAdapter } from './adapters/types';
 import type { EditorBoot } from './boot';
 import { suggestionKey } from './keys';
+import { CurrentLinks, mergeCurrent } from './CurrentLinks';
 import { Pager } from './Pager';
 import { PillarBox } from './PillarBox';
 import { SuggestionCard, type CardVariants } from './SuggestionCard';
@@ -222,6 +223,27 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 	const linkInbound = ( suggestion: Suggestion ) =>
 		link( suggestion, 'inbound' );
 
+	// Los enlaces de la entrada: los que dio el servidor y los que se han puesto desde el panel desde entonces.
+	const currentLinks = mergeCurrent(
+		outbound.data?.current_links ?? [],
+		( outbound.data ? state.ai.view( outbound.data.items ) : [] ).flatMap(
+			( row ) => {
+				const shown = state.outVariants.view( row.item, row.original );
+				return shown &&
+					statuses[ suggestionKey( shown.item ) ]?.kind === 'added'
+					? [
+							{
+								id: shown.item.target.id,
+								title: shown.item.target.title,
+								url: shown.item.target.url,
+								anchors: [ shown.item.anchor ],
+							},
+					  ]
+					: [];
+			}
+		)
+	);
+
 	const outboundCount = state.visibleOutbound.length;
 	const inboundTotal = state.inboundCount;
 
@@ -275,6 +297,9 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 							) }
 							{ outbound.loading && ! outbound.data && (
 								<Loading />
+							) }
+							{ outbound.data && (
+								<CurrentLinks links={ currentLinks } />
 							) }
 							{ outbound.data &&
 								( outbound.data.items.length === 0 ? (

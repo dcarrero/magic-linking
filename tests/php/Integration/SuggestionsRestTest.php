@@ -957,6 +957,9 @@ final class SuggestionsRestTest extends GraphTestCase {
 				'title'   => '',
 			)
 		);
+		// Cada petición lee el contenido más de una vez (sugerencias y enlaces actuales): todas con el mismo título.
+		$first = $seen;
+		$seen  = array();
 		$this->request(
 			'POST',
 			'/suggestions/outbound',
@@ -966,8 +969,10 @@ final class SuggestionsRestTest extends GraphTestCase {
 			)
 		);
 
-		$this->assertSame( '', $seen[0], 'Un título vacío del editor no es el título guardado.' );
-		$this->assertSame( get_the_title( $this->sources[1] ), $seen[1], 'Sin título se usa el guardado.' );
+		$this->assertNotEmpty( $first );
+		$this->assertSame( array( '' ), array_values( array_unique( $first ) ), 'Un título vacío del editor no es el título guardado.' );
+		$this->assertNotEmpty( $seen );
+		$this->assertSame( array( get_the_title( $this->sources[1] ) ), array_values( array_unique( $seen ) ), 'Sin título se usa el guardado.' );
 	}
 
 	// ------------------------------------------------------------------ Caché.

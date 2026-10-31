@@ -25,6 +25,30 @@
 	}
 }
 
+.magiclinking-current {
+	margin: 8px 0;
+}
+
+.magiclinking-current__list {
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 0;
+}
+
+.magiclinking-current__item {
+	margin: 0 0 6px;
+}
+
+.magiclinking-current__mark {
+	// Verde oscuro con contraste AA sobre blanco; la marca lleva icono y texto, no solo color.
+	color: #00600f;
+	font-weight: 600;
+}
+
+.magiclinking-current__anchors {
+	color: #50575e;
+}
+
 .magiclinking-panel__pillar {
 	border-top: 1px solid #ddd;
 	margin-top: 16px;

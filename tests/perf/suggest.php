@@ -6,7 +6,8 @@
  * Hace falta el sitio sintético ya indexado: `wp eval-file tests/perf/seed.php 10000` y `wp magic-linking index`.
  * Imprime p50, p95 y máximo de cada dirección, consultas por petición y memoria (pico total y añadida). Con `strict`
  * (CI) sale con error si el p95 de salientes pasa de 500 ms, el de entrantes de 800 ms o la memoria
- * que añade el cálculo de 32 MB, o la capa REST añade más de 20 ms al p95 (ver el comentario del final).
+ * que añade el cálculo de 32 MB, la capa REST añade más de 20 ms al p95 (ver el comentario del final) o los avisos de
+ * ancla repetida y los enlaces actuales (F1-23) añaden más de 20 ms al p95.
  *
  * @package MagicLinking
  */
@@ -150,6 +151,43 @@ foreach ( array( 'outbound', 'inbound' ) as $route ) {
 }
 wp_using_ext_object_cache( false );
 
+// F1-23 (docs/07 §3.3): lo que añaden a cada petición los avisos de ancla repetida de las tarjetas (dos consultas por
+// idioma, `AnchorNotes`) y, en salientes, el bloque «Enlaces actuales» (`current_links`). Se mide solo eso, sobre las
+// sugerencias que de verdad se enseñan (todas las salientes; la primera página de entrantes). Tope: 20 ms al p95.
+$notes_service = Plugin::container()->get( MagicLinking\Rest\AnchorNotes::class );
+$added         = array();
+foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
+	$times = array();
+	$cards = array();
+	foreach ( $sample as $id ) {
+		wp_cache_flush();
+		$repository->release();
+		$found = $service->$direction( $id );
+		if ( 'incoming' === $direction ) {
+			$found = array_slice( $found, 0, 10 );
+		}
+		$pairs = array();
+		foreach ( $found as $item ) {
+			foreach ( array_merge( array( $item ), $item->alternatives ) as $option ) {
+				$pairs[] = array( $option->anchor, $item->target, $item->source );
+			}
+		}
+		wp_cache_flush();
+		$repository->release();
+		$t0 = microtime( true );
+		$notes_service->prime( $pairs );
+		foreach ( $pairs as list( $anchor, $target, $source ) ) {
+			$notes_service->for_anchor( $anchor, $target, $source );
+		}
+		if ( 'outgoing' === $direction ) {
+			$service->current_links( $id );
+		}
+		$times[] = ( microtime( true ) - $t0 ) * 1000;
+		$cards[] = count( $pairs );
+	}
+	$added[ $direction ] = $report( 'avisos ' . $direction, $times, array( 0 ), $cards );
+}
+
 // `09 §4` habla del pico total de la petición: se mide el pico absoluto de cada cálculo (con la caché de
 // objetos vacía al empezar), que aquí incluye la base de WP-CLI. Se imprime también lo que añade el cálculo.
 // En una petición web la base es la de WordPress (unos 25–35 MB con WP_DEBUG); aquí la de WP-CLI, que es mayor,
@@ -158,7 +196,7 @@ wp_using_ext_object_cache( false );
 $peak = $extra;
 printf( "memoria: pico total en WP-CLI=%.1f MB (base incluida), añadida por el cálculo=%.1f MB (límite 32 MB; el total de la petición web no debe pasar de 64 MB)\n", $total, $extra );
 
-if ( $strict && ( $results['outgoing'] > 500 || $results['incoming'] > 800 || $peak > 32 || $rest_over > 20 || $rest_total['outbound'] > 500 || $rest_total['inbound'] > 800 ) ) {
+if ( $strict && ( $results['outgoing'] > 500 || $results['incoming'] > 800 || $peak > 32 || $rest_over > 20 || max( $added ) > 20 || $rest_total['outbound'] > 500 || $rest_total['inbound'] > 800 ) ) {
 	fwrite( STDERR, "Presupuesto de rendimiento superado.\n" );
 	exit( 1 );
 }

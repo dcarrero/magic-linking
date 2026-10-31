@@ -207,6 +207,15 @@ describe( 'withAnchor', () => {
 		expect( original.anchor ).toBe( 'bomba de calor' );
 	} );
 
+	it( 'does not keep the notes of the old anchor: they belong to another anchor', () => {
+		const original = {
+			...make( 5 ),
+			anchor_notes: [ { code: 'overused', text: 'Used in 6 entries.' } ],
+		};
+
+		expect( withAnchor( original, improved ).anchor_notes ).toBeNull();
+	} );
+
 	it( 'shows the accepted anchor in place and drops the proposal', () => {
 		const original = make( 5 );
 		const outcome = outcomeOf(
