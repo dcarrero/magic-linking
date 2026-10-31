@@ -431,7 +431,7 @@ final class Plugin {
 			Notices::class                 => static function ( Container $c ): Notices {
 				global $wpdb;
 				$capabilities = $c->get( Capabilities::class );
-				return new Notices( $wpdb, null, static fn(): string => $capabilities->state() );
+				return new Notices( $wpdb, null, static fn(): ?string => $capabilities->cached_state() );
 			},
 			NoticesController::class       => static fn( Container $c ): NoticesController => new NoticesController( $c->get( Notices::class ) ),
 			Screen::class                  => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ), $c->get( Notices::class ) ),

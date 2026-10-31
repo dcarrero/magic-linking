@@ -253,6 +253,45 @@ test.describe( 'Notices', () => {
 		);
 	} );
 
+	test( 'a cold connector state shows no AI notice on that load, warms in the background and shows it on the next', async ( {
+		page,
+	} ) => {
+		seedReview( 0, 0 );
+		wp(
+			'eval',
+			`
+			global $wpdb;
+			@unlink( WPMU_PLUGIN_DIR . '/magiclinking-e2e-ai.php' );
+			update_option( 'magiclinking_e2e_ai', 'off', false );
+			delete_transient( 'magiclinking_ai_capabilities' );
+			update_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices', array() );
+			`
+		);
+		const hasAi =
+			wp(
+				'eval',
+				'echo function_exists( "wp_ai_client_prompt" ) ? "1" : "0";'
+			).trim() === '1';
+		test.skip(
+			! hasAi,
+			'Necesita el cliente de IA de WordPress 7.0 o posterior.'
+		);
+
+		await login( page );
+		const warm = page.waitForResponse( /ai(\/|%2F)status/ );
+		await page.goto( SCREEN_REPORT );
+		await warm;
+		// El servidor no calculó nada al pintar: en esta carga no hay aviso de IA.
+		await expect( page.locator( '.magiclinking-ai-notice' ) ).toHaveCount(
+			0
+		);
+
+		await page.reload();
+		await expect( page.locator( '.magiclinking-ai-notice' ) ).toContainText(
+			'This site has no AI connected.'
+		);
+	} );
+
 	test( 'following the review link (click or Ctrl+click) closes it for good', async ( {
 		page,
 	} ) => {
@@ -293,6 +332,17 @@ test.describe( 'Notices', () => {
 		await login( page );
 		await page.goto( SCREENS.at( 0 ) ?? SCREEN_REPORT );
 		await expect( page.locator( REVIEW ) ).toHaveCount( 1 );
+		// La pantalla avisa al servidor de que lo ha pintado: de ahí cuenta la primera vez.
+		await expect
+			.poll(
+				() =>
+					wp(
+						'eval',
+						`global $wpdb; $s = get_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_notices_state', true ); echo isset( $s['seen']['review'] ) ? 'yes' : 'no';`
+					).trim(),
+				{ timeout: 15000 }
+			)
+			.toBe( 'yes' );
 
 		const backdate = ( days: number ) =>
 			wp(

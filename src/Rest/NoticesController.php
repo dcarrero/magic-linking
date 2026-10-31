@@ -55,6 +55,39 @@ final class NoticesController implements Module {
 				),
 			)
 		);
+
+		register_rest_route(
+			ReportController::NAMESPACE,
+			'/notices/seen',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'seen' ),
+				'permission_callback' => static fn(): bool => current_user_can( 'edit_posts' ),
+				'args'                => array(
+					'id' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_key',
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Apunta que el aviso se ha enseñado de verdad (la pantalla lo avisa al pintarlo).
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function seen( WP_REST_Request $request ) {
+		$id = (string) $request['id'];
+		if ( '' === $id || ! $this->notices->seen( get_current_user_id(), $id ) ) {
+			return new WP_Error( 'magiclinking_unknown_notice', __( 'That notice does not exist.', 'magic-linking' ), array( 'status' => 400 ) );
+		}
+
+		return new WP_REST_Response( array( 'seen' => $id ) );
 	}
 
 	/**

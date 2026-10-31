@@ -6,6 +6,7 @@ import type {
 	StatusResponse,
 	Summary,
 } from '../types';
+import { api } from '../api';
 import { Notices } from './Notices';
 import { BrokenTab } from './BrokenTab';
 import { HistoryTab } from './HistoryTab';
@@ -95,6 +96,16 @@ export function App( {
 	const [ wizardOpen, setWizardOpen ] = useState( false );
 	const [ reportFilter, setReportFilter ] = useState< ReportFilter >( 'all' );
 	const decided = useRef( false );
+
+	// Calcula en segundo plano el estado del conector de IA (el servidor no lo calcula al pintar la página): con él
+	// guardado, el aviso «Sin conector de IA» sale en la próxima carga. No llama a ningún modelo.
+	useEffect( () => {
+		if ( window.magiclinking?.warmAi ) {
+			api.aiStatus( false ).catch( () => {
+				// Sin respuesta, no se avisa de nada.
+			} );
+		}
+	}, [] );
 
 	// El asistente se abre solo una vez, en un sitio recién instalado (sin análisis) y mientras el usuario no
 	// lo haya cerrado; también cuando se pide a propósito desde Ajustes (?wizard=1).

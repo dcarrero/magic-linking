@@ -1,7 +1,6 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { api } from '../api';
-import { navigate } from '../navigate';
 import type { AdminNotice } from '../types';
 import { Notices } from './Notices';
 
@@ -31,16 +30,15 @@ jest.mock( '@wordpress/components', () => ( {
 		</div>
 	),
 } ) );
-jest.mock( '../navigate', () => ( { navigate: jest.fn() } ) );
 jest.mock( '../api', () => ( {
-	api: { dismissNotice: jest.fn() },
+	api: { dismissNotice: jest.fn(), seenNotice: jest.fn() },
 } ) );
 
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
  ).IS_REACT_ACT_ENVIRONMENT = true;
 
-const go = navigate as unknown as jest.Mock;
+const seen = ( api as unknown as { seenNotice: jest.Mock } ).seenNotice;
 const dismiss = ( api as unknown as { dismissNotice: jest.Mock } )
 	.dismissNotice;
 
@@ -56,7 +54,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach( () => {
-	go.mockReset();
+	seen.mockReset().mockResolvedValue( { seen: 'review' } );
 	dismiss.mockReset().mockResolvedValue( { dismissed: 'review' } );
 	document.body.innerHTML =
 		'<div class="magiclinking-wrap"><h1>Title</h1><div id="r"></div></div>';
@@ -121,38 +119,61 @@ describe( 'Notices', () => {
 			.querySelector( 'a' )
 			?.addEventListener( 'click', ( e ) => e.preventDefault() );
 
-	test( 'a plain click on the review link saves the close first and then goes there', async () => {
+	test( 'a plain click on the review link saves the close without cancelling the navigation or waiting for it', async () => {
 		render( review );
+		dismiss.mockReturnValue( new Promise( () => {} ) );
 		const event = new MouseEvent( 'click', {
 			bubbles: true,
 			cancelable: true,
 			button: 0,
 		} );
+		// Un oyente más arriba que React ve si el componente canceló la navegación (y evita que jsdom intente navegar).
+		let cancelledByTheComponent = true;
+		document.body.addEventListener(
+			'click',
+			( e ) => {
+				cancelledByTheComponent = e.defaultPrevented;
+				e.preventDefault();
+			},
+			{ once: true }
+		);
 		act( () => {
 			container.querySelector( 'a' )?.dispatchEvent( event );
 		} );
-		expect( event.defaultPrevented ).toBe( true );
+		expect( cancelledByTheComponent ).toBe( false );
 		expect( dismiss ).toHaveBeenCalledTimes( 1 );
 		expect( dismiss ).toHaveBeenCalledWith( 'review' );
 		await flush();
-		expect( go ).toHaveBeenCalledWith( 'https://wordpress.org/r' );
 		expect( container.innerHTML ).toBe( '' );
 	} );
 
-	test( 'it still goes to the review page if saving the close fails', async () => {
-		dismiss.mockRejectedValue( new Error( 'x' ) );
+	test( 'a right click on the link closes nothing', async () => {
 		render( review );
 		act( () => {
 			container.querySelector( 'a' )?.dispatchEvent(
-				new MouseEvent( 'click', {
+				new MouseEvent( 'auxclick', {
 					bubbles: true,
 					cancelable: true,
-					button: 0,
+					button: 2,
 				} )
 			);
 		} );
 		await flush();
-		expect( go ).toHaveBeenCalledWith( 'https://wordpress.org/r' );
+		expect( dismiss ).not.toHaveBeenCalled();
+		expect( container.textContent ).toContain( 'Do you like it?' );
+	} );
+
+	test( 'tells the server the notice was really shown, once', () => {
+		render( review );
+		expect( seen ).toHaveBeenCalledTimes( 1 );
+		expect( seen ).toHaveBeenCalledWith( 'review' );
+		render( review );
+		expect( seen ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	test( 'does not tell it when there is no notice', () => {
+		render( null );
+		expect( seen ).not.toHaveBeenCalled();
 	} );
 
 	test( 'a Cmd or Ctrl click on the link closes it too', async () => {
@@ -170,7 +191,6 @@ describe( 'Notices', () => {
 		} );
 		await flush();
 		expect( dismiss ).toHaveBeenCalledWith( 'review' );
-		expect( go ).not.toHaveBeenCalled();
 		expect( container.innerHTML ).toBe( '' );
 	} );
 

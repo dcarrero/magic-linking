@@ -1,10 +1,9 @@
 import { Notice } from '@wordpress/components';
-import { useState } from '@wordpress/element';
+import { useEffect, useState } from '@wordpress/element';
 import type { MouseEvent } from 'react';
 import { speak } from '@wordpress/a11y';
 import { __ } from '@wordpress/i18n';
 import { api } from '../api';
-import { navigate } from '../navigate';
 import type { AdminNotice } from '../types';
 
 interface Props {
@@ -35,6 +34,16 @@ function focusHeading() {
 export function Notices( { notice }: Props ) {
 	const [ closed, setClosed ] = useState( false );
 	const [ failed, setFailed ] = useState( false );
+
+	const id = notice?.id;
+	// Se avisa al servidor de que el aviso se ha pintado de verdad: de ahí cuenta «la primera vez» (la reseña dura una semana).
+	useEffect( () => {
+		if ( id ) {
+			api.seenNotice( id ).catch( () => {
+				// Si no se apunta, se apuntará la próxima vez que se vea.
+			} );
+		}
+	}, [ id ] );
 
 	if ( ! notice || closed ) {
 		return null;
@@ -71,24 +80,14 @@ export function Notices( { notice }: Props ) {
 			} );
 	};
 
-	// Clic normal en la misma pestaña: la página se va, así que se espera a que el servidor guarde el cierre antes de
-	// salir (una petición en vuelo se pierde al navegar). Con Cmd/Ctrl, Mayús o botón central la página sigue y no hace
-	// falta esperar.
+	// El enlace es un enlace normal. Con cualquier forma de abrirlo (clic, clic central, Cmd/Ctrl) se guarda el cierre; la
+	// petición lleva `keepalive`, así que sigue su curso aunque la página navegue y no se espera a ella. El botón derecho
+	// no cierra nada.
 	const follow = ( event: MouseEvent< HTMLAnchorElement > ) => {
-		const plain =
-			event.type === 'click' &&
-			event.button === 0 &&
-			! event.metaKey &&
-			! event.ctrlKey &&
-			! event.shiftKey &&
-			! event.altKey;
-		if ( ! plain ) {
-			persist( true );
+		if ( event.type === 'auxclick' && event.button !== 1 ) {
 			return;
 		}
-		event.preventDefault();
-		const href = event.currentTarget.href;
-		persist( true ).then( () => navigate( href ) );
+		persist( true );
 	};
 
 	return (

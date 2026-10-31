@@ -10,6 +10,8 @@ declare(strict_types=1);
 namespace MagicLinking\Tests\Integration;
 
 use MagicLinking\Admin\Notices;
+use MagicLinking\AI\Capabilities;
+use MagicLinking\Core\Plugin;
 use MagicLinking\History\ChangeRepository;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -209,6 +211,9 @@ final class NoticesTest extends GraphTestCase {
 		$this->activated_days_ago( 40 );
 		$this->insert_links( $this->admin, 25 );
 		$this->assertSame( 'review', $this->notices()->current( $this->admin )['id'] ?? null );
+		$state = get_user_meta( $this->admin, $this->notices()->state_key(), true );
+		$this->assertArrayNotHasKey( 'review', $state['seen'] ?? array(), 'Elegirlo en el servidor no cuenta como enseñado.' );
+		$this->assertTrue( $this->notices()->seen( $this->admin, 'review' ), 'Lo apunta la pantalla al pintarlo.' );
 		$seen = (int) get_user_meta( $this->admin, $this->notices()->state_key(), true )['seen']['review'];
 		$this->assertEqualsWithDelta( time(), $seen, 5, 'La primera vez se apunta la fecha.' );
 
@@ -226,6 +231,27 @@ final class NoticesTest extends GraphTestCase {
 		$this->assertNull( $this->notices()->current( $this->admin ), 'Y no vuelve aunque haya más enlaces.' );
 		$set( 400 );
 		$this->assertNull( $this->notices()->current( $this->admin ) );
+	}
+
+	public function test_seen_is_validated_idempotent_and_keeps_the_first_date(): void {
+		$this->assertFalse( $this->notices()->seen( $this->admin, 'nope' ) );
+		$this->assertTrue( $this->notices()->seen( $this->admin, 'review' ) );
+		$state                   = get_user_meta( $this->admin, $this->notices()->state_key(), true );
+		$state['seen']['review'] = 1000;
+		update_user_meta( $this->admin, $this->notices()->state_key(), $state );
+		$this->assertTrue( $this->notices()->seen( $this->admin, 'review' ) );
+		$this->assertSame( 1000, get_user_meta( $this->admin, $this->notices()->state_key(), true )['seen']['review'] );
+	}
+
+	public function test_seen_over_rest_needs_permission_and_a_known_id(): void {
+		$this->assertSame( 200, $this->request( 'POST', '/notices/seen', array( 'id' => 'review' ) )->get_status() );
+		$this->assertArrayHasKey( 'review', get_user_meta( $this->admin, $this->notices()->state_key(), true )['seen'] );
+		$this->assertSame( 400, $this->request( 'POST', '/notices/seen', array( 'id' => 'nope' ) )->get_status() );
+		$this->assertSame( 403, $this->request( 'POST', '/notices/seen', array( 'id' => 'review' ), $this->subscriber )->get_status() );
+		wp_set_current_user( 0 );
+		$request = new WP_REST_Request( 'POST', '/magic-linking/v1/notices/seen' );
+		$request->set_param( 'id', 'review' );
+		$this->assertSame( 401, rest_get_server()->dispatch( $request )->get_status() );
 	}
 
 	public function test_the_first_time_is_not_stored_when_nothing_is_shown(): void {
@@ -267,10 +293,16 @@ final class NoticesTest extends GraphTestCase {
 		$this->assertSame( 'review', $this->notices()->current( $this->admin )['id'] ?? null, 'Las del editor sí.' );
 	}
 
-	private function with_ai( string $state ): Notices {
+	public function test_rows_with_an_empty_origin_count_as_the_plugin(): void {
+		$this->activated_days_ago( 40 );
+		$this->insert_links( $this->admin, 25, ChangeRepository::INSERT, false, '' );
+		$this->assertSame( 'review', $this->notices()->current( $this->admin )['id'] ?? null );
+	}
+
+	private function with_ai( ?string $state ): Notices {
 		global $wpdb;
 
-		return new Notices( $wpdb, null, static fn(): string => $state );
+		return new Notices( $wpdb, null, static fn(): ?string => $state );
 	}
 
 	public function test_the_ai_notice_comes_from_the_server_and_wins_over_the_review(): void {
@@ -286,6 +318,47 @@ final class NoticesTest extends GraphTestCase {
 
 		$this->assertSame( 'review', $this->with_ai( 'connected' )->current( $this->admin, 'report' )['id'] ?? null );
 		$this->assertSame( 'review', $this->with_ai( 'unavailable' )->current( $this->admin, 'report' )['id'] ?? null );
+	}
+
+	public function test_a_cold_connector_state_shows_no_ai_notice_and_asks_to_warm_it(): void {
+		wp_set_current_user( $this->admin );
+		$this->assertNull( $this->with_ai( null )->current( $this->admin, 'report' ), 'Sin el estado calculado no se enseña.' );
+		$this->assertTrue( $this->with_ai( null )->ai_cold( $this->admin ) );
+		$this->assertFalse( $this->with_ai( 'none' )->ai_cold( $this->admin ), 'Ya calculado, no hay nada que calentar.' );
+		$this->assertFalse( $this->with_ai( null )->ai_cold( $this->author ), 'Solo para quien administra.' );
+
+		$this->notices()->dismiss( $this->admin, 'review' );
+		$this->with_ai( 'none' )->dismiss( $this->admin, 'ai-connector' );
+		$this->assertFalse( $this->with_ai( null )->ai_cold( $this->admin ), 'Cerrado, tampoco.' );
+	}
+
+	public function test_the_page_does_not_ask_the_ai_client_when_the_state_is_cold(): void {
+		global $wpdb;
+		$spy = new class( Plugin::container()->get( \MagicLinking\AI\Budget::class ) ) extends \MagicLinking\AI\Client {
+			public int $calls = 0;
+
+			public function available(): bool {
+				return true;
+			}
+
+			public function supports( bool $json = false ): bool {
+				++$this->calls;
+				return true;
+			}
+
+			public function text_models(): array {
+				++$this->calls;
+				return array();
+			}
+		};
+		delete_transient( Capabilities::TRANSIENT );
+		$caps = new Capabilities( $spy, Plugin::container()->get( \MagicLinking\Core\Settings::class ), static fn(): bool => false );
+		wp_set_current_user( $this->admin );
+		$notices = new Notices( $wpdb, null, static fn(): ?string => $caps->cached_state() );
+
+		$this->assertNull( $notices->current( $this->admin, 'report' ) );
+		$this->assertTrue( $notices->ai_cold( $this->admin ) );
+		$this->assertSame( 0, $spy->calls );
 	}
 
 	public function test_the_ai_notice_is_only_for_admins_in_the_report(): void {

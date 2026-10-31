@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Admin;
 
+use MagicLinking\AI\Capabilities;
 use MagicLinking\Core\Schema;
 use MagicLinking\History\ChangeRepository;
 use wpdb;
@@ -22,10 +23,10 @@ use wpdb;
  *
  * Cada definición: `id`, `priority` (menor = antes), `type` (info, warning o error), `applies` (booleano o función
  * que lo calcula; solo se llama si el aviso no está cerrado), `screens` (opcional: pantallas donde puede salir),
- * `on_shown` (opcional: se llama al elegirlo), y para pintarlo `text`, `action` (opcional, con `label`
+ * y para pintarlo `text`, `action` (opcional, con `label`
  * y `url`) y `dismiss_label`.
  *
- * @phpstan-type Definition array{id: string, priority: int, type: string, applies: bool|callable(): bool, screens?: list<string>, on_shown?: callable(): void, text?: string, action?: array{label: string, url: string}, dismiss_label?: string}
+ * @phpstan-type Definition array{id: string, priority: int, type: string, applies: bool|callable(): bool, screens?: list<string>, text?: string, action?: array{label: string, url: string}, dismiss_label?: string}
  */
 final class Notices {
 
@@ -80,16 +81,16 @@ final class Notices {
 	/**
 	 * Estado del conector de IA (`unavailable`, `connected` o `none`); null = sin aviso de IA.
 	 *
-	 * @var (\Closure(): string)|null
+	 * @var (\Closure(): ?string)|null
 	 */
 	private ?\Closure $ai_state;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param wpdb                      $wpdb        Base de datos.
-	 * @param list<Definition>|null     $definitions Definiciones propias (pruebas); por defecto las del plugin.
-	 * @param (\Closure(): string)|null $ai_state Estado del conector de IA, para el aviso «Sin conector de IA».
+	 * @param wpdb                       $wpdb        Base de datos.
+	 * @param list<Definition>|null      $definitions Definiciones propias (pruebas); por defecto las del plugin.
+	 * @param (\Closure(): ?string)|null $ai_state Estado del conector de IA ya calculado (null si aún no se sabe), para el aviso «Sin conector de IA».
 	 */
 	public function __construct( private wpdb $wpdb, ?array $definitions = null, ?\Closure $ai_state = null ) {
 		$this->definitions = $definitions;
@@ -163,9 +164,6 @@ final class Notices {
 		$definition  = self::select( $definitions, $this->dismissed( $user_id ) );
 		if ( null === $definition ) {
 			return null;
-		}
-		if ( isset( $definition['on_shown'] ) ) {
-			( $definition['on_shown'] )();
 		}
 
 		return array(
@@ -259,9 +257,6 @@ final class Notices {
 				'priority'      => 100,
 				'type'          => 'info',
 				'applies'       => fn(): bool => $this->review_due( $user_id ),
-				'on_shown'      => function () use ( $user_id ): void {
-					$this->mark_seen( $user_id, 'review' );
-				},
 				'text'          => __( 'You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it.', 'magic-linking' ),
 				'action'        => array(
 					'label' => __( 'Write a review', 'magic-linking' ),
@@ -283,7 +278,7 @@ final class Notices {
 				'text'     => __( 'This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine.', 'magic-linking' ),
 				'action'   => array(
 					'label' => __( 'Go to Connectors', 'magic-linking' ),
-					'url'   => admin_url( 'options-connectors.php' ),
+					'url'   => Capabilities::connectors_url(),
 				),
 			);
 		}
@@ -292,18 +287,37 @@ final class Notices {
 	}
 
 	/**
-	 * Apunta la primera vez que se enseñó un aviso.
+	 * Apunta la primera vez que el aviso se ha enseñado de verdad (lo avisa la pantalla al pintarlo, no se apunta al
+	 * elegirlo en el servidor: el usuario puede no haberlo visto). Devuelve false si el identificador no existe.
 	 *
 	 * @param int    $user_id Usuario.
 	 * @param string $id      Aviso.
 	 */
-	private function mark_seen( int $user_id, string $id ): void {
-		$state = $this->state( $user_id );
-		if ( isset( $state['seen'][ $id ] ) ) {
-			return;
+	public function seen( int $user_id, string $id ): bool {
+		if ( ! in_array( $id, array_column( $this->definitions( $user_id ), 'id' ), true ) ) {
+			return false;
 		}
-		$state['seen'][ $id ] = time();
-		update_user_meta( $user_id, $this->state_key(), $state );
+		$state = $this->state( $user_id );
+		if ( ! isset( $state['seen'][ $id ] ) ) {
+			$state['seen'][ $id ] = time();
+			update_user_meta( $user_id, $this->state_key(), $state );
+		}
+
+		return true;
+	}
+
+	/**
+	 * ¿Falta saber el estado del conector? Cierto cuando WordPress trae el cliente de IA y lo comprobado no está
+	 * guardado: la pantalla lo calcula por la vía asíncrona (`GET /ai/status`) y el aviso, si procede, sale en la
+	 * siguiente carga.
+	 *
+	 * @param int $user_id Usuario.
+	 */
+	public function ai_cold( int $user_id ): bool {
+		return null !== $this->ai_state
+			&& user_can( $user_id, 'manage_options' )
+			&& ! in_array( 'ai-connector', $this->dismissed( $user_id ), true )
+			&& null === ( $this->ai_state )();
 	}
 
 	/**
@@ -334,7 +348,9 @@ final class Notices {
 
 	/**
 	 * Enlaces que el usuario ha insertado y siguen puestos (no los de las reglas automáticas), contados solo hasta el
-	 * umbral. La consulta usa el índice `user_action` y se detiene al llegar a 20; el resultado se recuerda un día en el
+	 * umbral. Se cuenta por el Historial (`magiclinking_changes`): un enlace que el usuario borre a mano en el editor, sin
+	 * pasar por Deshacer, sigue contando. Es una decisión consciente: detectarlo exigiría leer el contenido de las
+	 * entradas, y para pedir una reseña basta con una estimación. Un origen vacío (filas antiguas) cuenta como `plugin`. La consulta usa el índice `user_action` y se detiene al llegar a 20; el resultado se recuerda un día en el
 	 * metadato de estado del usuario para no contar en cada pantalla.
 	 *
 	 * @param int $user_id Usuario.
@@ -347,12 +363,13 @@ final class Notices {
 
 		$table = Schema::table( $this->wpdb->prefix, 'changes' );
 		$query = $this->wpdb->prepare(
-			'SELECT COUNT(*) FROM ( SELECT 1 FROM %i WHERE user_id = %d AND action = %s AND origin IN ( %s, %s ) AND undone_at IS NULL LIMIT %d ) AS c',
+			'SELECT COUNT(*) FROM ( SELECT 1 FROM %i WHERE user_id = %d AND action = %s AND origin IN ( %s, %s, %s ) AND undone_at IS NULL LIMIT %d ) AS c',
 			$table,
 			$user_id,
 			ChangeRepository::INSERT,
 			ChangeRepository::ORIGIN_PLUGIN,
 			ChangeRepository::ORIGIN_EDITOR,
+			'',
 			self::REVIEW_LINKS
 		);
 		$count = (int) $this->wpdb->get_var( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Preparada arriba y recordada en el metadato.

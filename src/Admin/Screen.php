@@ -271,6 +271,7 @@ final class Screen implements Module {
 					'wizard'      => current_user_can( 'manage_options' ) ? ! get_user_meta( get_current_user_id(), SettingsController::wizard_meta_key(), true ) : false,
 					'settingsUrl' => self::page_url( 'settings' ),
 					'notice'      => $this->notices->current( get_current_user_id(), $this->screens[ $hook_suffix ] ),
+					'warmAi'      => 'report' === $this->screens[ $hook_suffix ] && $this->notices->ai_cold( get_current_user_id() ),
 					'intRanges'   => Settings::INT_RANGES,
 					'initialTab'  => $this->screens[ $hook_suffix ],
 					'tabUrls'     => array(

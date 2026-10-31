@@ -559,6 +559,11 @@ test.describe( 'AI through the connector', () => {
 		test.skip( ! hasAi, 'Necesita el cliente de IA de WordPress 7.0 o posterior.' );
 		aiMode( 'off' );
 		await login( page );
+		// El servidor no calcula el estado del conector al pintar: la primera carga lo calienta en segundo plano y el
+		// aviso sale en la siguiente.
+		const warm = page.waitForResponse( /ai(\/|%2F)status/ );
+		await page.goto( SCREEN );
+		await warm;
 		await page.goto( SCREEN );
 
 		const notice = page.locator( '.magiclinking-ai-notice' );

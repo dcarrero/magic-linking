@@ -155,6 +155,45 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( 1, count( array_keys( $this->index_names( 'changes' ), 'user_action', true ) ), 'Idempotente.' );
 	}
 
+	public function test_activating_again_requeues_a_background_index_that_never_got_created(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'changes' );
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX user_action" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		update_option( Installer::DB_VERSION_OPTION, 8, false );
+
+		// La desactivación cancela las acciones pendientes del plugin antes de que el índice se cree.
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+		$this->assertFalse( as_has_scheduled_action( Installer::HOOK_USER_INDEX, array(), Installer::ACTION_GROUP ) );
+
+		Installer::activate();
+
+		$this->assertTrue( as_has_scheduled_action( Installer::HOOK_USER_INDEX, array(), Installer::ACTION_GROUP ) );
+		$this->assertFalse( as_has_scheduled_action( Installer::HOOK_ANCHOR_INDEX, array(), Installer::ACTION_GROUP ), 'El que existe no se vuelve a pedir.' );
+	}
+
+	public function test_the_admin_requeues_a_missing_index_even_when_the_schema_is_current(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'links' );
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX anchor" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+		delete_transient( 'magiclinking_index_check' );
+		set_current_screen( 'dashboard' );
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		$this->assertTrue( as_has_scheduled_action( Installer::HOOK_ANCHOR_INDEX, array(), Installer::ACTION_GROUP ) );
+
+		// Y no vuelve a mirar en cada carga: el transitorio frena la comprobación.
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+		$this->installer()->maybe_upgrade();
+		$this->assertFalse( as_has_scheduled_action( Installer::HOOK_ANCHOR_INDEX, array(), Installer::ACTION_GROUP ) );
+		delete_transient( 'magiclinking_index_check' );
+		$this->installer()->add_anchor_index();
+		set_current_screen( 'front' );
+	}
+
 	public function test_a_fresh_install_has_the_user_action_index_on_changes(): void {
 		$this->installer()->maybe_upgrade();
 

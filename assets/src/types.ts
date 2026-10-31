@@ -302,6 +302,8 @@ export interface AdminNotice {
 export interface Boot {
 	/** Aviso visible en esta pantalla, o null. */
 	notice?: AdminNotice | null;
+	/** El estado del conector de IA no está calculado: la pantalla lo pide en segundo plano para la próxima carga. */
+	warmAi?: boolean;
 	namespace: string;
 	exportUrl: string;
 	canManage: boolean;

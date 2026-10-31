@@ -576,6 +576,17 @@ export const api = {
 			signal,
 		} ),
 	/**
+	 * Apunta que un aviso se ha enseñado de verdad.
+	 *
+	 * @param id Identificador del aviso.
+	 */
+	seenNotice: ( id: string ) =>
+		apiFetch< { seen: string } >( {
+			path: path( '/notices/seen' ),
+			method: 'POST',
+			data: { id },
+		} ),
+	/**
 	 * Cierra un aviso para siempre (para este usuario). `keepalive`: la petición sigue aunque el clic navegue a otra página.
 	 *
 	 * @param id Identificador del aviso.

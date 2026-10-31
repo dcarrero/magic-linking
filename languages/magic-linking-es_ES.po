@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T23:05:10+00:00\n"
+"POT-Creation-Date: 2026-10-31T23:30:21+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -72,12 +72,12 @@ msgstr "Plugin no activado"
 msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
 msgstr "A Magic Linking le faltan sus bibliotecas incluidas (la carpeta vendor). Vuelve a instalar el plugin desde wordpress.org. No se ha cargado."
 
-#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:311
+#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:312
 #: assets/build/editor.js:46 assets/build/index.js:131
 msgid "Internal links"
 msgstr "Enlaces internos"
 
-#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:312
+#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:313
 #: assets/build/index.js:7 assets/build/index.js:23 assets/build/index.js:35
 #: assets/build/index.js:53 assets/build/index.js:108 assets/build/index.js:117
 #: assets/build/index.js:129
@@ -88,27 +88,27 @@ msgstr "Cargando…"
 msgid "This box needs JavaScript to show the link suggestions."
 msgstr "Esta caja necesita JavaScript para mostrar las sugerencias de enlaces."
 
-#: src/Admin/Notices.php:176
+#: src/Admin/Notices.php:174
 msgid "Do not show again"
 msgstr "No volver a mostrar"
 
-#: src/Admin/Notices.php:265
+#: src/Admin/Notices.php:260
 msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
 msgstr "Has añadido bastantes enlaces con Magic Linking. Si te está ahorrando tiempo, una reseña en wordpress.org ayuda a que otras personas lo encuentren."
 
-#: src/Admin/Notices.php:267
+#: src/Admin/Notices.php:262
 msgid "Write a review"
 msgstr "Escribir una reseña"
 
-#: src/Admin/Notices.php:270
+#: src/Admin/Notices.php:265
 msgid "No, thanks"
 msgstr "No, gracias"
 
-#: src/Admin/Notices.php:283
+#: src/Admin/Notices.php:278
 msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
 msgstr "Este sitio no tiene IA conectada. Puedes conectar la tuya en Ajustes → Conectores (OpenAI, Google, Ollama local…). Mientras tanto, las sugerencias usan el motor léxico."
 
-#: src/Admin/Notices.php:285 assets/build/index.js:111
+#: src/Admin/Notices.php:280 assets/build/index.js:111
 #: assets/build/index.js:112
 msgid "Go to Connectors"
 msgstr "Ir a Conectores"
@@ -151,11 +151,11 @@ msgstr "Ajustes"
 msgid "Items per page"
 msgstr "Elementos por página"
 
-#: src/Admin/Screen.php:306
+#: src/Admin/Screen.php:307
 msgid "You do not have permission to see this page."
 msgstr "No tienes permiso para ver esta página."
 
-#: src/Admin/Screen.php:313
+#: src/Admin/Screen.php:314
 msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
 msgstr "Esta pantalla necesita JavaScript. Puedes obtener el mismo informe con WP-CLI: wp magic-linking report"
 
@@ -880,7 +880,7 @@ msgstr "Envía un lote entero o un solo cambio, no los dos."
 msgid "That process does not exist."
 msgstr "Ese proceso no existe."
 
-#: src/Rest/NoticesController.php:70
+#: src/Rest/NoticesController.php:87 src/Rest/NoticesController.php:103
 msgid "That notice does not exist."
 msgstr "Ese aviso no existe."
 

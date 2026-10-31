@@ -489,7 +489,7 @@ final class AiController implements Module {
 			'available'      => $this->client->available(),
 			'provider'       => $caps['provider'],
 			'model'          => $caps['model'],
-			'connectors_url' => admin_url( 'options-connectors.php' ),
+			'connectors_url' => Capabilities::connectors_url(),
 		);
 	}
 }

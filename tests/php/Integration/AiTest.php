@@ -230,6 +230,38 @@ final class AiTest extends GraphTestCase {
 		$this->assertFalse( $this->request( 'GET', '/ai/capabilities' )->get_data()['ready'] );
 	}
 
+	public function test_cached_state_never_computes_anything(): void {
+		$spy = new class( $this->container( Budget::class ) ) extends Client {
+			public int $calls = 0;
+
+			public function available(): bool {
+				return true;
+			}
+
+			public function supports( bool $json = false ): bool {
+				++$this->calls;
+				return true;
+			}
+
+			public function text_models(): array {
+				++$this->calls;
+				return array();
+			}
+		};
+		delete_transient( Capabilities::TRANSIENT );
+		$caps = new Capabilities( $spy, $this->container( Settings::class ), static fn(): bool => false );
+
+		$this->assertNull( $caps->cached_state(), 'Con el transitorio frío no se sabe.' );
+		$this->assertSame( 0, $spy->calls, 'Y no se pregunta al cliente de IA.' );
+		$this->assertNull( ( new Capabilities( $spy, $this->container( Settings::class ), static fn(): bool => true ) )->cached_state(), 'En el front-end tampoco.' );
+
+		$caps->detect();
+		$this->assertGreaterThan( 0, $spy->calls );
+		$calls = $spy->calls;
+		$this->assertSame( 'connected', $caps->cached_state() );
+		$this->assertSame( $calls, $spy->calls, 'Ya calculado, solo se lee.' );
+	}
+
 	public function test_a_client_that_is_not_available_degrades_the_same_way_on_any_version(): void {
 		$none = new class( $this->container( Budget::class ) ) extends Client {
 			public function available(): bool {
@@ -239,6 +271,7 @@ final class AiTest extends GraphTestCase {
 		$caps = new Capabilities( $none, $this->container( Settings::class ) );
 
 		$this->assertSame( 'unavailable', $caps->state() );
+		$this->assertSame( 'unavailable', $caps->cached_state() );
 		$this->assertFalse( $caps->detect()['text'] );
 		$this->assertNull( $caps->detect()['provider'] );
 		$this->assertFalse( $none->supports() );
