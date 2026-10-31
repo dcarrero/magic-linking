@@ -73,6 +73,19 @@ export function EmptyState( {
 			</p>
 		);
 	}
+	if ( state === 'excluded' ) {
+		return (
+			<p className="magiclinking-panel__empty">
+				{ __(
+					'This entry is excluded from the analysis, so it has no suggestions and is not suggested anywhere. Include it again from the report.',
+					'magic-linking'
+				) }{ ' ' }
+				<a href={ reportUrl }>
+					{ __( 'Open the report', 'magic-linking' ) }
+				</a>
+			</p>
+		);
+	}
 	if ( state === 'not_published' ) {
 		return (
 			<p className="magiclinking-panel__empty">

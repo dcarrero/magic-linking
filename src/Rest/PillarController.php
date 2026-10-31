@@ -13,7 +13,6 @@ use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\Index\Pillars;
 use WP_Error;
-use WP_Post;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -55,12 +54,12 @@ final class PillarController implements Module {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_pillar' ),
-					'permission_callback' => array( $this, 'can_edit' ),
+					'permission_callback' => array( AnalyzedEntry::class, 'can_edit' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'set_pillar' ),
-					'permission_callback' => array( $this, 'can_edit' ),
+					'permission_callback' => array( AnalyzedEntry::class, 'can_edit' ),
 					'args'                => array(
 						'pillar' => array(
 							'type'     => 'boolean',
@@ -73,17 +72,6 @@ final class PillarController implements Module {
 	}
 
 	/**
-	 * Permiso: poder editar la entrada (una que no existe da 404 en la ruta).
-	 *
-	 * @param WP_REST_Request $request Petición.
-	 */
-	public function can_edit( WP_REST_Request $request ): bool {
-		$post_id = (int) $request['post_id'];
-
-		return current_user_can( 'edit_posts' ) && ( ! get_post( $post_id ) instanceof WP_Post || current_user_can( 'edit_post', $post_id ) );
-	}
-
-	/**
 	 * GET: estado de la casilla.
 	 *
 	 * @param WP_REST_Request $request Petición.
@@ -91,7 +79,7 @@ final class PillarController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_pillar( WP_REST_Request $request ) {
-		$post = $this->post( (int) $request['post_id'] );
+		$post = AnalyzedEntry::find( $this->settings, (int) $request['post_id'] );
 
 		return $post instanceof WP_Error ? $post : new WP_REST_Response( $this->state( $post->ID ) );
 	}
@@ -104,7 +92,7 @@ final class PillarController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function set_pillar( WP_REST_Request $request ) {
-		$post = $this->post( (int) $request['post_id'] );
+		$post = AnalyzedEntry::find( $this->settings, (int) $request['post_id'] );
 		if ( $post instanceof WP_Error ) {
 			return $post;
 		}
@@ -112,22 +100,6 @@ final class PillarController implements Module {
 		$this->pillars->set_own( $post->ID, filter_var( $request['pillar'], FILTER_VALIDATE_BOOLEAN ) );
 
 		return new WP_REST_Response( $this->state( $post->ID ) );
-	}
-
-	/**
-	 * La entrada, si existe y es de un tipo que se analiza.
-	 *
-	 * @param int $post_id ID.
-	 *
-	 * @return WP_Post|WP_Error
-	 */
-	private function post( int $post_id ) {
-		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, $this->settings->post_types(), true ) ) {
-			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
-		}
-
-		return $post;
 	}
 
 	/**

@@ -11,6 +11,7 @@ namespace MagicLinking\Graph;
 
 use MagicLinking\Core\Settings;
 use MagicLinking\I18n\Language;
+use MagicLinking\Index\Exclusions;
 use MagicLinking\Index\Fingerprint;
 use WP_Post;
 
@@ -18,8 +19,8 @@ use WP_Post;
  * Lee el contenido guardado de una entrada, extrae sus enlaces, los resuelve y
  * los guarda con los recuentos. No modifica nunca el contenido.
  *
- * Una entrada se analiza si está publicada y es de un tipo elegido en los
- * ajustes. Si deja de serlo, sale del índice.
+ * Una entrada se analiza si está publicada, es de un tipo elegido en los
+ * ajustes y no está excluida. Si deja de serlo, sale del índice.
  */
 final class GraphIndexer {
 
@@ -81,7 +82,8 @@ final class GraphIndexer {
 	public function is_eligible( ?WP_Post $post ): bool {
 		return null !== $post
 			&& 'publish' === $post->post_status
-			&& in_array( $post->post_type, $this->settings->post_types(), true );
+			&& in_array( $post->post_type, $this->settings->post_types(), true )
+			&& ! Exclusions::is_excluded( $post->ID );
 	}
 
 	/**

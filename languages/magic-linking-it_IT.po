@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.24.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T15:26:41+00:00\n"
+"POT-Creation-Date: 2026-10-31T16:51:22+00:00\n"
 "PO-Revision-Date: 2026-10-31 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Italiano\n"
@@ -72,14 +72,14 @@ msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reins
 msgstr "A Magic Linking mancano le librerie incluse (la cartella vendor). Reinstalla il plugin da wordpress.org. Non è stato caricato."
 
 #: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:294
-#: assets/build/editor.js:40 assets/build/index.js:119
+#: assets/build/editor.js:40 assets/build/index.js:121
 msgid "Internal links"
 msgstr "Link interni"
 
 #: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:295
 #: assets/build/index.js:7 assets/build/index.js:23 assets/build/index.js:35
-#: assets/build/index.js:53 assets/build/index.js:104 assets/build/index.js:113
-#: assets/build/index.js:117
+#: assets/build/index.js:53 assets/build/index.js:106 assets/build/index.js:115
+#: assets/build/index.js:119
 msgid "Loading…"
 msgstr "Caricamento…"
 
@@ -95,23 +95,23 @@ msgstr "Apri il report"
 msgid "Magic Linking"
 msgstr "Magic Linking"
 
-#: src/Admin/Screen.php:145 assets/build/index.js:118
+#: src/Admin/Screen.php:145 assets/build/index.js:120
 msgid "Report"
 msgstr "Report"
 
-#: src/Admin/Screen.php:151 assets/build/index.js:118 assets/build/index.js:119
+#: src/Admin/Screen.php:151 assets/build/index.js:120 assets/build/index.js:121
 msgid "Broken links"
 msgstr "Link non funzionanti"
 
-#: src/Admin/Screen.php:155 assets/build/index.js:118
+#: src/Admin/Screen.php:155 assets/build/index.js:120
 msgid "History"
 msgstr "Cronologia"
 
-#: src/Admin/Screen.php:159 assets/build/index.js:118
+#: src/Admin/Screen.php:159 assets/build/index.js:120
 msgid "Rules"
 msgstr "Regole"
 
-#: src/Admin/Screen.php:163 assets/build/index.js:118
+#: src/Admin/Screen.php:163 assets/build/index.js:120
 msgid "Settings"
 msgstr "Impostazioni"
 
@@ -128,160 +128,181 @@ msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp
 msgstr "Questa schermata ha bisogno di JavaScript. Puoi ottenere lo stesso report con WP-CLI: wp magic-linking report"
 
 #. translators: %d: process ID.
-#: src/Cli/Command.php:165
+#: src/Cli/Command.php:176
 #, php-format
 msgid "Process %1$d is paused. Resume it with: wp magic-linking job resume %2$d"
 msgstr "Il processo %1$d è in pausa. Riprendilo con: wp magic-linking job resume %2$d"
 
 #. translators: %d: process ID.
-#: src/Cli/Command.php:176
+#: src/Cli/Command.php:187
 #, php-format
 msgid "Process %d queued. It will run in the background with Action Scheduler."
 msgstr "Processo %d messo in coda. Verrà eseguito in background con Action Scheduler."
 
-#: src/Cli/Command.php:183
+#: src/Cli/Command.php:194
 msgid "Analyzing entries"
 msgstr "Analisi dei contenuti"
 
 #. translators: 1: new or modified entries, 2: unchanged entries skipped.
-#: src/Cli/Command.php:199
+#: src/Cli/Command.php:210
 #, php-format
 msgid "%1$d new or modified, %2$d unchanged and skipped."
 msgstr "%1$d nuovi o modificati, %2$d invariati e saltati."
 
 #. translators: %d: number of entries.
-#: src/Cli/Command.php:207
+#: src/Cli/Command.php:218
 #, php-format
 msgid "%d entry analyzed."
 msgid_plural "%d entries analyzed."
 msgstr[0] "%d contenuto analizzato."
 msgstr[1] "%d contenuti analizzati."
 
-#: src/Cli/Command.php:217
+#: src/Cli/Command.php:228
 msgid "The process did not finish. Check its state with: wp magic-linking status"
 msgstr "Il processo non è terminato. Controllane lo stato con: wp magic-linking status"
 
-#: src/Cli/Command.php:350
-msgid "Invalid filter. Use: all, orphans, low, over or broken."
-msgstr "Filtro non valido. Usa: all, orphans, low, over o broken."
+#: src/Cli/Command.php:361
+msgid "Invalid filter. Use: all, orphans, low, over, broken or excluded."
+msgstr ""
 
-#: src/Cli/Command.php:353
+#: src/Cli/Command.php:364
 msgid "Invalid column for --orderby."
 msgstr "Colonna non valida per --orderby."
 
-#: src/Cli/Command.php:476
+#: src/Cli/Command.php:487
 msgid "Unknown action. Use: list, pause, resume or cancel."
 msgstr "Azione sconosciuta. Usa: list, pause, resume o cancel."
 
-#: src/Cli/Command.php:481
+#: src/Cli/Command.php:492
 msgid "There is no such process."
 msgstr "Non esiste questo processo."
 
-#: src/Cli/Command.php:496 src/Rest/HistoryController.php:478
+#: src/Cli/Command.php:507 src/Rest/HistoryController.php:478
 #: src/Rest/JobsController.php:170 src/Rest/JobsController.php:185
 msgid "That process cannot be changed in its current state."
 msgstr "Quel processo non può essere modificato nel suo stato attuale."
 
 #. translators: 1: process ID, 2: new state.
-#: src/Cli/Command.php:502
+#: src/Cli/Command.php:513
 #, php-format
 msgid "Process %1$d is now %2$s."
 msgstr "Il processo %1$d ora è %2$s."
 
 #. translators: %s: batch ID.
-#: src/Cli/Command.php:599
+#: src/Cli/Command.php:610
 #, php-format
 msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
 msgstr "Ci sono altri gruppi. Continua con: wp magic-linking history list --before=%s"
 
-#: src/Cli/Command.php:624
+#: src/Cli/Command.php:635
 msgid "Unknown action. Use: list, undo, redo, purge or export."
 msgstr "Azione sconosciuta. Usa: list, undo, redo, purge o export."
 
-#: src/Cli/Command.php:674 src/Cli/Command.php:708
+#: src/Cli/Command.php:685 src/Cli/Command.php:719
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:697
+#: src/Rest/SuggestionsController.php:702
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Non hai i permessi per modificare uno dei contenuti coinvolti."
 
-#: src/Cli/Command.php:679 src/History/Redo.php:65 src/History/Undo.php:165
+#: src/Cli/Command.php:690 src/History/Redo.php:65 src/History/Undo.php:165
 #: src/Rest/HistoryController.php:788
 msgid "That change does not exist."
 msgstr "Questa modifica non esiste."
 
-#: src/Cli/Command.php:683 src/Cli/Command.php:703
+#: src/Cli/Command.php:694 src/Cli/Command.php:714
 #: src/Rest/HistoryController.php:774
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr "Questo gruppo è in elaborazione in background. Attendi che finisca oppure annullalo."
 
-#: src/Cli/Command.php:699
+#: src/Cli/Command.php:710
 msgid "There is no such group in the history (or you cannot edit all of its entries)."
 msgstr "Nella cronologia non esiste questo gruppo (oppure non puoi modificare tutti i suoi contenuti)."
 
 #. translators: %d: number of changes.
-#: src/Cli/Command.php:744
+#: src/Cli/Command.php:755
 #, php-format
 msgid "%d change could not be applied by itself."
 msgid_plural "%d changes could not be applied by themselves."
 msgstr[0] "%d modifica non ha potuto essere applicata da sola."
 msgstr[1] "%d modifiche non hanno potuto essere applicate da sole."
 
-#: src/Cli/Command.php:751
+#: src/Cli/Command.php:762
 msgid "Group redone."
 msgstr "Gruppo ripetuto."
 
-#: src/Cli/Command.php:751
+#: src/Cli/Command.php:762
 msgid "Group undone."
 msgstr "Gruppo annullato."
 
-#: src/Cli/Command.php:762
+#: src/Cli/Command.php:773
 msgid "The history never expires with the current setting; nothing to delete."
 msgstr "Con l'impostazione attuale la cronologia non scade mai; non c'è nulla da eliminare."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:771
+#: src/Cli/Command.php:782
 #, php-format
 msgid "%d history row has expired."
 msgid_plural "%d history rows have expired."
 msgstr[0] "%d riga della cronologia è scaduta."
 msgstr[1] "%d righe della cronologia sono scadute."
 
-#: src/Cli/Command.php:780
+#: src/Cli/Command.php:791
 msgid "Nothing has expired."
 msgstr "Non è scaduto nulla."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:790
+#: src/Cli/Command.php:801
 #, php-format
 msgid "%d history row deleted."
 msgid_plural "%d history rows deleted."
 msgstr[0] "%d riga della cronologia eliminata."
 msgstr[1] "%d righe della cronologia eliminate."
 
-#: src/Cli/Command.php:804 src/Cli/RulesCommand.php:301
-#: src/Rest/AiController.php:227 src/Rest/DismissalsController.php:141
-#: src/Rest/EditorHistoryController.php:95 src/Rest/PillarController.php:127
-#: src/Rest/SuggestionsController.php:1022
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:836
+#, php-format
+msgid "%d entry excluded from the analysis."
+msgid_plural "%d entries excluded from the analysis."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:870
+#, php-format
+msgid "%d entry included in the analysis again."
+msgid_plural "%d entries included in the analysis again."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Cli/Command.php:888
+msgid "That entry does not exist or is not of a chosen content type."
+msgstr ""
+
+#: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
+#: src/Rest/AiController.php:227 src/Rest/AnalyzedEntry.php:43
+#: src/Rest/DismissalsController.php:141
+#: src/Rest/EditorHistoryController.php:95
+#: src/Rest/SuggestionsController.php:1027
 msgid "That entry does not exist."
 msgstr "Quel contenuto non esiste."
 
-#: src/Cli/Command.php:811
+#: src/Cli/Command.php:911
 msgid "Entry analyzed."
 msgstr "Contenuto analizzato."
 
-#: src/Cli/Command.php:814
+#: src/Cli/Command.php:914
 msgid "Nothing changed since the last analysis. Use --force to analyze it again."
 msgstr "Non è cambiato nulla dall'ultima analisi. Usa --force per analizzarlo di nuovo."
 
-#: src/Cli/Command.php:817
+#: src/Cli/Command.php:917
 msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
 msgstr "Il contenuto non è pubblicato o non è di un tipo di contenuto scelto: è stato tolto dal report."
 
-#: src/Cli/Command.php:820
+#: src/Cli/Command.php:920
 msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
 msgstr "Il contenuto non è pubblicato o non è di un tipo di contenuto scelto, quindi non viene analizzato."
 
-#: src/Cli/Command.php:833
+#: src/Cli/Command.php:933
 msgid "Could not open the output."
 msgstr "Impossibile aprire l'output."
 
@@ -342,7 +363,7 @@ msgid "Nothing was written. Add --yes to add these links."
 msgstr "Non è stato scritto nulla. Aggiungi --yes per aggiungere questi link."
 
 #: src/Cli/RulesCommand.php:278 src/Cli/RulesCommand.php:319
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Nothing was added."
 msgstr "Non è stato aggiunto nulla."
 
@@ -361,7 +382,7 @@ msgid "Rule %1$d: %2$s"
 msgstr "Regola %1$d: %2$s"
 
 #. translators: %d: number of links added.
-#: src/Cli/RulesCommand.php:322 assets/build/index.js:92
+#: src/Cli/RulesCommand.php:322 assets/build/index.js:94
 #, php-format
 msgid "%d link added."
 msgid_plural "%d links added."
@@ -398,7 +419,7 @@ msgid "The post contains markup (script, styles…) that cannot be scanned safel
 msgstr "L'articolo contiene markup (script, stili…) che non può essere esaminato in sicurezza."
 
 #: src/Content/Destination.php:43 src/Content/Destination.php:51
-#: src/Rest/FixController.php:252 src/Rules/RuleService.php:105
+#: src/Rest/FixController.php:252 src/Rules/RuleService.php:107
 msgid "The destination is not a published entry that can be linked."
 msgstr "La destinazione non è un contenuto pubblicato che si possa collegare."
 
@@ -411,7 +432,7 @@ msgid "All the links of one write must be for the same post and the same user."
 msgstr "Tutti i link di una stessa scrittura devono riguardare lo stesso articolo e lo stesso utente."
 
 #: src/Content/Inserter.php:140 src/Content/Repairer.php:58
-#: src/Rules/RuleService.php:101
+#: src/Rules/RuleService.php:103
 msgid "This content type is not one that Magic Linking analyzes."
 msgstr "Questo tipo di contenuto non è tra quelli che Magic Linking analizza."
 
@@ -547,7 +568,7 @@ msgstr "Il contenuto di destinazione non è pubblicato (bozza, in attesa di revi
 msgid "The destination entry is private."
 msgstr "Il contenuto di destinazione è privato."
 
-#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:333
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:465
 #: src/Rest/FixController.php:207 assets/build/classic.js:12
 #: assets/build/classic.js:16 assets/build/editor.js:12
 #: assets/build/editor.js:16 assets/build/index.js:15 assets/build/index.js:65
@@ -772,7 +793,7 @@ msgid "The anchor is not valid."
 msgstr ""
 
 #. translators: 1: title of the destination the anchor already links to, 2: number of entries that use it.
-#: src/Rest/AnchorNotes.php:130
+#: src/Rest/AnchorNotes.php:138
 #, php-format
 msgid "This anchor already links to “%1$s” in %2$d entry."
 msgid_plural "This anchor already links to “%1$s” in %2$d entries."
@@ -780,7 +801,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of other destinations the same anchor links to.
-#: src/Rest/AnchorNotes.php:133
+#: src/Rest/AnchorNotes.php:141
 #, php-format
 msgid "It also links to %d other destination."
 msgid_plural "It also links to %d other destinations."
@@ -788,7 +809,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of entries that already use this anchor for this destination.
-#: src/Rest/AnchorNotes.php:145
+#: src/Rest/AnchorNotes.php:153
 #, php-format
 msgid "This anchor is already used in %d entry for this destination."
 msgid_plural "This anchor is already used in %d entries for this destination."
@@ -840,107 +861,115 @@ msgid "That model works in batches, not live, so it cannot be used in the editor
 msgstr "Questo modello funziona a lotti, non in tempo reale, quindi non si può usare nell’editor. Scegline un altro o lascia l’automatico."
 
 #. translators: %s: comma-separated list of shared terms.
-#: src/Rest/SuggestionPresenter.php:222
+#: src/Rest/SuggestionPresenter.php:232
 #, php-format
 msgid "They share: %s"
 msgstr "Hanno in comune: %s"
 
-#: src/Rest/SuggestionPresenter.php:225
+#: src/Rest/SuggestionPresenter.php:235
 msgid "The anchor matches the title of the destination"
 msgstr "Il testo di ancoraggio corrisponde al titolo della destinazione"
 
-#: src/Rest/SuggestionPresenter.php:228
+#: src/Rest/SuggestionPresenter.php:238
 msgid "The anchor matches the focus keyword of the destination"
 msgstr "Il testo di ancoraggio corrisponde alla parola chiave principale della destinazione"
 
-#: src/Rest/SuggestionPresenter.php:231
+#: src/Rest/SuggestionPresenter.php:241
 msgid "The destination is an orphan (0 inbound links)"
 msgstr "La destinazione è orfana (0 link in entrata)"
 
-#: src/Rest/SuggestionPresenter.php:234
+#: src/Rest/SuggestionPresenter.php:244
 msgid "Very similar in meaning"
 msgstr "Significato molto simile"
 
-#: src/Rest/SuggestionsController.php:689
+#: src/Rest/SuggestionsController.php:694
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Ogni link ha bisogno dell'articolo, della destinazione, della frase, della posizione e del testo di ancoraggio."
 
-#: src/Rest/SuggestionsController.php:928
+#: src/Rest/SuggestionsController.php:933
 msgid "The link could not be saved; nothing was changed."
 msgstr "Impossibile salvare il link; non è stato modificato nulla."
 
-#: src/Rules/RuleService.php:100
+#: src/Rules/RuleService.php:102
 msgid "The entry is not published."
 msgstr "Il contenuto non è pubblicato."
 
-#: src/Rules/RuleService.php:102
+#: src/Rules/RuleService.php:104
 msgid "The rule excludes this content type."
 msgstr "La regola esclude questo tipo di contenuto."
 
-#: src/Rules/RuleService.php:103
+#: src/Rules/RuleService.php:105
 msgid "The rule excludes a category of this entry."
 msgstr "La regola esclude una categoria di questo contenuto."
 
-#: src/Rules/RuleService.php:104
+#: src/Rules/RuleService.php:106
 msgid "The entry is in a different language than the destination."
 msgstr "Il contenuto è in una lingua diversa da quella della destinazione."
 
-#: src/Rules/RuleService.php:106
+#: src/Rules/RuleService.php:108
 msgid "This rule was already applied to the entry (or undone there), so it is not applied again by itself."
 msgstr "Questa regola è già stata applicata al contenuto (o annullata lì), quindi non viene applicata di nuovo in automatico."
 
-#: src/Rules/RuleService.php:107
+#: src/Rules/RuleService.php:109
 msgid "The entry or the destination is in your list of ignored URLs."
 msgstr "Il contenuto o la destinazione è nel tuo elenco di URL ignorati."
 
-#: src/Rules/RuleService.php:108
+#: src/Rules/RuleService.php:110
+msgid "The entry or the destination is excluded from the analysis."
+msgstr ""
+
+#: src/Rules/RuleService.php:111
 msgid "The person who created the rule can no longer manage the site or edit this entry."
 msgstr "La persona che ha creato la regola non può più gestire il sito né modificare questo contenuto."
 
-#: src/Rules/RuleService.php:109
+#: src/Rules/RuleService.php:112
 msgid "Someone has the entry open in the editor."
 msgstr "Qualcuno ha aperto il contenuto nell’editor."
 
-#: src/Rules/RuleService.php:110
+#: src/Rules/RuleService.php:113
 msgid "The entry is the destination itself."
 msgstr "Il contenuto è la destinazione stessa."
 
-#: src/Rules/RuleService.php:111
+#: src/Rules/RuleService.php:114
 msgid "The entry already has as many internal links as its length allows."
 msgstr "Il contenuto ha già tutti i link interni che la sua lunghezza consente."
 
-#: src/Rules/RuleService.php:112
+#: src/Rules/RuleService.php:115
 msgid "The entry already links to the destination as many times as allowed."
 msgstr "Il contenuto rimanda già alla destinazione tutte le volte consentite."
 
-#: src/Rules/RuleService.php:113
+#: src/Rules/RuleService.php:116
 msgid "That anchor already points to the destination from as many entries as allowed."
 msgstr "Quel testo di ancoraggio punta già alla destinazione da tutti i contenuti consentiti."
 
-#: src/Rules/RuleService.php:114
+#: src/Rules/RuleService.php:117
 msgid "No phrase of the rule fits in the text."
 msgstr "Nessuna frase della regola si adatta al testo."
 
-#: src/Rules/RuleValidator.php:63
+#: src/Rules/RuleValidator.php:64
 msgid "The destination must be a published entry of a content type that Magic Linking analyzes."
 msgstr "La destinazione deve essere un contenuto pubblicato di un tipo di contenuto analizzato da Magic Linking."
 
-#: src/Rules/RuleValidator.php:66
+#: src/Rules/RuleValidator.php:67
 msgid "That entry is in your list of ignored URLs, so it cannot be a destination."
 msgstr "Quel contenuto è nel tuo elenco di URL ignorati, quindi non può essere una destinazione."
 
-#: src/Rules/RuleValidator.php:82
+#: src/Rules/RuleValidator.php:70
+msgid "That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first."
+msgstr ""
+
+#: src/Rules/RuleValidator.php:86
 msgid "Write at least one phrase to link."
 msgstr "Scrivi almeno una frase da collegare."
 
 #. translators: %d: maximum number of links a rule can add to one entry.
-#: src/Rules/RuleValidator.php:87
+#: src/Rules/RuleValidator.php:91
 #, php-format
 msgid "Links per entry must be between 1 and %d."
 msgstr "I link per contenuto devono essere tra 1 e %d."
 
 #. translators: %d: links to the same target allowed from one entry (a setting).
-#: src/Rules/RuleValidator.php:94
+#: src/Rules/RuleValidator.php:98
 #, php-format
 msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
 msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
@@ -948,25 +977,25 @@ msgstr[0] "Le tue impostazioni consentono %d link verso la stessa destinazione d
 msgstr[1] "Le tue impostazioni consentono %d link verso la stessa destinazione da un contenuto, quindi una regola non può aggiungerne di più. Aumenta «Link verso la stessa destinazione da un contenuto» nelle Impostazioni per usare un valore più alto."
 
 #. translators: %d: maximum characters of a phrase.
-#: src/Rules/RuleValidator.php:147
+#: src/Rules/RuleValidator.php:151
 #, php-format
 msgid "A phrase can have at most %d characters."
 msgstr "Una frase può avere al massimo %d caratteri."
 
 #. translators: 1: the phrase, 2: maximum number of words.
-#: src/Rules/RuleValidator.php:151
+#: src/Rules/RuleValidator.php:155
 #, php-format
 msgid "“%1$s” is not a usable phrase: it needs between 1 and %2$d words."
 msgstr "«%1$s» non è una frase utilizzabile: deve contenere da 1 a %2$d parole."
 
 #. translators: %s: the phrase.
-#: src/Rules/RuleValidator.php:158
+#: src/Rules/RuleValidator.php:162
 #, php-format
 msgid "“%s” has no meaningful word to link (only articles, prepositions or numbers)."
 msgstr "«%s» non contiene nessuna parola significativa da collegare (solo articoli, preposizioni o numeri)."
 
 #. translators: %d: maximum number of phrases in one rule.
-#: src/Rules/RuleValidator.php:168
+#: src/Rules/RuleValidator.php:172
 #, php-format
 msgid "A rule can have at most %d phrases."
 msgstr "Una regola può avere al massimo %d frasi."
@@ -1091,7 +1120,7 @@ msgid "Page %1$s of %2$s"
 msgstr "Pagina %1$s di %2$s"
 
 #: assets/build/classic.js:14 assets/build/editor.js:14
-#: assets/build/index.js:63 assets/build/index.js:117
+#: assets/build/index.js:63 assets/build/index.js:119
 msgid "Next"
 msgstr "Successivo"
 
@@ -1171,8 +1200,8 @@ msgid "Apply anchor"
 msgstr ""
 
 #: assets/build/classic.js:16 assets/build/editor.js:16 assets/build/index.js:7
-#: assets/build/index.js:59 assets/build/index.js:65 assets/build/index.js:96
-#: assets/build/index.js:113
+#: assets/build/index.js:59 assets/build/index.js:65 assets/build/index.js:98
+#: assets/build/index.js:115
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -1243,7 +1272,7 @@ msgstr "Collega a:"
 
 #: assets/build/classic.js:20 assets/build/editor.js:20
 #: assets/build/index.js:10 assets/build/index.js:52 assets/build/index.js:69
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Undo"
 msgstr "Annulla"
 
@@ -1293,7 +1322,7 @@ msgid "Dismiss the suggestion for “%s”"
 msgstr "Ignora il suggerimento per «%s»"
 
 #: assets/build/classic.js:25 assets/build/editor.js:25
-#: assets/build/index.js:74 assets/build/index.js:101
+#: assets/build/index.js:74 assets/build/index.js:103
 msgid "Dismiss"
 msgstr "Ignora"
 
@@ -1359,6 +1388,11 @@ msgstr "Apri il report"
 #: assets/build/index.js:78
 msgid "This entry is not analyzed yet. Save it and refresh in a moment, or check that its content type is analyzed in Settings."
 msgstr "Questo contenuto non è ancora stato analizzato. Salvalo e aggiorna tra un momento, oppure controlla nelle Impostazioni che il suo tipo di contenuto venga analizzato."
+
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:78
+msgid "This entry is excluded from the analysis, so it has no suggestions and is not suggested anywhere. Include it again from the report."
+msgstr ""
 
 #: assets/build/classic.js:29 assets/build/editor.js:29
 #: assets/build/index.js:78
@@ -1569,11 +1603,11 @@ msgstr ""
 msgid "Notice closed."
 msgstr "Avviso chiuso."
 
-#: assets/build/index.js:1 assets/build/index.js:107 assets/build/index.js:108
+#: assets/build/index.js:1 assets/build/index.js:109 assets/build/index.js:110
 msgid "Go to Connectors"
 msgstr "Vai ai connettori"
 
-#: assets/build/index.js:1 assets/build/index.js:92 assets/build/index.js:117
+#: assets/build/index.js:1 assets/build/index.js:94 assets/build/index.js:119
 msgid "Close"
 msgstr "Chiudi"
 
@@ -1648,7 +1682,7 @@ msgstr "Mostra più dettagli"
 msgid "Search"
 msgstr "Cerca"
 
-#: assets/build/index.js:7 assets/build/index.js:89 assets/build/index.js:92
+#: assets/build/index.js:7 assets/build/index.js:91 assets/build/index.js:94
 msgid "Could not search the entries."
 msgstr "Impossibile cercare i contenuti."
 
@@ -1657,7 +1691,7 @@ msgstr "Impossibile cercare i contenuti."
 msgid "(no text)"
 msgstr "(nessun testo)"
 
-#: assets/build/index.js:7 assets/build/index.js:11 assets/build/index.js:92
+#: assets/build/index.js:7 assets/build/index.js:11 assets/build/index.js:94
 msgid "Change destination"
 msgstr "Cambia destinazione"
 
@@ -1675,12 +1709,12 @@ msgid "Pick the entry it should lead to. Only the address changes: the text and 
 msgstr "Scegli il contenuto a cui deve portare. Cambia solo l'indirizzo: il testo e il resto del contenuto restano come sono e puoi annullare dalla cronologia."
 
 #: assets/build/index.js:8 assets/build/index.js:53 assets/build/index.js:88
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Search entries by title"
 msgstr "Cerca contenuti per titolo"
 
 #. translators: %d: number of entries found.
-#: assets/build/index.js:9 assets/build/index.js:89 assets/build/index.js:93
+#: assets/build/index.js:9 assets/build/index.js:91 assets/build/index.js:95
 msgid "%d entry found"
 msgid_plural "%d entries found"
 msgstr[0] "%d contenuto trovato"
@@ -1690,7 +1724,7 @@ msgstr[1] "%d contenuti trovati"
 msgid "New destination"
 msgstr "Nuova destinazione"
 
-#: assets/build/index.js:9 assets/build/index.js:93
+#: assets/build/index.js:9 assets/build/index.js:95
 msgid "No published entries match."
 msgstr "Nessun contenuto pubblicato corrisponde."
 
@@ -1734,7 +1768,7 @@ msgstr "Motivo"
 msgid "Internal links that lead nowhere: the destination is in the trash, is not published, is private or does not exist. Nothing is checked over the network. Fix each one by changing its destination or removing the link, or by editing the entry."
 msgstr "Link interni che non portano da nessuna parte: la destinazione è nel cestino, non è pubblicata, è privata o non esiste. Non viene controllato nulla in rete. Correggi ciascuno cambiandone la destinazione o rimuovendo il link, oppure modificando il contenuto."
 
-#: assets/build/index.js:10 assets/build/index.js:92
+#: assets/build/index.js:10 assets/build/index.js:94
 msgid "The link could not be put back automatically. Open the history to see why."
 msgstr "Non è stato possibile rimettere il link automaticamente. Apri la cronologia per vedere il motivo."
 
@@ -1742,7 +1776,7 @@ msgstr "Non è stato possibile rimettere il link automaticamente. Apri la cronol
 msgid "Done: the link is back as it was."
 msgstr "Fatto: il link è tornato com'era."
 
-#: assets/build/index.js:10 assets/build/index.js:92
+#: assets/build/index.js:10 assets/build/index.js:94
 msgid "The change could not be undone."
 msgstr "Non è stato possibile annullare la modifica."
 
@@ -1763,7 +1797,7 @@ msgstr "Cerca link non funzionanti"
 msgid "Broken internal links"
 msgstr "Link interni non funzionanti"
 
-#: assets/build/index.js:11 assets/build/index.js:21 assets/build/index.js:91
+#: assets/build/index.js:11 assets/build/index.js:21 assets/build/index.js:93
 msgid "Edit entry"
 msgstr "Modifica il contenuto"
 
@@ -1771,7 +1805,7 @@ msgstr "Modifica il contenuto"
 msgid "There are no broken internal links. Well done."
 msgstr "Non ci sono link interni non funzionanti. Ottimo lavoro."
 
-#: assets/build/index.js:11 assets/build/index.js:53 assets/build/index.js:88
+#: assets/build/index.js:11 assets/build/index.js:53 assets/build/index.js:90
 msgid "Export CSV"
 msgstr "Esporta CSV"
 
@@ -1946,8 +1980,8 @@ msgid "Could not read the progress of the process."
 msgstr "Impossibile leggere l'avanzamento del processo."
 
 #: assets/build/index.js:21 assets/build/index.js:26 assets/build/index.js:36
-#: assets/build/index.js:57 assets/build/index.js:113 assets/build/index.js:115
-#: assets/build/index.js:117
+#: assets/build/index.js:57 assets/build/index.js:115 assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "That did not work. Try again."
 msgstr "Non ha funzionato. Riprova."
 
@@ -2018,7 +2052,7 @@ msgid "Source"
 msgstr "Origine"
 
 #: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:50
-#: assets/build/index.js:53 assets/build/index.js:88 assets/build/index.js:99
+#: assets/build/index.js:53 assets/build/index.js:88 assets/build/index.js:101
 msgid "Status"
 msgstr "Stato"
 
@@ -2192,7 +2226,7 @@ msgstr[1] "%1$s di %2$s modifiche attive"
 msgid "Last change"
 msgstr "Ultima modifica"
 
-#: assets/build/index.js:37 assets/build/index.js:88 assets/build/index.js:103
+#: assets/build/index.js:37 assets/build/index.js:88 assets/build/index.js:105
 msgid "Edit"
 msgstr "Modifica"
 
@@ -2383,7 +2417,7 @@ msgstr "Consigliato dall’IA"
 msgid "Search entries…"
 msgstr "Cerca contenuti…"
 
-#: assets/build/index.js:53 assets/build/index.js:88
+#: assets/build/index.js:53 assets/build/index.js:90
 msgid "No entries match these filters."
 msgstr "Nessun contenuto corrisponde a questi filtri."
 
@@ -2453,7 +2487,7 @@ msgstr "Analisi completata."
 msgid "Could not read the analysis status."
 msgstr "Impossibile leggere lo stato dell'analisi."
 
-#: assets/build/index.js:57 assets/build/index.js:113 assets/build/index.js:117
+#: assets/build/index.js:57 assets/build/index.js:115 assets/build/index.js:119
 msgid "Analysis started."
 msgstr "Analisi avviata."
 
@@ -2479,7 +2513,7 @@ msgstr "Analisi ripresa."
 msgid "Analysis paused."
 msgstr "Analisi in pausa."
 
-#: assets/build/index.js:59 assets/build/index.js:103
+#: assets/build/index.js:59 assets/build/index.js:105
 msgid "Pause"
 msgstr "Metti in pausa"
 
@@ -2487,7 +2521,7 @@ msgstr "Metti in pausa"
 msgid "Analysis cancelled."
 msgstr "Analisi annullata."
 
-#: assets/build/index.js:59 assets/build/index.js:115
+#: assets/build/index.js:59 assets/build/index.js:117
 msgid "Analyze your site"
 msgstr "Analizza il tuo sito"
 
@@ -2565,7 +2599,15 @@ msgstr "Frasi di questo contenuto in cui si adatta un link a un altro contenuto.
 msgid "Outbound suggestions pages"
 msgstr "Pagine dei suggerimenti in uscita"
 
-#: assets/build/index.js:86 assets/build/index.js:117
+#: assets/build/index.js:86
+msgid "Not analyzed"
+msgstr ""
+
+#: assets/build/index.js:86 assets/build/index.js:87
+msgid "Excluded"
+msgstr ""
+
+#: assets/build/index.js:86 assets/build/index.js:119
 msgid "Could not load the report."
 msgstr "Impossibile caricare il report."
 
@@ -2633,993 +2675,1023 @@ msgstr "Suggerimenti in entrata"
 msgid "Outbound suggestions"
 msgstr "Suggerimenti in uscita"
 
-#: assets/build/index.js:88
+#. translators: %s: entry title.
+#: assets/build/index.js:89
+msgid "%s excluded from the analysis."
+msgstr ""
+
+#. translators: %s: entry title.
+#: assets/build/index.js:90
+msgid "%s included in the analysis again."
+msgstr ""
+
+#: assets/build/index.js:90
+msgid "Could not exclude the entry from the analysis."
+msgstr ""
+
+#: assets/build/index.js:90
+msgid "Could not include the entry in the analysis again."
+msgstr ""
+
+#: assets/build/index.js:90
+msgid "Include in the analysis"
+msgstr ""
+
+#: assets/build/index.js:90
+msgid "Exclude from the analysis"
+msgstr ""
+
+#: assets/build/index.js:90
 msgid "View broken links"
 msgstr "Vedi i link non funzionanti"
 
-#: assets/build/index.js:88 assets/build/index.js:114
+#: assets/build/index.js:90
+msgid "No entries are excluded from the analysis."
+msgstr ""
+
+#: assets/build/index.js:90 assets/build/index.js:116
 msgid "Content type"
 msgstr "Tipo di contenuto"
 
-#: assets/build/index.js:88
+#: assets/build/index.js:90
 msgid "All types"
 msgstr "Tutti i tipi"
 
-#: assets/build/index.js:88
+#: assets/build/index.js:90
 msgid "Language"
 msgstr "Lingua"
 
-#: assets/build/index.js:88
+#: assets/build/index.js:90
 msgid "All languages"
 msgstr "Tutte le lingue"
 
-#: assets/build/index.js:88
+#: assets/build/index.js:90
 msgid "No more entries fit this rule."
 msgstr "Nessun altro contenuto si adatta a questa regola."
 
 #. translators: %s: main phrase of the rule.
-#: assets/build/index.js:90
+#: assets/build/index.js:92
 msgid "Apply “%s” to existing entries"
 msgstr "Applica «%s» ai contenuti esistenti"
 
-#: assets/build/index.js:90
+#: assets/build/index.js:92
 msgid "These are the entries where the rule fits. Check the link that would be added and add it entry by entry. Each one is written safely, shown in the history and can be undone."
 msgstr "Questi sono i contenuti in cui la regola si applica. Controlla il link che verrebbe aggiunto e aggiungilo contenuto per contenuto. Ognuno viene scritto in modo sicuro, compare nella cronologia e può essere annullato."
 
-#: assets/build/index.js:90
+#: assets/build/index.js:92
 msgid "Searching…"
 msgstr "Ricerca in corso…"
 
 #. translators: 1: number of entries where the rule fits, 2: number of entries checked.
-#: assets/build/index.js:91
+#: assets/build/index.js:93
 msgid "%1$s where it fits, %2$s checked."
 msgstr "%1$s in cui si adatta, %2$s controllati."
 
-#: assets/build/index.js:91
+#: assets/build/index.js:93
 msgid "Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower)."
 msgstr "Ricerca tramite l’indice: solo i contenuti che hanno la prima parola di una frase tra i loro termini principali. «Cerca in tutti i contenuti» li controlla tutti (più lenta)."
 
-#: assets/build/index.js:91
+#: assets/build/index.js:93
 msgid "No entry needs this rule right now."
 msgstr "Nessun contenuto ha bisogno di questa regola al momento."
 
-#: assets/build/index.js:91
+#: assets/build/index.js:93
 msgid "The link would be added here:"
 msgstr "Il link verrebbe aggiunto qui:"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "The link could not be added; nothing was changed."
 msgstr "Non è stato possibile aggiungere il link; non è stato modificato nulla."
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Add link"
 msgstr "Aggiungi link"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Undone: the entry is back as it was."
 msgstr "Annullato: il contenuto è tornato com’era."
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Search every entry"
 msgstr "Cerca in tutti i contenuti"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Keep searching"
 msgstr "Continua a cercare"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Find more entries"
 msgstr "Trova altri contenuti"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Pick the entry the rule should link to."
 msgstr "Scegli il contenuto a cui la regola deve rimandare."
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "The rule could not be saved. Nothing was changed."
 msgstr "Non è stato possibile salvare la regola. Non è stato modificato nulla."
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Edit rule"
 msgstr "Modifica regola"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Add a rule"
 msgstr "Aggiungi una regola"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "Phrases to link"
 msgstr "Frasi da collegare"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "(required)"
 msgstr "(obbligatorio)"
 
-#: assets/build/index.js:92
+#: assets/build/index.js:94
 msgid "One phrase per line: the first is the main one and the rest are variants. Plurals and similar forms are matched too, so “heat pump” also finds “heat pumps”. The text is linked exactly as it is written in the entry."
 msgstr "Una frase per riga: la prima è quella principale e le altre sono varianti. Corrispondono anche i plurali e le forme simili, quindi «pompa di calore» trova anche «pompe di calore». Il testo viene collegato esattamente come è scritto nel contenuto."
 
-#: assets/build/index.js:92 assets/build/index.js:96
+#: assets/build/index.js:94 assets/build/index.js:98
 msgid "Destination"
 msgstr "Destinazione"
 
-#: assets/build/index.js:93
+#: assets/build/index.js:95
 msgid "Type part of the title of the entry the links should lead to."
 msgstr "Scrivi una parte del titolo del contenuto a cui devono portare i link."
 
 #. translators: %s: entry title.
-#: assets/build/index.js:94
+#: assets/build/index.js:96
 msgid "Destination: %s"
 msgstr "Destinazione: %s"
 
 #. translators: %s: entry title.
-#: assets/build/index.js:95
+#: assets/build/index.js:97
 msgid "Selected: %s"
 msgstr "Selezionato: %s"
 
-#: assets/build/index.js:95
+#: assets/build/index.js:97
 msgid "Keep the current one"
 msgstr "Mantieni quella attuale"
 
-#: assets/build/index.js:95
+#: assets/build/index.js:97
 msgid "Links per entry"
 msgstr "Link per contenuto"
 
 #. translators: %d: links to the same target allowed from one entry (a setting).
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "The most links this rule adds to one entry. Your settings allow %d link to the same target from one entry, so that is the real maximum."
 msgid_plural "The most links this rule adds to one entry. Your settings allow %d links to the same target from one entry, so that is the real maximum."
 msgstr[0] "Il numero massimo di link che questa regola aggiunge a un contenuto. Le tue impostazioni consentono %d link verso la stessa destinazione da un contenuto, quindi questo è il massimo reale."
 msgstr[1] "Il numero massimo di link che questa regola aggiunge a un contenuto. Le tue impostazioni consentono %d link verso la stessa destinazione da un contenuto, quindi questo è il massimo reale."
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "The most links this rule adds to one entry."
 msgstr "Il numero massimo di link che questa regola aggiunge a un contenuto."
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Only the first appearance of each phrase"
 msgstr "Solo la prima occorrenza di ogni frase"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Allow one extra word inside a phrase"
 msgstr "Consenti una parola in più all’interno di una frase"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words, and never across punctuation."
 msgstr "«ristrutturazione cucina» corrisponde anche a «ristrutturazione della cucina», ma non con due parole in più, e mai oltre un segno di punteggiatura."
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Do not apply to"
 msgstr "Non applicare a"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Skip entries in these categories"
 msgstr "Salta i contenuti di queste categorie"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Categories to skip"
 msgstr "Categorie da saltare"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Active: apply it when an entry is saved"
 msgstr "Attiva: applicala quando si salva un contenuto"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Save rule"
 msgstr "Salva regola"
 
-#: assets/build/index.js:96 assets/build/index.js:103
+#: assets/build/index.js:98 assets/build/index.js:105
 msgid "Add rule"
 msgstr "Aggiungi regola"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Could not load the rules."
 msgstr "Non è stato possibile caricare le regole."
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Could not load the options."
 msgstr "Non è stato possibile caricare le opzioni."
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Phrases"
 msgstr "Frasi"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "(missing entry)"
 msgstr "(contenuto inesistente)"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "not published"
 msgstr "non pubblicato"
 
-#: assets/build/index.js:96
+#: assets/build/index.js:98
 msgid "Options"
 msgstr "Opzioni"
 
 #. translators: %d: links per entry.
-#: assets/build/index.js:97
+#: assets/build/index.js:99
 msgid "%d link per entry"
 msgid_plural "%d links per entry"
 msgstr[0] "%d link per contenuto"
 msgstr[1] "%d link per contenuto"
 
-#: assets/build/index.js:97
+#: assets/build/index.js:99
 msgid "first appearance only"
 msgstr "solo la prima occorrenza"
 
-#: assets/build/index.js:97
+#: assets/build/index.js:99
 msgid "one extra word allowed"
 msgstr "una parola in più consentita"
 
 #. translators: %s: content types, comma separated.
-#: assets/build/index.js:98
+#: assets/build/index.js:100
 msgid "skips %s"
 msgstr "salta %s"
 
 #. translators: %d: number of categories.
-#: assets/build/index.js:99
+#: assets/build/index.js:101
 msgid "skips %d category"
 msgid_plural "skips %d categories"
 msgstr[0] "salta %d categoria"
 msgstr[1] "salta %d categorie"
 
-#: assets/build/index.js:99
+#: assets/build/index.js:101
 msgid "Active"
 msgstr "Attiva"
 
-#: assets/build/index.js:99
+#: assets/build/index.js:101
 msgid "Paused"
 msgstr "In pausa"
 
-#: assets/build/index.js:99
+#: assets/build/index.js:101
 msgid "A rule turns a phrase into a link to an entry. It is applied when a published entry is saved (never when a page is shown) and it only adds links: it never removes or changes one that exists, and everything it writes can be undone from the history. If someone has the entry open in the editor, the rule waits until it is closed."
 msgstr "Una regola trasforma una frase in un link a un contenuto. Viene applicata quando si salva un contenuto pubblicato (mai quando si mostra una pagina) e aggiunge solo link: non rimuove né modifica mai un link esistente, e tutto ciò che scrive può essere annullato dalla cronologia. Se qualcuno ha il contenuto aperto nell’editor, la regola aspetta che venga chiuso."
 
 #. translators: 1: words per link, 2: links to the same target per entry, 3: entries with the same anchor.
-#: assets/build/index.js:100
+#: assets/build/index.js:102
 msgid "Limits that rules never exceed (change them in Settings): one internal link for every %1$d words of an entry, %2$d to the same target from one entry, and %3$d entries using the same anchor text for the same target."
 msgstr "Limiti che le regole non superano mai (si cambiano nelle Impostazioni): un link interno ogni %1$d parole di un contenuto, %2$d verso la stessa destinazione da un contenuto e %3$d contenuti con lo stesso testo di ancoraggio verso la stessa destinazione."
 
-#: assets/build/index.js:100
+#: assets/build/index.js:102
 msgid "Open Settings"
 msgstr "Apri le Impostazioni"
 
-#: assets/build/index.js:100
+#: assets/build/index.js:102
 msgid "Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed."
 msgstr "Alcuni contenuti sono rimasti aperti nell’editor per un giorno, quindi non è stato possibile applicare loro le regole. Salvali di nuovo quando saranno chiusi."
 
 #. translators: %s: main phrase of a rule.
-#: assets/build/index.js:101
+#: assets/build/index.js:103
 msgid "The rule “%s” is not being applied: the person who created it can no longer manage the site."
 msgstr "La regola «%s» non viene applicata: la persona che l’ha creata non può più gestire il sito."
 
-#: assets/build/index.js:101
+#: assets/build/index.js:103
 msgid "Notice dismissed."
 msgstr "Avviso ignorato."
 
 #. translators: %s: main phrase of the rule.
-#: assets/build/index.js:102
+#: assets/build/index.js:104
 msgid "Rule “%s” added. It will be applied the next time a published entry is saved. To use it on existing entries, choose “Apply to existing entries”."
 msgstr "Regola «%s» aggiunta. Verrà applicata la prossima volta che si salva un contenuto pubblicato. Per usarla sui contenuti esistenti, scegli «Applica ai contenuti esistenti»."
 
 #. translators: %s: main phrase of the rule.
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Rule “%s” saved."
 msgstr "Regola «%s» salvata."
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Automatic rules"
 msgstr "Regole automatiche"
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Apply to existing entries"
 msgstr "Applica ai contenuti esistenti"
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Rule paused."
 msgstr "Regola messa in pausa."
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Rule activated."
 msgstr "Regola attivata."
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "The rule could not be changed."
 msgstr "Non è stato possibile modificare la regola."
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Activate"
 msgstr "Attiva"
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Delete"
 msgstr "Elimina"
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "There are no rules yet. Add one to link a phrase to an entry automatically."
 msgstr "Non ci sono ancora regole. Aggiungine una per collegare automaticamente una frase a un contenuto."
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Delete rule"
 msgstr "Elimina regola"
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "Rule deleted. The links it already added stay in your entries; you can undo them from the history."
 msgstr "Regola eliminata. I link che ha già aggiunto restano nei tuoi contenuti; puoi annullarli dalla cronologia."
 
-#: assets/build/index.js:103
+#: assets/build/index.js:105
 msgid "The rule could not be deleted."
 msgstr "Non è stato possibile eliminare la regola."
 
 #. translators: %s: main phrase of the rule.
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Delete the rule “%s”? The links it already added stay in your entries; you can undo them from the history."
 msgstr "Eliminare la regola «%s»? I link che ha già aggiunto restano nei tuoi contenuti; puoi annullarli dalla cronologia."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Content analyzed"
 msgstr "Contenuti analizzati"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Magic Linking reads these content types to find links between them."
 msgstr "Magic Linking legge questi tipi di contenuto per trovare i link tra di essi."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Maintenance"
 msgstr "Manutenzione"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Run the analysis again and go back through the first steps."
 msgstr "Esegui di nuovo l'analisi e ripercorri i primi passi."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Suggestions shown"
 msgstr "Suggerimenti mostrati"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "How many suggestions you see in the editor."
 msgstr "Quanti suggerimenti vedi nell'editor."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "To avoid overloading your texts"
 msgstr "Per non appesantire i tuoi testi"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "These are quality settings, not limits: you can always insert any link yourself."
 msgstr "Sono impostazioni di qualità, non limiti: puoi sempre inserire tu stesso qualsiasi link."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Which entries are suggested"
 msgstr "Quali contenuti vengono suggeriti"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Quality settings, not limits: you can always insert any link yourself. Suggestions never mix languages."
 msgstr "Impostazioni di qualità, non limiti: puoi sempre inserire tu stesso qualsiasi link. I suggerimenti non mescolano mai le lingue."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Under-linked entries"
 msgstr "Contenuti con pochi link"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "When an entry is shown as linked too little."
 msgstr "Quando un contenuto viene mostrato come poco collegato."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Where links can be inserted"
 msgstr "Dove si possono inserire i link"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
 msgstr "Paragrafi ed elenchi vengono sempre usati. Le opzioni seguenti sono disattivate per impostazione predefinita; attivale se vuoi suggerimenti e link anche lì."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "How links are inserted"
 msgstr "Come vengono inseriti i link"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "What the links Magic Linking inserts look like."
 msgstr "Che aspetto hanno i link inseriti da Magic Linking."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Exclusions"
 msgstr "Esclusioni"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Entries and words that Magic Linking should leave alone."
 msgstr "Contenuti e parole che Magic Linking deve lasciare stare."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "AI connector"
 msgstr "Connettore IA"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Magic Linking uses the AI you connect in WordPress. It never asks for a key of its own."
 msgstr "Magic Linking usa l’IA che colleghi in WordPress. Non chiede mai una chiave propria."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Daily limit and model"
 msgstr "Limite giornaliero e modello"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "You decide how much AI can be used each day and, if you want, which model."
 msgstr "Decidi tu quanta IA si può usare ogni giorno e, se vuoi, con quale modello."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "AI use in the last 30 days"
 msgstr "Uso dell’IA negli ultimi 30 giorni"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "What Magic Linking has used through your connector. Your provider is the one that charges you."
 msgstr "Ciò che Magic Linking ha usato tramite il tuo connettore. È il tuo provider a farti pagare."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "History of changes"
 msgstr "Cronologia delle modifiche"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "How long you can undo changes."
 msgstr "Per quanto tempo puoi annullare le modifiche."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "When the plugin is deleted"
 msgstr "Quando il plugin viene eliminato"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "What happens to the data of Magic Linking."
 msgstr "Cosa succede ai dati di Magic Linking."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Could not load the AI status."
 msgstr "Impossibile caricare lo stato dell’IA."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Preferred model"
 msgstr "Modello preferito"
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "Automatic picks a small, fast model from your connector, the cheapest one when it can. Pick another if you prefer."
 msgstr "In automatico viene scelto un modello piccolo e veloce del tuo connettore, il più economico quando possibile. Scegline un altro se preferisci."
 
-#: assets/build/index.js:104
+#: assets/build/index.js:106
 msgid "no cost (local)"
 msgstr "senza costo (locale)"
 
 #. translators: 1: dollars per million input tokens, 2: dollars per million output tokens.
-#: assets/build/index.js:105
+#: assets/build/index.js:107
 msgid "%1$s in / %2$s out per million"
 msgstr "%1$s in ingresso / %2$s in uscita per milione"
 
-#: assets/build/index.js:105
+#: assets/build/index.js:107
 msgid "Automatic (recommended)"
 msgstr "Automatico (consigliato)"
 
-#: assets/build/index.js:105
+#: assets/build/index.js:107
 msgid "Recommended"
 msgstr "Consigliati"
 
-#: assets/build/index.js:105
+#: assets/build/index.js:107
 msgid "All models"
 msgstr "Tutti i modelli"
 
 #. translators: %s: model name.
-#: assets/build/index.js:106
+#: assets/build/index.js:108
 msgid "%s (not available now)"
 msgstr "%s (non disponibile ora)"
 
-#: assets/build/index.js:106
+#: assets/build/index.js:108
 msgid "AI is turned off: the daily limit is 0 tokens. Suggestions use the built-in engine."
 msgstr "L’IA è spenta: il limite giornaliero è di 0 token. I suggerimenti usano il motore integrato."
 
 #. translators: 1: tokens used today, 2: daily limit in tokens.
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "Today: %1$s of %2$s tokens used."
 msgstr "Oggi: %1$s token usati su %2$s."
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "The limit is reached: AI is paused until tomorrow and suggestions use the built-in engine."
 msgstr "Il limite è stato raggiunto: l’IA è in pausa fino a domani e i suggerimenti usano il motore integrato."
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "AI needs WordPress 7.0 or later. This site runs an earlier version, so Magic Linking works with its own engine and the AI options are turned off."
 msgstr "L’IA richiede WordPress 7.0 o successivo. Questo sito usa una versione precedente, quindi Magic Linking funziona con il proprio motore e le opzioni IA sono disattivate."
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "This site has no AI connected. Magic Linking works fully without it: suggestions use its own engine."
 msgstr "Questo sito non ha nessuna IA collegata. Magic Linking funziona completamente anche senza: i suggerimenti usano il proprio motore."
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…)."
 msgstr "Puoi collegare la tua in Impostazioni → Connettori (OpenAI, Google, Ollama in locale…)."
 
-#: assets/build/index.js:107 assets/build/index.js:108
+#: assets/build/index.js:109 assets/build/index.js:110
 msgid "Check again"
 msgstr "Controlla di nuovo"
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "Provider"
 msgstr "Provider"
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "Model it will use"
 msgstr "Modello che userà"
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "Where it runs"
 msgstr "Dove viene eseguito"
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "Local, on your own server"
 msgstr "In locale, sul tuo server"
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "Remote, at your provider"
 msgstr "Remoto, presso il tuo provider"
 
-#: assets/build/index.js:107
+#: assets/build/index.js:109
 msgid "The AI on this site is local: the text does not leave your server."
 msgstr "L’IA di questo sito è locale: il testo non lascia il tuo server."
 
 #. translators: %s: name of the AI provider.
-#: assets/build/index.js:108
+#: assets/build/index.js:110
 msgid "To use the AI suggestions, the text of the entries involved is sent to %s through your WordPress connector."
 msgstr "Per i suggerimenti con l’IA, il testo dei contenuti coinvolti viene inviato a %s tramite il connettore del tuo WordPress."
 
-#: assets/build/index.js:108
+#: assets/build/index.js:110
 msgid "No AI requests in the last 30 days."
 msgstr "Nessuna richiesta all’IA negli ultimi 30 giorni."
 
 #. translators: %s: estimated cost in dollars.
-#: assets/build/index.js:109
+#: assets/build/index.js:111
 msgid "%s (only models with a known price)"
 msgstr "%s (solo modelli con prezzo noto)"
 
 #. translators: 1: number of AI requests, 2: tokens used, 3: estimated cost.
-#: assets/build/index.js:110
+#: assets/build/index.js:112
 msgid "%1$s requests, %2$s tokens, about %3$s."
 msgstr "%1$s richieste, %2$s token, circa %3$s."
 
 #. translators: %s: number of AI requests that got no usable answer.
-#: assets/build/index.js:111
+#: assets/build/index.js:113
 msgid "Requests without an answer: %s."
 msgstr "Richieste senza risposta: %s."
 
-#: assets/build/index.js:111
+#: assets/build/index.js:113
 msgid "AI use by model"
 msgstr "Uso dell’IA per modello"
 
-#: assets/build/index.js:111
+#: assets/build/index.js:113
 msgid "Model"
 msgstr "Modello"
 
-#: assets/build/index.js:111
+#: assets/build/index.js:113
 msgid "Requests"
 msgstr "Richieste"
 
-#: assets/build/index.js:111
+#: assets/build/index.js:113
 msgid "Tokens"
 msgstr "Token"
 
-#: assets/build/index.js:111
+#: assets/build/index.js:113
 msgid "Estimated cost"
 msgstr "Costo stimato"
 
 #. translators: %s: date of the price list, like 2026-10-15.
-#: assets/build/index.js:112
+#: assets/build/index.js:114
 msgid "Costs are estimates with public list prices as of %s. What your provider charges is what counts. A local model costs nothing."
 msgstr "I costi sono stime basate sui prezzi di listino pubblici al %s. Conta quanto ti fattura il tuo provider. Un modello locale non costa nulla."
 
-#: assets/build/index.js:112
+#: assets/build/index.js:114
 msgid "No cost (local)"
 msgstr "Senza costi (locale)"
 
-#: assets/build/index.js:112
+#: assets/build/index.js:114
 msgid "Price unknown"
 msgstr "Prezzo sconosciuto"
 
-#: assets/build/index.js:112
+#: assets/build/index.js:114
 msgid "Last failed request"
 msgstr "Ultima richiesta non riuscita"
 
 #. translators: 1: date and time, 2: model name (may be empty), 3: error code.
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "%1$s · %2$s · code: %3$s"
 msgstr "%1$s · %2$s · codice: %3$s"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "unknown model"
 msgstr "modello sconosciuto"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Last full analysis"
 msgstr "Ultima analisi completa"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Duration"
 msgstr "Durata"
 
-#: assets/build/index.js:113 assets/build/index.js:119
+#: assets/build/index.js:115 assets/build/index.js:121
 msgid "Entries analyzed"
 msgstr "Contenuti analizzati"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "There is no completed analysis yet."
 msgstr "Non c'è ancora nessuna analisi completata."
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background. Analyzing only reads your content; it never changes it."
 msgstr "Analizza di nuovo ogni contenuto da zero, anche quelli che non sono cambiati. Per analizzare solo ciò che è nuovo o modificato, usa «Analizza le modifiche» nel Report. L'analisi viene eseguita in background e si limita a leggere i tuoi contenuti, senza mai modificarli."
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Analyze everything again from scratch"
 msgstr "Rianalizza tutto da zero"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "An analysis is already running; its progress is shown above."
 msgstr "Un'analisi è già in corso; il suo avanzamento è mostrato qui sopra."
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Setup assistant"
 msgstr "Assistente di configurazione"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Go through the first steps again: content types, AI and the first analysis."
 msgstr "Ripercorri i primi passi: tipi di contenuto, IA e prima analisi."
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Open the setup assistant"
 msgstr "Apri l’assistente di configurazione"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Analyze everything again from scratch?"
 msgstr "Rianalizzare tutto da zero?"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it."
 msgstr "Magic Linking leggerà di nuovo tutti i contenuti. L'analisi viene eseguita in background, quindi puoi continuare a lavorare. L'analisi si limita a leggere i tuoi contenuti e non li modifica mai."
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Start analysis"
 msgstr "Avvia l'analisi"
 
-#: assets/build/index.js:113 assets/build/index.js:114
+#: assets/build/index.js:115 assets/build/index.js:116
 msgid "Could not load the settings."
 msgstr "Impossibile caricare le impostazioni."
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
 msgstr "Impostazioni salvate. Ciò che Magic Linking legge è cambiato, quindi il sito viene analizzato di nuovo."
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Settings saved."
 msgstr "Impostazioni salvate."
 
-#: assets/build/index.js:113 assets/build/index.js:117
+#: assets/build/index.js:115 assets/build/index.js:119
 msgid "The settings could not be saved."
 msgstr "Impossibile salvare le impostazioni."
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Ignore"
 msgstr "Ignora"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Take into account (a small boost if they share it)"
 msgstr "Tieni conto (un piccolo vantaggio se lo condividono)"
 
-#: assets/build/index.js:113
+#: assets/build/index.js:115
 msgid "Require (only entries that share it)"
 msgstr "Richiedi (solo i contenuti che lo condividono)"
 
 #. translators: 1: minimum, 2: maximum.
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Enter a whole number from %1$s to %2$s; otherwise it is adjusted when you leave the field."
 msgstr "Inserisci un numero intero da %1$s a %2$s; altrimenti viene corretto quando esci dal campo."
 
-#: assets/build/index.js:114 assets/build/index.js:117
+#: assets/build/index.js:116 assets/build/index.js:119
 msgid "Choose at least one content type."
 msgstr "Scegli almeno un tipo di contenuto."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Unsaved changes"
 msgstr "Modifiche non salvate"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "(needs attention)"
 msgstr "(richiede attenzione)"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "(unsaved changes)"
 msgstr "(modifiche non salvate)"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "General"
 msgstr "Generale"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Suggestions"
 msgstr "Suggerimenti"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Links"
 msgstr "Link"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "AI"
 msgstr "IA"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "History and data"
 msgstr "Cronologia e dati"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Outbound suggestions in the editor"
 msgstr "Suggerimenti in uscita nell’editor"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "The most useful links to add from the entry you are editing."
 msgstr "I link più utili da aggiungere dal contenuto che stai modificando."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Alternative sentences per suggestion"
 msgstr ""
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "0 shows one sentence per suggestion. With 1 or 2, each card offers “More sentences” to link from another sentence of the same entry."
 msgstr ""
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Inbound suggestions per page in the editor"
 msgstr "Suggerimenti in entrata per pagina nell’editor"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Entries that could link to the one you are editing, shown this many at a time."
 msgstr "Contenuti che potrebbero collegarsi a quello che stai modificando, mostrati in gruppi di questo numero."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Words per internal link"
 msgstr "Parole per link interno"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed). Automatic rules never add a link to an entry that already has that many."
 msgstr "Un contenuto con più link interni di uno ogni tante parole viene mostrato come sovraccarico di link (è sempre consentito almeno un link). Le regole automatiche non aggiungono mai un link a un contenuto che ne ha già altrettanti."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Links to the same target from one entry"
 msgstr "Link verso la stessa destinazione da un contenuto"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Automatic rules add at most this many links from an entry to the same target. Existing links are never removed."
 msgstr "Le regole automatiche aggiungono al massimo tanti link da un contenuto verso la stessa destinazione. I link esistenti non vengono mai rimossi."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Entries that can use the same anchor text for the same target"
 msgstr "Contenuti che possono usare lo stesso testo di ancoraggio per la stessa destinazione"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries."
 msgstr "Oltre questo numero di contenuti, lo stesso testo di ancoraggio verso la stessa destinazione viene suggerito meno, e le regole automatiche smettono di usarlo nei nuovi contenuti."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "For example, suggest links from posts only to posts."
 msgstr "Ad esempio, suggerisci link dagli articoli solo verso altri articoli."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Category"
 msgstr "Categoria"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "In a custom content type, its main hierarchical taxonomy is used instead."
 msgstr "In un tipo di contenuto personalizzato si usa invece la sua principale tassonomia gerarchica."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Tag"
 msgstr "Tag"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "In a custom content type, its main non-hierarchical taxonomy is used instead."
 msgstr "In un tipo di contenuto personalizzato si usa invece la sua principale tassonomia non gerarchica."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Under-linked below this many inbound links"
 msgstr "Poco collegato sotto questo numero di link in entrata"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
 msgstr "Un contenuto con almeno un link in entrata ma meno di questo numero viene mostrato come poco collegato."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Headings"
 msgstr "Titoli"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Quotes"
 msgstr "Citazioni"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Tables"
 msgstr "Tabelle"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Changing these makes Magic Linking read your entries again."
 msgstr "Modificare queste opzioni fa rileggere i tuoi contenuti a Magic Linking."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Open links in a new tab"
 msgstr "Apri i link in una nuova scheda"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
 msgstr "Disattivato per impostazione predefinita. Aggiunge target=\"_blank\" e rel=\"noopener\" ai link inseriti da Magic Linking; i link già presenti nei tuoi contenuti non vengono modificati."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Additional rel values"
 msgstr "Valori rel aggiuntivi"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
 msgstr "Facoltativo, separati da spazi (per esempio: nofollow). Aggiunti ai link inseriti da Magic Linking."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Ignored addresses"
 msgstr "Indirizzi ignorati"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "One address per line. These entries are never suggested as a target, and never suggested to link to others."
 msgstr "Un indirizzo per riga. Questi contenuti non vengono mai suggeriti come destinazione, né suggeriti per collegarsi ad altri."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Ignored words"
 msgstr "Parole ignorate"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "One word or phrase per line. Suggestions whose anchor text contains one of them are not shown."
 msgstr "Una parola o frase per riga. I suggerimenti il cui testo di ancoraggio ne contiene una non vengono mostrati."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Daily AI limit (tokens)"
 msgstr "Limite giornaliero di IA (token)"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "The most tokens Magic Linking may use through your connector in a day. 0 turns AI off. When the limit is reached, AI pauses until tomorrow and the suggestions use the lexical engine."
 msgstr "Il numero massimo di token che Magic Linking può usare al giorno tramite il tuo connettore. Con 0 l’IA viene spenta. Raggiunto il limite, l’IA resta in pausa fino a domani e i suggerimenti usano il motore lessicale."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Keep the history of changes for"
 msgstr "Conserva la cronologia delle modifiche per"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
 msgstr "I gruppi più vecchi vengono eliminati dall'attività notturna e da quel momento non potrai più annullarli. I link restano nei tuoi contenuti. Non c'è un limite al numero di modifiche conservate."
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "30 days"
 msgstr "30 giorni"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "90 days"
 msgstr "90 giorni"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "365 days"
 msgstr "365 giorni"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "No expiry date"
 msgstr "Nessuna scadenza"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Delete all Magic Linking data when the plugin is deleted"
 msgstr "Elimina tutti i dati di Magic Linking quando il plugin viene eliminato"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
 msgstr "Rimuove le sue tabelle, la cronologia e le impostazioni. I link già presenti nei tuoi contenuti restano come sono; i tuoi contenuti non vengono toccati."
 
-#: assets/build/index.js:114 assets/build/index.js:116
+#: assets/build/index.js:116 assets/build/index.js:118
 msgid "Content types to analyze"
 msgstr "Tipi di contenuto da analizzare"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Save settings"
 msgstr "Salva le impostazioni"
 
-#: assets/build/index.js:114
+#: assets/build/index.js:116
 msgid "Could not load the setup information."
 msgstr "Impossibile caricare le informazioni di configurazione."
 
 #. translators: 1: current step, 2: number of steps.
-#: assets/build/index.js:115
+#: assets/build/index.js:117
 msgid "Step %1$s of %2$s"
 msgstr "Passaggio %1$s di %2$s"
 
-#: assets/build/index.js:115
+#: assets/build/index.js:117
 msgid "What do we link?"
 msgstr "Cosa colleghiamo?"
 
-#: assets/build/index.js:115
+#: assets/build/index.js:117
 msgid "Artificial intelligence"
 msgstr "Intelligenza artificiale"
 
-#: assets/build/index.js:115
+#: assets/build/index.js:117
 msgid "All set"
 msgstr "Tutto pronto"
 
 #. translators: 1: current step, 2: number of steps.
-#: assets/build/index.js:116
+#: assets/build/index.js:118
 msgid "Setup · step %1$s of %2$s"
 msgstr "Configurazione · passaggio %1$s di %2$s"
 
 #. translators: %s: language name.
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "Language detected: %s."
 msgstr "Lingua rilevata: %s."
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "Your site is multilingual: we will link each language separately."
 msgstr "Il tuo sito è multilingue: collegheremo ogni lingua separatamente."
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "Entries are only linked to others in the same language."
 msgstr "I contenuti vengono collegati solo ad altri nella stessa lingua."
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "Your WordPress has an AI connector. This version of Magic Linking does not use it yet: suggestions come from its own engine, which needs no AI. When AI features arrive they will use that connector, and nothing will be spent without showing you an estimate first."
 msgstr "Il tuo WordPress ha un connettore IA. Questa versione di Magic Linking non lo usa ancora: i suggerimenti arrivano dal suo motore, che non richiede IA. Quando arriveranno le funzioni di IA useranno quel connettore e non si spenderà nulla senza mostrarti prima una stima."
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "No AI connected: Magic Linking works with its own engine, which needs no AI. You can connect one whenever you like in Settings → Connectors."
 msgstr "Nessuna IA collegata: Magic Linking funziona con il suo motore, che non richiede IA. Puoi collegarne una quando vuoi in Impostazioni → Connettori."
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "Analyzing only reads your content; it never changes it. Links are only added when you press Link."
 msgstr "L’analisi legge soltanto i tuoi contenuti; non li modifica mai. I link vengono aggiunti solo quando premi Collega."
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "The analysis is running. You can close this screen: it continues in the background."
 msgstr "L’analisi è in corso. Puoi chiudere questa schermata: continua in background."
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "Start"
 msgstr "Avvia"
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "Back"
 msgstr "Indietro"
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "Skip setup"
 msgstr "Salta la configurazione"
 
-#: assets/build/index.js:117
+#: assets/build/index.js:119
 msgid "You can open this assistant again from Settings."
 msgstr "Puoi riaprire questo assistente dalle Impostazioni."
 
 #. translators: 1: entries analyzed, 2: orphan entries, 3: internal links.
-#: assets/build/index.js:118
+#: assets/build/index.js:120
 msgid "%1$s entries analyzed · %2$s orphans · %3$s internal links"
 msgstr "%1$s contenuti analizzati · %2$s orfani · %3$s link interni"
 
-#: assets/build/index.js:118
+#: assets/build/index.js:120
 msgid "See orphans"
 msgstr "Vedi gli orfani"
 
-#: assets/build/index.js:118
+#: assets/build/index.js:120
 msgid "Open an entry"
 msgstr "Apri un contenuto"
 
 #. translators: %s: section name (Report, Broken links, Settings).
-#: assets/build/index.js:119
+#: assets/build/index.js:121
 msgid "Magic Linking · %s"
 msgstr "Magic Linking · %s"
 
-#: assets/build/index.js:119
+#: assets/build/index.js:121
 msgid "Orphan entries"
 msgstr "Contenuti orfani"
 
-#: assets/build/index.js:119
+#: assets/build/index.js:121
 msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
 msgstr "Vengono conteggiati solo i link scritti all'interno di ogni contenuto. I link in menu, widget e template del tema no."
 
 #. translators: %s: WP-CLI command.
-#: assets/build/index.js:120
+#: assets/build/index.js:122
 msgid "You can also run the analysis from the terminal: %s"
 msgstr "Puoi eseguire l'analisi anche dal terminale: %s"

@@ -228,7 +228,7 @@ final class HistoryReviewTest extends HistoryTestCase {
 		$this->batches()->start( $batch['batch'], false, $this->admin, false );
 		$c = Plugin::container();
 		WP_CLI::reset();
-		$command = new Command( $c->get( \MagicLinking\Jobs\Jobs::class ), $c->get( \MagicLinking\Graph\ReportRepository::class ), $c->get( \MagicLinking\Graph\BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) );
+		$command = new Command( $c->get( \MagicLinking\Jobs\Jobs::class ), $c->get( \MagicLinking\Graph\ReportRepository::class ), $c->get( \MagicLinking\Graph\BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ), $c->get( \MagicLinking\Core\Settings::class ) );
 
 		try {
 			$command->history( array( 'undo', $batch['batch'] ), array() );

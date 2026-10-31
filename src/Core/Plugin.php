@@ -62,6 +62,7 @@ use MagicLinking\Rest\EditorHistoryController;
 use MagicLinking\Rest\FixController;
 use MagicLinking\Rest\HistoryController;
 use MagicLinking\Rest\JobsController;
+use MagicLinking\Rest\ExclusionController;
 use MagicLinking\Rest\PillarController;
 use MagicLinking\Rest\ReportController;
 use MagicLinking\Rest\RulesController;
@@ -98,6 +99,7 @@ final class Plugin {
 		SuggestionCache::class,
 		Pillars::class,
 		PillarController::class,
+		ExclusionController::class,
 		SuggestionsController::class,
 		DismissalsController::class,
 		RulesController::class,
@@ -252,6 +254,7 @@ final class Plugin {
 				return new Pillars( $wpdb );
 			},
 			PillarController::class        => static fn( Container $c ): PillarController => new PillarController( $c->get( Pillars::class ), $c->get( Settings::class ) ),
+			ExclusionController::class     => static fn( Container $c ): ExclusionController => new ExclusionController( $c->get( Settings::class ) ),
 			SuggestionCache::class         => static fn(): SuggestionCache => new SuggestionCache(),
 			SuggestionPresenter::class     => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ), $c->get( AnchorNotes::class ) ),
 			AnchorUsage::class             => static function (): AnchorUsage {
@@ -410,7 +413,7 @@ final class Plugin {
 			SettingsController::class      => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ), $c->get( Capabilities::class ) ),
 			ExportHandler::class           => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ) ),
 			CliModule::class               => static fn( Container $c ): CliModule => new CliModule(
-				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ) ),
+				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ), $c->get( Settings::class ) ),
 				static fn(): RulesCommand => new RulesCommand( $c->get( RuleRepository::class ), $c->get( RuleValidator::class ), $c->get( RuleService::class ) )
 			),
 			Screen::class                  => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ) ),

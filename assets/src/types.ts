@@ -2,9 +2,16 @@
  * Tipos de la API REST de Magic Linking.
  */
 
-export type LinkStatus = 'orphan' | 'low' | 'over' | 'ok';
+/** `excluded` solo en las filas del filtro «Excluded» (no están en el índice y no tienen cifras). */
+export type LinkStatus = 'orphan' | 'low' | 'over' | 'ok' | 'excluded';
 
-export type ReportFilter = 'all' | 'orphans' | 'low' | 'over' | 'broken';
+export type ReportFilter =
+	| 'all'
+	| 'orphans'
+	| 'low'
+	| 'over'
+	| 'broken'
+	| 'excluded';
 
 export type SortKey =
 	| 'title'
@@ -32,6 +39,9 @@ export interface ReportItem {
 	indexed_at: string;
 	url: string;
 	edit_url: string;
+	/** Solo en las excluidas: estado de la entrada (un borrador excluido también se lista). */
+	post_status?: string;
+	post_status_label?: string;
 }
 
 export interface CountLabel {
@@ -48,6 +58,8 @@ export interface Summary {
 	broken_posts: number;
 	internal_links: number;
 	broken_links: number;
+	/** Entradas excluidas del análisis. */
+	excluded: number;
 	types: CountLabel[];
 	langs: string[];
 	/** Hay WPML o Polylang activos, o el índice tiene más de un idioma: solo entonces se muestra el idioma. */
@@ -155,6 +167,12 @@ export type FilterMode = 'ignore' | 'consider' | 'require';
 export type FilterName = 'type' | 'category' | 'tag';
 
 export type SuggestionFilters = Record< FilterName, FilterMode >;
+
+/** Respuesta de `POST /exclusions/{id}`. */
+export interface ExclusionState {
+	post_id: number;
+	excluded: boolean;
+}
 
 /** Estado de la casilla «Contenido pilar» de una entrada (`GET|POST /pillar/{id}`). */
 export interface PillarState {
@@ -510,6 +528,7 @@ export type SuggestionState =
 	| 'ok'
 	| 'index_not_ready'
 	| 'not_analyzed'
+	| 'excluded'
 	| 'not_published';
 
 /** Destino al que la entrada ya enlaza, para el bloque «Enlaces actuales» (docs/07 §3.3). */

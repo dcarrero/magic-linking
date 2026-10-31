@@ -40,6 +40,7 @@ import type {
 	RuleTarget,
 	RunResponse,
 	Job,
+	ExclusionState,
 	ReportFilter,
 	ReportResponse,
 	ReportRowsResponse,
@@ -613,6 +614,18 @@ export const api = {
 			path: path( `/pillar/${ postId }` ),
 			method: 'POST',
 			data: { pillar },
+		} ),
+	/**
+	 * Excluye una entrada del análisis o la vuelve a incluir.
+	 *
+	 * @param postId   Entrada.
+	 * @param excluded Excluida.
+	 */
+	setExcluded: ( postId: number, excluded: boolean ) =>
+		apiFetch< ExclusionState >( {
+			path: path( `/exclusions/${ postId }` ),
+			method: 'POST',
+			data: { excluded },
 		} ),
 	saveSettings: ( values: SettingsValues ) =>
 		apiFetch< SettingsResponse >( {
