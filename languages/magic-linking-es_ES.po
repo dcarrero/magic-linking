@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T12:00:42+00:00\n"
+"POT-Creation-Date: 2026-10-31T12:31:28+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -201,7 +201,7 @@ msgstr "Acción desconocida. Usa: list, undo, redo, purge o export."
 
 #: src/Cli/Command.php:674 src/Cli/Command.php:708
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:579
+#: src/Rest/SuggestionsController.php:587
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "No tienes permiso para editar una de las entradas afectadas."
 
@@ -262,7 +262,7 @@ msgstr[1] "Se han borrado %d filas del historial."
 #: src/Cli/Command.php:804 src/Cli/RulesCommand.php:301
 #: src/Rest/AiController.php:225 src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95 src/Rest/PillarController.php:127
-#: src/Rest/SuggestionsController.php:789
+#: src/Rest/SuggestionsController.php:831
 msgid "That entry does not exist."
 msgstr "Esa entrada no existe."
 
@@ -661,7 +661,7 @@ msgstr "Esta entrada se editó después; quita el enlace a mano."
 msgid "You are not allowed to export this data."
 msgstr "No tienes permiso para exportar estos datos."
 
-#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:362
+#: src/Rest/AiController.php:243 src/Rest/SuggestionsController.php:370
 msgid "The content is too long to analyze."
 msgstr "El contenido es demasiado largo para analizarlo."
 
@@ -832,11 +832,15 @@ msgstr "El destino es huérfano (0 enlaces entrantes)"
 msgid "Very similar in meaning"
 msgstr "Muy parecidas por significado"
 
-#: src/Rest/SuggestionsController.php:571
+#: src/Rest/SuggestionsController.php:579
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Cada enlace necesita la entrada, el destino, la frase, el desplazamiento y el ancla."
 
 #: src/Rest/SuggestionsController.php:636
+msgid "This anchor already links to a different entry from this one. Use another anchor."
+msgstr "Esta ancla ya enlaza a otra entrada desde esta. Usa otra ancla."
+
+#: src/Rest/SuggestionsController.php:654
 msgid "The link could not be saved; nothing was changed."
 msgstr "No se ha podido guardar el enlace; no se ha cambiado nada."
 
@@ -1088,9 +1092,8 @@ msgstr "Marca de contenido pilar quitada."
 msgid "The pillar content mark could not be saved."
 msgstr "No se ha podido guardar la marca de contenido pilar."
 
-#: assets/build/classic.js:13 assets/build/classic.js:14
-#: assets/build/editor.js:13 assets/build/editor.js:14 assets/build/index.js:63
-#: assets/build/index.js:64
+#: assets/build/classic.js:13 assets/build/editor.js:13
+#: assets/build/index.js:63
 msgid "The anchor could not be checked. Try again."
 msgstr "No se ha podido comprobar el ancla. Inténtalo de nuevo."
 
@@ -1504,6 +1507,14 @@ msgstr "La sugerencia hacia «%s» ha cambiado de frase."
 #: assets/build/classic.js:37 assets/build/editor.js:37
 msgid "The suggestion to “%s” was removed because its sentence is now used by another one."
 msgstr "La sugerencia hacia «%s» se ha quitado porque su frase la usa ahora otra."
+
+#: assets/build/classic.js:37 assets/build/editor.js:37
+msgid "That sentence cannot be used: a link you added or dismissed, or another anchor, already takes it."
+msgstr "No se puede usar esa frase: un enlace que has añadido o descartado, u otra ancla, ya la ocupa."
+
+#: assets/build/classic.js:37 assets/build/editor.js:37
+msgid "That anchor already links to another entry from this one, so it was not applied."
+msgstr "Esa ancla ya enlaza a otra entrada desde esta, así que no se ha aplicado."
 
 #: assets/build/index.js:1
 msgid "Notice closed."

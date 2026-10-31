@@ -1437,6 +1437,38 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->assertSame( $before, $this->stored( $this->sources[1] ) );
 	}
 
+	public function test_the_same_anchor_cannot_go_to_two_targets_from_one_entry_in_a_batch(): void {
+		$this->corpus();
+		$item   = $this->first_outbound( $this->sources[1] );
+		$other  = $this->sources[2];
+		$before = $this->stored( $this->sources[1] );
+		$second = array_merge( $item['insert'], array( 'target_id' => $other ) );
+
+		$data = $this->request( 'POST', '/links', array( 'links' => array( $item['insert'], $second ) ) )->get_data();
+
+		$this->assertSame( 'inserted', $data['results'][0]['status'] );
+		$this->assertSame( 'failed', $data['results'][1]['status'] );
+		$this->assertSame( 'bad_anchor', $data['results'][1]['reason'] );
+		$this->assertNotSame( '', $data['results'][1]['message'] );
+		$this->assertSame( 1, substr_count( $this->stored( $this->sources[1] ), '<a href=' ) );
+		$this->assertNotSame( $before, $this->stored( $this->sources[1] ) );
+	}
+
+	public function test_the_same_anchor_cannot_go_to_another_target_when_the_entry_already_has_it(): void {
+		$this->corpus();
+		$item = $this->first_outbound( $this->sources[1] );
+		$this->assertSame( 1, $this->request( 'POST', '/links', $item['insert'] )->get_data()['inserted'] );
+		$stored = $this->stored( $this->sources[1] );
+
+		// La misma ancla, hacia otro destino.
+		$result = $this->request( 'POST', '/links', array_merge( $item['insert'], array( 'target_id' => $this->sources[2] ) ) )->get_data()['results'][0];
+
+		$this->assertSame( 'failed', $result['status'] );
+		$this->assertSame( 'bad_anchor', $result['reason'] );
+		$this->assertNotSame( '', $result['message'] );
+		$this->assertSame( $stored, $this->stored( $this->sources[1] ) );
+	}
+
 	public function test_ignored_words_also_apply_to_an_adjusted_anchor(): void {
 		$this->corpus();
 		$item = $this->first_outbound( $this->sources[1] );

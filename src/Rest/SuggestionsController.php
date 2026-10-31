@@ -16,6 +16,7 @@ use MagicLinking\Content\Inserter;
 use MagicLinking\Content\InsertRequest;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Module;
+use MagicLinking\Core\Schema;
 use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Analyzer;
 use MagicLinking\Engine\AnchorCheck;
@@ -66,6 +67,13 @@ final class SuggestionsController implements Module {
 	 * @var array<int, Analyzer>
 	 */
 	private array $analyzers = array();
+
+	/**
+	 * Anclas (por raíz) que cada origen ya usa y hacia qué destinos, según el grafo y este lote.
+	 *
+	 * @var array<int, array<string, array<int, true>>>
+	 */
+	private array $anchors = array();
 
 	/**
 	 * Patrones de las palabras ignoradas, calculados una vez por petición.
@@ -602,10 +610,12 @@ final class SuggestionsController implements Module {
 			}
 
 			// Un ancla ajustada por el usuario pasa otra vez por los descartes de docs/04 §5.3 y por las palabras ignoradas;
-			// la del motor ya los pasó. Que el tramo sea literal y empiece y acabe en límite de palabra se exige siempre.
+			// la del motor ya los pasó. El servidor no puede saber qué ancla venía del motor, así que sin `adjusted` no aplica esos
+			// descartes (la IA o las reglas proponen otras anclas); lo que sí exige siempre es que el tramo sea literal y que
+			// empiece y acabe en límite de palabra.
 			$problem = ! empty( $link['adjusted'] )
 				? $this->check_anchor( $post_id, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] )->errors
-				: ( $this->cuts_a_word( (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] ) ? array( AnchorCheck::NOT_WORD_BOUNDARY ) : array() );
+				: ( AnchorCheck::cuts_word( (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] ) ? array( AnchorCheck::NOT_WORD_BOUNDARY ) : array() );
 			if ( array() !== $problem ) {
 				$results[ $index ] = $this->failure( $base, new InsertionException( InsertionException::BAD_ANCHOR, AnchorMessages::text( $problem[0] ) ) );
 				continue;
@@ -616,6 +626,14 @@ final class SuggestionsController implements Module {
 				$request = InsertRequest::from_sentence( $post_id, $url, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'], array(), $path, null, false, AiOrigin::from_input( $link ) );
 			} catch ( InsertionException $e ) {
 				$results[ $index ] = $this->failure( $base, $e );
+				continue;
+			}
+
+			// Una misma ancla (por raíz) no lleva a dos destinos desde el mismo origen (docs/04 §5.3): ni en este lote ni
+			// en los enlaces que la entrada ya tiene según el grafo (que se reindexa al escribir; una edición a mano
+			// aún no reindexada no se ve).
+			if ( $this->anchor_goes_elsewhere( $post_id, $target_id, (string) $link['anchor'] ) ) {
+				$results[ $index ] = $this->failure( $base, new InsertionException( InsertionException::BAD_ANCHOR, __( 'This anchor already links to a different entry from this one. Use another anchor.', 'magic-linking' ) ) );
 				continue;
 			}
 
@@ -700,22 +718,46 @@ final class SuggestionsController implements Module {
 	}
 
 	/**
+	 * Si la ancla (por raíz) ya enlaza desde esa entrada a un destino distinto, en este lote o en el grafo; si no, la
+	 * reserva para este lote.
+	 *
+	 * @param int    $post_id   Origen.
+	 * @param int    $target_id Destino del enlace que se quiere poner.
+	 * @param string $anchor    Ancla.
+	 */
+	private function anchor_goes_elsewhere( int $post_id, int $target_id, string $anchor ): bool {
+		if ( ! isset( $this->analyzers[ $post_id ] ) ) {
+			$this->analyzers[ $post_id ] = Analyzer::for_language( $this->language->for_post( $post_id ) );
+		}
+		$analyzer = $this->analyzers[ $post_id ];
+
+		if ( ! isset( $this->anchors[ $post_id ] ) ) {
+			global $wpdb;
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT target_id, anchor FROM %i WHERE source_id = %d AND is_internal = 1 AND target_id IS NOT NULL', Schema::table( $wpdb->prefix, 'links' ), $post_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$map  = array();
+			foreach ( (array) $rows as $row ) {
+				$map[ $analyzer->phrase_key( (string) $row['anchor'] ) ][ (int) $row['target_id'] ] = true;
+			}
+			$this->anchors[ $post_id ] = $map;
+		}
+
+		$key  = $analyzer->phrase_key( $anchor );
+		$used = array_keys( $this->anchors[ $post_id ][ $key ] ?? array() );
+		if ( array() !== array_diff( $used, array( $target_id ) ) ) {
+			return true;
+		}
+		$this->anchors[ $post_id ][ $key ][ $target_id ] = true;
+
+		return false;
+	}
+
+	/**
 	 * Cada petición empieza sin lo calculado por la anterior (los ajustes pueden haber cambiado).
 	 */
 	private function forget_anchor_cache(): void {
 		$this->analyzers = array();
 		$this->ignored   = null;
-	}
-
-	/**
-	 * Si un tramo literal de la frase corta una palabra por la mitad (uno que no es literal lo rechaza la inserción).
-	 *
-	 * @param string $sentence Frase.
-	 * @param int    $offset   Byte donde empieza el ancla.
-	 * @param string $anchor   Ancla.
-	 */
-	private function cuts_a_word( string $sentence, int $offset, string $anchor ): bool {
-		return '' !== $anchor && $offset >= 0 && substr( $sentence, $offset, strlen( $anchor ) ) === $anchor && ! AnchorCheck::boundaries( $sentence, $offset, $anchor );
+		$this->anchors   = array();
 	}
 
 	/**

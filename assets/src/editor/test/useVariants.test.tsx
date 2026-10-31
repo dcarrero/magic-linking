@@ -1,6 +1,8 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { Suggestion } from '../../types';
+import { speak } from '@wordpress/a11y';
+import { suggestionKey } from '../keys';
 import { useVariants, type Variants } from '../useVariants';
 
 jest.mock( '@wordpress/a11y', () => ( { speak: jest.fn() } ) );
@@ -25,16 +27,57 @@ const item = {
 } as unknown as Suggestion;
 const items = [ item ];
 
+const alt = ( sentence: string, anchor: string, paragraph: number ) => {
+	const start = sentence.indexOf( anchor );
+	return {
+		anchor,
+		sentence,
+		offset: start,
+		before: sentence.slice( 0, start ),
+		after: sentence.slice( start + anchor.length ),
+		anchor_start: start,
+		anchor_end: start + anchor.length,
+		paragraph,
+		score: 0.5,
+	};
+};
+const card = (
+	target: number,
+	main: ReturnType< typeof alt >,
+	alts: ReturnType< typeof alt >[] = []
+) =>
+	( {
+		...main,
+		source: { id: 1 },
+		target: { id: target, title: `T${ target }` },
+		can_insert: true,
+		reasons: [],
+		alternatives: alts,
+	} ) as unknown as Suggestion;
+const T1 = 'La bomba de calor ahorra mucho en casa.';
+const T3 = 'Revisar la caldera cada año evita averías.';
+const linked = card( 9, alt( T1, 'bomba de calor', 0 ) );
+const wants = card( 8, alt( T3, 'caldera', 2 ), [
+	alt( T1, 'bomba de calor', 0 ),
+] );
+const pair = [ linked, wants ];
+
 let root: Root;
 const seen: Variants[] = [];
+const last = () => seen[ seen.length - 1 ] as Variants;
+let probeItems: Suggestion[] = items;
+let probeFrozen: ReadonlySet< string > = new Set();
 
 function Probe() {
-	seen.push( useVariants( items ) );
+	seen.push( useVariants( probeItems, probeFrozen ) );
 	return null;
 }
 
 beforeEach( () => {
 	seen.length = 0;
+	probeItems = items;
+	probeFrozen = new Set();
+	( speak as jest.Mock ).mockReset();
 	root = createRoot( document.createElement( 'div' ) );
 } );
 afterEach( () => act( () => root.unmount() ) );
@@ -45,5 +88,42 @@ describe( 'useVariants', () => {
 		await act( () => root.render( <Probe /> ) );
 		expect( seen.length ).toBeGreaterThanOrEqual( 2 );
 		expect( seen[ seen.length - 1 ] ).toBe( seen[ 0 ] );
+	} );
+
+	it( 'rejects a sentence that a linked card keeps, with a warning, and accepts it when nothing keeps it', async () => {
+		probeItems = pair;
+		probeFrozen = new Set( [ suggestionKey( linked ) ] );
+		await act( () => root.render( <Probe /> ) );
+		let applied = true;
+		await act( () => {
+			applied = last().choose( wants, 1 );
+		} );
+		expect( applied ).toBe( false );
+		expect( speak ).toHaveBeenCalledWith(
+			expect.stringContaining( 'cannot be used' ),
+			'assertive'
+		);
+		expect( last().view( wants, wants )?.option ).toBe( 0 );
+
+		probeFrozen = new Set();
+		await act( () => root.render( <Probe /> ) );
+		await act( () => {
+			applied = last().choose( wants, 1 );
+		} );
+		expect( applied ).toBe( true );
+		expect( last().hidden( linked ) ).toBe( true );
+	} );
+
+	it( 'keeps the key of the engine suggestion in the card it shows', async () => {
+		probeItems = pair;
+		await act( () => root.render( <Probe /> ) );
+		await act( () => {
+			last().choose( wants, 1 );
+		} );
+		const shown = last().view( wants, wants );
+		expect( shown?.item.sentence ).toBe( T1 );
+		expect( suggestionKey( shown?.item as Suggestion ) ).toBe(
+			suggestionKey( wants )
+		);
 	} );
 } );

@@ -56,6 +56,29 @@ final class AnchorCheck {
 	}
 
 	/**
+	 * Si el ancla es un tramo literal de la frase en ese desplazamiento.
+	 *
+	 * @param string $sentence Frase.
+	 * @param int    $offset   Byte donde empieza el ancla.
+	 * @param string $anchor   Ancla.
+	 */
+	public static function literal( string $sentence, int $offset, string $anchor ): bool {
+		return '' !== $anchor && $offset >= 0 && substr( $sentence, $offset, strlen( $anchor ) ) === $anchor;
+	}
+
+	/**
+	 * Si un tramo literal de la frase corta una palabra por la mitad. Uno que no es literal no es asunto de esta
+	 * comprobación: lo rechaza la inserción.
+	 *
+	 * @param string $sentence Frase.
+	 * @param int    $offset   Byte donde empieza el ancla.
+	 * @param string $anchor   Ancla.
+	 */
+	public static function cuts_word( string $sentence, int $offset, string $anchor ): bool {
+		return self::literal( $sentence, $offset, $anchor ) && ! self::boundaries( $sentence, $offset, $anchor );
+	}
+
+	/**
 	 * Si el tramo empieza y acaba en límite de palabra (Unicode): no corta una palabra por la mitad ni un carácter de
 	 * varios bytes. Es la comprobación barata que se hace siempre, también con anclas del motor o de la IA.
 	 *
@@ -88,7 +111,7 @@ final class AnchorCheck {
 	 */
 	public static function of( Analyzer $analyzer, string $sentence, int $offset, string $anchor ): self {
 		// Tramo literal de la frase guardada: lo único que se puede enlazar, sin editar nada.
-		if ( '' === $anchor || $offset < 0 || substr( $sentence, $offset, strlen( $anchor ) ) !== $anchor ) {
+		if ( ! self::literal( $sentence, $offset, $anchor ) ) {
 			return new self( array( self::NOT_LITERAL ), array() );
 		}
 		if ( trim( $anchor ) !== $anchor ) {

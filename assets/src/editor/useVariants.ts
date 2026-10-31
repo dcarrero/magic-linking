@@ -7,15 +7,16 @@ import {
 	applyChoice,
 	displacements,
 	optionsOf,
-	resolve,
+	resolveAll,
 	signature,
 	type Choice,
 	type Choices,
+	type Resolution,
 } from './variants';
 
 /** Una tarjeta tal como se enseña tras las elecciones del usuario. */
 export interface VariantView {
-	/** La sugerencia que se enseña y se inserta. */
+	/** La sugerencia que se enseña y se inserta; lleva la clave de la tarjeta (`cardKey`). */
 	item: Suggestion;
 	/** La principal y sus alternativas tal como estaban antes de elegir (la opción 0 es la principal). */
 	base: Suggestion;
@@ -28,13 +29,13 @@ export interface VariantView {
 export interface Variants {
 	/** La tarjeta con las elecciones aplicadas, o null si su frase la usa ahora otra sugerencia. */
 	view: ( item: Suggestion, original: Suggestion ) => VariantView | null;
-	/** Elige otra frase (0 = la principal); se pierde el ancla ajustada de la anterior. */
-	choose: ( original: Suggestion, option: number ) => void;
-	/** Fija el tramo de la frase elegida que va enlazado (índices UTF-16). */
+	/** Elige otra frase (0 = la principal); se pierde el ancla ajustada de la anterior. Devuelve si se aplicó. */
+	choose: ( original: Suggestion, option: number ) => boolean;
+	/** Fija el tramo de la frase elegida que va enlazado (índices UTF-16). Devuelve si se aplicó. */
 	adjust: (
 		original: Suggestion,
 		span: { start: number; end: number }
-	) => void;
+	) => boolean;
 	/** Quita todas las elecciones (al volver a pedir la lista). */
 	reset: () => void;
 	/** Sugerencias de la lista que ya no se enseñan porque otra tomó su frase. */
@@ -44,18 +45,24 @@ export interface Variants {
 /**
  * Elecciones del usuario sobre una lista de sugerencias: otra frase y otro tramo de ella como ancla (docs/07 §3.1 y
  * §3.2). Vive con el estado del panel para que no se pierdan al cambiar de pestaña. Una frase solo la usa una
- * tarjeta: si el usuario toma la de otra, esa pasa a su siguiente frase libre o desaparece, y se anuncia.
+ * tarjeta y una ancla solo lleva a un destino por origen: si el usuario toma la de otra, esa pasa a su siguiente frase
+ * libre o desaparece, y se anuncia. Las tarjetas ya enlazadas o descartadas (`frozen`) no pierden nada: la elección que
+ * choque con ellas se rechaza con un aviso.
  *
- * @param items Lista tal como la dio el servidor.
+ * @param items  Lista tal como la dio el servidor.
+ * @param frozen Claves de las tarjetas enlazadas, descartadas o en curso.
  */
-export function useVariants( items: Suggestion[] ): Variants {
+export function useVariants(
+	items: Suggestion[],
+	frozen: ReadonlySet< string >
+): Variants {
 	const [ choices, setChoices ] = useState< Choices >( {} );
 	const choicesRef = useRef( choices );
 	const seq = useRef( 0 );
 
 	const resolved = useMemo(
-		() => resolve( items, choices, suggestionKey ),
-		[ items, choices ]
+		() => resolveAll( items, choices, suggestionKey, frozen ),
+		[ items, choices, frozen ]
 	);
 
 	const commit = useCallback( ( next: Choices ) => {
@@ -63,12 +70,15 @@ export function useVariants( items: Suggestion[] ): Variants {
 		setChoices( next );
 	}, [] );
 
-	/** Anuncia qué otras tarjetas cambiaron de frase por una elección. */
+	/** Anuncia qué otras tarjetas cambiaron de frase o de ancla por una elección. */
 	const announce = useCallback(
-		( key: string, next: Choices ) => {
-			const before = resolve( items, choicesRef.current, suggestionKey );
-			const after = resolve( items, next, suggestionKey );
-			for ( const change of displacements( before, after, key ) ) {
+		( key: string, before: Resolution, after: Resolution ) => {
+			for ( const change of displacements(
+				before.options,
+				after.options,
+				key,
+				[ before.spans, after.spans ]
+			) ) {
 				const other = items.find(
 					( item ) => suggestionKey( item ) === change.key
 				);
@@ -109,10 +119,28 @@ export function useVariants( items: Suggestion[] ): Variants {
 					sig: signature( original ),
 				},
 			};
-			announce( key, next );
+			const after = resolveAll( items, next, suggestionKey, frozen );
+			if ( after.options.get( key ) !== option ) {
+				speak(
+					__(
+						'That sentence cannot be used: a link you added or dismissed, or another anchor, already takes it.',
+						'magic-linking'
+					),
+					'assertive'
+				);
+				return false;
+			}
+			const before = resolveAll(
+				items,
+				choicesRef.current,
+				suggestionKey,
+				frozen
+			);
+			announce( key, before, after );
 			commit( next );
+			return true;
 		},
-		[ announce, commit ]
+		[ announce, commit, items, frozen ]
 	);
 
 	const adjust = useCallback(
@@ -122,15 +150,35 @@ export function useVariants( items: Suggestion[] ): Variants {
 			const next: Choices = {
 				...choicesRef.current,
 				[ key ]: {
-					option: current?.option ?? 0,
+					option: resolved.options.get( key ) ?? current?.option ?? 0,
 					seq: ++seq.current,
 					sig: signature( original ),
 					span,
 				},
 			};
+			const after = resolveAll( items, next, suggestionKey, frozen );
+			const kept = after.spans.get( key );
+			if ( kept?.start !== span.start || kept.end !== span.end ) {
+				speak(
+					__(
+						'That anchor already links to another entry from this one, so it was not applied.',
+						'magic-linking'
+					),
+					'assertive'
+				);
+				return false;
+			}
+			const before = resolveAll(
+				items,
+				choicesRef.current,
+				suggestionKey,
+				frozen
+			);
+			announce( key, before, after );
 			commit( next );
+			return true;
 		},
-		[ commit ]
+		[ announce, commit, items, frozen, resolved ]
 	);
 
 	const reset = useCallback( () => commit( {} ), [ commit ] );
@@ -138,7 +186,7 @@ export function useVariants( items: Suggestion[] ): Variants {
 	const view = useCallback(
 		( item: Suggestion, original: Suggestion ): VariantView | null => {
 			const key = suggestionKey( original );
-			const option = resolved.get( key );
+			const option = resolved.options.get( key );
 			if ( option === null ) {
 				return null;
 			}
@@ -147,30 +195,30 @@ export function useVariants( items: Suggestion[] ): Variants {
 			const choice =
 				stored?.sig === signature( original ) ? stored : undefined;
 			const shown = option ?? 0;
-			// Si la frase elegida se la quedó otra tarjeta, la elección ya no vale (tampoco su tramo).
+			const span = resolved.spans.get( key );
 			const effective: Choice | undefined =
-				shown !== 0 || choice?.span
+				shown !== 0 || span
 					? {
 							option: shown,
 							seq: choice?.seq ?? 0,
 							sig: choice?.sig ?? '',
-							span:
-								choice && choice.option === shown
-									? choice.span
-									: undefined,
+							span,
 					  }
 					: undefined;
 			const chosen =
 				effective && optionsOf( item )[ effective.option ]
 					? effective
 					: undefined;
+			let shownItem = applyChoice( item, chosen, key );
+			// Con la IA el ancla ya no es la del motor, pero la tarjeta sigue siendo la misma.
+			if ( shownItem === item && item !== original ) {
+				shownItem = { ...item, cardKey: key };
+			}
 			return {
-				item: applyChoice( item, chosen ),
+				item: shownItem,
 				base: item,
 				option: chosen?.option ?? 0,
-				changed:
-					chosen !== undefined &&
-					( chosen.option !== 0 || chosen.span !== undefined ),
+				changed: chosen !== undefined,
 			};
 		},
 		[ resolved, choices ]
@@ -178,7 +226,7 @@ export function useVariants( items: Suggestion[] ): Variants {
 
 	const hidden = useCallback(
 		( original: Suggestion ) =>
-			resolved.get( suggestionKey( original ) ) === null,
+			resolved.options.get( suggestionKey( original ) ) === null,
 		[ resolved ]
 	);
 

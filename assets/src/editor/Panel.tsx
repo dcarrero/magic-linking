@@ -88,7 +88,9 @@ function cardVariants(
 		options: optionsOf( shown.base ),
 		selected: shown.option,
 		onSelect: ( option ) => {
-			variants.choose( original, option );
+			if ( ! variants.choose( original, option ) ) {
+				return;
+			}
 			const chosen = optionsOf( shown.base )[ option ];
 			speak(
 				sprintf(
@@ -105,7 +107,9 @@ function cardVariants(
 			);
 		},
 		onAdjust: ( span ) => {
-			variants.adjust( original, span );
+			if ( ! variants.adjust( original, span ) ) {
+				return;
+			}
 			speak(
 				sprintf(
 					/* translators: %s: anchor text. */
@@ -450,8 +454,7 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 													return (
 														<SuggestionCard
 															key={ suggestionKey(
-																row?.original ??
-																	item
+																item
 															) }
 															suggestion={ item }
 															variants={

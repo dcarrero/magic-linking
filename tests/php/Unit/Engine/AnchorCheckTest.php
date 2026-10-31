@@ -69,6 +69,49 @@ final class AnchorCheckTest extends TestCase {
 		$this->assertFalse( AnchorCheck::boundaries( 'Ñoño bebe', 1, "\xB1o\xC3\xB1o" ) );
 	}
 
+	/**
+	 * Los mismos casos que `wordsOf` en `variants.test.ts`: marcas combinantes (NFD), hindi y apóstrofos del francés.
+	 *
+	 * @return array<string, array{string, string, bool}> Frase, ancla y si empieza y acaba en límite de palabra.
+	 */
+	public static function unicode_words(): array {
+		return array(
+			'NFD entero'               => array( "Un cafe\u{0301} caliente sirve.", "cafe\u{0301} caliente", true ),
+			'NFD corta la marca'       => array( "Un cafe\u{0301} caliente sirve.", "e\u{0301} caliente", false ),
+			'NFD acaba en la marca'    => array( "Un cafe\u{0301} caliente sirve.", 'Un cafe', false ),
+			'hindi entero'             => array( 'यह नमस्ते दुनिया है', 'नमस्ते दुनिया', true ),
+			'hindi corta la sílaba'    => array( 'यह नमस्ते दुनिया है', 'ते दुनिया', false ),
+			'francés tras apóstrofo'   => array( "Il aime l'école publique.", 'école publique', true ),
+			'francés con apóstrofo'    => array( "Il aime l'école publique.", "l'école publique", true ),
+			'francés corta la palabra' => array( "Il aime l'école publique.", 'cole publique', false ),
+		);
+	}
+
+	/**
+	 * @dataProvider unicode_words
+	 *
+	 * @param string $sentence Frase.
+	 * @param string $anchor   Ancla.
+	 * @param bool   $expected Si cae en límites de palabra.
+	 */
+	public function test_word_boundaries_in_unicode( string $sentence, string $anchor, bool $expected ): void {
+		$offset = (int) strpos( $sentence, $anchor );
+
+		$this->assertSame( $expected, AnchorCheck::boundaries( $sentence, $offset, $anchor ) );
+		$this->assertSame( ! $expected, AnchorCheck::cuts_word( $sentence, $offset, $anchor ) );
+	}
+
+	public function test_cuts_word_only_says_yes_for_a_literal_span_that_cuts_a_word(): void {
+		$sentence = 'La calefacción eléctrica sale cara.';
+
+		$this->assertTrue( AnchorCheck::cuts_word( $sentence, (int) strpos( $sentence, 'lefacción' ), 'lefacción' ) );
+		$this->assertFalse( AnchorCheck::cuts_word( $sentence, (int) strpos( $sentence, 'calefacción' ), 'calefacción' ) );
+		// No literal: no es cosa de esta comprobación.
+		$this->assertFalse( AnchorCheck::cuts_word( $sentence, 0, 'otra cosa' ) );
+		$this->assertFalse( AnchorCheck::cuts_word( $sentence, -1, 'La' ) );
+		$this->assertFalse( AnchorCheck::cuts_word( $sentence, 0, '' ) );
+	}
+
 	public function test_the_anchor_cannot_start_or_end_with_a_space(): void {
 		$this->assertContains( AnchorCheck::SPACES, $this->check( ' bomba de calor' )->errors );
 		$this->assertContains( AnchorCheck::SPACES, $this->check( 'bomba de calor ', null, (int) strpos( self::SENTENCE, 'bomba' ) )->errors );

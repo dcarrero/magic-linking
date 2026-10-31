@@ -78,8 +78,36 @@ export function AnchorAdjuster( {
 	const needsCheck = changed.current && ! same;
 	const count = last - first + 1;
 
+	const result = check.state === 'done' ? check.result : null;
+
+	// Pregunta al servidor por el tramo elegido; la comprobación con retardo y la de confirmar usan la misma.
+	const runCheck = ( signal: AbortSignal ) =>
+		api.checkAnchor(
+			postId,
+			sentence,
+			byteLength( sentence.slice( 0, range?.start ?? 0 ) ),
+			anchor,
+			signal
+		);
+	const failureMessage = ( error: unknown ) =>
+		errorMessage(
+			error,
+			__( 'The anchor could not be checked. Try again.', 'magic-linking' )
+		);
+
+	// La confirmación en curso: si se cancela, se mueve el tramo o el control desaparece, su respuesta se ignora.
+	const confirming = useRef< AbortController | null >( null );
+	const cancelConfirmation = () => {
+		confirming.current?.abort();
+		confirming.current = null;
+	};
+	const cancel = () => {
+		cancelConfirmation();
+		onCancel();
+	};
 	useEffect( () => {
 		groupRef.current?.focus();
+		return () => confirming.current?.abort();
 	}, [] );
 
 	// Comprobación en el servidor, sin esperar a confirmar: el mensaje sale mientras se ajusta.
@@ -91,29 +119,17 @@ export function AnchorAdjuster( {
 		setCheck( { state: 'pending' } );
 		const controller = new AbortController();
 		const timer = window.setTimeout( () => {
-			api.checkAnchor(
-				postId,
-				sentence,
-				byteLength( sentence.slice( 0, range.start ) ),
-				anchor,
-				controller.signal
-			)
-				.then( ( result ) => {
+			runCheck( controller.signal )
+				.then( ( reply ) => {
 					if ( ! controller.signal.aborted ) {
-						setCheck( { state: 'done', result } );
+						setCheck( { state: 'done', result: reply } );
 					}
 				} )
 				.catch( ( error: unknown ) => {
 					if ( ! controller.signal.aborted ) {
 						setCheck( {
 							state: 'failed',
-							message: errorMessage(
-								error,
-								__(
-									'The anchor could not be checked. Try again.',
-									'magic-linking'
-								)
-							),
+							message: failureMessage( error ),
 						} );
 					}
 				} );
@@ -130,6 +146,7 @@ export function AnchorAdjuster( {
 		if ( nextFirst === first && nextLast === last ) {
 			return;
 		}
+		cancelConfirmation();
 		changed.current = true;
 		setFirst( nextFirst );
 		setLast( nextLast );
@@ -161,36 +178,39 @@ export function AnchorAdjuster( {
 	const trimLeft = () => first < last && change( first + 1, last );
 
 	const confirm = async () => {
-		if ( ! range ) {
+		if ( ! range || confirming.current ) {
 			return;
 		}
 		if ( same ) {
-			onCancel();
+			cancel();
+			return;
+		}
+		// Un tramo que el servidor ya rechazó no se vuelve a enviar hasta que cambie.
+		if ( check.state === 'failed' || ( result && ! result.valid ) ) {
 			return;
 		}
 		// Siempre se vuelve a preguntar al servidor: lo que se ve puede ser de un tramo anterior.
+		const controller = new AbortController();
+		confirming.current = controller;
 		setCheck( { state: 'pending' } );
 		try {
-			const result = await api.checkAnchor(
-				postId,
-				sentence,
-				byteLength( sentence.slice( 0, range.start ) ),
-				anchor
-			);
-			setCheck( { state: 'done', result } );
-			if ( result.valid ) {
+			const answer = await runCheck( controller.signal );
+			if ( controller.signal.aborted ) {
+				return;
+			}
+			confirming.current = null;
+			setCheck( { state: 'done', result: answer } );
+			if ( answer.valid ) {
 				onApply( range );
 			} else {
-				speak( result.errors[ 0 ]?.message ?? '', 'assertive' );
+				speak( answer.errors[ 0 ]?.message ?? '', 'assertive' );
 			}
 		} catch ( error ) {
-			const message = errorMessage(
-				error,
-				__(
-					'The anchor could not be checked. Try again.',
-					'magic-linking'
-				)
-			);
+			if ( controller.signal.aborted ) {
+				return;
+			}
+			confirming.current = null;
+			const message = failureMessage( error );
 			setCheck( { state: 'failed', message } );
 			speak( message, 'assertive' );
 		}
@@ -225,7 +245,7 @@ export function AnchorAdjuster( {
 				// El editor cierra paneles con Escape: aquí solo se cancela el ajuste.
 				event.preventDefault();
 				event.stopPropagation();
-				onCancel();
+				cancel();
 				break;
 		}
 	};
@@ -242,7 +262,6 @@ export function AnchorAdjuster( {
 		}
 	};
 
-	const result = check.state === 'done' ? check.result : null;
 	const blocked =
 		check.state === 'pending' ||
 		check.state === 'failed' ||
@@ -361,7 +380,7 @@ export function AnchorAdjuster( {
 				>
 					{ __( 'Apply anchor', 'magic-linking' ) }
 				</Button>
-				<Button variant="tertiary" size="compact" onClick={ onCancel }>
+				<Button variant="tertiary" size="compact" onClick={ cancel }>
 					{ __( 'Cancel', 'magic-linking' ) }
 				</Button>
 			</div>

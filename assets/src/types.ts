@@ -487,6 +487,8 @@ export interface Suggestion extends SuggestionAlternative {
 	can_insert: boolean;
 	reasons: SuggestionReason[];
 	alternatives: SuggestionAlternative[];
+	/** Solo en el cliente: clave de la tarjeta (la de la sugerencia del motor), que no cambia al elegir otra frase. */
+	cardKey?: string;
 }
 
 /** Por qué no hay sugerencias, o `ok`. */

@@ -70,8 +70,22 @@ export function usePanelState(
 	const [ statuses, setStatuses ] = useState< Record< string, CardStatus > >(
 		{}
 	);
-	const outVariants = useVariants( outbound.data?.items ?? NONE );
-	const inVariants = useVariants( inbound.data?.items ?? NONE );
+	// Las tarjetas enlazadas, descartadas o en curso conservan su frase: ninguna elección se la quita.
+	const frozen = useMemo(
+		() =>
+			new Set(
+				Object.entries( statuses )
+					.filter( ( [ , status ] ) =>
+						[ 'added', 'dismissed', 'busy', 'dismissing' ].includes(
+							status.kind
+						)
+					)
+					.map( ( [ key ] ) => key )
+			),
+		[ statuses ]
+	);
+	const outVariants = useVariants( outbound.data?.items ?? NONE, frozen );
+	const inVariants = useVariants( inbound.data?.items ?? NONE, frozen );
 
 	// Las filas de «descartada» son de la página que se dejó: al cambiar de página se olvidan.
 	const { reset: resetInVariants } = inVariants;
@@ -156,20 +170,16 @@ export function usePanelState(
 		refresh();
 	}, [ refresh, resetOutVariants ] );
 
+	// La clave de una tarjeta es la de la sugerencia del motor, la elija el usuario la variante que la elija.
 	const isDismissed = ( item: Suggestion ) =>
-		statuses[ suggestionKey( inVariants.view( item, item )?.item ?? item ) ]
-			?.kind === 'dismissed';
+		statuses[ suggestionKey( item ) ]?.kind === 'dismissed';
 
 	const visibleOutbound = useMemo(
 		() =>
 			( outbound.data?.items ?? [] ).filter(
 				( item ) =>
 					! outVariants.hidden( item ) &&
-					statuses[
-						suggestionKey(
-							outVariants.view( item, item )?.item ?? item
-						)
-					]?.kind !== 'dismissed'
+					statuses[ suggestionKey( item ) ]?.kind !== 'dismissed'
 			),
 		[ outbound.data, statuses, outVariants ]
 	);

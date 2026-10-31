@@ -96,6 +96,67 @@ afterEach( () => {
 	jest.useRealTimers();
 } );
 
+describe( 'AnchorAdjuster confirmation', () => {
+	const deferred = () => {
+		let resolve: ( value: unknown ) => void = () => undefined;
+		const promise = new Promise( ( done ) => {
+			resolve = done;
+		} );
+		return { promise, resolve };
+	};
+	const valid = { valid: true, errors: [], warnings: [] };
+
+	it( 'does not apply an anchor that was cancelled while the server was still answering', async () => {
+		const pending = deferred();
+		check.mockReturnValue( pending.promise );
+		await mount();
+		press( 'ArrowRight' );
+		press( 'Enter' );
+		press( 'Escape' );
+		await act( async () => {
+			pending.resolve( valid );
+			await pending.promise;
+		} );
+		expect( onCancel ).toHaveBeenCalledTimes( 1 );
+		expect( onApply ).not.toHaveBeenCalled();
+	} );
+
+	it( 'does not apply after the control is gone', async () => {
+		const pending = deferred();
+		check.mockReturnValue( pending.promise );
+		await mount();
+		press( 'ArrowRight' );
+		press( 'Enter' );
+		act( () => root.unmount() );
+		await act( async () => {
+			pending.resolve( valid );
+			await pending.promise;
+		} );
+		expect( onApply ).not.toHaveBeenCalled();
+		root = createRoot( host );
+	} );
+
+	it( 'ignores Enter while a confirmation is under way', async () => {
+		const pending = deferred();
+		check.mockReturnValue( pending.promise );
+		await mount();
+		press( 'ArrowRight' );
+		press( 'Enter' );
+		press( 'Enter' );
+		press( 'Enter' );
+		// Una sola pregunta de confirmación (las demás llamadas, si las hay, son la comprobación en línea).
+		const asked = check.mock.calls.filter(
+			( call ) => call[ 4 ] !== undefined
+		).length;
+		await act( async () => {
+			pending.resolve( valid );
+			await pending.promise;
+		} );
+		expect( onApply ).toHaveBeenCalledTimes( 1 );
+		expect( asked ).toBeLessThanOrEqual( 1 );
+	} );
+} );
+
 describe( 'AnchorAdjuster keyboard', () => {
 	it( 'respects an engine anchor that does not fit the word boundaries until the user moves it', async () => {
 		const text = 'Aprender C++ lleva tiempo y práctica diaria.';
