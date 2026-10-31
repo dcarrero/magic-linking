@@ -59,73 +59,80 @@ function closed( pattern: string ): string {
 		: pattern;
 }
 
-/**
- * Formato de hora con segundos: si ya los tiene o no tiene minutos (`i`), no cambia; si no, los añade tras ellos.
- * @param time Formato de hora.
- */
-function withSeconds( time: string ): string {
-	if ( /[sU]/.test( codes( time ) ) ) {
-		return time;
-	}
-	for ( let i = 0; i < time.length; i++ ) {
-		if ( time[ i ] === '\\' ) {
-			i++;
-		} else if ( time[ i ] === 'i' ) {
-			return time.slice( 0, i + 1 ) + ':s' + time.slice( i + 1 );
-		}
-	}
-	return time;
-}
-
-export interface SitePatterns {
-	key: string;
+interface SitePatterns {
+	/** Fecha y hora, como en wp-admin. */
 	short: string;
+	/** Lo mismo más la zona (salvo que el formato ya la muestre), para el `title`. */
 	full: string;
+	/** Desfase que hay que pasar a `dateI18n` cuando moment no tiene datos de la zona con nombre. */
+	offset: number | undefined;
 }
 
-let cachedPatterns: SitePatterns | null = null;
+let cached:
+	| {
+			date: string;
+			time: string;
+			zone: string;
+			offset: number;
+			value: SitePatterns;
+	  }
+	| undefined;
 
 /**
- * Formatos de fecha del sitio: el corto y el completo (con segundos y zona). Se construyen una vez por ajustes,
- * porque se piden por cada fila de las tablas.
+ * Formatos de fecha del sitio. Se construyen una vez por ajustes, porque se piden por cada fila de las tablas.
  */
 export function sitePatterns(): SitePatterns {
 	const { formats, timezone } = getSettings();
-	const key = [
-		formats.date,
-		formats.time,
-		timezone.string ? 'T' : 'P',
-	].join( '\u0000' );
-	if ( cachedPatterns?.key === key ) {
-		return cachedPatterns;
+	if (
+		cached?.date === formats.date &&
+		cached.time === formats.time &&
+		cached.zone === timezone.string &&
+		cached.offset === timezone.offset
+	) {
+		return cached.value;
 	}
-	const dateFormat = closed( formats.date );
+	// Con una zona con nombre que moment no conoce (sin sus datos) `dateI18n` caería a la hora del navegador:
+	// se usa el desfase de los ajustes, igual que con un desfase manual («UTC+2»), que no tiene abreviatura.
+	const named = !! timezone.string && dateI18n( 'e', new Date( 0 ) ) !== '';
+	const date = closed( formats.date );
 	const time = closed( formats.time );
-	const join = ( t: string ) => ( dateFormat ? `${ dateFormat } ${ t }` : t );
-	// Con desfase manual («UTC+2») no hay abreviatura: se muestra el desfase, no «UTC».
-	const zone = timezone.string ? ' T' : ' P';
-	const fullTime = withSeconds( time );
-	cachedPatterns = {
-		key,
-		short: join( time ),
-		full: join( fullTime ) + ( hasZone( dateFormat + time ) ? '' : zone ),
+	let zone = named ? 'T' : 'P';
+	if ( hasZone( date ) || hasZone( time ) ) {
+		zone = '';
+	}
+	const join = ( ...parts: string[] ) => parts.filter( Boolean ).join( ' ' );
+	const value = {
+		short: join( date, time ),
+		full: join( date, time, zone ),
+		offset: timezone.string && ! named ? timezone.offset : undefined,
 	};
-	return cachedPatterns;
+	cached = {
+		date: formats.date,
+		time: formats.time,
+		zone: timezone.string,
+		offset: timezone.offset,
+		value,
+	};
+	return value;
 }
 
 /**
  * Fecha y hora con la zona horaria y los formatos del sitio (Ajustes → Generales), no los del navegador, para que
  * coincida con wp-admin, WP-CLI y el CSV. `wp.date` recibe esos ajustes del núcleo.
- * @param value    Fecha del servidor.
- * @param withSecs Con segundos y zona (para el atributo `title`).
+ * @param value Fecha del servidor.
+ * @param full  Con la zona (para el atributo `title`).
  */
-function format( value: string, withSecs: boolean ): string | undefined {
+function format( value: string, full: boolean ): string | undefined {
 	const date = validServerDate( value );
 	if ( ! date ) {
 		return undefined;
 	}
 	const patterns = sitePatterns();
-	return dateI18n( withSecs ? patterns.full : patterns.short, date );
+	return dateI18n(
+		full ? patterns.full : patterns.short,
+		date,
+		patterns.offset
+	);
 }
 
 /**
@@ -137,7 +144,7 @@ export function formatDate( value: string ): string {
 }
 
 /**
- * Fecha y hora completas (con segundos y zona), para el atributo `title`; `undefined` si no hay fecha real, para
+ * Fecha y hora completas (con la zona), para el atributo `title`; `undefined` si no hay fecha real, para
  * omitir el atributo.
  * @param value Fecha GMT del servidor.
  */

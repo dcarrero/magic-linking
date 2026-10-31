@@ -165,33 +165,18 @@ describe( 'formatDate', () => {
 		);
 	} );
 
-	it( 'adds seconds and the zone to the full date', () => {
+	it( 'adds the zone to the full date, with no seconds', () => {
 		siteSettings( 'Europe/Madrid', 'Y-m-d', 'H:i' );
 		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-30 23:30:45 CET'
+			'2026-10-30 23:30 CET'
 		);
-	} );
-
-	it( 'does not repeat seconds or the zone, and ignores escaped characters', () => {
-		siteSettings( 'Europe/Madrid', 'Y-m-d', 'H:i:s' );
+		siteSettings( 'Europe/Madrid', 'Y-m-d', 'H.i' );
 		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-30 23:30:45 CET'
-		);
-		siteSettings( 'Europe/Madrid', 'Y-m-d', 'H:i T' );
-		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-30 23:30:45 CET'
+			'2026-10-30 23.30 CET'
 		);
 		siteSettings( 'Europe/Madrid', 'Y-m-d', 'H\\h i' );
 		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-30 23h 30:45 CET'
-		);
-		siteSettings( 'Europe/Madrid', 'Y-m-d', '\\i H:i' );
-		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-30 i 23:30:45 CET'
-		);
-		siteSettings( 'Europe/Madrid', 'Y-m-d', '\\s H:i' );
-		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-30 s 23:30:45 CET'
+			'2026-10-30 23h 30 CET'
 		);
 	} );
 
@@ -207,28 +192,55 @@ describe( 'formatDate', () => {
 			},
 		} );
 		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-31 00:30:45 +02:00'
+			'2026-10-31 00:30 +02:00'
 		);
 	} );
 
-	it( 'does not add the zone when the format already shows it (Z, c, r)', () => {
-		for ( const time of [ 'H:i Z', 'H:i c', 'H:i r' ] ) {
-			siteSettings( 'Europe/Madrid', 'Y-m-d', time );
-			expect( formatFullDate( '2026-10-30T22:30:45' ) ).not.toMatch(
-				/CET$/
+	it( 'does not add the zone when either format already shows it', () => {
+		const cases: Array< [ string, string ] > = [
+			[ 'Y-m-d', 'H:i Z' ],
+			[ 'Y-m-d', 'H:i c' ],
+			[ 'Y-m-d', 'H:i r' ],
+			[ 'Y-m-d T', 'H:i' ],
+		];
+		for ( const [ date, time ] of cases ) {
+			siteSettings( 'Europe/Madrid', date, time );
+			expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
+				formatDate( '2026-10-30T22:30:45' )
 			);
 		}
 	} );
 
-	it( 'adds no seconds when the time has no minutes', () => {
-		siteSettings( 'Europe/Madrid', 'Y-m-d', 'g a' );
+	it( 'leaves no extra space when time_format is empty', () => {
+		siteSettings( 'Europe/Madrid', 'Y-m-d', '' );
+		expect( formatDate( '2026-10-30T22:30:45' ) ).toBe( '2026-10-30' );
 		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-30 11 pm CET'
+			'2026-10-30 CET'
 		);
-		siteSettings( 'Europe/Madrid', 'Y-m-d', 'G\\h' );
+	} );
+
+	it( 'falls back to the offset when moment has no data for the named zone', () => {
+		const spy = jest
+			.spyOn( console, 'error' )
+			.mockImplementation( () => {} );
+		setSettings( {
+			...getSettings(),
+			formats: { ...getSettings().formats, date: 'Y-m-d', time: 'H:i' },
+			timezone: {
+				offset: 2,
+				offsetFormatted: '+2',
+				string: 'Mars/Olympus',
+				abbr: '',
+			},
+		} );
+		// Tokio (el navegador) daría 07:30; el desfase del sitio da 00:30.
+		expect( formatDate( '2026-10-30T22:30:45' ) ).toBe(
+			'2026-10-31 00:30'
+		);
 		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
-			'2026-10-30 23h CET'
+			'2026-10-31 00:30 +02:00'
 		);
+		spy.mockRestore();
 	} );
 
 	it( 'joins date and time safely when date_format is empty or ends in a backslash', () => {

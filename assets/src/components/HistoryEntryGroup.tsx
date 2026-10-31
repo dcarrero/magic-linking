@@ -566,13 +566,7 @@ function ChangeRow( { change, title, disabled, onRun }: RowProps ) {
 			</td>
 			<td data-label={ __( 'Status', 'magic-linking' ) }>
 				{ undone ? (
-					<span
-						title={
-							change.undone_at
-								? formatFullDate( change.undone_at )
-								: undefined
-						}
-					>
+					<span title={ formatFullDate( change.undone_at ?? '' ) }>
 						{ __( 'Undone', 'magic-linking' ) }
 					</span>
 				) : (
