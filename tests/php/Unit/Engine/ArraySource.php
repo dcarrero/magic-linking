@@ -26,8 +26,9 @@ final class ArraySource implements DocumentSource {
 	 * @param list<string> $paragraphs
 	 * @param list<string> $headings
 	 * @param array<string, list<string>> $taxonomies
+	 * @param list<string> $focus
 	 */
-	public function add( int $id, string $title, array $paragraphs, string $lang = 'es', string $type = 'post', string $slug = '', int $date = 1790000000, array $headings = array(), array $taxonomies = array() ): Document {
+	public function add( int $id, string $title, array $paragraphs, string $lang = 'es', string $type = 'post', string $slug = '', int $date = 1790000000, array $headings = array(), array $taxonomies = array(), array $focus = array() ): Document {
 		$built = array();
 		$links = array();
 		foreach ( $paragraphs as $text ) {
@@ -40,7 +41,7 @@ final class ArraySource implements DocumentSource {
 			}
 			$built[] = new Paragraph( $text, $spans );
 		}
-		$document               = new Document( $id, $type, $lang, $title, '' === $slug ? 'entrada-' . $id : $slug, $date, $headings, $built, $links, array(), $taxonomies );
+		$document               = new Document( $id, $type, $lang, $title, '' === $slug ? 'entrada-' . $id : $slug, $date, $headings, $built, $links, $focus, $taxonomies );
 		$this->documents[ $id ] = $document;
 		return $document;
 	}

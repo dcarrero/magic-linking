@@ -2,12 +2,13 @@
 /**
  * Genera entradas sintéticas para medir el indexado (solo desarrollo, no va en el ZIP).
  *
- * Uso: wp eval-file tests/perf/seed.php [cantidad] [zipf]   (por defecto 20000)
+ * Uso: wp eval-file tests/perf/seed.php [cantidad] [zipf] [long]   (por defecto 20000)
  *
  * Sin `zipf`, el texto sale de un vocabulario de 75 palabras: cada entrada comparte casi todos sus términos
  * con las demás, el caso más denso posible para la recuperación. Con `zipf`, el vocabulario es de 6.000
  * palabras inventadas con frecuencias de Zipf (como un texto natural: unas pocas palabras en todas partes y
  * una cola larga), los títulos son de dos o tres palabras y algunas entradas citan el título de otra.
+ * Con `long`, las entradas son largas (1.500-4.000 palabras, como las de un blog de reportajes).
  *
  * @package MagicLinking
  */
@@ -16,6 +17,7 @@
 
 $count = isset( $args[0] ) ? (int) $args[0] : 20000;
 $zipf  = in_array( 'zipf', $args, true );
+$long  = in_array( 'long', $args, true );
 
 global $wpdb;
 $existing = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='post' AND post_name LIKE 'bench-%'" );
@@ -62,22 +64,37 @@ wp_defer_term_counting( true );
 wp_suspend_cache_invalidation( true );
 $wpdb->query( 'SET autocommit=0' );
 
+// Un párrafo: las palabras (si no se dice cuántas, se sortea en cada vuelta, como siempre), una cita opcional a otra entrada y enlaces.
+$paragraph = static function ( int $i, ?int $length ) use ( $words, $nw, $zipf, &$titles, &$pick ): string {
+	$s = array();
+	for ( $w = 0; $w < ( $length ?? mt_rand( 40, 90 ) ); $w++ ) {
+		$s[] = $words[ $zipf ? $pick() : mt_rand( 0, $nw - 1 ) ];
+	}
+	if ( $zipf && $titles && 0 === mt_rand( 0, 2 ) ) {
+		$s[ mt_rand( 0, count( $s ) - 1 ) ] = $titles[ mt_rand( 0, count( $titles ) - 1 ) ];
+	}
+	if ( mt_rand( 0, 3 ) === 0 && $i > 50 ) {
+		$t   = mt_rand( 1, $i - 1 );
+		$bad = mt_rand( 0, 30 ) === 0 ? 'x' : '';
+		$s[ mt_rand( 0, count( $s ) - 1 ) ] = '<a href="' . home_url( "/bench-{$bad}{$t}/" ) . '">' . $words[ mt_rand( 0, $nw - 1 ) ] . ' ' . $words[ mt_rand( 0, $nw - 1 ) ] . '</a>';
+	}
+
+	return "<!-- wp:paragraph -->\n<p>" . implode( ' ', $s ) . ".</p>\n<!-- /wp:paragraph -->";
+};
+
 for ( $i = $existing + 1; $i <= $existing + $count; $i++ ) {
 	$paras = array();
-	for ( $p = 0; $p < mt_rand( 6, 12 ); $p++ ) {
-		$s = array();
-		for ( $w = 0; $w < mt_rand( 40, 90 ); $w++ ) {
-			$s[] = $words[ $zipf ? $pick() : mt_rand( 0, $nw - 1 ) ];
+	if ( $long ) {
+		// Entradas largas: número de párrafos y de palabras fijos para toda la entrada.
+		$np = mt_rand( 25, 45 );
+		for ( $p = 0; $p < $np; $p++ ) {
+			$paras[] = $paragraph( $i, mt_rand( 60, 90 ) );
 		}
-		if ( $zipf && $titles && 0 === mt_rand( 0, 2 ) ) {
-			$s[ mt_rand( 0, count( $s ) - 1 ) ] = $titles[ mt_rand( 0, count( $titles ) - 1 ) ];
+	} else {
+		// Corpus por defecto (y el del CI): la misma secuencia de sorteos de siempre, con la condición sorteada en cada vuelta.
+		for ( $p = 0; $p < mt_rand( 6, 12 ); $p++ ) {
+			$paras[] = $paragraph( $i, null );
 		}
-		if ( mt_rand( 0, 3 ) === 0 && $i > 50 ) {
-			$t   = mt_rand( 1, $i - 1 );
-			$bad = mt_rand( 0, 30 ) === 0 ? 'x' : '';
-			$s[ mt_rand( 0, count( $s ) - 1 ) ] = '<a href="' . home_url( "/bench-{$bad}{$t}/" ) . '">' . $words[ mt_rand( 0, $nw - 1 ) ] . ' ' . $words[ mt_rand( 0, $nw - 1 ) ] . '</a>';
-		}
-		$paras[] = "<!-- wp:paragraph -->\n<p>" . implode( ' ', $s ) . ".</p>\n<!-- /wp:paragraph -->";
 	}
 	if ( $zipf ) {
 		$title    = implode( ' ', array( $words[ mt_rand( 50, 2000 ) ], $words[ mt_rand( 50, 2000 ) ], $words[ mt_rand( 50, 2000 ) ] ) );

@@ -12,14 +12,7 @@ namespace MagicLinking\Engine;
 /**
  * Resultado de {@see Analyzer::analyze()}.
  */
-final class AnalyzedDocument {
-
-	/**
-	 * Posiciones de cada clave de raíz en las frases, calculadas al primer uso.
-	 *
-	 * @var array<string, list<array{0: int, 1: int}>>|null
-	 */
-	private ?array $positions = null;
+final class AnalyzedDocument extends AnchorText {
 
 	/**
 	 * Crea el resultado.
@@ -36,13 +29,14 @@ final class AnalyzedDocument {
 	 * @phpstan-param array<string, string> $surfaces
 	 */
 	public function __construct(
-		public readonly Document $document,
+		Document $document,
 		public readonly array $counts,
 		public readonly int $length,
-		public readonly int $words,
-		public readonly array $sentences = array(),
-		public readonly array $surfaces = array()
+		int $words,
+		array $sentences = array(),
+		array $surfaces = array()
 	) {
+		parent::__construct( $document, $words, $sentences, $surfaces );
 	}
 
 	/**
@@ -56,22 +50,5 @@ final class AnalyzedDocument {
 			$terms += $field;
 		}
 		return array_map( 'strval', array_keys( $terms ) );
-	}
-
-	/**
-	 * Dónde aparece cada clave de raíz: [frase, token].
-	 *
-	 * @return array<string, list<array{0: int, 1: int}>>
-	 */
-	public function positions(): array {
-		if ( null === $this->positions ) {
-			$this->positions = array();
-			foreach ( $this->sentences as $s => $sentence ) {
-				foreach ( $sentence->keys as $i => $key ) {
-					$this->positions[ $key ][] = array( $s, $i );
-				}
-			}
-		}
-		return $this->positions;
 	}
 }

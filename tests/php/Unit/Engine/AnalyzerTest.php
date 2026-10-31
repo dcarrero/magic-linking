@@ -9,7 +9,10 @@ declare(strict_types=1);
 
 namespace MagicLinking\Tests\Unit\Engine;
 
+use MagicLinking\Engine\AnalyzedDocument;
 use MagicLinking\Engine\Analyzer;
+use MagicLinking\Engine\Indexer;
+use MagicLinking\Engine\IndexStats;
 use PHPUnit\Framework\TestCase;
 
 final class AnalyzerTest extends TestCase {
@@ -97,6 +100,22 @@ final class AnalyzerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * `keys()` lleva la lectura de la memoria en línea (es el bucle más caliente): da lo mismo que `key()` palabra a palabra,
+	 * con la memoria vacía y con la memoria ya llena.
+	 */
+	public function test_keys_match_key_word_by_word(): void {
+		$text = 'Las bombas de calor aerotérmicas, ¡sí! El año 2027 «Wi-Fi» no corrió; corriendo, corrieron y correrán las casas casa Casas. Aviso 3,5 millones.';
+		foreach ( array( 'es', 'en' ) as $lang ) {
+			$fresh  = Analyzer::for_language( $lang );
+			$tokens = $fresh->tokenizer()->tokenize( $text );
+			$keys   = $fresh->keys( $tokens );
+			$this->assertSame( $keys, array_map( array( Analyzer::for_language( $lang ), 'key' ), $tokens ), $lang );
+			$this->assertSame( $keys, $fresh->keys( $tokens ), 'con la memoria llena' );
+			$this->assertSame( array_map( array( $fresh, 'key' ), $tokens ), $fresh->keys( $tokens ) );
+		}
+	}
+
 	public function test_keys_ignore_accents_and_stem(): void {
 		$analyzer = Analyzer::for_language( 'es' );
 
@@ -117,6 +136,53 @@ final class AnalyzerTest extends TestCase {
 		$this->assertTrue( $analyzed->sentences[1]->has_link );
 		$this->assertSame( 'bomba de calor', $analyzed->surfaces['bomb de calor'] );
 		$this->assertSame( 10, $analyzed->words );
+	}
+
+	/**
+	 * Con los términos pedidos (las entrantes) el análisis no cuenta el documento, pero las frases, las palabras y las formas
+	 * para mostrar de esos términos son exactamente las del análisis completo (F1-32).
+	 */
+	public function test_anchor_source_keeps_sentences_and_forms_and_cannot_be_weighed(): void {
+		$source   = new ArraySource();
+		$document = $source->add(
+			1,
+			'Suelo radiante y bombas de calor',
+			array(
+				'El suelo radiante calienta. Ver la [[bomba de calor|2]] aquí, con el Suelo Radiante nuevo.',
+				'Las bombas de calor y los suelos radiantes comparten la caldera. Una bomba de calor aerotérmica.',
+			),
+			'es',
+			'post',
+			'',
+			0,
+			array( 'Ventajas del suelo radiante' )
+		);
+		$analyzer = Analyzer::for_language( 'es' );
+		$full     = $analyzer->analyze( $document, true );
+		$wanted   = array(
+			'suel radiant'  => true,
+			'bomb de calor' => true,
+			'calder'        => true,
+			'inexistente'   => true,
+		);
+
+		$lean = $analyzer->analyze_for_anchors( $document, $wanted );
+
+		$this->assertNotInstanceOf( AnalyzedDocument::class, $lean );
+		$this->assertSame( $full->words, $lean->words );
+		$this->assertEquals( $full->sentences, $lean->sentences );
+		$this->assertSame( $full->positions(), $lean->positions() );
+		$expected = array_keys( array_intersect_key( $full->surfaces, $wanted ) );
+		sort( $expected );
+		$this->assertSame( array( 'bomb de calor', 'calder', 'suel radiant' ), $expected );
+		foreach ( array_keys( $wanted ) as $term ) {
+			$this->assertSame( $full->surfaces[ $term ] ?? null, $lean->surfaces[ $term ] ?? null, $term );
+		}
+		$this->assertSame( array_keys( $lean->surfaces ), array_keys( array_intersect_key( $lean->surfaces, $wanted ) ), 'solo las formas pedidas' );
+
+		// Sin recuento de términos no se puede pesar: falla en voz alta, no da ceros.
+		$this->expectException( \TypeError::class );
+		( new Indexer() )->weigh( $lean, new IndexStats( 1, 1.0, array() ) );
 	}
 
 	public function test_display_term_drops_edge_stopwords_and_unusable_terms(): void {

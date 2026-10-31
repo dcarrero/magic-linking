@@ -445,9 +445,15 @@ final class Analyzer {
 	 * @param Token $token Token.
 	 */
 	public function is_content( Token $token ): bool {
-		return ! $token->is_stopword
-			&& 1 !== preg_match( '/^[\p{N}.,]+$/u', $token->key )
-			&& ! isset( $this->numeric[ $token->key ] );
+		if ( $token->is_stopword ) {
+			return false;
+		}
+		// Una clave que empieza por letra ASCII no puede ser solo cifras y signos: la expresión regular se ahorra en casi todas.
+		$key     = $token->key;
+		$first   = '' === $key ? 0 : ord( $key[0] );
+		$numeric = ! ( $first >= 97 && $first <= 122 ) && ! ( $first >= 65 && $first <= 90 ) && 1 === preg_match( '/^[\p{N}.,]+$/u', $key );
+
+		return ! $numeric && ! isset( $this->numeric[ $key ] );
 	}
 
 	/**
@@ -503,10 +509,10 @@ final class Analyzer {
 	 * Lo mismo que {@see foreign_language()} para todo el texto de un origen
 	 * (para los términos que se enseñan en los motivos, que no tienen frase).
 	 *
-	 * @param AnalyzedDocument $document Origen analizado con frases.
+	 * @param AnchorText $document Origen con frases.
 	 * @return string|null Código del otro idioma, o null si el texto es del idioma de la entrada.
 	 */
-	public function foreign_document( AnalyzedDocument $document ): ?string {
+	public function foreign_document( AnchorText $document ): ?string {
 		$tokens = array();
 		foreach ( $document->sentences as $sentence ) {
 			array_push( $tokens, ...$sentence->tokens );
@@ -637,18 +643,19 @@ final class Analyzer {
 	 * @param Token $token Token.
 	 */
 	public function key( Token $token ): string {
-		if ( $token->is_stopword ) {
-			return $token->key;
-		}
-		if ( isset( $this->cache[ $token->normal ] ) ) {
-			return $this->cache[ $token->normal ];
-		}
+		return $token->is_stopword ? $token->key : ( $this->cache[ $token->normal ] ?? $this->stem_key( $token ) );
+	}
+
+	/**
+	 * Raíz de una palabra que no es vacía y no está en la memoria: la calcula y la recuerda.
+	 *
+	 * @param Token $token Token.
+	 */
+	private function stem_key( Token $token ): string {
 		$stem = null === $this->stemmer ? $token->normal : $this->stemmer->stem( $token->normal );
 		$key  = $this->tokenizer->key( $stem );
-		if ( count( $this->cache ) >= self::CACHE_SIZE ) {
-			$this->cache = array();
-		}
-		$this->cache[ $token->normal ] = $key;
+		Memo::put( $this->cache, $token->normal, $key, self::CACHE_SIZE );
+
 		return $key;
 	}
 
@@ -663,7 +670,8 @@ final class Analyzer {
 	public function keys( array $tokens ): array {
 		$keys = array();
 		foreach ( $tokens as $token ) {
-			$keys[] = $this->key( $token );
+			// Lo mismo que key(), sin la llamada: es el bucle más caliente del análisis.
+			$keys[] = $token->is_stopword ? $token->key : ( $this->cache[ $token->normal ] ?? $this->stem_key( $token ) );
 		}
 		return $keys;
 	}
@@ -702,6 +710,40 @@ final class Analyzer {
 	 *                            (para buscar anclas; el indexado no las necesita).
 	 */
 	public function analyze( Document $document, bool $sentences = false ): AnalyzedDocument {
+		[ $counts, $length, $words, $list, $surfaces ] = $this->scan( $document, $sentences );
+
+		return new AnalyzedDocument( $document, $counts, $length, $words, $list, self::shown( $surfaces ) );
+	}
+
+	/**
+	 * Analiza un origen de las sugerencias entrantes: sus frases y las formas para mostrar de unos términos concretos (los
+	 * principales del destino). No cuenta los términos del documento —sus pesos ya están en el índice—, así que devuelve un
+	 * {@see AnchorSource}, que no se puede pasar al indexador. Las frases, las palabras y las formas pedidas son exactamente
+	 * las de {@see self::analyze()} con frases, con el mismo orden de formas.
+	 *
+	 * @param Document $document Documento.
+	 * @param array    $wanted   Términos de los que hacen falta las formas para mostrar (como claves).
+	 *
+	 * @phpstan-param array<string, mixed> $wanted
+	 */
+	public function analyze_for_anchors( Document $document, array $wanted ): AnchorSource {
+		[ , , $words, $list, $surfaces ] = $this->scan( $document, true, $wanted );
+
+		return new AnchorSource( $document, $words, $list, self::shown( $surfaces ) );
+	}
+
+	/**
+	 * Recorre el documento: lo único que cambia entre el análisis completo y el de un origen de entrantes es qué se anota de
+	 * cada frase ({@see self::count()}).
+	 *
+	 * @param Document   $document  Documento.
+	 * @param bool       $sentences Si se guardan las frases y las formas para mostrar.
+	 * @param array|null $wanted    Solo las formas de estos términos, sin contar ninguno (null: análisis completo).
+	 * @return array{0: array<int, array<string, int>>, 1: int, 2: int, 3: list<Sentence>, 4: array<string, array<string, int>>} Recuentos por campo, longitud, palabras del cuerpo, frases y formas.
+	 *
+	 * @phpstan-param array<string, mixed>|null $wanted
+	 */
+	private function scan( Document $document, bool $sentences, ?array $wanted = null ): array {
 		$counts   = array(
 			self::TITLE   => array(),
 			self::HEADING => array(),
@@ -712,13 +754,18 @@ final class Analyzer {
 		$words    = 0;
 		$list     = array();
 		$surfaces = array();
+		// Un término pedido solo puede empezar en una palabra que sea la primera de alguno de ellos.
+		$starts = array();
+		foreach ( array_keys( $wanted ?? array() ) as $term ) {
+			$starts[ explode( ' ', (string) $term, 2 )[0] ] = true;
+		}
 
 		$fields = array( array( self::TITLE, array( $document->title ) ), array( self::HEADING, $document->headings ), array( self::FOCUS, $document->focus ) );
 		foreach ( $fields as [ $field, $texts ] ) {
 			foreach ( $texts as $text ) {
 				foreach ( $this->tokenizer->sentences( $text ) as $sentence ) {
 					$tokens  = $this->tokenizer->tokenize( $sentence );
-					$length += $this->count( $tokens, $this->keys( $tokens ), $counts[ $field ], $surfaces, $sentences );
+					$length += $this->count( $tokens, $this->keys( $tokens ), $counts[ $field ], $surfaces, $sentences, $wanted, $starts );
 				}
 			}
 		}
@@ -729,7 +776,7 @@ final class Analyzer {
 				$tokens  = $this->tokenizer->tokenize( $sentence );
 				$keys    = $this->keys( $tokens );
 				$words  += count( $tokens );
-				$length += $this->count( $tokens, $keys, $counts[ self::BODY ], $surfaces, $sentences );
+				$length += $this->count( $tokens, $keys, $counts[ self::BODY ], $surfaces, $sentences, $wanted, $starts );
 
 				if ( $sentences && array() !== $tokens ) {
 					$list[] = new Sentence( $sentence, $p, $tokens, $keys, $this->sentence_has_link( $paragraph, $sentence, $cursor ) );
@@ -737,42 +784,58 @@ final class Analyzer {
 			}
 		}
 
+		return array( $counts, $length, $words, $list, $surfaces );
+	}
+
+	/**
+	 * Forma para mostrar de cada término: la más frecuente (a igualdad, la primera que apareció).
+	 *
+	 * @param array $surfaces Término → forma → frecuencia.
+	 * @return array<string, string>
+	 *
+	 * @phpstan-param array<string, array<string, int>> $surfaces
+	 */
+	private static function shown( array $surfaces ): array {
 		$shown = array();
 		foreach ( $surfaces as $term => $forms ) {
 			arsort( $forms );
 			$shown[ $term ] = (string) array_key_first( $forms );
 		}
 
-		return new AnalyzedDocument( $document, $counts, $length, $words, $list, $shown );
+		return $shown;
 	}
 
 	/**
 	 * Cuenta los n-gramas de una frase.
 	 *
-	 * @param Token[]  $tokens   Tokens de la frase.
-	 * @param string[] $keys     Claves de raíz de los tokens.
-	 * @param array    $counts   Acumulador término → frecuencia.
-	 * @param array    $surfaces Acumulador término → forma → frecuencia.
-	 * @param bool     $shown    Si se acumulan las formas.
+	 * @param Token[]    $tokens   Tokens de la frase.
+	 * @param string[]   $keys     Claves de raíz de los tokens.
+	 * @param array      $counts   Acumulador término → frecuencia.
+	 * @param array      $surfaces Acumulador término → forma → frecuencia.
+	 * @param bool       $shown    Si se acumulan las formas.
+	 * @param array|null $wanted Solo las formas de estos términos, sin contar ninguno (análisis de un origen de entrantes).
+	 * @param array      $starts   Con `$wanted`: primera palabra de cada término pedido; los n-gramas que no empiezan por una no se recorren.
 	 * @return int Palabras no vacías de la frase.
 	 *
 	 * @phpstan-param list<Token> $tokens
 	 * @phpstan-param list<string> $keys
 	 * @phpstan-param array<string, int> $counts
 	 * @phpstan-param array<string, array<string, int>> $surfaces
+	 * @phpstan-param array<string, mixed>|null $wanted
+	 * @phpstan-param array<string, true> $starts
 	 */
-	private function count( array $tokens, array $keys, array &$counts, array &$surfaces, bool $shown ): int {
+	private function count( array $tokens, array $keys, array &$counts, array &$surfaces, bool $shown, ?array $wanted = null, array $starts = array() ): int {
 		$total   = count( $tokens );
 		$words   = 0;
 		$content = array();
-		foreach ( $tokens as $n => $token ) {
-			$content[ $n ] = $this->is_content( $token );
-		}
 		for ( $i = 0; $i < $total; $i++ ) {
 			if ( $tokens[ $i ]->is_stopword ) {
 				continue;
 			}
 			++$words;
+			if ( null !== $wanted && ! isset( $starts[ $keys[ $i ] ] ) ) {
+				continue;
+			}
 			$term   = '';
 			$normal = '';
 			$has    = false;
@@ -783,16 +846,20 @@ final class Analyzer {
 				}
 				$term   .= ( 1 === $size ? '' : ' ' ) . $keys[ $i + $size - 1 ];
 				$normal .= ( 1 === $size ? '' : ' ' ) . $last->normal;
-				$has     = $has || $content[ $i + $size - 1 ];
+				$has     = $has || ( $content[ $i + $size - 1 ] ??= $this->is_content( $last ) );
 				// Sin palabra de contenido («1 GW», «2025») no es un término.
 				if ( $last->is_stopword || ! $has ) {
 					continue;
 				}
-				$counts[ $term ] = ( $counts[ $term ] ?? 0 ) + 1;
+				if ( null === $wanted ) {
+					$counts[ $term ] = ( $counts[ $term ] ?? 0 ) + 1;
+				} elseif ( ! isset( $wanted[ $term ] ) ) {
+					continue;
+				}
 				if ( $shown ) {
 					$surfaces[ $term ][ $normal ] = ( $surfaces[ $term ][ $normal ] ?? 0 ) + 1;
 				}
-			}
+			}//end for
 		}//end for
 		return $words;
 	}

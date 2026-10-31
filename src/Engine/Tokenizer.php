@@ -217,6 +217,20 @@ final class Tokenizer {
 	private array $abbreviations;
 
 	/**
+	 * Forma normalizada, clave y condición de palabra vacía de cada palabra ya vista: `normalize()` y el plegado de
+	 * diacríticos son funciones puras del texto y un texto largo repite casi todas sus palabras, así que se calculan una vez
+	 * por palabra distinta y no una por aparición (F1-32). Acotado: al llegar al tope se descarta la mitad más antigua ({@see Memo}).
+	 *
+	 * @var array<string, array{0: string, 1: string, 2: bool}>
+	 */
+	private array $forms = array();
+
+	/**
+	 * Palabras distintas que recuerda {@see self::$forms}.
+	 */
+	private const FORMS_CACHE_SIZE = 5000;
+
+	/**
 	 * Crea un tokenizador para un idioma.
 	 *
 	 * @param iterable $stopwords     Palabras vacías del idioma (con o sin tildes: se comparan por clave).
@@ -366,21 +380,21 @@ final class Tokenizer {
 		foreach ( $matches[0] as $match ) {
 			$surface = $match[0];
 			$offset  = $match[1];
-			$normal  = $this->lower( $surface );
-			$key     = $this->fold( $normal );
-			$gap     = null === $prev_end ? '' : substr( $masked, $prev_end, $offset - $prev_end );
+			$form    = $this->forms[ $surface ] ?? null;
+			if ( null === $form ) {
+				$normal = $this->lower( $surface );
+				$key    = $this->fold( $normal );
+				$form   = array( $normal, $key, isset( $this->stopwords[ $key ] ) );
+				Memo::put( $this->forms, $surface, $form, self::FORMS_CACHE_SIZE );
+			}
+			// Lo habitual es un solo espacio entre palabras: sin expresión regular.
+			$gap   = null === $prev_end ? '' : substr( $masked, $prev_end, $offset - $prev_end );
+			$break = '' !== $gap && ' ' !== $gap && 1 === preg_match( '/[^\s\x{00A0}]/u', $gap );
 
-			$tokens[] = new Token(
-				$surface,
-				$normal,
-				$key,
-				$offset,
-				isset( $this->stopwords[ $key ] ),
-				1 === preg_match( '/[^\s\x{00A0}]/u', $gap )
-			);
+			$tokens[] = new Token( $surface, $form[0], $form[1], $offset, $form[2], $break );
 
 			$prev_end = $offset + strlen( $surface );
-		}
+		}//end foreach
 
 		return $tokens;
 	}

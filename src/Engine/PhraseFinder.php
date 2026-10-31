@@ -148,13 +148,13 @@ final class PhraseFinder {
 	 * título del destino y es uno de sus términos principales («bomba de calor»
 	 * → «bomba de calor aerotérmica»).
 	 *
-	 * @param AnalyzedDocument $source   Origen analizado con frases.
-	 * @param Phrase[]         $phrases  Frases objetivo del destino.
-	 * @param Analyzer         $analyzer Analizador del idioma.
-	 * @param array            $expand   Claves de las palabras del título del destino que son términos principales.
-	 * @param array            $blocked  Clave de ancla → destino con el que el origen ya la usa.
-	 * @param int              $target   ID del destino.
-	 * @param array|null       $terms    Términos principales del destino; con ellos, un ancla que el recorte deja en una sola palabra solo vale si es uno de ellos (como un tramo de una palabra del título). Null: sin esa comprobación.
+	 * @param AnchorText $source   Origen con frases.
+	 * @param Phrase[]   $phrases  Frases objetivo del destino.
+	 * @param Analyzer   $analyzer Analizador del idioma.
+	 * @param array      $expand   Claves de las palabras del título del destino que son términos principales.
+	 * @param array      $blocked  Clave de ancla → destino con el que el origen ya la usa.
+	 * @param int        $target   ID del destino.
+	 * @param array|null $terms    Términos principales del destino; con ellos, un ancla que el recorte deja en una sola palabra solo vale si es uno de ellos (como un tramo de una palabra del título). Null: sin esa comprobación.
 	 * @return list<AnchorMatch> En orden de aparición.
 	 *
 	 * @phpstan-param list<Phrase> $phrases
@@ -162,7 +162,7 @@ final class PhraseFinder {
 	 * @phpstan-param array<string, int> $blocked
 	 * @phpstan-param array<string, float>|null $terms
 	 */
-	public function find( AnalyzedDocument $source, array $phrases, Analyzer $analyzer, array $expand = array(), array $blocked = array(), int $target = 0, ?array $terms = null ): array {
+	public function find( AnchorText $source, array $phrases, Analyzer $analyzer, array $expand = array(), array $blocked = array(), int $target = 0, ?array $terms = null ): array {
 		$positions = $source->positions();
 		$total     = count( $source->sentences );
 		$last      = array() === $source->sentences ? -1 : $source->sentences[ $total - 1 ]->paragraph;
