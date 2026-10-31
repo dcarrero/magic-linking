@@ -11,6 +11,7 @@ namespace MagicLinking\Admin;
 
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Index\Taxonomies;
 use WP_Post;
 use WP_Screen;
 
@@ -178,13 +179,17 @@ final class EditorPanel implements Module {
 			$handle,
 			'window.magiclinkingEditor = ' . wp_json_encode(
 				array(
-					'mode'       => $mode,
-					'postId'     => $post->ID,
-					'perPage'    => (int) $this->settings->all()['inbound_per_page'],
-					'linkIn'     => $this->settings->link_scope(),
-					'linkAttrs'  => (object) $this->settings->link_attributes(),
-					'historyUrl' => Screen::page_url( 'history' ),
-					'reportUrl'  => Screen::page_url( 'report' ),
+					'mode'        => $mode,
+					'postId'      => $post->ID,
+					'perPage'     => (int) $this->settings->all()['inbound_per_page'],
+					'linkIn'      => $this->settings->link_scope(),
+					'linkAttrs'   => (object) $this->settings->link_attributes(),
+					'historyUrl'  => Screen::page_url( 'history' ),
+					'reportUrl'   => Screen::page_url( 'report' ),
+					// De dónde lee el editor las categorías y etiquetas aún sin guardar (filtros por taxonomía).
+					'terms'       => (object) Taxonomies::sources( $post->post_type ),
+					// Solo quien puede cambiar los ajustes recibe el enlace a ellos (estado vacío por filtros).
+					'settingsUrl' => current_user_can( 'manage_options' ) ? Screen::page_url( 'settings' ) . '#tab=suggestions' : '',
 				)
 			) . ';',
 			'before'

@@ -2,6 +2,7 @@
  * Llamadas a la API REST del plugin.
  */
 import apiFetch from '@wordpress/api-fetch';
+import type { EditorTerms } from './editor/boot';
 import type {
 	AiCapabilities,
 	AiStatus,
@@ -24,6 +25,7 @@ import type {
 	InsertLink,
 	InsertResponse,
 	OutboundResponse,
+	PillarState,
 	RerankItem,
 	RerankResponse,
 	RuleApplyResponse,
@@ -383,12 +385,14 @@ export const api = {
 	 * @param content Contenido actual (bloques serializados o HTML).
 	 * @param title   Título actual.
 	 * @param signal  Para cancelar.
+	 * @param terms   Categorías y etiquetas elegidas en el editor, sin guardar.
 	 */
 	outboundDraft: (
 		postId: number,
 		content: string,
 		title?: string,
-		signal?: AbortSignal
+		signal?: AbortSignal,
+		terms?: EditorTerms
 	) =>
 		apiFetch< OutboundResponse >( {
 			path: path( '/suggestions/outbound' ),
@@ -397,6 +401,10 @@ export const api = {
 				post_id: postId,
 				content,
 				...( title !== undefined ? { title } : {} ),
+				// Las categorías y etiquetas del editor mandan sobre las guardadas (filtros por taxonomía).
+				...( terms !== undefined
+					? { terms: terms.ids, term_names: terms.names }
+					: {} ),
 			},
 			signal,
 		} ),
@@ -523,6 +531,29 @@ export const api = {
 			path: path( '/wizard' ),
 			method: 'POST',
 			data: { dismissed },
+		} ),
+	/**
+	 * Estado de la casilla «Contenido pilar» de una entrada.
+	 *
+	 * @param postId Entrada.
+	 * @param signal Para cancelar.
+	 */
+	pillar: ( postId: number, signal?: AbortSignal ) =>
+		apiFetch< PillarState >( {
+			path: path( `/pillar/${ postId }` ),
+			signal,
+		} ),
+	/**
+	 * Marca o desmarca la casilla propia de contenido pilar.
+	 *
+	 * @param postId Entrada.
+	 * @param pillar Marcada.
+	 */
+	setPillar: ( postId: number, pillar: boolean ) =>
+		apiFetch< PillarState >( {
+			path: path( `/pillar/${ postId }` ),
+			method: 'POST',
+			data: { pillar },
 		} ),
 	saveSettings: ( values: SettingsValues ) =>
 		apiFetch< SettingsResponse >( {

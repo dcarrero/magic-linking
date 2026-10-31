@@ -25,6 +25,22 @@
 	}
 }
 
+.magiclinking-panel__pillar {
+	border-top: 1px solid #ddd;
+	margin-top: 16px;
+	padding-top: 12px;
+}
+
+.magiclinking-panel__pillar-note {
+	margin: 8px 0 0;
+}
+
+.magiclinking-panel__pillar-error {
+	// Rojo de error de WordPress con contraste AA sobre blanco.
+	color: #cc1818;
+	margin: 8px 0 0;
+}
+
 .magiclinking-editor-root .magiclinking-panel .components-tab-panel__tabs {
 	margin: 0;
 	padding: 0;

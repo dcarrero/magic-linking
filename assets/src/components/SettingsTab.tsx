@@ -12,7 +12,12 @@ import { speak } from '@wordpress/a11y';
 import { __, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import { useLoad } from '../hooks';
-import type { SettingsValues, StatusResponse } from '../types';
+import type {
+	FilterMode,
+	FilterName,
+	SettingsValues,
+	StatusResponse,
+} from '../types';
 import { AiSettingsCards } from './AiSettingsCards';
 import { Maintenance, useMaintenance } from './Maintenance';
 import { SettingsSection, settingsSections } from './SettingsSection';
@@ -322,6 +327,40 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		}
 	};
 
+	const setFilter = ( name: FilterName, mode: FilterMode ) =>
+		set( 'filters', { ...values.filters, [ name ]: mode } );
+
+	const filterControl = ( name: FilterName, label: string, help: string ) => (
+		<SelectControl
+			__nextHasNoMarginBottom
+			__next40pxDefaultSize
+			label={ label }
+			help={ help }
+			value={ values.filters[ name ] }
+			options={ [
+				{
+					value: 'ignore',
+					label: __( 'Ignore', 'magic-linking' ),
+				},
+				{
+					value: 'consider',
+					label: __(
+						'Take into account (a small boost if they share it)',
+						'magic-linking'
+					),
+				},
+				{
+					value: 'require',
+					label: __(
+						'Require (only entries that share it)',
+						'magic-linking'
+					),
+				},
+			] }
+			onChange={ ( mode ) => setFilter( name, mode as FilterMode ) }
+		/>
+	);
+
 	const number = (
 		key: NumberKey,
 		label: string,
@@ -515,6 +554,32 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 								),
 								__(
 									'Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries.',
+									'magic-linking'
+								)
+							) }
+						</SettingsSection>
+						<SettingsSection section={ sections.filters }>
+							{ filterControl(
+								'type',
+								__( 'Content type', 'magic-linking' ),
+								__(
+									'For example, suggest links from posts only to posts.',
+									'magic-linking'
+								)
+							) }
+							{ filterControl(
+								'category',
+								__( 'Category', 'magic-linking' ),
+								__(
+									'In a custom content type, its main hierarchical taxonomy is used instead.',
+									'magic-linking'
+								)
+							) }
+							{ filterControl(
+								'tag',
+								__( 'Tag', 'magic-linking' ),
+								__(
+									'In a custom content type, its main non-hierarchical taxonomy is used instead.',
 									'magic-linking'
 								)
 							) }

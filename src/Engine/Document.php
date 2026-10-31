@@ -66,6 +66,17 @@ final class Document {
 	}
 
 	/**
+	 * La misma entrada con otras categorías y etiquetas (las del editor, aún sin guardar).
+	 *
+	 * @param array $taxonomies Taxonomía → valores.
+	 *
+	 * @phpstan-param array<string, list<string>> $taxonomies
+	 */
+	public function with_taxonomies( array $taxonomies ): self {
+		return new self( $this->id, $this->type, $this->lang, $this->title, $this->slug, $this->date, $this->headings, $this->paragraphs, $this->links, $this->focus, $taxonomies );
+	}
+
+	/**
 	 * La misma entrada como si no tuviera enlaces internos (para medir el motor sin los enlaces existentes):
 	 * el texto de las anclas se queda, los enlaces desaparecen.
 	 */

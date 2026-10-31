@@ -99,7 +99,8 @@ export function useOutbound(
 				adapter.postId,
 				adapter.getContent(),
 				adapter.getTitle(),
-				signal
+				signal,
+				adapter.getTerms()
 			),
 		[]
 	);

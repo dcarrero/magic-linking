@@ -57,8 +57,8 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	}
 
 	/**
-	 * Carga en las cachés de entradas y metadatos las que se van a pedir. Los términos de taxonomía no
-	 * hacen falta: el motor no los usa aquí.
+	 * Carga en las cachés de entradas y metadatos las que se van a pedir. Los términos de taxonomía solo se
+	 * cargan (en una consulta) si hay filtros por categoría o etiqueta en modo Considerar o Exigir.
 	 *
 	 * @param int[] $ids IDs.
 	 */
@@ -68,7 +68,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 			return;
 		}
 
-		_prime_post_caches( $ids, false, true );
+		_prime_post_caches( $ids, $this->posts->taxonomies_enabled(), true );
 
 		$links        = $this->graph->links_from( $ids );
 		$this->stored = array();
@@ -140,6 +140,25 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 		}
 
 		return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+	}
+
+	/**
+	 * Una vista con los documentos con (o sin) categorías y etiquetas (ver {@see PostSource::with_taxonomies()}).
+	 *
+	 * @param bool $enabled Documentos con términos.
+	 */
+	public function with_taxonomies( bool $enabled ): self {
+		$view        = clone $this;
+		$view->posts = $this->posts->with_taxonomies( $enabled );
+
+		return $view;
+	}
+
+	/**
+	 * Si los documentos llevan ahora sus categorías y etiquetas.
+	 */
+	public function taxonomies_enabled(): bool {
+		return $this->posts->taxonomies_enabled();
 	}
 
 	/**

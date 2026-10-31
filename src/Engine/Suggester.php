@@ -30,12 +30,6 @@ final class Suggester {
 	public const MAX_ALTERNATIVES = 2;
 
 	/**
-	 * Veces que se amplían las candidatas antes de aplicar un filtro Exigir (en las
-	 * tablas del plugin el filtro va en la consulta y no hace falta).
-	 */
-	public const OVERFETCH = 5;
-
-	/**
 	 * Distancia máxima de una alternativa a la puntuación de la principal.
 	 */
 	public const ALTERNATIVE_MARGIN = 0.10;
@@ -46,6 +40,11 @@ final class Suggester {
 	public const IGNORE   = 'ignore';
 	public const CONSIDER = 'consider';
 	public const REQUIRE  = 'require';
+
+	/**
+	 * Todos los modos válidos de un filtro.
+	 */
+	public const MODES = array( self::IGNORE, self::CONSIDER, self::REQUIRE );
 
 	/**
 	 * Filtros y la taxonomía de cada uno; `type` es el tipo de contenido.
@@ -241,6 +240,70 @@ final class Suggester {
 	}
 
 	/**
+	 * Si el filtro Exigir es la causa de que una entrada no tenga sugerencias salientes: con él no se recupera ninguna
+	 * candidata y sin él sí. Solo se llama cuando el resultado ya salió vacío (dos recuperaciones de una candidata,
+	 * sin frases ni puntuación); si no hay filtros Exigir, responde sin consultar nada.
+	 *
+	 * @param Document $source Entrada abierta.
+	 */
+	public function outgoing_limited( Document $source ): bool {
+		if ( ! in_array( self::REQUIRE, $this->filters, true ) ) {
+			return false;
+		}
+		$needs = $this->requirement( $source->type, $source->taxonomies );
+		if ( null === $needs ) {
+			return true;
+		}
+
+		try {
+			$analyzer = Analyzer::for_language( $source->lang );
+			$analyzed = $analyzer->analyze( $source, true );
+			$stats    = $this->index instanceof TermStats ? $this->index->stats_for( $source->lang, $analyzed->terms(), true )[0] : $this->index->stats( $source->lang );
+			$weights  = $this->indexer->weigh( $analyzed, $stats );
+			$exclude  = array_values( array_unique( array_merge( array( $source->id ), $source->linked(), $this->never ) ) );
+
+			return array() === $this->retriever->outgoing( $weights, $source->lang, $exclude, 1, $needs )
+				&& array() !== $this->retriever->outgoing( $weights, $source->lang, $exclude, 1 );
+		} finally {
+			if ( $this->index instanceof Preloads ) {
+				$this->index->release();
+			}
+		}
+	}
+
+	/**
+	 * Lo mismo para las entrantes hacia un destino: con el filtro no sale ningún origen y sin él sí.
+	 *
+	 * @param int $target ID del destino.
+	 */
+	public function incoming_limited( int $target ): bool {
+		if ( ! in_array( self::REQUIRE, $this->filters, true ) ) {
+			return false;
+		}
+		$meta = $this->index->meta( $target );
+		if ( null === $meta ) {
+			return false;
+		}
+		$needs = $this->requirement( $meta->type, $meta->taxonomies );
+		if ( null === $needs ) {
+			return true;
+		}
+
+		try {
+			$analyzer = Analyzer::for_language( $meta->lang );
+			$phrases  = $this->finder->target_phrases( $meta, $this->index->terms( $target ), $analyzer );
+			$exclude  = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array(), $this->excluded_origins );
+
+			return array() === $this->retriever->incoming( $meta, $phrases, $exclude, $needs )
+				&& array() !== $this->retriever->incoming( $meta, $phrases, $exclude );
+		} finally {
+			if ( $this->index instanceof Preloads ) {
+				$this->index->release();
+			}
+		}
+	}
+
+	/**
 	 * Avisa al almacén de las entradas que va a consultar (antes de filtrarlas y puntuarlas, para que ninguna consulta sea por entrada).
 	 *
 	 * @param int[] $ids IDs.
@@ -279,20 +342,29 @@ final class Suggester {
 		$cosines = array();
 
 		$required = in_array( self::REQUIRE, $this->filters, true );
+		// Con Exigir, el filtro va en la recuperación (como el idioma). Si el origen no tiene ningún valor de un
+		// filtro exigido, nada puede compartirlo.
+		$needs = $required ? $this->requirement( $source->type, $source->taxonomies ) : array();
+		if ( null === $needs ) {
+			return array();
+		}
 		if ( null !== $vectors && null !== $query && $this->semantic_retrieval ) {
-			$cosines = $vectors->nearest( $query, $source->lang, Retriever::CANDIDATES, $exclude );
+			// Con Exigir, el filtro va antes del corte por CANDIDATES (no después, que lo dejaría casi vacío).
+			$allowed = null;
+			if ( $required ) {
+				// Una sola consulta con los IDs permitidos del idioma, no una por cada vector.
+				$ok      = array_flip( $this->index->matching( $source->lang, $needs ) );
+				$allowed = static fn( int $id ): bool => isset( $ok[ $id ] );
+			}
+			$cosines = $vectors->nearest( $query, $source->lang, Retriever::CANDIDATES, $exclude, $allowed );
 			$this->preload( array_keys( $cosines ) );
-			$cosines    = $required ? $this->restrict( $source, $cosines ) : $cosines;
 			$candidates = array();
 			foreach ( array_keys( $cosines ) as $target ) {
 				$candidates[ $target ] = self::lexical( $weights, $this->index->terms( $target ) );
 			}
 		} else {
-			$candidates = $this->retriever->outgoing( $weights, $source->lang, $exclude, $required ? Retriever::CANDIDATES * self::OVERFETCH : null );
+			$candidates = $this->retriever->outgoing( $weights, $source->lang, $exclude, null, $needs );
 			$this->preload( array_keys( $candidates ) );
-			if ( $required ) {
-				$candidates = array_slice( $this->restrict( $source, $candidates ), 0, Retriever::CANDIDATES, true );
-			}
 			if ( null !== $vectors && null !== $query ) {
 				$query = Semantic::normalize( $query );
 				foreach ( array_keys( $candidates ) as $target ) {
@@ -370,7 +442,11 @@ final class Suggester {
 		$analyzer = Analyzer::for_language( $meta->lang );
 		$phrases  = $this->finder->target_phrases( $meta, $this->index->terms( $target ), $analyzer );
 		$exclude  = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array(), $this->excluded_origins );
-		$origins  = $this->retriever->incoming( $meta, $phrases, $exclude );
+		$needs    = in_array( self::REQUIRE, $this->filters, true ) ? $this->requirement( $meta->type, $meta->taxonomies ) : array();
+		if ( null === $needs ) {
+			return array();
+		}
+		$origins = $this->retriever->incoming( $meta, $phrases, $exclude, $needs );
 		if ( $this->index instanceof Preloads ) {
 			$this->index->preload( array_merge( array( $target ), $origins ) );
 		}
@@ -610,36 +686,46 @@ final class Suggester {
 	}
 
 	/**
+	 * Filtros en modo Exigir como condición de recuperación: tipos permitidos y, por taxonomía, los valores de
+	 * los que una candidata tiene que compartir al menos uno.
+	 *
+	 * @param string                      $type       Tipo de contenido de la entrada de referencia (el origen o el destino).
+	 * @param array<string, list<string>> $taxonomies Taxonomías de la entrada de referencia.
+	 * @return array|null Vacío si no hay filtros Exigir; null si la entrada de referencia no tiene ningún valor de uno de
+	 *                    ellos (ninguna candidata puede compartirlo).
+	 *
+	 * @phpstan-return array{types?: list<string>, taxonomies?: array<string, list<string>>}|null
+	 */
+	private function requirement( string $type, array $taxonomies ): ?array {
+		$needs = array();
+		foreach ( $this->filters as $filter => $mode ) {
+			if ( self::REQUIRE !== $mode ) {
+				continue;
+			}
+			if ( '' === self::FILTERS[ $filter ] ) {
+				$needs['types'] = array( $type );
+				continue;
+			}
+			$values = $taxonomies[ self::FILTERS[ $filter ] ] ?? array();
+			if ( array() === $values ) {
+				return null;
+			}
+			$needs['taxonomies'][ self::FILTERS[ $filter ] ] = $values;
+		}
+
+		return $needs;
+	}
+
+	/**
 	 * Si origen y destino cumplen los filtros en modo Exigir: comparten al menos un valor de cada uno.
 	 *
 	 * @param Document $source Origen.
 	 * @param DocMeta  $target Destino.
 	 */
 	private function passes_required( Document $source, DocMeta $target ): bool {
-		foreach ( $this->filters as $filter => $mode ) {
-			if ( self::REQUIRE === $mode && array() === array_intersect( self::values( $filter, $source->type, $source->taxonomies ), self::values( $filter, $target->type, $target->taxonomies ) ) ) {
-				return false;
-			}
-		}
-		return true;
-	}
+		$needs = $this->requirement( $source->type, $source->taxonomies );
 
-	/**
-	 * Candidatas que cumplen los filtros Exigir.
-	 *
-	 * @param Document          $source     Origen.
-	 * @param array<int, float> $candidates ID → similitud.
-	 * @return array<int, float>
-	 */
-	private function restrict( Document $source, array $candidates ): array {
-		return array_filter(
-			$candidates,
-			function ( int $id ) use ( $source ): bool {
-				$meta = $this->index->meta( $id );
-				return null !== $meta && $this->passes_required( $source, $meta );
-			},
-			ARRAY_FILTER_USE_KEY
-		);
+		return null !== $needs && Requirement::met( $needs, $target->type, $target->taxonomies );
 	}
 
 	/**

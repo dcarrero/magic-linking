@@ -5,7 +5,9 @@
  * es código y se pide cambiar de pestaña, en vez de adivinar posiciones dentro de etiquetas. El enlace se pone
  * dentro de una transacción de TinyMCE, así que el deshacer del editor lo quita de una vez.
  */
+import { _x } from '@wordpress/i18n';
 import type { Suggestion } from '../../types';
+import type { EditorTerms } from '../boot';
 import { locate, rangeFromOffsets } from '../locate';
 import type { TextUnit } from '../locate';
 import { classicTextElements } from '../dom';
@@ -84,6 +86,57 @@ export function classicAdapter(
 		getTitle: () =>
 			( document.getElementById( 'title' ) as HTMLInputElement | null )
 				?.value ?? '',
+
+		getTerms: () => {
+			const out: EditorTerms = { ids: {}, names: {} };
+			for ( const [ logical, source ] of Object.entries(
+				options.terms ?? {}
+			) ) {
+				if ( source.hierarchical ) {
+					// Sin la caja en la página (quitada con remove_meta_box, otra interfaz) no se sabe qué hay elegido: no se
+					// envía nada y el servidor usa lo guardado, en vez de tomar «ninguna» por lo elegido.
+					if (
+						! document.getElementById(
+							`${ source.taxonomy }checklist`
+						)
+					) {
+						continue;
+					}
+					// Caja de categorías: las casillas marcadas (`post_category[]` para `category`).
+					const name =
+						source.taxonomy === 'category'
+							? 'post_category[]'
+							: `tax_input[${ source.taxonomy }][]`;
+					out.ids[ logical as 'category' | 'post_tag' ] = Array.from(
+						document.querySelectorAll< HTMLInputElement >(
+							`input[name="${ name }"]:checked`
+						)
+					)
+						.map( ( box ) => Number( box.value ) )
+						.filter( ( id ) => id > 0 );
+				} else {
+					// Caja de etiquetas: un texto con los nombres, separados por el delimitador del idioma (el mismo que
+					// usa el núcleo en tags-box.js: `_x( ',', 'tag delimiter' ) || ','`). Son nombres, nunca IDs.
+					// eslint-disable-next-line @wordpress/i18n-text-domain -- Es la cadena del propio núcleo.
+					const delimiter = _x( ',', 'tag delimiter' ) || ',';
+					const field = document.querySelector< HTMLTextAreaElement >(
+						`textarea[name="tax_input[${ source.taxonomy }]"]`
+					);
+					if ( field ) {
+						out.names[ logical as 'category' | 'post_tag' ] =
+							field.value
+								.split( delimiter )
+								.map( ( name ) => name.trim() )
+								.filter( Boolean );
+					}
+				}
+			}
+			return Object.keys( out.ids ).length +
+				Object.keys( out.names ).length >
+				0
+				? out
+				: undefined;
+		},
 
 		// Al guardar, el editor clásico recarga la página y el panel se vuelve a montar con lo guardado.
 		onSaved: () => () => undefined,

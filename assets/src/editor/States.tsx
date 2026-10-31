@@ -1,11 +1,37 @@
 import { Button, Spinner } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
-import type { SuggestionState } from '../types';
+import { createInterpolateElement } from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
+import type { FilterName, SuggestionState } from '../types';
 
 interface Props {
 	state: SuggestionState;
 	direction: 'outbound' | 'inbound';
 	reportUrl: string;
+	/** Filtros en modo Exigir que están activos (docs/04 §4.3). */
+	required?: FilterName[];
+	/** Dirección de Ajustes → Sugerencias, si el usuario puede abrirla. */
+	settingsUrl?: string;
+}
+
+/**
+ * Nombres de los filtros exigidos como lista legible («categoría y etiqueta»).
+ * @param required Filtros en modo Exigir.
+ */
+function requiredNames( required: FilterName[] ): string {
+	const names: Record< FilterName, string > = {
+		type: __( 'content type', 'magic-linking' ),
+		category: __( 'category', 'magic-linking' ),
+		tag: __( 'tag', 'magic-linking' ),
+	};
+	const list = required.map( ( name ) => names[ name ] );
+	try {
+		return new Intl.ListFormat( document.documentElement.lang || 'en', {
+			style: 'long',
+			type: 'conjunction',
+		} ).format( list );
+	} catch ( e ) {
+		return list.join( ', ' );
+	}
 }
 
 /**
@@ -14,8 +40,16 @@ interface Props {
  * @param root0.state
  * @param root0.direction
  * @param root0.reportUrl
+ * @param root0.required
+ * @param root0.settingsUrl
  */
-export function EmptyState( { state, direction, reportUrl }: Props ) {
+export function EmptyState( {
+	state,
+	direction,
+	reportUrl,
+	required = [],
+	settingsUrl = '',
+}: Props ) {
 	if ( state === 'index_not_ready' ) {
 		return (
 			<p className="magiclinking-panel__empty">
@@ -46,6 +80,33 @@ export function EmptyState( { state, direction, reportUrl }: Props ) {
 					'Other entries can only link to this one once it is published.',
 					'magic-linking'
 				) }
+			</p>
+		);
+	}
+	if ( required.length > 0 ) {
+		return (
+			<p className="magiclinking-panel__empty">
+				{ sprintf(
+					/* translators: %s: the filters that are required, such as "category" or "category and tag". */
+					__(
+						'There are no suggestions: only entries that match this one in %s are searched.',
+						'magic-linking'
+					),
+					requiredNames( required )
+				) }{ ' ' }
+				{ settingsUrl
+					? createInterpolateElement(
+							__(
+								'If you want more, change the filter in <a>Settings → Suggestions</a>.',
+								'magic-linking'
+							),
+							// eslint-disable-next-line jsx-a11y/anchor-has-content -- El contenido lo pone createInterpolateElement.
+							{ a: <a href={ settingsUrl } /> }
+					  )
+					: __(
+							'If you want more, ask an administrator to change the filter in Settings → Suggestions.',
+							'magic-linking'
+					  ) }
 			</p>
 		);
 	}

@@ -66,17 +66,18 @@ final class MemoryVectors implements VectorStore {
 	/**
 	 * {@inheritDoc}
 	 *
-	 * @param float[] $vector  Consulta.
-	 * @param string  $lang    Idioma.
-	 * @param int     $limit   Máximo.
-	 * @param int[]   $exclude Excluidos.
+	 * @param float[]       $vector  Consulta.
+	 * @param string        $lang    Idioma.
+	 * @param int           $limit   Máximo.
+	 * @param int[]         $exclude Excluidos.
+	 * @param callable|null $allowed Filtro previo al corte (ver {@see VectorStore::nearest()}).
 	 */
-	public function nearest( array $vector, string $lang, int $limit, array $exclude = array() ): array {
+	public function nearest( array $vector, string $lang, int $limit, array $exclude = array(), ?callable $allowed = null ): array {
 		$query  = Semantic::normalize( $vector );
 		$skip   = array_flip( $exclude );
 		$scores = array();
 		foreach ( $this->vectors[ $lang ] ?? array() as $id => $other ) {
-			if ( ! isset( $skip[ $id ] ) ) {
+			if ( ! isset( $skip[ $id ] ) && ( null === $allowed || $allowed( $id ) ) ) {
 				$scores[ $id ] = Semantic::dot( $query, $other );
 			}
 		}

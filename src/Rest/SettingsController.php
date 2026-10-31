@@ -14,6 +14,7 @@ use MagicLinking\AI\Models;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\Suggester;
 use MagicLinking\I18n\Language;
 use MagicLinking\Jobs\Jobs;
 use WP_Error;
@@ -171,6 +172,24 @@ final class SettingsController implements Module {
 						'ignored_words'                => array(
 							'type'  => 'array',
 							'items' => array( 'type' => 'string' ),
+						),
+						'filters'                      => array(
+							'type'                 => 'object',
+							'properties'           => array(
+								'type'     => array(
+									'type' => 'string',
+									'enum' => Suggester::MODES,
+								),
+								'category' => array(
+									'type' => 'string',
+									'enum' => Suggester::MODES,
+								),
+								'tag'      => array(
+									'type' => 'string',
+									'enum' => Suggester::MODES,
+								),
+							),
+							'additionalProperties' => false,
 						),
 						'ai_daily_token_limit'         => array(
 							'type' => 'integer',

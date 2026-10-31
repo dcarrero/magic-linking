@@ -53,6 +53,13 @@ final class PostSource implements DocumentSource {
 	private GraphRepository $graph;
 
 	/**
+	 * Los documentos llevan sus categorías y etiquetas (solo en la vista de {@see self::with_taxonomies()}).
+	 *
+	 * @var bool
+	 */
+	private bool $with_taxonomies = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param ContentExtractor $extractor Extractor de texto.
@@ -136,8 +143,30 @@ final class PostSource implements DocumentSource {
 			$content->headings,
 			$content->paragraphs,
 			array(),
-			Fingerprint::focus( $post->ID )
+			Fingerprint::focus( $post->ID ),
+			$this->with_taxonomies ? Taxonomies::of( $post->ID, $post->post_type ) : array()
 		);
+	}
+
+	/**
+	 * Una vista de esta fuente cuyos documentos llevan (o no) sus categorías y etiquetas. Solo la usa el cálculo de
+	 * sugerencias, y solo si hay filtros por taxonomía en modo Considerar o Exigir: el indexado y las reglas, que usan
+	 * el servicio compartido, no hacen ninguna consulta de términos.
+	 *
+	 * @param bool $enabled Documentos con términos.
+	 */
+	public function with_taxonomies( bool $enabled ): self {
+		$view                  = clone $this;
+		$view->with_taxonomies = $enabled;
+
+		return $view;
+	}
+
+	/**
+	 * Si los documentos de esta fuente llevan sus categorías y etiquetas.
+	 */
+	public function taxonomies_enabled(): bool {
+		return $this->with_taxonomies;
 	}
 
 	/**

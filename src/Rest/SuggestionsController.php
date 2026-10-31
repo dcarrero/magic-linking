@@ -17,6 +17,7 @@ use MagicLinking\Content\InsertRequest;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\Suggester;
 use MagicLinking\Engine\Suggestion;
 use MagicLinking\History\AiOrigin;
 use MagicLinking\History\BatchId;
@@ -109,12 +110,42 @@ final class SuggestionsController implements Module {
 					'callback'            => array( $this, 'post_outbound' ),
 					'permission_callback' => array( $this, 'can_edit_post' ),
 					'args'                => array(
-						'post_id' => $post_id,
-						'content' => array(
+						'post_id'    => $post_id,
+						'content'    => array(
 							'type'     => 'string',
 							'required' => true,
 						),
-						'title'   => array( 'type' => 'string' ),
+						'title'      => array( 'type' => 'string' ),
+						// Categorías y etiquetas que el editor tiene ahora (aún sin guardar): taxonomía lógica → IDs de término.
+						'terms'      => array(
+							'type'                 => 'object',
+							'properties'           => array(
+								'category' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'integer' ),
+								),
+								'post_tag' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'integer' ),
+								),
+							),
+							'additionalProperties' => false,
+						),
+						// Nombres de etiquetas escritos en el editor clásico: se envían aparte, nunca se toman por IDs.
+						'term_names' => array(
+							'type'                 => 'object',
+							'properties'           => array(
+								'category' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'string' ),
+								),
+								'post_tag' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'string' ),
+								),
+							),
+							'additionalProperties' => false,
+						),
 					),
 				),
 			)
@@ -254,7 +285,11 @@ final class SuggestionsController implements Module {
 
 		$title = $request->has_param( 'title' ) ? wp_strip_all_tags( (string) $request['title'] ) : null;
 
-		return $this->outbound( (int) $request['post_id'], $content, $title );
+		$terms = $request->has_param( 'terms' ) && is_array( $request['terms'] ) ? $request['terms'] : null;
+
+		$names = $request->has_param( 'term_names' ) && is_array( $request['term_names'] ) ? $request['term_names'] : null;
+
+		return $this->outbound( (int) $request['post_id'], $content, $title, $terms, $names );
 	}
 
 	/**
@@ -263,10 +298,15 @@ final class SuggestionsController implements Module {
 	 * @param int         $post_id ID.
 	 * @param string|null $content Contenido del editor; null = el guardado.
 	 * @param string|null $title   Título del editor.
+	 * @param array|null  $terms   IDs de categorías y etiquetas del editor, sin guardar.
+	 * @param array|null  $names   Nombres de etiquetas del editor clásico, sin guardar.
+	 *
+	 * @phpstan-param array<string, mixed>|null $terms
+	 * @phpstan-param array<string, mixed>|null $names
 	 *
 	 * @return WP_REST_Response|WP_Error
 	 */
-	private function outbound( int $post_id, ?string $content, ?string $title ) {
+	private function outbound( int $post_id, ?string $content, ?string $title, ?array $terms = null, ?array $names = null ) {
 		$post = get_post( $post_id );
 		if ( ! $post instanceof WP_Post ) {
 			return $this->not_found();
@@ -279,7 +319,7 @@ final class SuggestionsController implements Module {
 
 		// Solo se guardan las de una entrada publicada: la de un borrador cambia con cada guardado y no invalida nada.
 		if ( null !== $content ) {
-			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title );
+			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms, $names );
 		} elseif ( 'publish' === $post->post_status ) {
 			$found = SuggestionCache::remember( 'out', $post_id, fn(): array => $this->suggestions->outgoing( $post_id ) );
 		} else {
@@ -290,16 +330,21 @@ final class SuggestionsController implements Module {
 		// contenedores que los bloques de texto admitidos y una sugerencia imposible volvería siempre.
 		$found = $this->insertable( null !== $content ? $content : $post->post_content, $post_id, $found );
 
+		// Sin sugerencias: solo se culpa al filtro Exigir si de verdad es la causa (con él no hay candidatas y sin él sí).
+		$required = array() === $found && $this->suggestions->outgoing_limited( $post_id, $content, $title, $terms, $names ) ? $this->settings->filters_in_mode( Suggester::REQUIRE ) : array();
+
 		$this->presenter->prime( $found );
 
 		return new WP_REST_Response(
 			array(
-				'ready'   => true,
-				'state'   => 'ok',
-				'draft'   => null !== $content,
-				'total'   => count( $found ),
-				'items'   => array_map( array( $this->presenter, 'present' ), $found ),
-				'post_id' => $post_id,
+				'ready'    => true,
+				'state'    => 'ok',
+				'draft'    => null !== $content,
+				'total'    => count( $found ),
+				'items'    => array_map( array( $this->presenter, 'present' ), $found ),
+				'post_id'  => $post_id,
+				// Filtros en modo Exigir (type, category, tag) que son la causa de que no haya sugerencias; si no, vacío.
+				'required' => $required,
 			)
 		);
 	}
@@ -363,8 +408,9 @@ final class SuggestionsController implements Module {
 		$cut = array_slice( $all, ( $page - 1 ) * $per_page, $per_page );
 		$this->presenter->prime( $cut );
 
-		$total = count( $all );
-		$pages = max( 1, (int) ceil( $total / $per_page ) );
+		$total    = count( $all );
+		$pages    = max( 1, (int) ceil( $total / $per_page ) );
+		$required = array() === $all && $this->suggestions->incoming_limited( $post_id ) ? $this->settings->filters_in_mode( Suggester::REQUIRE ) : array();
 
 		$response = new WP_REST_Response(
 			array(
@@ -376,6 +422,7 @@ final class SuggestionsController implements Module {
 				'per_page'    => $per_page,
 				'items'       => array_map( array( $this->presenter, 'present' ), $cut ),
 				'post_id'     => $post_id,
+				'required'    => $required,
 			)
 		);
 		$response->header( 'X-WP-Total', (string) $total );

@@ -25,14 +25,17 @@ interface VectorStore {
 	/**
 	 * Entradas del idioma más parecidas a un vector, por coseno.
 	 *
-	 * @param float[] $vector  Vector de consulta (se normaliza).
-	 * @param string  $lang    Idioma.
-	 * @param int     $limit   Máximo de resultados.
-	 * @param int[]   $exclude IDs que no se devuelven.
+	 * @param float[]       $vector  Vector de consulta (se normaliza).
+	 * @param string        $lang    Idioma.
+	 * @param int           $limit   Máximo de resultados.
+	 * @param int[]         $exclude IDs que no se devuelven.
+	 * @param callable|null $allowed Si se pasa, solo entran las entradas para las que devuelve true (filtros Exigir): se
+	 *                               aplica antes del corte por `$limit`, no después.
 	 * @return array<int, float> ID → coseno, de mayor a menor.
 	 *
 	 * @phpstan-param list<float> $vector
 	 * @phpstan-param list<int> $exclude
+	 * @phpstan-param (callable(int): bool)|null $allowed
 	 */
-	public function nearest( array $vector, string $lang, int $limit, array $exclude = array() ): array;
+	public function nearest( array $vector, string $lang, int $limit, array $exclude = array(), ?callable $allowed = null ): array;
 }

@@ -1,10 +1,17 @@
 import type { Suggestion } from '../../types';
-import type { LinkAttributes, LinkScope } from '../boot';
+import type {
+	EditorTerms,
+	LinkAttributes,
+	LinkScope,
+	TermSources,
+} from '../boot';
 
 /** Ajustes del usuario que cambian dónde y cómo se enlaza. */
 export interface AdapterOptions {
 	linkIn: LinkScope;
 	linkAttrs: LinkAttributes;
+	/** De dónde lee el editor sus categorías y etiquetas. */
+	terms?: TermSources;
 }
 
 export type ApplyFailure =
@@ -46,6 +53,8 @@ export interface EditorAdapter {
 	/** Contenido actual, tal como está en el editor (sin guardar). */
 	getContent: () => string;
 	getTitle: () => string;
+	/** Categorías y etiquetas elegidas ahora en el editor, sin guardar; `undefined` si no se pueden leer. */
+	getTerms: () => EditorTerms | undefined;
 	/** Avisa cuando el usuario guarda la entrada. Devuelve la función que deja de avisar. */
 	onSaved: ( callback: () => void ) => () => void;
 	/**
