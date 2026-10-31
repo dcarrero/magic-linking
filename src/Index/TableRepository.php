@@ -684,12 +684,17 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	 */
 	public function preload( array $ids ): void {
 		Installer::ensure_current();
-		$this->cache = null;
 
-		$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );
+		// Lo ya cargado en este cálculo se conserva: solo se leen las entradas que faltan (las entrantes cargan primero el destino).
+		$prior = $this->cache;
+		$ids   = array_values( array_unique( array_map( 'intval', $ids ) ) );
+		if ( null !== $prior ) {
+			$ids = array_values( array_filter( $ids, static fn( int $id ): bool => ! array_key_exists( $id, $prior['meta'] ) ) );
+		}
 		if ( array() === $ids ) {
 			return;
 		}
+		$this->cache = null;
 
 		$wpdb = $this->wpdb;
 		_prime_post_caches( $ids, false, true );
@@ -748,6 +753,12 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			$cache['terms'][ $id ]   = $terms[ $id ] ?? array();
 			$cache['inbound'][ $id ] = array_keys( $in[ $id ] ?? array() );
 			$cache['links'][ $id ]   = $links[ $id ] ?? array();
+		}
+
+		if ( null !== $prior ) {
+			foreach ( $cache as $name => $loaded ) {
+				$cache[ $name ] = $prior[ $name ] + $loaded;
+			}
 		}
 
 		$this->cache = $cache;

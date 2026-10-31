@@ -100,6 +100,22 @@ final class AnalyzerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * `keys()` lleva la lectura de la memoria en línea (es el bucle más caliente): da lo mismo que `key()` palabra a palabra,
+	 * con la memoria vacía y con la memoria ya llena.
+	 */
+	public function test_keys_match_key_word_by_word(): void {
+		$text = 'Las bombas de calor aerotérmicas, ¡sí! El año 2027 «Wi-Fi» no corrió; corriendo, corrieron y correrán las casas casa Casas. Aviso 3,5 millones.';
+		foreach ( array( 'es', 'en' ) as $lang ) {
+			$fresh  = Analyzer::for_language( $lang );
+			$tokens = $fresh->tokenizer()->tokenize( $text );
+			$keys   = $fresh->keys( $tokens );
+			$this->assertSame( $keys, array_map( array( Analyzer::for_language( $lang ), 'key' ), $tokens ), $lang );
+			$this->assertSame( $keys, $fresh->keys( $tokens ), 'con la memoria llena' );
+			$this->assertSame( array_map( array( $fresh, 'key' ), $tokens ), $fresh->keys( $tokens ) );
+		}
+	}
+
 	public function test_keys_ignore_accents_and_stem(): void {
 		$analyzer = Analyzer::for_language( 'es' );
 

@@ -71,10 +71,69 @@ final class SuggesterTest extends TestCase {
 		$this->assertGreaterThanOrEqual( 2, count( $found ), 'varios orígenes proponen enlazar al destino' );
 		$count = array_count_values( $spy->reads );
 		$this->assertSame( 1, $count['meta:1'] ?? 0, 'la ficha del destino se lee una vez, no una por origen' );
-		// Una para excluir los que ya enlazan y otra para contar sus entrantes; no una por origen.
-		$this->assertLessThanOrEqual( 2, $count['linking_to:1'] ?? 0, 'los enlaces entrantes del destino no se cuentan por origen' );
+		// Una sola vez: sirve para excluir los orígenes que ya enlazan y para contar sus entrantes.
+		$this->assertSame( 1, $count['linking_to:1'] ?? 0, 'los enlaces entrantes del destino se leen una vez, no una por origen' );
 		// Una para sus frases y, como mucho, otra de la recuperación de respaldo; nunca una por origen.
 		$this->assertLessThanOrEqual( 2, $count['terms:1'] ?? 0, 'los términos del destino no se leen por origen' );
+	}
+
+	/**
+	 * El destino se carga primero (una sola lectura de su ficha, términos y enlaces): la ficha se pide después de precargarlo.
+	 */
+	public function test_incoming_preloads_the_target_before_reading_it(): void {
+		$spy       = new SpyIndex( $this->corpus->index );
+		$suggester = new Suggester( $spy, $this->corpus->source, $this->corpus->indexer, new PhraseFinder(), new Scorer(), null, array( 'now' => Corpus::NOW ) );
+
+		$suggester->incoming( 1 );
+
+		$this->assertSame( array( 1 ), $spy->preloaded[0], 'lo primero que se carga es el destino' );
+		$this->assertLessThan( array_search( 'meta', $spy->log, true ), array_search( 'preload', $spy->log, true ) );
+		$loaded = array_merge( ...$spy->preloaded );
+		$this->assertSame( 1, count( array_keys( $loaded, 1, true ) ), 'el destino no se vuelve a cargar con los orígenes' );
+	}
+
+	/**
+	 * Lo que solo sirve para puntuar (enlaces entrantes, edad, pilar…) no se calcula de las candidatas sin ninguna ancla (F1-32).
+	 */
+	public function test_outgoing_does_not_score_candidates_without_anchors(): void {
+		$spy                = new SpyIndex( $this->corpus->index );
+		$spy->force_similar = array(
+			1 => 1.0,
+			2 => 0.9,
+		);
+		$suggester          = new Suggester( $spy, $this->corpus->source, $this->corpus->indexer, new PhraseFinder(), new Scorer(), null, array( 'now' => Corpus::NOW ) );
+		$cooking            = $this->corpus->source->get( 6 );
+		$this->assertNotNull( $cooking );
+
+		$found = $suggester->outgoing( $cooking );
+
+		$this->assertSame( array(), $found, 'una receta de gazpacho no tiene anclas hacia la aerotermia' );
+		$this->assertNotContains( 'linking_to:1', $spy->reads );
+		$this->assertNotContains( 'linking_to:2', $spy->reads );
+	}
+
+	/**
+	 * El estado vacío de las entrantes solo necesita las frases del destino, y los enlaces que ya recibe solo si cuentan.
+	 */
+	public function test_incoming_limited_only_reads_the_links_when_they_count(): void {
+		$spy       = new SpyIndex( $this->corpus->index );
+		$suggester = new Suggester(
+			$spy,
+			$this->corpus->source,
+			$this->corpus->indexer,
+			new PhraseFinder(),
+			new Scorer(),
+			null,
+			array(
+				'now'            => Corpus::NOW,
+				'existing_links' => false,
+				'filters'        => array( 'type' => Suggester::REQUIRE ),
+			)
+		);
+
+		$suggester->incoming_limited( 1 );
+
+		$this->assertNotContains( 'linking_to:1', $spy->reads );
 	}
 
 	public function test_incoming_retrieval_uses_target_phrases_and_skips_existing_sources(): void {

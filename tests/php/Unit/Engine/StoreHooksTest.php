@@ -57,8 +57,11 @@ final class StoreHooksTest extends TestCase {
 		$suggestions = $this->suggester()->incoming( 2 );
 
 		$this->assertNotEmpty( $suggestions );
-		$this->assertCount( 1, $this->spy->preloaded );
-		$this->assertContains( 2, $this->spy->preloaded[0] );
+		// Primero el destino y después sus orígenes (cada carga suma a la anterior); el destino no se vuelve a cargar.
+		$this->assertCount( 2, $this->spy->preloaded );
+		$this->assertSame( array( 2 ), $this->spy->preloaded[0] );
+		$this->assertNotEmpty( $this->spy->preloaded[1] );
+		$this->assertNotContains( 2, $this->spy->preloaded[1] );
 		$this->assertSame( 'release', end( $this->spy->log ) );
 	}
 

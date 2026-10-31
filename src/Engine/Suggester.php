@@ -290,10 +290,8 @@ final class Suggester {
 		}
 
 		try {
-			$linking = $this->index->linking_to( $target );
-			$context = $this->target_context( $target, Analyzer::for_language( $meta->lang ), $meta, count( $linking ) );
-			$phrases = $context['phrases'];
-			$exclude = array_merge( array( $target ), $this->existing ? $linking : array(), $this->excluded_origins );
+			$phrases = $this->finder->target_phrases( $meta, $this->index->terms( $target ), Analyzer::for_language( $meta->lang ) );
+			$exclude = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array(), $this->excluded_origins );
 
 			return array() === $this->retriever->incoming( $meta, $phrases, $exclude, $needs )
 				&& array() !== $this->retriever->incoming( $meta, $phrases, $exclude );
@@ -436,6 +434,8 @@ final class Suggester {
 	 * @return list<Suggestion>
 	 */
 	private function compute_incoming( int $target ): array {
+		// El destino primero: su ficha, sus términos y sus enlaces se leen una vez y la recuperación y el contexto los encuentran cargados.
+		$this->preload( array( $target ) );
 		$meta = $this->index->meta( $target );
 		if ( null === $meta || in_array( $target, $this->never, true ) ) {
 			return array();
@@ -447,17 +447,15 @@ final class Suggester {
 		$analyzer = Analyzer::for_language( $meta->lang );
 		$linking  = $this->index->linking_to( $target );
 		$context  = $this->target_context( $target, $analyzer, $meta, count( $linking ) );
-		$phrases  = $context['phrases'];
+		$phrases  = $context->phrases;
 		$exclude  = array_merge( array( $target ), $this->existing ? $linking : array(), $this->excluded_origins );
 		$origins  = $this->retriever->incoming( $meta, $phrases, $exclude, $needs );
-		if ( $this->index instanceof Preloads ) {
-			$this->index->preload( array_merge( array( $target ), $origins ) );
-		}
+		$this->preload( $origins );
 		if ( $this->documents instanceof PrefetchesDocuments ) {
 			$this->documents->prefetch( $origins );
 		}
 
-		$wanted     = array_fill_keys( array_keys( $context['terms'] ), true );
+		$wanted     = array_fill_keys( array_keys( $context->terms ), true );
 		$similarity = array();
 		foreach ( $origins as $origin ) {
 			$similarity[ $origin ] = $this->index->similarity( $origin, $target );
@@ -495,28 +493,38 @@ final class Suggester {
 	}
 
 	/**
-	 * Lo de un destino que no depende del origen: su ficha, sus términos principales, sus frases objetivo y las palabras
-	 * con que se puede ampliar un ancla. Las salientes lo piden una vez por candidata; las entrantes, una para todos los orígenes.
+	 * Lo de un destino que hace falta para buscar anclas y no depende del origen: ficha, términos principales, frases objetivo
+	 * y palabras con que se puede ampliar un ancla. Las salientes lo piden una vez por candidata; las entrantes, una para todos los
+	 * orígenes.
 	 *
 	 * @param int      $target   ID del destino.
 	 * @param Analyzer $analyzer Analizador del idioma.
-	 * @param DocMeta  $meta    Su ficha.
-	 * @param int|null $inbound Enlaces que ya recibe, si quien llama ya los tiene contados.
-	 * @return array{meta: DocMeta, terms: array<string, float>, phrases: list<Phrase>, expansions: array<string, true>, inbound: int, age: int, unlike: bool, pillar: bool, penalty: bool}
+	 * @param DocMeta  $meta     Su ficha.
+	 * @param int|null $inbound  Enlaces que ya recibe, si quien llama ya los tiene contados.
 	 */
-	private function target_context( int $target, Analyzer $analyzer, DocMeta $meta, ?int $inbound = null ): array {
+	private function target_context( int $target, Analyzer $analyzer, DocMeta $meta, ?int $inbound = null ): TargetContext {
 		$terms = $this->index->terms( $target );
 
-		return array(
-			'meta'       => $meta,
-			'terms'      => $terms,
-			'phrases'    => $this->finder->target_phrases( $meta, $terms, $analyzer ),
-			'expansions' => $this->expansions( $meta, $terms, $analyzer ),
-			'inbound'    => $inbound ?? count( $this->index->linking_to( $target ) ),
-			'age'        => intdiv( max( 0, $this->now - $meta->date ), 86400 ),
-			'unlike'     => 'post' !== $meta->type && 1 === preg_match( self::UNLIKE_SLUGS, $meta->slug ),
-			'pillar'     => isset( $this->pillars[ $target ] ),
-			'penalty'    => isset( $this->penalized[ $target ] ),
+		return new TargetContext( $meta, $terms, $this->finder->target_phrases( $meta, $terms, $analyzer ), $this->expansions( $meta, $terms, $analyzer ), $inbound );
+	}
+
+	/**
+	 * Lo del destino que solo sirve para puntuar una coincidencia: enlaces entrantes, edad, aspecto de página sin interés, pilar
+	 * y penalización. Se calcula la primera vez que alguna coincidencia lo pide y se recuerda para los demás orígenes.
+	 *
+	 * @param int           $target  ID del destino.
+	 * @param TargetContext $context Contexto del destino.
+	 * @return array{inbound: int, age: int, unlike: bool, pillar: bool, penalty: bool}
+	 */
+	private function scoring_context( int $target, TargetContext $context ): array {
+		$meta = $context->meta;
+
+		return $context->scoring ??= array(
+			'inbound' => $context->inbound ?? count( $this->index->linking_to( $target ) ),
+			'age'     => intdiv( max( 0, $this->now - $meta->date ), 86400 ),
+			'unlike'  => 'post' !== $meta->type && 1 === preg_match( self::UNLIKE_SLUGS, $meta->slug ),
+			'pillar'  => isset( $this->pillars[ $target ] ),
+			'penalty' => isset( $this->penalized[ $target ] ),
 		);
 	}
 
@@ -531,13 +539,10 @@ final class Suggester {
 	 * @param array<string, int>   $blocked   Anclas que el origen ya usa → destino.
 	 * @param float|null           $semantic  Coseno reescalado del lote, si hay vectores.
 	 * @param int|null             $links     Enlaces que tenía el origen antes de retirarlos (banco), si cuentan.
-	 * @param array|null           $context   Lo del destino que no depende del origen ({@see self::target_context()}); las entrantes lo
-	 *                                        calculan una vez para todos los orígenes.
+	 * @param TargetContext|null   $context   Lo del destino que no depende del origen; las entrantes lo calculan una vez para todos los orígenes.
 	 * @return array{0: Suggestion, 1: int, 2: string}|null Sugerencia, índice de la frase y clave del ancla.
-	 *
-	 * @phpstan-param array{meta: DocMeta, terms: array<string, float>, phrases: list<Phrase>, expansions: array<string, true>, inbound: int, age: int, unlike: bool, pillar: bool, penalty: bool}|null $context
 	 */
-	private function best( AnchorText $source, int $target, float $relevance, array $weights, Analyzer $analyzer, array $blocked, ?float $semantic = null, ?int $links = null, ?array $context = null ): ?array {
+	private function best( AnchorText $source, int $target, float $relevance, array $weights, Analyzer $analyzer, array $blocked, ?float $semantic = null, ?int $links = null, ?TargetContext $context = null ): ?array {
 		if ( null === $context ) {
 			$meta = $this->index->meta( $target );
 			if ( null === $meta ) {
@@ -545,19 +550,20 @@ final class Suggester {
 			}
 			$context = $this->target_context( $target, $analyzer, $meta );
 		}
-		$matches = $this->finder->find( $source, $context['phrases'], $analyzer, $context['expansions'], $blocked, $target, $context['terms'] );
+		$matches = $this->finder->find( $source, $context->phrases, $analyzer, $context->expansions, $blocked, $target, $context->terms );
 		if ( array() === $matches ) {
 			return null;
 		}
 
 		$document = $source->document;
-		$meta     = $context['meta'];
-		$terms    = $context['terms'];
-		$inbound  = $context['inbound'];
-		$age      = $context['age'];
-		$unlike   = $context['unlike'];
-		$pillar   = $context['pillar'];
-		$penalty  = $context['penalty'];
+		$meta     = $context->meta;
+		$terms    = $context->terms;
+		$scoring  = $this->scoring_context( $target, $context );
+		$inbound  = $scoring['inbound'];
+		$age      = $scoring['age'];
+		$unlike   = $scoring['unlike'];
+		$pillar   = $scoring['pillar'];
+		$penalty  = $scoring['penalty'];
 		$affinity = $this->affinity( $document, $meta );
 		$linked   = $links ?? count( $document->links );
 

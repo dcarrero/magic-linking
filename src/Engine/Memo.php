@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Engine;
 
 /**
- * Memoria acotada de los resultados que se repiten palabra tras palabra (raíces, formas, palabras de contenido).
+ * Memoria acotada de los resultados que se repiten palabra tras palabra (raíces y formas de cada palabra).
  */
 final class Memo {
 
@@ -27,7 +27,7 @@ final class Memo {
 	 */
 	public static function put( array &$map, string|int $key, mixed $value, int $limit ): void {
 		if ( count( $map ) >= $limit ) {
-			$map = array_slice( $map, intdiv( $limit, 2 ), null, true );
+			$map = array_slice( $map, max( 1, intdiv( $limit, 2 ) ), null, true );
 		}
 		$map[ $key ] = $value;
 	}

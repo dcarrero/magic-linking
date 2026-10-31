@@ -39,6 +39,13 @@ final class SpyIndex implements IndexRepository, TermStats, Preloads {
 	 */
 	public array $reads = array();
 
+	/**
+	 * Candidatas que devuelve `similar()` en vez de las del índice (ID → similitud); null: las del índice.
+	 *
+	 * @var array<int, float>|null
+	 */
+	public ?array $force_similar = null;
+
 	public bool $fail_on_preload = false;
 
 	public function __construct( public MemoryIndex $inner ) {
@@ -87,6 +94,9 @@ final class SpyIndex implements IndexRepository, TermStats, Preloads {
 	}
 
 	public function similar( array $weights, string $lang, int $limit, array $exclude = array(), array $needs = array() ): array {
+		if ( null !== $this->force_similar ) {
+			return $this->force_similar;
+		}
 		return $this->inner->similar( $weights, $lang, $limit, $exclude, $needs );
 	}
 

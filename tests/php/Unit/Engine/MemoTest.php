@@ -37,4 +37,13 @@ final class MemoTest extends TestCase {
 		$this->assertSame( 'v3', $map[2003] );
 		$this->assertArrayNotHasKey( 2001, $map );
 	}
+
+	public function test_a_limit_of_one_still_evicts(): void {
+		$map = array();
+		foreach ( array( 'a', 'b', 'c' ) as $key ) {
+			Memo::put( $map, $key, strtoupper( $key ), 1 );
+		}
+
+		$this->assertSame( array( 'c' => 'C' ), $map );
+	}
 }

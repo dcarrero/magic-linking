@@ -17,7 +17,7 @@ namespace MagicLinking\Engine;
 interface Preloads {
 
 	/**
-	 * Carga los datos de unas entradas (sustituye lo cargado antes).
+	 * Carga los datos de unas entradas, que se suman a lo cargado antes en este cálculo (hasta {@see self::release()}).
 	 *
 	 * @param int[] $ids IDs.
 	 *
