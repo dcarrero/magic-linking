@@ -154,6 +154,16 @@ final class Suggestions {
 	}
 
 	/**
+	 * Apunta una respuesta servida desde la caché de resultados (no pasó por el motor).
+	 *
+	 * @param string $direction `outgoing` o `incoming`.
+	 * @param int    $total_ns  Lo que tardó en servirse, en nanosegundos.
+	 */
+	public function record_cached( string $direction, int $total_ns ): void {
+		$this->timing?->record_cached( $direction, $total_ns );
+	}
+
+	/**
 	 * Destinos a los que una entrada ya enlaza, con las anclas que usa, en el orden en que aparecen (docs/07 §3.3).
 	 * Salen del contenido que se está viendo (el del editor o el guardado), no del grafo, que va por detrás de lo que
 	 * el usuario tiene delante. Los enlaces rotos, los externos y los que van a la propia entrada no cuentan.

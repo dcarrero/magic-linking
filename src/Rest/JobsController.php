@@ -131,8 +131,8 @@ final class JobsController implements Module {
 		return new WP_REST_Response(
 			array(
 				'keep'     => EngineTiming::KEEP,
-				'outgoing' => $summary[ EngineTiming::OUTGOING ] + array( 'budget' => 500 ),
-				'incoming' => $summary[ EngineTiming::INCOMING ] + array( 'budget' => 800 ),
+				'outgoing' => $summary[ EngineTiming::OUTGOING ] + array( 'budget' => EngineTiming::BUDGET_OUTGOING ),
+				'incoming' => $summary[ EngineTiming::INCOMING ] + array( 'budget' => EngineTiming::BUDGET_INCOMING ),
 			)
 		);
 	}

@@ -105,20 +105,17 @@ export function StatusTab( { status }: Props ) {
 		<div className="magiclinking-status-tab">
 			<h2>{ __( 'Index', 'magic-linking' ) }</h2>
 			{ status ? (
-				<dl className="magiclinking-stats">
-					<div>
-						<dt>{ __( 'Entries analyzed', 'magic-linking' ) }</dt>
-						<dd>{ status.indexed.toLocaleString() }</dd>
-					</div>
-					<div>
-						<dt>{ __( 'Entries to analyze', 'magic-linking' ) }</dt>
-						<dd>{ status.eligible.toLocaleString() }</dd>
-					</div>
-					<div>
-						<dt>{ __( 'New or modified', 'magic-linking' ) }</dt>
-						<dd>{ status.pending.toLocaleString() }</dd>
-					</div>
-				</dl>
+				<p>
+					{ sprintf(
+						/* translators: 1: entries in the index, 2: entries that can be analyzed. */
+						__(
+							'%1$s of %2$s entries are in the index.',
+							'magic-linking'
+						),
+						status.indexed.toLocaleString(),
+						status.eligible.toLocaleString()
+					) }
+				</p>
 			) : (
 				<Spinner />
 			) }
@@ -137,8 +134,8 @@ export function StatusTab( { status }: Props ) {
 				{ sprintf(
 					/* translators: %s: number of requests kept per direction. */
 					_n(
-						'Measured on the last %s suggestions request of each direction. The times are stored on this site only and are never sent anywhere.',
-						'Measured on the last %s suggestions requests of each direction. The times are stored on this site only and are never sent anywhere.',
+						'Measured on the last %s suggestions request recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere.',
+						'Measured on the last %s suggestions requests recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere.',
 						timing?.keep ?? 20,
 						'magic-linking'
 					),
@@ -185,10 +182,16 @@ export function StatusTab( { status }: Props ) {
 									{ __( 'Budget', 'magic-linking' ) }
 								</th>
 								<th scope="col">
+									{ __( 'From cache', 'magic-linking' ) }
+								</th>
+								<th scope="col">
 									{ __( 'Candidates', 'magic-linking' ) }
 								</th>
 								<th scope="col">
 									{ __( 'Retrieval', 'magic-linking' ) }
+								</th>
+								<th scope="col">
+									{ __( 'Loading', 'magic-linking' ) }
 								</th>
 								<th scope="col">
 									{ __( 'Phrases', 'magic-linking' ) }
@@ -205,7 +208,7 @@ export function StatusTab( { status }: Props ) {
 									{ row.count === 0 ? (
 										<>
 											<td>0</td>
-											<td colSpan={ 7 }>
+											<td colSpan={ 9 }>
 												{ __(
 													'No requests yet.',
 													'magic-linking'
@@ -221,6 +224,9 @@ export function StatusTab( { status }: Props ) {
 											<td>{ msText( row.p95 ) }</td>
 											<td>{ budgetText( row ) }</td>
 											<td>
+												{ row.cached.toLocaleString() }
+											</td>
+											<td>
 												{ row.candidates.toLocaleString(
 													undefined,
 													{
@@ -229,6 +235,7 @@ export function StatusTab( { status }: Props ) {
 												) }
 											</td>
 											<td>{ msText( row.retrieval ) }</td>
+											<td>{ msText( row.load ) }</td>
 											<td>{ msText( row.phrases ) }</td>
 											<td>{ msText( row.scoring ) }</td>
 										</>
@@ -239,7 +246,7 @@ export function StatusTab( { status }: Props ) {
 					</table>
 					<p className="description">
 						{ __(
-							'Retrieval is reading the entry and finding candidate targets; phrases is looking for where to place the anchor; scoring is rating each one. The phases are medians, so they do not have to add up to the total.',
+							'Median and 95th percentile cover every recorded request, including those answered from the cache. Candidates and phases cover only the requests the engine calculated. Retrieval is analyzing the entry and finding candidate targets; loading is reading the targets or sources; phrases is looking for where to place the anchor; scoring is rating each one. Sorting, reasons and removing ignored words are not in any phase, and the phases are medians, so they do not have to add up to the total.',
 							'magic-linking'
 						) }
 					</p>

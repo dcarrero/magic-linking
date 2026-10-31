@@ -41,9 +41,11 @@ const mocked = api as unknown as { engineTiming: jest.Mock };
 
 const row = ( over: Partial< EngineTimingRow > = {} ): EngineTimingRow => ( {
 	count: 20,
+	cached: 5,
 	median: 120.5,
 	p95: 310,
 	retrieval: 40,
+	load: 8,
 	phrases: 60,
 	scoring: 15,
 	candidates: 87.5,
@@ -54,9 +56,11 @@ const row = ( over: Partial< EngineTimingRow > = {} ): EngineTimingRow => ( {
 const empty = (): EngineTimingRow =>
 	row( {
 		count: 0,
+		cached: 0,
 		median: 0,
 		p95: 0,
 		retrieval: 0,
+		load: 0,
 		phrases: 0,
 		scoring: 0,
 		candidates: 0,
@@ -117,7 +121,12 @@ describe( 'StatusTab', () => {
 			outgoing: row(),
 			incoming: row( { p95: 900, budget: 800, count: 3 } ),
 		} );
-		expect( container.textContent ).toContain( '12' );
+		expect( container.textContent ).toContain(
+			'10 of 12 entries are in the index.'
+		);
+		// Nada de «Entries analyzed» ni «New or modified»: ya salen en el resto de la pantalla.
+		expect( container.textContent ).not.toContain( 'Entries analyzed' );
+		expect( container.textContent ).not.toContain( 'New or modified' );
 		const table = container.querySelector( 'table' );
 		expect( table ).not.toBeNull();
 		expect( table?.querySelector( 'caption' )?.textContent ).toContain(
@@ -129,6 +138,8 @@ describe( 'StatusTab', () => {
 		expect( rows[ 0 ]?.textContent ).toContain( 'Within budget' );
 		expect( rows[ 1 ]?.textContent ).toContain( 'Over budget' );
 		expect( rows[ 0 ]?.querySelector( 'th[scope="row"]' ) ).not.toBeNull();
+		// Las respuestas de caché se cuentan en su columna.
+		expect( rows[ 0 ]?.textContent ).toMatch( /5/ );
 	} );
 
 	it( 'explains the empty state instead of an empty table', async () => {

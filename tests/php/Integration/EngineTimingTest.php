@@ -28,7 +28,9 @@ final class EngineTimingTest extends GraphTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		delete_option( EngineTiming::OPTION );
+		foreach ( EngineTiming::OPTIONS as $option ) {
+			delete_option( $option );
+		}
 		// El servicio es uno por petición y otras pruebas dejan medidas sin escribir (nadie ejecuta `shutdown`).
 		$pending = new \ReflectionProperty( EngineTiming::class, 'pending' );
 		$pending->setValue( $this->timing(), array() );
@@ -94,10 +96,13 @@ final class EngineTimingTest extends GraphTestCase {
 			$this->assertGreaterThan( 0.0, $row['median'], $direction );
 			$this->assertSame( $row['median'], $row['p95'], $direction );
 			$this->assertGreaterThan( 0.0, $row['retrieval'], $direction );
+			$this->assertGreaterThan( 0.0, $row['load'], $direction );
 			$this->assertGreaterThan( 0.0, $row['phrases'], $direction );
 			$this->assertGreaterThan( 0.0, $row['scoring'], $direction );
 			$this->assertGreaterThan( 0.0, $row['candidates'], $direction );
-			$this->assertLessThanOrEqual( $row['median'] + 0.3, $row['retrieval'] + $row['phrases'] + $row['scoring'], 'las fases no pueden sumar más que el total' );
+			$phases = $row['retrieval'] + $row['load'] + $row['phrases'] + $row['scoring'];
+			$this->assertLessThanOrEqual( $row['median'] + 0.3, $phases, 'las fases no pueden sumar más que el total' );
+			$this->assertGreaterThanOrEqual( 0.4 * $row['median'], $phases, 'las fases explican la mayor parte del total' );
 		}
 	}
 
@@ -112,9 +117,9 @@ final class EngineTimingTest extends GraphTestCase {
 		$this->service()->outgoing( $this->sources[1] );
 		remove_filter( 'query', $collect, 1 );
 
-		$own = array_filter( $queries, static fn( string $q ): bool => false !== stripos( $q, EngineTiming::OPTION ) );
+		$own = array_filter( $queries, static fn( string $q ): bool => false !== stripos( $q, 'magiclinking_engine_timing' ) );
 		$this->assertSame( array(), array_values( $own ), 'durante la petición no se toca la opción' );
-		$this->assertFalse( get_option( EngineTiming::OPTION, false ) );
+		$this->assertFalse( get_option( EngineTiming::OPTIONS['outgoing'], false ) );
 		$this->assertNotFalse( has_action( 'shutdown', array( $this->timing(), 'flush' ) ) );
 
 		$this->timing()->flush();
@@ -129,22 +134,27 @@ final class EngineTimingTest extends GraphTestCase {
 				$i * 1000000,
 				array(
 					'retrieval'  => 0,
+					'load'       => 0,
 					'phrases'    => 0,
 					'scoring'    => 0,
 					'candidates' => $i,
 				)
 			);
 		}
+		$pending = ( new \ReflectionProperty( EngineTiming::class, 'pending' ) )->getValue( $timing );
+		$this->assertCount( 20, $pending['outgoing'], 'la memoria también se recorta a KEEP' );
 		$timing->flush();
 
-		$stored = get_option( EngineTiming::OPTION );
-		$this->assertCount( 20, $stored['outgoing'] );
-		$this->assertSame( 6.0, $stored['outgoing'][0][0], 'se descartan las más antiguas' );
-		$this->assertSame( 25.0, $stored['outgoing'][19][0] );
+		$stored = get_option( EngineTiming::OPTIONS['outgoing'] );
+		$this->assertCount( 20, $stored['rows'] );
+		$this->assertSame( 6.0, $stored['rows'][0][0], 'se descartan las más antiguas' );
+		$this->assertSame( 25.0, $stored['rows'][19][0] );
 
 		global $wpdb;
 		$autoloaded = $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload IN ('yes', 'on', 'auto', 'auto-on')", 'magiclinking%' ) ); // phpcs:ignore WordPress.DB
-		$this->assertNotContains( EngineTiming::OPTION, $autoloaded );
+		foreach ( EngineTiming::OPTIONS as $option ) {
+			$this->assertNotContains( $option, $autoloaded );
+		}
 	}
 
 	public function test_median_and_p95_follow_the_rule_of_the_performance_script(): void {
@@ -155,6 +165,7 @@ final class EngineTimingTest extends GraphTestCase {
 				$ms * 1000000,
 				array(
 					'retrieval'  => 0,
+					'load'       => 0,
 					'phrases'    => 0,
 					'scoring'    => 0,
 					'candidates' => 4,
@@ -166,6 +177,86 @@ final class EngineTimingTest extends GraphTestCase {
 		$this->assertSame( 19.0, $row['p95'], 'rango más cercano: ceil(0,95 * 20) - 1' );
 		$this->assertSame( 4.0, $row['candidates'] );
 		$this->assertSame( 0, $timing->summary()['outgoing']['count'] );
+	}
+
+	public function test_two_directions_arriving_together_do_not_overwrite_each_other(): void {
+		$one = new EngineTiming();
+		$two = new EngineTiming();
+		$one->record( EngineTiming::OUTGOING, 5000000, $this->phases() );
+		$two->record( EngineTiming::INCOMING, 7000000, $this->phases() );
+		$one->flush();
+		$two->flush();
+
+		$summary = $this->timing()->summary();
+		$this->assertSame( 1, $summary['outgoing']['count'] );
+		$this->assertSame( 1, $summary['incoming']['count'] );
+		$this->assertSame( 5.0, $summary['outgoing']['median'] );
+		$this->assertSame( 7.0, $summary['incoming']['median'] );
+	}
+
+	public function test_writes_are_sampled_to_one_per_interval_per_direction(): void {
+		$timing = $this->timing();
+		$timing->record( EngineTiming::OUTGOING, 1000000, $this->phases() );
+		$timing->flush();
+		// Las pausas del editor llegan una tras otra: dentro del intervalo no se vuelve a escribir.
+		$timing->record( EngineTiming::OUTGOING, 2000000, $this->phases() );
+		$timing->record( EngineTiming::INCOMING, 3000000, $this->phases() );
+		$timing->flush();
+		$stored = get_option( EngineTiming::OPTIONS['outgoing'] );
+		$this->assertCount( 1, $stored['rows'] );
+		$this->assertCount( 1, get_option( EngineTiming::OPTIONS['incoming'] )['rows'], 'otra dirección tiene su propio intervalo' );
+
+		// Pasado el intervalo, se escribe.
+		$stored['t'] -= EngineTiming::MIN_INTERVAL + 1;
+		update_option( EngineTiming::OPTIONS['outgoing'], $stored, false );
+		$timing->record( EngineTiming::OUTGOING, 4000000, $this->phases() );
+		$timing->flush();
+		$this->assertCount( 2, get_option( EngineTiming::OPTIONS['outgoing'] )['rows'] );
+
+		// `force` (resumen, banco de pruebas) escribe siempre.
+		$timing->record( EngineTiming::OUTGOING, 6000000, $this->phases() );
+		$this->assertSame( 3, $timing->summary()['outgoing']['count'] );
+	}
+
+	public function test_cached_responses_count_for_latency_but_not_for_phases(): void {
+		$timing = $this->timing();
+		$timing->record( EngineTiming::OUTGOING, 40000000, array_merge( $this->phases(), array( 'retrieval' => 30000000 ) ) );
+		$timing->record_cached( EngineTiming::OUTGOING, 2000000 );
+		$timing->record_cached( EngineTiming::OUTGOING, 3000000 );
+		$row = $timing->summary()['outgoing'];
+		$this->assertSame( 3, $row['count'] );
+		$this->assertSame( 2, $row['cached'] );
+		$this->assertSame( 3.0, $row['median'], 'la mediana incluye las de caché: es lo que ve el usuario' );
+		$this->assertSame( 30.0, $row['retrieval'], 'las fases, solo de las que calculó el motor' );
+	}
+
+	public function test_a_cached_rest_response_is_recorded_as_cached(): void {
+		if ( ! wp_using_ext_object_cache() ) {
+			wp_using_ext_object_cache( true );
+		}
+		wp_cache_flush();
+		$request = new WP_REST_Request( 'GET', '/magic-linking/v1/suggestions/inbound' );
+		$request->set_param( 'post_id', $this->target );
+		rest_get_server()->dispatch( $request );
+		rest_get_server()->dispatch( $request );
+		wp_using_ext_object_cache( false );
+
+		$row = $this->timing()->summary()['incoming'];
+		$this->assertSame( 2, $row['count'] );
+		$this->assertSame( 1, $row['cached'] );
+	}
+
+	/**
+	 * @return array{retrieval: int, load: int, phrases: int, scoring: int, candidates: int}
+	 */
+	private function phases(): array {
+		return array(
+			'retrieval'  => 0,
+			'load'       => 0,
+			'phrases'    => 0,
+			'scoring'    => 0,
+			'candidates' => 1,
+		);
 	}
 
 	public function test_rest_route_is_for_editors_and_has_the_budgets(): void {
@@ -181,6 +272,8 @@ final class EngineTimingTest extends GraphTestCase {
 		$data = $response->get_data();
 		$this->assertSame( 20, $data['keep'] );
 		$this->assertSame( 1, $data['outgoing']['count'] );
+		$this->assertSame( EngineTiming::BUDGET_OUTGOING, $data['outgoing']['budget'] );
+		$this->assertSame( EngineTiming::BUDGET_INCOMING, $data['incoming']['budget'] );
 		$this->assertSame( 500, $data['outgoing']['budget'] );
 		$this->assertSame( 800, $data['incoming']['budget'] );
 		$this->assertSame( 0, $data['incoming']['count'] );

@@ -75,13 +75,12 @@ test.describe( 'Status tab', () => {
 				.locator( '#adminmenu' )
 				.getByRole( 'link', { name: 'Status', exact: true } )
 		).toBeVisible();
-		// Índice: entradas analizadas.
-		const stats = page.locator(
-			'.magiclinking-status-tab .magiclinking-stats'
-		);
+		// Índice: una frase, sin repetir las cifras del Informe.
 		await expect(
-			stats.locator( 'div', { hasText: 'Entries analyzed' } )
-		).toContainText( /[1-9]/ );
+			page.getByText(
+				/^[1-9]\d* of [1-9]\d* entries are in the index\.$/
+			)
+		).toBeVisible();
 		await expect(
 			page.getByText( 'No suggestions have been calculated yet.' )
 		).toBeVisible();
@@ -113,8 +112,10 @@ test.describe( 'Status tab', () => {
 			'Median',
 			'95th percentile',
 			'Budget',
+			'From cache',
 			'Candidates',
 			'Retrieval',
+			'Loading',
 			'Phrases',
 			'Scoring',
 		] ) {

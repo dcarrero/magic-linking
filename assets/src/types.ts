@@ -164,9 +164,12 @@ export interface StatusResponse {
 /** Tiempo del motor de una dirección (F1-27): milisegundos, de las últimas `keep` peticiones. */
 export interface EngineTimingRow {
 	count: number;
+	/** Cuántas de las registradas salieron de la caché de resultados. */
+	cached: number;
 	median: number;
 	p95: number;
 	retrieval: number;
+	load: number;
 	phrases: number;
 	scoring: number;
 	/** Candidatas evaluadas por petición (media). */

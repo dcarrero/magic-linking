@@ -44,6 +44,14 @@ $sample = array_slice( $ids, 0, $samples );
 // Una pasada sin medir para calentar la caché del servidor de base de datos.
 $service->outgoing( $sample[0] );
 $service->incoming( $sample[0] );
+// Las medidas de la pasada de calentamiento no cuentan: el búfer de cada dirección empieza con sus propias peticiones.
+$timing_reset = static function (): void {
+	foreach ( EngineTiming::OPTIONS as $option ) {
+		delete_option( $option );
+	}
+};
+Plugin::container()->get( EngineTiming::class )->flush( true );
+$timing_reset();
 
 $report = static function ( string $name, array $times, array $queries, array $counts ): float {
 	sort( $times );
@@ -66,12 +74,11 @@ $timing           = Plugin::container()->get( EngineTiming::class );
 $status_deviation = 0.0;
 $results          = array();
 $extra            = 0.0;
-$total   = 0.0;
+$total            = 0.0;
 foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 	$times   = array();
 	$queries = array();
 	$counts  = array();
-	$timing->summary(); // Escribe lo pendiente: el búfer de esta dirección empieza con sus propias peticiones.
 	foreach ( $sample as $id ) {
 		// Cada medida es una petición nueva: sin las cachés de entradas de la anterior.
 		wp_cache_flush();
@@ -100,7 +107,7 @@ foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 		$deviation[] = $mine[ $i ] > 0 ? 100 * abs( $value - $mine[ $i ] ) / $mine[ $i ] : 0.0;
 	}
 	printf(
-		"estado %-9s mediana=%6.2f ms (medida %6.2f, %.1f %%)  p95=%6.2f ms (medida %6.2f, %.1f %%)  fases(mediana): recuperación=%.2f frases=%.2f puntuación=%.2f ms  candidatas=%.1f\n",
+		"estado %-9s mediana=%6.2f ms (medida %6.2f, %.1f %%)  p95=%6.2f ms (medida %6.2f, %.1f %%)  fases(mediana): recuperación=%.2f carga=%.2f frases=%.2f puntuación=%.2f ms  candidatas=%.1f\n",
 		$direction,
 		$shown['median'],
 		$mine[0],
@@ -109,6 +116,7 @@ foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 		$mine[1],
 		$deviation[1],
 		$shown['retrieval'],
+		$shown['load'],
 		$shown['phrases'],
 		$shown['scoring'],
 		$shown['candidates']
@@ -242,7 +250,7 @@ $added['draft'] = $report( 'avisos borrador', $times, array( 0 ), $cards );
 $peak = $extra;
 printf( "memoria: pico total en WP-CLI=%.1f MB (base incluida), añadida por el cálculo=%.1f MB (límite 32 MB; el total de la petición web no debe pasar de 64 MB)\n", $total, $extra );
 
-if ( $strict && ( $results['outgoing'] > 500 || $results['incoming'] > 800 || $peak > 32 || $rest_over > 20 || $status_deviation > 10 || max( $added ) > 20 || $rest_total['outbound'] > 500 || $rest_total['inbound'] > 800 ) ) {
+if ( $strict && ( $results['outgoing'] > EngineTiming::BUDGET_OUTGOING || $results['incoming'] > EngineTiming::BUDGET_INCOMING || $peak > 32 || $rest_over > 20 || $status_deviation > 10 || max( $added ) > 20 || $rest_total['outbound'] > EngineTiming::BUDGET_OUTGOING || $rest_total['inbound'] > EngineTiming::BUDGET_INCOMING ) ) {
 	fwrite( STDERR, "Presupuesto de rendimiento superado.\n" );
 	exit( 1 );
 }

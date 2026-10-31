@@ -162,10 +162,11 @@ final class Suggester {
 	/**
 	 * Tiempo por fase del último cálculo, en nanosegundos ({@see self::timing()}).
 	 *
-	 * @var array{retrieval: int, phrases: int, scoring: int, candidates: int}
+	 * @var array{retrieval: int, load: int, phrases: int, scoring: int, candidates: int}
 	 */
 	private array $timing = array(
 		'retrieval'  => 0,
+		'load'       => 0,
 		'phrases'    => 0,
 		'scoring'    => 0,
 		'candidates' => 0,
@@ -228,10 +229,12 @@ final class Suggester {
 	/**
 	 * Tiempo por fase del último cálculo de {@see self::outgoing()} o {@see self::incoming()} (D-30, `04 §12`), en
 	 * nanosegundos: `retrieval` (analizar el origen, pesar y recuperar candidatas; en las entrantes, hasta tener los
-	 * orígenes), `phrases` (buscar la frase donde anclar), `scoring` (puntuar) y las `candidates` evaluadas. Son
-	 * lecturas de `hrtime()` sin consultas: el resto del tiempo (ordenar, motivos) no se atribuye a ninguna fase.
+	 * orígenes y el destino preparado), `load` (en las salientes, preparar cada destino candidato; en las entrantes,
+	 * leer cada origen), `phrases` (buscar la frase donde anclar), `scoring` (puntuar) y las `candidates` evaluadas.
+	 * Son lecturas de `hrtime()` sin consultas propias. Quedan fuera de las fases ordenar, los motivos y lo que
+	 * hace después quien llama.
 	 *
-	 * @return array{retrieval: int, phrases: int, scoring: int, candidates: int}
+	 * @return array{retrieval: int, load: int, phrases: int, scoring: int, candidates: int}
 	 */
 	public function timing(): array {
 		return $this->timing;
@@ -352,6 +355,7 @@ final class Suggester {
 		$started      = hrtime( true );
 		$this->timing = array(
 			'retrieval'  => 0,
+			'load'       => 0,
 			'phrases'    => 0,
 			'scoring'    => 0,
 			'candidates' => 0,
@@ -472,6 +476,7 @@ final class Suggester {
 		$started      = hrtime( true );
 		$this->timing = array(
 			'retrieval'  => 0,
+			'load'       => 0,
 			'phrases'    => 0,
 			'scoring'    => 0,
 			'candidates' => 0,
@@ -509,7 +514,9 @@ final class Suggester {
 
 		$result = array();
 		foreach ( $origins as $origin ) {
-			$document = $this->documents->get( $origin );
+			$loaded                = hrtime( true );
+			$document              = $this->documents->get( $origin );
+			$this->timing['load'] += hrtime( true ) - $loaded;
 			if ( null === $document ) {
 				continue;
 			}
@@ -595,7 +602,9 @@ final class Suggester {
 			if ( null === $meta ) {
 				return null;
 			}
-			$context = $this->target_context( $target, $analyzer, $meta );
+			$loaded                = hrtime( true );
+			$context               = $this->target_context( $target, $analyzer, $meta );
+			$this->timing['load'] += hrtime( true ) - $loaded;
 		}
 		$found_at                 = hrtime( true );
 		$matches                  = $this->finder->find( $source, $context->phrases, $analyzer, $context->expansions, $blocked, $target, $context->terms );
