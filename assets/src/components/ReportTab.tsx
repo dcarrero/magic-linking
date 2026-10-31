@@ -26,6 +26,19 @@ interface Props {
 	reportUrl?: string;
 }
 
+// Celda sin cifra (las excluidas no están en el índice); un guion largo que un lector de pantalla lee como «no disponible».
+const NO_FIGURE = (
+	<>
+		<span aria-hidden="true">{ '–' }</span>
+		<span className="screen-reader-text">
+			{ __( 'Not analyzed', 'magic-linking' ) }
+		</span>
+	</>
+);
+
+// Columnas por las que el servidor ordena las excluidas (no están en el índice: no tienen cifras).
+const EXCLUDED_SORTS: SortKey[] = [ 'title', 'type' ];
+
 const PER_PAGE = window.magiclinking?.perPage ?? 20;
 
 const STATUS_LABEL: Record< ReportItem[ 'status' ], () => string > = {
@@ -33,6 +46,7 @@ const STATUS_LABEL: Record< ReportItem[ 'status' ], () => string > = {
 	low: () => __( 'Under-linked', 'magic-linking' ),
 	over: () => __( 'Over-linked', 'magic-linking' ),
 	ok: () => __( 'OK', 'magic-linking' ),
+	excluded: () => __( 'Excluded', 'magic-linking' ),
 };
 
 /**
@@ -59,12 +73,23 @@ export function ReportTab( {
 	const [ search, setSearch ] = useState( '' );
 	const [ postType, setPostType ] = useState( '' );
 	const [ lang, setLang ] = useState( '' );
-	const [ orderby, setOrderby ] = useState< SortKey >( 'inbound' );
+	const [ orderby, setOrderby ] = useState< SortKey >(
+		initialFilter === 'excluded' ? 'title' : 'inbound'
+	);
 	const [ order, setOrder ] = useState< 'asc' | 'desc' >( 'asc' );
 	const [ page, setPage ] = useState( 1 );
 	const perPage = PER_PAGE;
 	const debounced = useDebounced( search );
 	const first = useIsFirstRender();
+	const root = useRef< HTMLDivElement >( null );
+	// Entrada cuya exclusión (o vuelta) se está guardando, y el aviso si falla; `reload` repite la carga tras un cambio.
+	const [ toggling, setToggling ] = useState< ReadonlySet< number > >(
+		new Set()
+	);
+	// Tras una acción de fila se anuncia ella sola: el «N entradas» de la recarga la pisaría.
+	const quiet = useRef( false );
+	const [ toggleError, setToggleError ] = useState( '' );
+	const [ reload, setReload ] = useState( 0 );
 	// Panel lateral de sugerencias de una fila y filas refrescadas desde el servidor tras añadir o deshacer un enlace.
 	const [ panel, setPanel ] = useState< {
 		row: ReportItem;
@@ -76,11 +101,14 @@ export function ReportTab( {
 		summary: Summary | null;
 	} >( { rows: {}, summary: null } );
 
+	// En «Excluded» no hay cifras ni idioma: solo se ordena por título o tipo y no se filtra por idioma.
+	const excludedView = filter === 'excluded';
+
 	const query = {
 		filter,
 		search: debounced,
 		post_type: postType,
-		lang,
+		lang: excludedView ? '' : lang,
 		orderby,
 		order,
 		page,
@@ -93,12 +121,13 @@ export function ReportTab( {
 			filter,
 			debounced,
 			postType,
-			lang,
+			excludedView ? '' : lang,
 			orderby,
 			order,
 			page,
 			perPage,
 			refreshKey,
+			reload,
 		],
 		__( 'Could not load the report.', 'magic-linking' )
 	);
@@ -110,6 +139,13 @@ export function ReportTab( {
 			onSummary( summary );
 		}
 	}, [ summary, onSummary ] );
+
+	// Si tras excluir o incluir la página ya no existe, se va a la última que quede.
+	useEffect( () => {
+		if ( data && page > data.total_pages ) {
+			setPage( Math.max( 1, data.total_pages ) );
+		}
+	}, [ data, page ] );
 
 	const rowIds = new Set( ( data?.items ?? [] ).map( ( row ) => row.id ) );
 	const rowIdsRef = useRef( rowIds );
@@ -169,6 +205,10 @@ export function ReportTab( {
 		if ( ! data || first ) {
 			return;
 		}
+		if ( quiet.current ) {
+			quiet.current = false;
+			return;
+		}
 		speak(
 			data.total === 0
 				? __( 'No entries found.', 'magic-linking' )
@@ -187,6 +227,76 @@ export function ReportTab( {
 		// Solo al llegar datos nuevos.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ data ] );
+
+	// Al acabar cualquier carga (con datos nuevos, iguales o con error) el silencio de la acción de fila termina; va
+	// después del efecto que anuncia el recuento, que es quien lo consulta.
+	useEffect( () => {
+		if ( ! loading ) {
+			quiet.current = false;
+		}
+	}, [ loading ] );
+
+	/**
+	 * Excluye la entrada del análisis o la vuelve a incluir. La fila sale de la lista (no se reordena nada más: se
+	 * vuelve a cargar la página), se anuncia y el foco pasa a la pestaña activa, porque el botón pulsado desaparece.
+	 * @param row     Fila.
+	 * @param exclude Excluir (true) o volver a incluir (false).
+	 */
+	const toggleExcluded = ( row: ReportItem, exclude: boolean ) => {
+		setToggling( ( ids ) => new Set( ids ).add( row.id ) );
+		setToggleError( '' );
+		api.setExcluded( row.id, exclude )
+			.then( () => {
+				if ( panel?.row.id === row.id ) {
+					setPanel( null );
+				}
+				speak(
+					exclude
+						? sprintf(
+								/* translators: %s: entry title. */
+								__(
+									'%s excluded from the analysis.',
+									'magic-linking'
+								),
+								row.title
+						  )
+						: sprintf(
+								/* translators: %s: entry title. */
+								__(
+									'%s included in the analysis again.',
+									'magic-linking'
+								),
+								row.title
+						  ),
+					'polite'
+				);
+				quiet.current = true;
+				setReload( ( value ) => value + 1 );
+				root.current
+					?.querySelector< HTMLElement >( '.subsubsub a.current' )
+					?.focus();
+			} )
+			.catch( () =>
+				setToggleError(
+					exclude
+						? __(
+								'Could not exclude the entry from the analysis.',
+								'magic-linking'
+						  )
+						: __(
+								'Could not include the entry in the analysis again.',
+								'magic-linking'
+						  )
+				)
+			)
+			.finally( () =>
+				setToggling( ( ids ) => {
+					const rest = new Set( ids );
+					rest.delete( row.id );
+					return rest;
+				} )
+			);
+	};
 
 	const multilingual = summary?.multilingual ?? false;
 	const views: { id: ReportFilter; label: string; count?: number }[] = [
@@ -216,6 +326,14 @@ export function ReportTab( {
 			count: summary?.broken_posts,
 		},
 	];
+	// Solo hay pestaña de excluidas si hay alguna (o si es la que está abierta).
+	if ( ( summary?.excluded ?? 0 ) > 0 || filter === 'excluded' ) {
+		views.push( {
+			id: 'excluded',
+			label: __( 'Excluded', 'magic-linking' ),
+			count: summary?.excluded ?? 0,
+		} );
+	}
 
 	const change =
 		< T, >( setter: ( value: T ) => void ) =>
@@ -223,6 +341,15 @@ export function ReportTab( {
 			setter( value );
 			setPage( 1 );
 		};
+
+	const changeFilter = ( next: ReportFilter ) => {
+		// «Excluded» solo se ordena por título o tipo: el orden que se pinta es el que se pide.
+		if ( next === 'excluded' && ! EXCLUDED_SORTS.includes( orderby ) ) {
+			setOrderby( 'title' );
+			setOrder( 'asc' );
+		}
+		change( setFilter )( next );
+	};
 
 	const onSort = ( key: SortKey ) => {
 		if ( key === orderby ) {
@@ -256,54 +383,66 @@ export function ReportTab( {
 				: __( 'Type', 'magic-linking' ),
 			sortKey: 'type',
 			render: ( row ) =>
-				multilingual
+				multilingual && row.lang
 					? `${ row.type_label } · ${ row.lang }`
 					: row.type_label,
 		},
 		{
 			id: 'inbound',
 			header: __( 'Inbound', 'magic-linking' ),
-			sortKey: 'inbound',
+			sortKey: excludedView ? undefined : 'inbound',
 			numeric: true,
-			render: ( row ) => (
-				<span
-					className={
-						row.inbound === 0 ? 'magiclinking-zero' : undefined
-					}
-				>
-					{ row.inbound }
-				</span>
-			),
+			render: ( row ) =>
+				row.status === 'excluded' ? (
+					NO_FIGURE
+				) : (
+					<span
+						className={
+							row.inbound === 0 ? 'magiclinking-zero' : undefined
+						}
+					>
+						{ row.inbound }
+					</span>
+				),
 		},
 		{
 			id: 'outbound',
 			header: __( 'Internal outbound', 'magic-linking' ),
-			sortKey: 'outbound',
+			sortKey: excludedView ? undefined : 'outbound',
 			numeric: true,
-			render: ( row ) => (
-				<span
-					className={
-						row.status === 'over' ? 'magiclinking-warn' : undefined
-					}
-				>
-					{ row.outbound }
-				</span>
-			),
+			render: ( row ) =>
+				row.status === 'excluded' ? (
+					NO_FIGURE
+				) : (
+					<span
+						className={
+							row.status === 'over'
+								? 'magiclinking-warn'
+								: undefined
+						}
+					>
+						{ row.outbound }
+					</span>
+				),
 		},
 		{
 			id: 'external',
 			header: __( 'External', 'magic-linking' ),
-			sortKey: 'external',
+			sortKey: excludedView ? undefined : 'external',
 			numeric: true,
-			render: ( row ) => row.external,
+			render: ( row ) =>
+				row.status === 'excluded' ? NO_FIGURE : row.external,
 		},
 		{
 			id: 'broken',
 			header: __( 'Broken', 'magic-linking' ),
-			sortKey: 'broken',
+			sortKey: excludedView ? undefined : 'broken',
 			numeric: true,
-			render: ( row ) =>
-				row.broken > 0 ? (
+			render: ( row ) => {
+				if ( row.status === 'excluded' ) {
+					return NO_FIGURE;
+				}
+				return row.broken > 0 ? (
 					<button
 						type="button"
 						className="button-link"
@@ -321,7 +460,8 @@ export function ReportTab( {
 					</button>
 				) : (
 					0
-				),
+				);
+			},
 		},
 		{
 			id: 'status',
@@ -331,18 +471,25 @@ export function ReportTab( {
 					className={ `magiclinking-badge magiclinking-badge--${ row.status }` }
 				>
 					{ STATUS_LABEL[ row.status ]() }
+					{ row.status === 'excluded' &&
+						row.post_status !== 'publish' &&
+						row.post_status_label &&
+						` · ${ row.post_status_label }` }
 				</span>
 			),
 		},
 		{
 			id: 'indexed_at',
 			header: __( 'Analyzed', 'magic-linking' ),
-			sortKey: 'indexed_at',
-			render: ( row ) => (
-				<time dateTime={ dateTimeAttr( row.indexed_at ) }>
-					{ formatDate( row.indexed_at ) }
-				</time>
-			),
+			sortKey: excludedView ? undefined : 'indexed_at',
+			render: ( row ) =>
+				row.status === 'excluded' ? (
+					NO_FIGURE
+				) : (
+					<time dateTime={ dateTimeAttr( row.indexed_at ) }>
+						{ formatDate( row.indexed_at ) }
+					</time>
+				),
 		},
 	];
 
@@ -358,7 +505,7 @@ export function ReportTab( {
 	if ( postType ) {
 		exportParams.set( 'post_type', postType );
 	}
-	if ( lang ) {
+	if ( lang && ! excludedView ) {
 		exportParams.set( 'lang', lang );
 	}
 
@@ -389,7 +536,8 @@ export function ReportTab( {
 				),
 			} );
 		}
-		if ( row.edit_url ) {
+		const excluded = row.status === 'excluded';
+		if ( row.edit_url && ! excluded ) {
 			// Hace falta poder editar la entrada de la fila (las rutas de sugerencias lo exigen).
 			( [ 'inbound', 'outbound' ] as const ).forEach( ( direction ) =>
 				items.push( {
@@ -412,7 +560,29 @@ export function ReportTab( {
 				} )
 			);
 		}
-		if ( row.broken > 0 ) {
+		if ( row.edit_url ) {
+			// Hace falta poder editar la entrada; el servidor lo vuelve a comprobar.
+			items.push( {
+				id: excluded ? 'include' : 'exclude',
+				node: (
+					<button
+						type="button"
+						className="button-link"
+						disabled={ toggling.has( row.id ) }
+						onClick={ () => toggleExcluded( row, ! excluded ) }
+					>
+						{ excluded
+							? __( 'Include in the analysis', 'magic-linking' )
+							: __(
+									'Exclude from the analysis',
+									'magic-linking'
+							  ) }
+						{ title }
+					</button>
+				),
+			} );
+		}
+		if ( row.broken > 0 && ! excluded ) {
 			items.push( {
 				id: 'broken',
 				node: (
@@ -431,7 +601,7 @@ export function ReportTab( {
 	};
 
 	return (
-		<div className="magiclinking-report">
+		<div className="magiclinking-report" ref={ root }>
 			<ul className="subsubsub">
 				{ views.map( ( view, index ) => (
 					<li key={ view.id } className={ view.id }>
@@ -443,7 +613,7 @@ export function ReportTab( {
 							}
 							onClick={ ( event ) => {
 								event.preventDefault();
-								change( setFilter )( view.id );
+								changeFilter( view.id );
 							} }
 						>
 							{ view.label }
@@ -470,9 +640,9 @@ export function ReportTab( {
 				onChange={ change( setSearch ) }
 			/>
 
-			{ error && (
+			{ ( error || toggleError ) && (
 				<p className="magiclinking-error" role="alert">
-					{ error }
+					{ error || toggleError }
 				</p>
 			) }
 
@@ -486,10 +656,17 @@ export function ReportTab( {
 				order={ order }
 				onSort={ onSort }
 				busy={ loading }
-				emptyMessage={ __(
-					'No entries match these filters.',
-					'magic-linking'
-				) }
+				emptyMessage={
+					filter === 'excluded'
+						? __(
+								'No entries are excluded from the analysis.',
+								'magic-linking'
+						  )
+						: __(
+								'No entries match these filters.',
+								'magic-linking'
+						  )
+				}
 				actions={
 					<>
 						{ ( summary?.types.length ?? 0 ) > 1 && (
@@ -526,6 +703,7 @@ export function ReportTab( {
 							</>
 						) }
 						{ multilingual &&
+							! excludedView &&
 							( summary?.langs.length ?? 0 ) > 1 && (
 								<>
 									<label

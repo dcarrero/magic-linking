@@ -190,7 +190,8 @@ final class ReportController implements Module {
 		return $this->paged(
 			array(
 				'items'   => $result['items'],
-				'summary' => $this->report->summary(),
+				// Sin búsqueda ni tipo, el total de la pestaña Excluidas es el recuento global de excluidas.
+				'summary' => $this->report->summary( 'excluded' === (string) $request['filter'] && '' === (string) $request['search'] && '' === (string) $request['post_type'] ? $result['total'] : null ),
 			),
 			$result['total'],
 			$page,

@@ -35,7 +35,8 @@ final class CliTest extends GraphTestCase {
 			$c->get( \MagicLinking\History\Retention::class ),
 			$c->get( \MagicLinking\History\ChangeRepository::class ),
 			$c->get( \MagicLinking\History\Redo::class ),
-			$c->get( \MagicLinking\History\BatchJob::class )
+			$c->get( \MagicLinking\History\BatchJob::class ),
+			$c->get( \MagicLinking\Core\Settings::class )
 		);
 		$this->post( 'beta', 'Sin enlaces.' );
 		$this->post( 'alfa', '<a href="' . home_url( '/beta/' ) . '">beta</a> <a href="' . home_url( '/roto/' ) . '">roto</a>' );

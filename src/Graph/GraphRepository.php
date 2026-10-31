@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Graph;
 
 use MagicLinking\Core\Schema;
+use MagicLinking\Index\Exclusions;
 use wpdb;
 
 /**
@@ -404,7 +405,11 @@ final class GraphRepository {
 		} else {
 			$other = $wpdb->get_col( $wpdb->prepare( 'SELECT post_id FROM %i', $this->docs ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
 		}
-		$ids = array_merge( $ids, $other );
+		// Las excluidas (F1-12) también: repara una marca que llegó sin pasar por el hook (importación, restauración).
+		$excluded = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb->prepare( 'SELECT d.post_id FROM %i d JOIN %i m ON m.post_id = d.post_id WHERE m.meta_key = %s AND m.meta_value = %s', $this->docs, $wpdb->postmeta, Exclusions::KEY, '1' )
+		);
+		$ids      = array_merge( $ids, $other, $excluded );
 
 		$affected = array();
 		$ids      = array_values( array_unique( array_map( 'intval', $ids ) ) );
@@ -441,6 +446,8 @@ final class GraphRepository {
 		if ( array() !== $exclude ) {
 			$not = ' AND ID NOT IN (' . implode( ',', array_map( 'intval', $exclude ) ) . ')';
 		}
+		// Las excluidas del análisis (F1-12) no se recorren.
+		$not .= Exclusions::not_excluded_sql();
 
 		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Consulta de análisis sobre el núcleo.
 			$wpdb->prepare( "SELECT ID FROM %i WHERE post_status = 'publish' AND ID > %d AND post_type IN ({$in}){$not} ORDER BY ID ASC LIMIT %d", array_merge( array( $wpdb->posts, $after_id ), $post_types, array( $limit ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
@@ -463,7 +470,7 @@ final class GraphRepository {
 		$in   = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
 
 		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Consulta de análisis sobre el núcleo.
-			$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE post_status = 'publish' AND post_type IN ({$in})", array_merge( array( $wpdb->posts ), $post_types ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+			$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE post_status = 'publish' AND post_type IN ({$in})" . Exclusions::not_excluded_sql(), array_merge( array( $wpdb->posts ), $post_types ) ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
 		);
 	}
 

@@ -14,7 +14,9 @@ use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\IndexOutcome;
+use MagicLinking\Index\Exclusions;
 use MagicLinking\Index\LexicalIndexer;
+use MagicLinking\Index\SuggestionCache;
 use Throwable;
 use WP_Post;
 
@@ -121,6 +123,13 @@ final class Jobs implements Module {
 	private LexicalIndexer $lexical;
 
 	/**
+	 * Entradas que se están borrando en esta petición.
+	 *
+	 * @var list<int>
+	 */
+	private array $deleting = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param JobRepository  $jobs     Repositorio de procesos.
@@ -145,6 +154,55 @@ final class Jobs implements Module {
 		add_action( self::HOOK_RECONCILE, array( $this, 'reconcile' ) );
 		add_action( 'wp_after_insert_post', array( $this, 'on_post_saved' ), 20, 4 );
 		add_action( 'deleted_post', array( $this, 'on_post_deleted' ), 10, 1 );
+		// Excluir una entrada del análisis (o volver a incluirla) la saca del índice o la mete (F1-12).
+		// Al borrar una entrada WordPress borra antes sus metadatos: no es una exclusión que cambie.
+		add_action( 'before_delete_post', array( $this, 'on_before_delete' ), 10, 1 );
+		foreach ( array( 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ) as $hook ) {
+			add_action( $hook, array( $this, 'on_exclusion_meta' ), 10, 3 );
+		}
+	}
+
+	/**
+	 * Una entrada empieza a borrarse: sus metadatos se borran uno a uno antes que ella y no hay que reindexarla.
+	 *
+	 * @param int $post_id Entrada.
+	 */
+	public function on_before_delete( int $post_id ): void {
+		$this->deleting[] = $post_id;
+	}
+
+	/**
+	 * Cambia la marca de exclusión de una entrada: la reindexa ahora (si deja de analizarse sale del índice con sus
+	 * enlaces y los entrantes de sus destinos se recalculan; si vuelve, se indexa) y renueva las sugerencias guardadas.
+	 *
+	 * @param int|int[] $meta_id Identificador(es) de la meta.
+	 * @param int       $post_id Entrada.
+	 * @param string    $key     Clave.
+	 */
+	public function on_exclusion_meta( $meta_id, int $post_id, string $key ): void {
+		unset( $meta_id );
+		if ( Exclusions::KEY !== $key || in_array( $post_id, $this->deleting, true ) ) {
+			return;
+		}
+
+		SuggestionCache::bump();
+
+		// `delete_post_meta_by_key()` avisa con el ID 0: no se sabe cuáles vuelven a ser elegibles. Se deja en cola
+		// un análisis (salta lo que no ha cambiado) y la purga nocturna retira las que se hayan excluido por esa vía.
+		if ( $post_id <= 0 ) {
+			if ( $this->is_ready() ) {
+				$this->start_index( 0, true, false, true, false, true );
+			}
+			return;
+		}
+
+		try {
+			$this->reindex_now( $post_id );
+		} catch ( Throwable $e ) {
+			// La marca ya está guardada: la petición no falla por el índice. Se reintenta en cola.
+			unset( $e );
+			as_enqueue_async_action( self::HOOK_POSTS, array( array( $post_id ), false ), Installer::ACTION_GROUP, true );
+		}
 	}
 
 	/**

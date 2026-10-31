@@ -14,6 +14,7 @@ use Generator;
 use MagicLinking\Core\Schema;
 use MagicLinking\Core\Settings;
 use MagicLinking\I18n\Language;
+use MagicLinking\Index\Exclusions;
 use wpdb;
 
 /**
@@ -21,7 +22,12 @@ use wpdb;
  */
 final class ReportRepository {
 
-	public const FILTERS = array( 'all', 'orphans', 'low', 'over', 'broken' );
+	public const FILTERS = array( 'all', 'orphans', 'low', 'over', 'broken', 'excluded' );
+
+	/**
+	 * Estado de las filas del filtro «excluded» (no están en el índice: no tienen cifras).
+	 */
+	public const EXCLUDED_STATUS = 'excluded';
 
 	/**
 	 * Columnas por las que se puede ordenar (nombre público → columna SQL).
@@ -108,6 +114,10 @@ final class ReportRepository {
 	 * @return array{items: array<int, array<string, mixed>>, total: int}
 	 */
 	public function query( array $args ): array {
+		if ( 'excluded' === ( $args['filter'] ?? '' ) ) {
+			return $this->excluded( $args );
+		}
+
 		$wpdb     = $this->wpdb;
 		$docs     = Schema::table( $wpdb->prefix, 'docs' );
 		$where    = $this->where( $args );
@@ -132,6 +142,125 @@ final class ReportRepository {
 		return array(
 			'items' => $items,
 			'total' => $total,
+		);
+	}
+
+	/**
+	 * Las entradas excluidas del análisis: de un tipo que se analiza, con la marca y en cualquier estado menos papelera (un borrador excluido tiene que poder volver a incluirse), sin filtrar por idioma (no están en el índice, no tienen). No están en el índice,
+	 * así que solo tienen título, tipo y enlaces para verlas o editarlas (sin cifras ni idioma), y solo se ordenan por
+	 * título o tipo.
+	 *
+	 * @param array<string, mixed> $args Los de {@see self::query()}.
+	 *
+	 * @return array{items: array<int, array<string, mixed>>, total: int}
+	 */
+	private function excluded( array $args ): array {
+		$where = $this->excluded_where( $args );
+		if ( null === $where ) {
+			return array(
+				'items' => array(),
+				'total' => 0,
+			);
+		}
+
+		$wpdb      = $this->wpdb;
+		$column    = 'type' === ( $args['orderby'] ?? '' ) ? 'p.post_type' : 'p.post_title';
+		$direction = 'desc' === strtolower( (string) ( $args['order'] ?? '' ) ) ? 'DESC' : 'ASC';
+		$per_page  = max( 1, min( 500, (int) ( $args['per_page'] ?? 20 ) ) );
+		$offset    = max( 0, ( (int) ( $args['page'] ?? 1 ) - 1 ) * $per_page );
+
+		$total = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fragmentos preparados.
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i p WHERE ' . $where, $wpdb->posts ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmentos preparados.
+		);
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fragmentos preparados y ORDER BY de una lista cerrada.
+			$wpdb->prepare( "SELECT p.ID AS post_id, p.post_title, p.post_type, p.post_status FROM %i p WHERE {$where} ORDER BY {$column} {$direction}, p.ID ASC LIMIT %d OFFSET %d", $wpdb->posts, $per_page, $offset ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmentos preparados.
+			ARRAY_A
+		);
+
+		$items = array();
+		foreach ( (array) $rows as $row ) {
+			$items[] = $this->excluded_item( $row );
+		}
+
+		return array(
+			'items' => $items,
+			'total' => $total,
+		);
+	}
+
+	/**
+	 * El WHERE (sobre `wp_posts` como `p`) de las excluidas: una sola definición para la lista, su cuenta y la de la
+	 * pestaña. «Excluida» = existe una fila de metadato con valor `1` (EXISTS: varias filas no duplican la entrada).
+	 * Null si no hay tipos que se analicen.
+	 *
+	 * @param array<string, mixed> $args Búsqueda y tipo opcionales.
+	 */
+	private function excluded_where( array $args = array() ): ?string {
+		$types = $this->settings->post_types();
+		if ( array() === $types ) {
+			return null;
+		}
+
+		$wpdb  = $this->wpdb;
+		$in    = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+		$where = $wpdb->prepare( "p.post_status NOT IN ('trash', 'auto-draft') AND p.post_type IN ({$in})", $types ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
+			. $wpdb->prepare( ' AND EXISTS ( SELECT 1 FROM %i m WHERE m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = %s )', $wpdb->postmeta, Exclusions::KEY, '1' );
+		if ( ! empty( $args['search'] ) ) {
+			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( (string) $args['search'] ) . '%' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Preparado.
+		}
+		if ( ! empty( $args['post_type'] ) ) {
+			$where .= $wpdb->prepare( ' AND p.post_type = %s', (string) $args['post_type'] ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Preparado.
+		}
+
+		return $where;
+	}
+
+	/**
+	 * Cuántas entradas hay excluidas del análisis (las que se verían en el filtro sin búsqueda ni tipo).
+	 */
+	private function excluded_count(): int {
+		$where = $this->excluded_where();
+		if ( null === $where ) {
+			return 0;
+		}
+
+		$wpdb = $this->wpdb;
+
+		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fragmentos preparados.
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i p WHERE ' . $where, $wpdb->posts ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmentos preparados.
+		);
+	}
+
+	/**
+	 * Fila de una entrada excluida: sin cifras (no está en el índice).
+	 *
+	 * @param array<string, mixed> $row Fila de la consulta.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function excluded_item( array $row ): array {
+		$status = (string) $row['post_status'];
+		$object = get_post_status_object( $status );
+
+		return array_merge(
+			$this->item(
+				$row + array(
+					'lang'       => '',
+					'inbound'    => 0,
+					'outbound'   => 0,
+					'external'   => 0,
+					'broken'     => 0,
+					'word_count' => 0,
+					'indexed_at' => '',
+				)
+			),
+			array(
+				'status'            => self::EXCLUDED_STATUS,
+				'indexed_at'        => '',
+				'post_status'       => $status,
+				'post_status_label' => null !== $object ? (string) $object->label : $status,
+			)
 		);
 	}
 
@@ -204,9 +333,11 @@ final class ReportRepository {
 	/**
 	 * Recuentos de la cabecera y de las pestañas de filtro.
 	 *
-	 * @return array{analyzed: int, orphans: int, low: int, over: int, broken_posts: int, internal_links: int, broken_links: int, types: array<int, array{name: string, label: string, count: int}>, langs: array<int, string>, multilingual: bool}
+	 * @param int|null $excluded Cuántas hay excluidas, si quien llama ya lo sabe (la pestaña Excluidas sin búsqueda ni tipo).
+	 *
+	 * @return array{analyzed: int, orphans: int, low: int, over: int, broken_posts: int, internal_links: int, broken_links: int, excluded: int, types: array<int, array{name: string, label: string, count: int}>, langs: array<int, string>, multilingual: bool}
 	 */
-	public function summary(): array {
+	public function summary( ?int $excluded = null ): array {
 		$wpdb = $this->wpdb;
 		$docs = Schema::table( $wpdb->prefix, 'docs' );
 
@@ -255,6 +386,7 @@ final class ReportRepository {
 			'broken_posts'   => (int) ( $row['broken_posts'] ?? 0 ),
 			'internal_links' => (int) ( $row['internal_links'] ?? 0 ),
 			'broken_links'   => (int) ( $row['broken_links'] ?? 0 ),
+			'excluded'       => $excluded ?? $this->excluded_count(),
 			'types'          => $types,
 			'langs'          => $langs,
 			'multilingual'   => $this->multilingual( $langs ),

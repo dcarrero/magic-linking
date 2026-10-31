@@ -24,6 +24,7 @@ use MagicLinking\Graph\GraphRepository;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\ChangeRepository;
 use MagicLinking\I18n\Language;
+use MagicLinking\Index\Exclusions;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\TableDocuments;
 use MagicLinking\Index\TableRepository;
@@ -46,6 +47,7 @@ final class RuleService {
 	public const BAD_TARGET        = 'bad_target';
 	public const ALREADY_APPLIED   = 'already_applied';
 	public const IGNORED           = 'ignored';
+	public const EXCLUDED_ENTRY    = 'excluded_entry';
 	public const CREATOR_CANNOT    = 'creator_cannot';
 
 	/**
@@ -105,6 +107,7 @@ final class RuleService {
 			self::BAD_TARGET         => __( 'The destination is not a published entry that can be linked.', 'magic-linking' ),
 			self::ALREADY_APPLIED    => __( 'This rule was already applied to the entry (or undone there), so it is not applied again by itself.', 'magic-linking' ),
 			self::IGNORED            => __( 'The entry or the destination is in your list of ignored URLs.', 'magic-linking' ),
+			self::EXCLUDED_ENTRY     => __( 'The entry or the destination is excluded from the analysis.', 'magic-linking' ),
 			self::CREATOR_CANNOT     => __( 'The person who created the rule can no longer manage the site or edit this entry.', 'magic-linking' ),
 			self::LOCKED             => __( 'Someone has the entry open in the editor.', 'magic-linking' ),
 			RulePlan::SELF           => __( 'The entry is the destination itself.', 'magic-linking' ),
@@ -129,6 +132,10 @@ final class RuleService {
 		$ignored = $this->settings->all()['ignored_ids'];
 		if ( in_array( $post->ID, $ignored, true ) || in_array( $rule->target_id, $ignored, true ) ) {
 			return self::IGNORED;
+		}
+		// Una entrada excluida del análisis (Informe) tampoco recibe ni es destino de reglas automáticas.
+		if ( Exclusions::is_excluded( $post->ID ) || Exclusions::is_excluded( $rule->target_id ) ) {
+			return self::EXCLUDED_ENTRY;
 		}
 		if ( ! in_array( $post->post_type, $this->settings->post_types(), true ) ) {
 			return self::TYPE_NOT_ANALYZED;

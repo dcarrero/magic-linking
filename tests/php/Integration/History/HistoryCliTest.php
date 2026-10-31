@@ -42,7 +42,8 @@ final class HistoryCliTest extends HistoryTestCase {
 			$c->get( Retention::class ),
 			$c->get( ChangeRepository::class ),
 			$c->get( Redo::class ),
-			$c->get( BatchJob::class )
+			$c->get( BatchJob::class ),
+			$c->get( \MagicLinking\Core\Settings::class )
 		);
 	}
 
