@@ -57,6 +57,7 @@ type NumberKey =
 	| 'same_anchor_max'
 	| 'links_per_target_max'
 	| 'outbound_shown'
+	| 'alternatives'
 	| 'inbound_per_page'
 	| 'low_inbound_threshold'
 	| 'ai_daily_token_limit';
@@ -70,10 +71,26 @@ const NUMBER_RULES: Record<
 	same_anchor_max: { fallback: 5, min: 1, max: 50 },
 	links_per_target_max: { fallback: 1, min: 1, max: 10 },
 	outbound_shown: { fallback: 15, min: 1, max: 50 },
+	alternatives: { fallback: 0, min: 0, max: 2 },
 	inbound_per_page: { fallback: 10, min: 5, max: 50 },
 	low_inbound_threshold: { fallback: 2, min: 1, max: 20 },
 	ai_daily_token_limit: { fallback: 2000000, min: 0, max: 1000000000 },
 };
+/**
+ * Límites de un campo numérico: los del servidor (`Settings::INT_RANGES`, que manda) y, sin ellos, los de respaldo.
+ *
+ * @param key Campo numérico.
+ */
+function rule( key: NumberKey ): {
+	fallback: number;
+	min: number;
+	max: number;
+} {
+	const base = NUMBER_RULES[ key ];
+	const range = window.magiclinking?.intRanges?.[ key ];
+	return range ? { ...base, min: range[ 0 ], max: range[ 1 ] } : base;
+}
+
 const NUMBER_KEYS = Object.keys( NUMBER_RULES ) as NumberKey[];
 
 type NumberTexts = Record< NumberKey, string >;
@@ -112,7 +129,7 @@ function effective( draft: Draft ): SettingsValues {
 	// Los tipos de contenido son un conjunto: el orden en que se marcaron no es un cambio.
 	values.post_types = [ ...values.post_types ].sort();
 	NUMBER_KEYS.forEach( ( key ) => {
-		const { fallback, min, max } = NUMBER_RULES[ key ];
+		const { fallback, min, max } = rule( key );
 		values[ key ] = whole( draft.numbers[ key ], fallback, min, max );
 	} );
 	const lines = ( text: string ) =>
@@ -139,7 +156,7 @@ function snapshot( draft: Draft ): string {
  * @param text Lo escrito.
  */
 function isValidNumber( key: NumberKey, text: string ): boolean {
-	const { min, max } = NUMBER_RULES[ key ];
+	const { min, max } = rule( key );
 	return (
 		/^\d+$/.test( text ) && Number( text ) >= min && Number( text ) <= max
 	);
@@ -367,7 +384,7 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 		help: string,
 		disabled = false
 	) => {
-		const { fallback, min, max } = NUMBER_RULES[ key ];
+		const { fallback, min, max } = rule( key );
 		const text = draft.numbers[ key ];
 		const valid = isValidNumber( key, text );
 		return (
@@ -508,6 +525,17 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 								),
 								__(
 									'The most useful links to add from the entry you are editing.',
+									'magic-linking'
+								)
+							) }
+							{ number(
+								'alternatives',
+								__(
+									'Alternative sentences per suggestion',
+									'magic-linking'
+								),
+								__(
+									'0 shows one sentence per suggestion. With 1 or 2, each card offers “More sentences” to link from another sentence of the same entry.',
 									'magic-linking'
 								)
 							) }

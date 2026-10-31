@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState } from '@wordpress/element';
+import { useEffect, useId, useRef, useState } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { __, _x, sprintf } from '@wordpress/i18n';
-import type { RerankImproved, Suggestion } from '../types';
+import type {
+	RerankImproved,
+	Suggestion,
+	SuggestionAlternative,
+} from '../types';
 import type { AiMark } from './ai';
+import { AnchorAdjuster } from './AnchorAdjuster';
+import { SentenceOptions } from './SentenceOptions';
 
 /** Estado de una tarjeta después de pulsar «Enlazar». */
 export type CardStatus =
@@ -27,8 +33,23 @@ export type CardStatus =
 			ghost?: { suggestion: Suggestion; index: number };
 	  };
 
+/** Más frases y ancla ajustable (docs/07 §3.1 y §3.2); sin esto, la tarjeta es la de siempre. */
+export interface CardVariants {
+	/** La principal y las alternativas; la 0 es la principal. */
+	options: SuggestionAlternative[];
+	/** Opción que se enseña ahora. */
+	selected: number;
+	onSelect: ( option: number ) => void;
+	/** El usuario confirmó otro tramo de la frase como ancla (índices UTF-16). */
+	onAdjust: ( span: { start: number; end: number } ) => void;
+	/** Anclas que otras tarjetas de la lista llevan a otros destinos (solo salientes). */
+	taken?: { anchor: string; target_id: number }[];
+}
+
 interface Props {
 	suggestion: Suggestion;
+	/** Más frases y ancla ajustable. */
+	variants?: CardVariants;
 	direction: 'outbound' | 'inbound';
 	status?: CardStatus;
 	/** Dirección de la pantalla Historial, para el enlace de las entrantes. */
@@ -55,6 +76,7 @@ interface Props {
  * Una sugerencia: la frase con el ancla marcada, el destino, el motivo y las acciones (docs/07 §3).
  * @param root0
  * @param root0.suggestion
+ * @param root0.variants
  * @param root0.direction
  * @param root0.status
  * @param root0.historyUrl
@@ -71,6 +93,7 @@ interface Props {
  */
 export function SuggestionCard( {
 	suggestion,
+	variants,
 	direction,
 	status,
 	historyUrl,
@@ -93,6 +116,18 @@ export function SuggestionCard( {
 		status?.kind
 	);
 	const [ undoing, setUndoing ] = useState( false );
+	const [ adjusting, setAdjusting ] = useState( false );
+	const [ moreOpen, setMoreOpen ] = useState( false );
+	const adjustButton = useRef< HTMLButtonElement >( null );
+	const moreId = useId();
+	// Al cerrar el ajuste el botón vuelve a pintarse: el foco lo recoge cuando ya existe.
+	const refocus = useRef( false );
+	useEffect( () => {
+		if ( ! adjusting && refocus.current ) {
+			refocus.current = false;
+			adjustButton.current?.focus();
+		}
+	}, [ adjusting ] );
 	const kind = status?.kind;
 	useEffect( () => {
 		setUndoing( false );
@@ -111,6 +146,24 @@ export function SuggestionCard( {
 			onFocusDone?.();
 		}
 	}, [ focusRequested, kind, onFocusDone ] );
+	// Otra frase u otro ancla elegidos con el foco en la tarjeta: el resaltado del lienzo los sigue.
+	const shown = `${ suggestion.sentence }|${ suggestion.offset }|${ suggestion.anchor }`;
+	const shownBefore = useRef( shown );
+	useEffect( () => {
+		if ( shownBefore.current === shown ) {
+			return;
+		}
+		shownBefore.current = shown;
+		if (
+			cardRef.current?.contains(
+				cardRef.current.ownerDocument.activeElement
+			)
+		) {
+			onHighlight?.( suggestion );
+		}
+		// Solo cuando cambia lo que se enseña.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ shown ] );
 	const { source, target } = suggestion;
 	const title = ( post: { title?: string } ) =>
 		post.title || __( '(no title)', 'magic-linking' );
@@ -280,13 +333,79 @@ export function SuggestionCard( {
 					{ source.type_label ? ` (${ source.type_label })` : '' }
 				</p>
 			) }
-			<p className="magiclinking-card__sentence">
-				{ suggestion.before }
-				<mark className="magiclinking-card__anchor">
-					{ suggestion.anchor }
-				</mark>
-				{ suggestion.after }
-			</p>
+			{ adjusting && variants ? (
+				<AnchorAdjuster
+					postId={ source.id }
+					targetId={ target.id }
+					taken={ variants.taken }
+					sentence={ suggestion.sentence }
+					start={ suggestion.anchor_start }
+					end={ suggestion.anchor_end }
+					onApply={ ( span ) => {
+						variants.onAdjust( span );
+						refocus.current = true;
+						setAdjusting( false );
+					} }
+					onCancel={ () => {
+						refocus.current = true;
+						setAdjusting( false );
+					} }
+				/>
+			) : (
+				<p className="magiclinking-card__sentence">
+					{ suggestion.before }
+					<mark className="magiclinking-card__anchor">
+						{ suggestion.anchor }
+					</mark>
+					{ suggestion.after }
+				</p>
+			) }
+			{ variants && suggestion.can_insert && ! status && ! adjusting && (
+				<div className="magiclinking-card__variants">
+					<Button
+						ref={ adjustButton }
+						variant="link"
+						onClick={ () => setAdjusting( true ) }
+						aria-label={ sprintf(
+							/* translators: %s: title of the destination. */
+							__(
+								'Adjust anchor, link to “%s”',
+								'magic-linking'
+							),
+							title( target )
+						) }
+					>
+						{ __( 'Adjust anchor', 'magic-linking' ) }
+					</Button>
+					{ variants.options.length > 1 && (
+						<Button
+							variant="link"
+							aria-expanded={ moreOpen }
+							aria-controls={ moreId }
+							onClick={ () => setMoreOpen( ! moreOpen ) }
+						>
+							{ sprintf(
+								/* translators: %d: number of sentences to choose from. */
+								__( 'More sentences (%d)', 'magic-linking' ),
+								variants.options.length
+							) }
+						</Button>
+					) }
+				</div>
+			) }
+			{ variants && variants.options.length > 1 && (
+				<div
+					id={ moreId }
+					hidden={ ! moreOpen || !! status || adjusting }
+				>
+					<SentenceOptions
+						options={ variants.options }
+						selected={ variants.selected }
+						name={ moreId }
+						onSelect={ variants.onSelect }
+					/>
+				</div>
+			) }
 			<p className="magiclinking-card__target">
 				<span aria-hidden="true">→ </span>
 				<span className="screen-reader-text">
@@ -344,7 +463,7 @@ export function SuggestionCard( {
 						variant="primary"
 						size="compact"
 						isBusy={ busy }
-						disabled={ busy || dismissing || locked }
+						disabled={ busy || dismissing || locked || adjusting }
 						accessibleWhenDisabled
 						onClick={ () => onLink( suggestion ) }
 						aria-label={ sprintf(

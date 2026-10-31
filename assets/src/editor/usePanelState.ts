@@ -10,6 +10,7 @@ import { InsertionSync } from './sync';
 import { suggestionKey } from './keys';
 import { withGhosts, withoutGhosts } from './ghosts';
 import { useInbound, useOutbound } from './useSuggestions';
+import { useVariants, type VariantView, type Variants } from './useVariants';
 import type { Fetched } from './useSuggestions';
 
 export interface PanelState {
@@ -39,9 +40,18 @@ export interface PanelState {
 	) => string;
 	/** Deja de contar un enlace que se deshizo en el editor antes de guardar. */
 	forgetInsertion: ( insertionId: string ) => void;
+	/** Otra frase y otro tramo como ancla elegidos en las salientes (docs/07 §3.1 y §3.2). */
+	outVariants: Variants;
+	/** Lo mismo en las entrantes. */
+	inVariants: Variants;
+	/** Las entrantes de la página con sus elecciones aplicadas, por clave de la sugerencia que se enseña. */
+	inboundRowOf: Map< string, VariantView & { original: Suggestion } >;
 	/** «Mejorar con IA»: reordena las salientes con el modelo del conector (docs/04 §9). */
 	ai: AiRerank;
 }
+
+/** Lista vacía estable, para que los hooks no vean una lista nueva en cada render. */
+const NONE: Suggestion[] = [];
 
 /**
  * Datos y estado de las tarjetas del panel. Vive fuera de la barra lateral para que no se pierda al cerrarla
@@ -60,12 +70,38 @@ export function usePanelState(
 	const [ statuses, setStatuses ] = useState< Record< string, CardStatus > >(
 		{}
 	);
+	// Las tarjetas enlazadas, descartadas o en curso conservan su frase: ninguna elección se la quita.
+	const frozen = useMemo(
+		() =>
+			new Set(
+				Object.entries( statuses )
+					.filter( ( [ , status ] ) =>
+						[ 'added', 'dismissed', 'busy', 'dismissing' ].includes(
+							status.kind
+						)
+					)
+					.map( ( [ key ] ) => key )
+			),
+		[ statuses ]
+	);
+	const outVariants = useVariants( outbound.data?.items ?? NONE, frozen );
+	const inVariants = useVariants(
+		inbound.data?.items ?? NONE,
+		frozen,
+		'inbound'
+	);
 
 	// Las filas de «descartada» son de la página que se dejó: al cambiar de página se olvidan.
-	const changePage = useCallback( ( next: number ) => {
-		setStatuses( withoutGhosts );
-		setPage( next );
-	}, [] );
+	const { reset: resetInVariants } = inVariants;
+	const changePage = useCallback(
+		( next: number ) => {
+			setStatuses( withoutGhosts );
+			// Las frases y anclas elegidas son de la página que se deja.
+			resetInVariants();
+			setPage( next );
+		},
+		[ resetInVariants ]
+	);
 
 	const setStatus = useCallback(
 		( suggestion: Suggestion, status: CardStatus | null ) => {
@@ -131,11 +167,14 @@ export function usePanelState(
 	const ai = useAiRerank( adapter.postId, outbound.data, isBusy, getContent );
 
 	const { refresh } = outbound;
+	const { reset: resetOutVariants } = outVariants;
 	const refreshOutbound = useCallback( () => {
 		setStatuses( {} );
+		resetOutVariants();
 		refresh();
-	}, [ refresh ] );
+	}, [ refresh, resetOutVariants ] );
 
+	// La clave de una tarjeta es la de la sugerencia del motor, la elija el usuario la variante que la elija.
 	const isDismissed = ( item: Suggestion ) =>
 		statuses[ suggestionKey( item ) ]?.kind === 'dismissed';
 
@@ -143,16 +182,36 @@ export function usePanelState(
 		() =>
 			( outbound.data?.items ?? [] ).filter(
 				( item ) =>
+					! outVariants.hidden( item ) &&
 					statuses[ suggestionKey( item ) ]?.kind !== 'dismissed'
 			),
-		[ outbound.data, statuses ]
+		[ outbound.data, statuses, outVariants ]
 	);
 
 	// Al descartar una entrante se vuelve a pedir la página (los demás elementos suben y no se salta ninguno);
 	// la descartada ya no viene del servidor y se pone aquí donde estaba, con su *Deshacer*.
+	const inboundRows = useMemo(
+		() =>
+			( inbound.data?.items ?? [] ).flatMap( ( original ) => {
+				const shown = inVariants.view( original, original );
+				return shown ? [ { ...shown, original } ] : [];
+			} ),
+		[ inbound.data, inVariants ]
+	);
+	const inboundRowOf = useMemo(
+		() =>
+			new Map(
+				inboundRows.map( ( row ) => [ suggestionKey( row.item ), row ] )
+			),
+		[ inboundRows ]
+	);
 	const inboundItems = useMemo(
-		() => withGhosts( inbound.data?.items ?? [], statuses ),
-		[ inbound.data, statuses ]
+		() =>
+			withGhosts(
+				inboundRows.map( ( row ) => row.item ),
+				statuses
+			),
+		[ inboundRows, statuses ]
 	);
 
 	// El total del servidor ya no cuenta lo descartado antes de pedirlo; solo hay que restar lo descartado
@@ -191,5 +250,8 @@ export function usePanelState(
 		trackInsertion,
 		forgetInsertion,
 		ai,
+		outVariants,
+		inVariants,
+		inboundRowOf,
 	};
 }

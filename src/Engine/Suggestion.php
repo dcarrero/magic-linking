@@ -42,4 +42,15 @@ final class Suggestion {
 		public readonly array $alternatives = array()
 	) {
 	}
+
+	/**
+	 * La misma sugerencia con otras frases alternativas.
+	 *
+	 * @param array $alternatives Frases alternativas.
+	 *
+	 * @phpstan-param list<Suggestion> $alternatives
+	 */
+	public function with_alternatives( array $alternatives ): self {
+		return new self( $this->source, $this->target, $this->anchor, $this->sentence, $this->offset, $this->paragraph, $this->score, $this->reasons, $alternatives );
+	}
 }

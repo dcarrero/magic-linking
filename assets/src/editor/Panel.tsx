@@ -10,7 +10,9 @@ import type { EditorBoot } from './boot';
 import { suggestionKey } from './keys';
 import { Pager } from './Pager';
 import { PillarBox } from './PillarBox';
-import { SuggestionCard } from './SuggestionCard';
+import { SuggestionCard, type CardVariants } from './SuggestionCard';
+import type { VariantView, Variants } from './useVariants';
+import { optionsOf } from './variants';
 import { useServerLinkActions } from './useServerLinkActions';
 import { EmptyState, ErrorState, Loading } from './States';
 import type { PanelState } from './usePanelState';
@@ -68,6 +70,57 @@ function failureText( reason: ApplyFailure ): string {
 				'magic-linking'
 			);
 	}
+}
+
+/**
+ * Lo que la tarjeta necesita para ofrecer *Más frases* y *Ajustar ancla*, con su anuncio al elegir.
+ *
+ * @param shown    La tarjeta con las elecciones aplicadas.
+ * @param original La sugerencia tal como la dio el servidor.
+ * @param variants Elecciones de la lista.
+ * @param taken    Anclas que las otras tarjetas de la lista llevan a otros destinos (solo salientes).
+ */
+function cardVariants(
+	shown: VariantView,
+	original: Suggestion,
+	variants: Variants,
+	taken?: CardVariants[ 'taken' ]
+): CardVariants {
+	return {
+		taken,
+		options: optionsOf( shown.base ),
+		selected: shown.option,
+		onSelect: ( option ) => {
+			if ( ! variants.choose( original, option ) ) {
+				return;
+			}
+			const chosen = optionsOf( shown.base )[ option ];
+			speak(
+				sprintf(
+					/* translators: 1: position of the sentence, 2: number of sentences, 3: anchor text. */
+					__(
+						'Sentence %1$d of %2$d selected. Anchor: %3$s.',
+						'magic-linking'
+					),
+					option + 1,
+					optionsOf( shown.base ).length,
+					chosen?.anchor ?? ''
+				),
+				'polite'
+			);
+		},
+		onAdjust: ( span ) => {
+			variants.adjust( original, span );
+			speak(
+				sprintf(
+					/* translators: %s: anchor text. */
+					__( 'Anchor set: %s.', 'magic-linking' ),
+					shown.item.sentence.slice( span.start, span.end )
+				),
+				'polite'
+			);
+		},
+	};
 }
 
 /**
@@ -244,75 +297,131 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 									>
 										{ state.ai
 											.view( outbound.data.items )
+											.map( ( row ) => ( {
+												...row,
+												shown: state.outVariants.view(
+													row.item,
+													row.original
+												),
+											} ) )
 											.map(
-												( {
-													item,
-													original,
-													mark,
-													aiAnchor,
-												} ) => (
-													<SuggestionCard
-														key={ suggestionKey(
-															original
-														) }
-														suggestion={ item }
-														ai={ mark }
-														onUseAnchor={ (
-															improved
-														) =>
-															state.ai.acceptAnchor(
+												(
+													{
+														original,
+														mark,
+														aiAnchor,
+														shown,
+													},
+													_index,
+													rows
+												) => {
+													if ( ! shown ) {
+														return null;
+													}
+													// Las anclas que las demás tarjetas llevan ahora a otros destinos: el servidor no deja repetirlas.
+													const taken = rows.flatMap(
+														( other ) =>
+															other.shown &&
+															other.original !==
+																original
+																? [
+																		{
+																			anchor: other
+																				.shown
+																				.item
+																				.anchor,
+																			target_id:
+																				other
+																					.shown
+																					.item
+																					.target
+																					.id,
+																		},
+																  ]
+																: []
+													);
+													// Con otra frase u otro ancla elegidos, lo que opinó la IA ya no se refiere a lo que se ve.
+													const aiMark = shown.changed
+														? undefined
+														: mark;
+													return (
+														<SuggestionCard
+															key={ suggestionKey(
+																original
+															) }
+															suggestion={
+																shown.item
+															}
+															variants={ cardVariants(
+																shown,
 																original,
+																state.outVariants,
+																taken
+															) }
+															ai={ aiMark }
+															onUseAnchor={ (
 																improved
-															)
-														}
-														direction="outbound"
-														status={
-															statuses[
+															) =>
+																state.ai.acceptAnchor(
+																	original,
+																	improved
+																)
+															}
+															direction="outbound"
+															status={
+																statuses[
+																	suggestionKey(
+																		shown.item
+																	)
+																]
+															}
+															historyUrl={
+																boot.historyUrl
+															}
+															onLink={ ( card ) =>
+																linkOutbound(
+																	card,
+																	// Si la IA la recomendaba, se anota para el Historial (F1-38).
+																	shown.changed
+																		? null
+																		: aiLinkInfo(
+																				mark,
+																				aiAnchor
+																		  )
+																)
+															}
+															onDismiss={ (
+																card
+															) =>
+																dismiss(
+																	card,
+																	'outbound'
+																)
+															}
+															onRestore={ (
+																card
+															) =>
+																restore(
+																	card,
+																	'outbound'
+																)
+															}
+															onUndo={ undo }
+															focusRequested={
+																focusKey ===
 																suggestionKey(
-																	item
+																	shown.item
 																)
-															]
-														}
-														historyUrl={
-															boot.historyUrl
-														}
-														onLink={ ( card ) =>
-															linkOutbound(
-																card,
-																// Si la IA la recomendaba, se anota para el Historial (F1-38).
-																aiLinkInfo(
-																	mark,
-																	aiAnchor
-																)
-															)
-														}
-														onDismiss={ ( card ) =>
-															dismiss(
-																card,
-																'outbound'
-															)
-														}
-														onRestore={ ( card ) =>
-															restore(
-																card,
-																'outbound'
-															)
-														}
-														onUndo={ undo }
-														focusRequested={
-															focusKey ===
-															suggestionKey(
-																item
-															)
-														}
-														onFocusDone={
-															clearFocusKey
-														}
-														onHighlight={
-															adapter.highlight
-														}
-													/>
-												)
+															}
+															onFocusDone={
+																clearFocusKey
+															}
+															onHighlight={
+																adapter.highlight
+															}
+														/>
+													);
+												}
 											) }
 									</ul>
 								) ) }
@@ -365,48 +474,71 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 											aria-busy={ inbound.loading }
 										>
 											{ state.inboundItems.map(
-												( item ) => (
-													<SuggestionCard
-														key={ suggestionKey(
-															item
-														) }
-														suggestion={ item }
-														direction="inbound"
-														status={
-															statuses[
-																suggestionKey(
-																	item
-																)
-															]
-														}
-														historyUrl={
-															boot.historyUrl
-														}
-														onLink={ linkInbound }
-														onDismiss={ ( card ) =>
-															dismiss(
-																card,
-																'inbound'
-															)
-														}
-														onRestore={ ( card ) =>
-															restore(
-																card,
-																'inbound'
-															)
-														}
-														onUndo={ undo }
-														focusRequested={
-															focusKey ===
+												( item ) => {
+													const row =
+														state.inboundRowOf.get(
 															suggestionKey(
 																item
 															)
-														}
-														onFocusDone={
-															clearFocusKey
-														}
-													/>
-												)
+														);
+													return (
+														<SuggestionCard
+															key={ suggestionKey(
+																item
+															) }
+															suggestion={ item }
+															variants={
+																row
+																	? cardVariants(
+																			row,
+																			row.original,
+																			state.inVariants
+																	  )
+																	: undefined
+															}
+															direction="inbound"
+															status={
+																statuses[
+																	suggestionKey(
+																		item
+																	)
+																]
+															}
+															historyUrl={
+																boot.historyUrl
+															}
+															onLink={
+																linkInbound
+															}
+															onDismiss={ (
+																card
+															) =>
+																dismiss(
+																	card,
+																	'inbound'
+																)
+															}
+															onRestore={ (
+																card
+															) =>
+																restore(
+																	card,
+																	'inbound'
+																)
+															}
+															onUndo={ undo }
+															focusRequested={
+																focusKey ===
+																suggestionKey(
+																	item
+																)
+															}
+															onFocusDone={
+																clearFocusKey
+															}
+														/>
+													);
+												}
 											) }
 										</ul>
 										<Pager

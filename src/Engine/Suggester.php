@@ -407,6 +407,7 @@ final class Suggester {
 				break;
 			}
 		}
+
 		return $result;
 	}
 

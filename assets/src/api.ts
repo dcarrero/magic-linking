@@ -4,6 +4,7 @@
 import apiFetch from '@wordpress/api-fetch';
 import type { EditorTerms } from './editor/boot';
 import type {
+	AnchorCheckResponse,
 	AiCapabilities,
 	AiStatus,
 	BrokenResponse,
@@ -440,6 +441,39 @@ export const api = {
 			path: path( '/links' ),
 			method: 'POST',
 			data: { links },
+		} ),
+	/**
+	 * Comprueba en el servidor un ancla que el usuario ha ajustado dentro de la frase de una sugerencia.
+	 *
+	 * @param postId   Entrada donde irá el enlace (el origen).
+	 * @param sentence Frase de la sugerencia.
+	 * @param offset   Byte de la frase donde empieza el ancla.
+	 * @param anchor   Ancla propuesta.
+	 * @param targetId Destino del enlace (para que el ancla no lleve a dos destinos desde el origen).
+	 * @param taken    Anclas que el panel ya ha elegido para otros destinos del mismo origen.
+	 * @param signal   Para cancelar.
+	 */
+	checkAnchor: (
+		postId: number,
+		sentence: string,
+		offset: number,
+		anchor: string,
+		targetId: number,
+		taken: { anchor: string; target_id: number }[],
+		signal?: AbortSignal
+	) =>
+		apiFetch< AnchorCheckResponse >( {
+			path: path( '/suggestions/anchor' ),
+			method: 'POST',
+			data: {
+				post_id: postId,
+				sentence,
+				offset,
+				anchor,
+				target_id: targetId,
+				taken,
+			},
+			signal,
 		} ),
 	/**
 	 * Descarta para siempre el par (origen, destino): no se vuelve a proponer en ningún panel.

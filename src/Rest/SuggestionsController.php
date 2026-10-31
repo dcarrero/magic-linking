@@ -17,11 +17,17 @@ use MagicLinking\Content\InsertRequest;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\AlternativeAnchors;
+use MagicLinking\Engine\Analyzer;
+use MagicLinking\Engine\AnchorCheck;
+use MagicLinking\Engine\IgnoredWords;
 use MagicLinking\Engine\Suggester;
 use MagicLinking\Engine\Suggestion;
+use MagicLinking\Graph\GraphRepository;
 use MagicLinking\History\AiOrigin;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\Reader;
+use MagicLinking\I18n\Language;
 use MagicLinking\Index\SuggestionCache;
 use MagicLinking\Index\Suggestions;
 use Throwable;
@@ -57,6 +63,20 @@ final class SuggestionsController implements Module {
 	public const MAX_DRAFT = 2000000;
 
 	/**
+	 * Analizador por entrada, calculado una vez por petición.
+	 *
+	 * @var array<int, Analyzer>
+	 */
+	private array $analyzers = array();
+
+	/**
+	 * Patrones de las palabras ignoradas, calculados una vez por petición.
+	 *
+	 * @var list<string>|null
+	 */
+	private ?array $ignored = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Suggestions         $suggestions Sugerencias.
@@ -65,6 +85,8 @@ final class SuggestionsController implements Module {
 	 * @param Settings            $settings    Ajustes.
 	 * @param SuggestionPresenter $presenter   Forma de la respuesta.
 	 * @param Destination         $destination Comprobación del destino.
+	 * @param Language            $language    Idioma por entrada (para comprobar un ancla ajustada).
+	 * @param GraphRepository     $graph       Grafo de enlaces (para la unicidad de las anclas ajustadas).
 	 */
 	public function __construct(
 		private Suggestions $suggestions,
@@ -72,7 +94,9 @@ final class SuggestionsController implements Module {
 		private Reader $reader,
 		private Settings $settings,
 		private SuggestionPresenter $presenter,
-		private Destination $destination
+		private Destination $destination,
+		private Language $language,
+		private GraphRepository $graph
 	) {
 	}
 
@@ -174,6 +198,59 @@ final class SuggestionsController implements Module {
 			)
 		);
 
+		register_rest_route(
+			$ns,
+			'/suggestions/anchor',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'post_anchor' ),
+				'permission_callback' => array( $this, 'can_edit_post' ),
+				'args'                => array(
+					'post_id'   => $post_id,
+					'sentence'  => array(
+						'type'      => 'string',
+						'required'  => true,
+						'minLength' => 1,
+						'maxLength' => 5000,
+					),
+					'offset'    => array(
+						'type'     => 'integer',
+						'required' => true,
+						'minimum'  => 0,
+					),
+					'anchor'    => array(
+						'type'      => 'string',
+						'required'  => true,
+						'minLength' => 1,
+						'maxLength' => 500,
+					),
+					// Destino del enlace y anclas que el panel ya ha elegido para otros destinos: con ellos se comprueba
+					// que la ancla no lleve a dos destinos desde este origen (docs/04 §5.3).
+					'target_id' => array(
+						'type'    => 'integer',
+						'minimum' => 1,
+					),
+					'taken'     => array(
+						'type'     => 'array',
+						'maxItems' => 100,
+						'items'    => array(
+							'type'       => 'object',
+							'properties' => array(
+								'anchor'    => array(
+									'type'      => 'string',
+									'maxLength' => 500,
+								),
+								'target_id' => array(
+									'type'    => 'integer',
+									'minimum' => 1,
+								),
+							),
+						),
+					),
+				),
+			)
+		);
+
 		$link = array(
 			'type'       => 'object',
 			'properties' => array(
@@ -199,6 +276,8 @@ final class SuggestionsController implements Module {
 					'minLength' => 1,
 					'maxLength' => 500,
 				),
+				// F1-22: el usuario ajustó el ancla dentro de la frase; el servidor la vuelve a comprobar (docs/04 §5.5).
+				'adjusted'       => array( 'type' => 'boolean' ),
 				// F1-38: lo declara el cliente y solo informa al Historial (no sirve de auditoría); el servidor lo sanea y no
 				// cambia lo que se escribe.
 				'ai_recommended' => array( 'type' => 'boolean' ),
@@ -257,6 +336,34 @@ final class SuggestionsController implements Module {
 		$id = (int) $request['post_id'];
 
 		return ! get_post( $id ) instanceof WP_Post || current_user_can( 'edit_post', $id );
+	}
+
+	/**
+	 * POST /suggestions/anchor: comprueba un ancla que el usuario ha ajustado dentro de la frase de una sugerencia
+	 * (docs/07 §3.2). No escribe nada: dice si se puede enlazar (`valid`), por qué no (`errors`) y qué es dudoso
+	 * (`warnings`), cada uno con su código y su texto.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function post_anchor( WP_REST_Request $request ) {
+		$this->forget_anchor_cache();
+		$post_id = (int) $request['post_id'];
+		if ( ! get_post( $post_id ) instanceof WP_Post ) {
+			return $this->not_found();
+		}
+
+		$taken = $request->has_param( 'taken' ) && is_array( $request['taken'] ) ? $request['taken'] : array();
+		$check = $this->check_anchor( $post_id, (string) $request['sentence'], (int) $request['offset'], (string) $request['anchor'], (int) $request['target_id'], $taken );
+
+		return new WP_REST_Response(
+			array(
+				'valid'    => $check->valid(),
+				'errors'   => AnchorMessages::describe( $check->errors ),
+				'warnings' => AnchorMessages::describe( $check->warnings ),
+			)
+		);
 	}
 
 	/**
@@ -329,6 +436,8 @@ final class SuggestionsController implements Module {
 		// Solo se proponen frases donde el editor puede poner el enlace (docs/06 §2): el motor lee más
 		// contenedores que los bloques de texto admitidos y una sugerencia imposible volvería siempre.
 		$found = $this->insertable( null !== $content ? $content : $post->post_content, $post_id, $found );
+		// Las alternativas no repiten el ancla de otra sugerencia que se muestra (docs/04 §5.3).
+		$found = AlternativeAnchors::prune( $found, $this->analyzer( $post_id ) );
 
 		// Sin sugerencias: solo se culpa al filtro Exigir si de verdad es la causa (con él no hay candidatas y sin él sí).
 		$required = array() === $found && $this->suggestions->outgoing_limited( $post_id, $content, $title, $terms, $names ) ? $this->settings->filters_in_mode( Suggester::REQUIRE ) : array();
@@ -366,17 +475,70 @@ final class SuggestionsController implements Module {
 			} catch ( InsertionException ) {
 				continue;
 			}
+			// Las frases alternativas, por el mismo camino: una que no se puede enlazar no se ofrece (docs/07 §3.1).
+			foreach ( $suggestion->alternatives as $n => $alternative ) {
+				try {
+					$requests[ $key . ':' . $n ] = InsertRequest::from_sentence( $post_id, home_url( '/' ), $alternative->sentence, $alternative->offset, $alternative->anchor );
+				} catch ( InsertionException ) {
+					continue;
+				}
+			}
 		}
 
 		$fits = $this->inserter->can_insert_many( $content, $post_id, $requests );
 		$kept = array();
 		foreach ( $found as $key => $suggestion ) {
-			if ( $fits[ $key ] ?? false ) {
-				$kept[] = $suggestion;
+			if ( ! ( $fits[ $key ] ?? false ) ) {
+				continue;
 			}
+
+			$alternatives = array();
+			foreach ( $suggestion->alternatives as $n => $alternative ) {
+				if ( $fits[ $key . ':' . $n ] ?? false ) {
+					$alternatives[] = $alternative;
+				}
+			}
+
+			$kept[] = count( $alternatives ) === count( $suggestion->alternatives ) ? $suggestion : $suggestion->with_alternatives( $alternatives );
 		}
 
 		return $kept;
+	}
+
+	/**
+	 * Deja en cada sugerencia entrante solo las frases alternativas que se podrían enlazar en el contenido guardado de
+	 * su origen (la principal no se toca). Solo se carga el contenido de los orígenes que tienen alternativas.
+	 *
+	 * @param Suggestion[] $page Sugerencias de la página.
+	 *
+	 * @phpstan-param list<Suggestion> $page
+	 *
+	 * @return list<Suggestion>
+	 */
+	private function insertable_alternatives( array $page ): array {
+		$out = array();
+		foreach ( $page as $suggestion ) {
+			$source = get_post( $suggestion->source );
+			if ( array() === $suggestion->alternatives || ! $source instanceof WP_Post ) {
+				$out[] = $suggestion;
+				continue;
+			}
+
+			$requests = array();
+			foreach ( $suggestion->alternatives as $n => $alternative ) {
+				try {
+					$requests[ $n ] = InsertRequest::from_sentence( $source->ID, home_url( '/' ), $alternative->sentence, $alternative->offset, $alternative->anchor );
+				} catch ( InsertionException ) {
+					continue;
+				}
+			}
+
+			$fits  = $this->inserter->can_insert_many( $source->post_content, $source->ID, $requests );
+			$kept  = array_values( array_filter( $suggestion->alternatives, static fn( int $n ): bool => $fits[ $n ] ?? false, ARRAY_FILTER_USE_KEY ) );
+			$out[] = count( $kept ) === count( $suggestion->alternatives ) ? $suggestion : $suggestion->with_alternatives( $kept );
+		}
+
+		return $out;
 	}
 
 	/**
@@ -405,7 +567,7 @@ final class SuggestionsController implements Module {
 
 		// El motor da la mejor frase de cada origen y se listan todas (07 §3); `can_insert` dice cuáles puede
 		// insertar el usuario. Los permisos solo se miran en la página que se enseña, con sus entradas ya cargadas.
-		$cut = array_slice( $all, ( $page - 1 ) * $per_page, $per_page );
+		$cut = $this->insertable_alternatives( array_slice( $all, ( $page - 1 ) * $per_page, $per_page ) );
 		$this->presenter->prime( $cut );
 
 		$total    = count( $all );
@@ -450,6 +612,7 @@ final class SuggestionsController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function post_links( WP_REST_Request $request ) {
+		$this->forget_anchor_cache();
 		$links = $request['links'];
 		if ( ! is_array( $links ) || array() === $links ) {
 			$links = array(
@@ -460,6 +623,7 @@ final class SuggestionsController implements Module {
 					'offset'         => $request['offset'],
 					'anchor'         => $request['anchor'],
 					'block_path'     => $request['block_path'],
+					'adjusted'       => $request['adjusted'],
 					'ai_recommended' => $request['ai_recommended'],
 					'ai_anchor'      => $request['ai_anchor'],
 					'ai_model'       => $request['ai_model'],
@@ -503,6 +667,18 @@ final class SuggestionsController implements Module {
 				continue;
 			}
 
+			// Un ancla ajustada por el usuario pasa otra vez por los descartes de docs/04 §5.3 y por las palabras ignoradas;
+			// la del motor ya los pasó. El servidor no puede saber qué ancla venía del motor, así que sin `adjusted` no aplica esos
+			// descartes (la IA o las reglas proponen otras anclas); lo que sí exige siempre es que el tramo sea literal y que
+			// empiece y acabe en límite de palabra.
+			$problem = ! empty( $link['adjusted'] )
+				? $this->check_anchor( $post_id, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] )->errors
+				: ( AnchorCheck::cuts_word( (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] ) ? array( AnchorCheck::NOT_WORD_BOUNDARY ) : array() );
+			if ( array() !== $problem ) {
+				$results[ $index ] = $this->failure( $base, new InsertionException( InsertionException::BAD_ANCHOR, AnchorMessages::text( $problem[0] ) ) );
+				continue;
+			}
+
 			$path = isset( $link['block_path'] ) && is_string( $link['block_path'] ) && '' !== $link['block_path'] ? $link['block_path'] : null;
 			try {
 				$request = InsertRequest::from_sentence( $post_id, $url, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'], array(), $path, null, false, AiOrigin::from_input( $link ) );
@@ -511,39 +687,50 @@ final class SuggestionsController implements Module {
 				continue;
 			}
 
-			$groups[ $post_id ][ $index ] = array( $request, $base );
+			$groups[ $post_id ][ $index ] = array( $request, $base, ! empty( $link['adjusted'] ), (string) $link['anchor'] );
 		}//end foreach
 
-		foreach ( $groups as $items ) {
-			$requests = array_column( array_values( $items ), 0 );
-			$indexes  = array_keys( $items );
+		foreach ( $groups as $post_id => $items ) {
+			// Una misma ancla (por raíz) no lleva a dos destinos desde un origen (docs/04 §5.3). Se exige solo a las anclas
+			// ajustadas por el usuario, como los descartes de §5.3: las de la IA, las reglas o el Informe no cambian. Un
+			// enlace que choca con otro del mismo lote espera a ver si ese se escribe; si el otro falla, se reintenta.
+			// Sale con `break`: cada vuelta escribe al menos un enlace.
+			do {
+				$now    = array();
+				$later  = array();
+				$claims = array();
+				foreach ( $items as $index => $item ) {
+					[ $request, $base, $adjusted, $anchor ] = $item;
+					if ( $adjusted ) {
+						if ( $this->goes_elsewhere( $post_id, $base['target_id'], $anchor ) ) {
+							$results[ $index ] = $this->failure( $base, $this->anchor_taken() );
+							continue;
+						}
+						$key = $this->analyzer( $post_id )->phrase_key( $anchor );
+						if ( isset( $claims[ $key ] ) && $claims[ $key ][0] !== $base['target_id'] ) {
+							$later[ $index ] = $item;
+							continue;
+						}
+						$claims[ $key ] = array( $base['target_id'], $index );
+					}
+					$now[ $index ] = $item;
+				}
 
-			try {
-				$done = $this->inserter->insert_many( $requests, $batch );
-			} catch ( Throwable $e ) {
-				PostWriter::log( sprintf( 'Fallo inesperado al insertar enlaces en la entrada %d: %s', $requests[0]->post_id, $e->getMessage() ) );
-				$done = array_fill(
-					0,
-					count( $requests ),
-					new InsertionException( InsertionException::WRITE_FAILED, __( 'The link could not be saved; nothing was changed.', 'magic-linking' ) )
-				);
-			}
+				$failed = $this->write_group( $now, $batch, $results );
 
-			foreach ( $indexes as $position => $index ) {
-				$base   = $items[ $index ][1];
-				$result = $done[ $position ];
-
-				$results[ $index ] = $result instanceof InsertionException
-					? $this->failure( $base, $result )
-					: array_merge(
-						$base,
-						array(
-							'status'    => 'inserted',
-							'change_id' => $result->change_id,
-							'path'      => $result->path,
-						)
-					);
-			}
+				if ( array() === $later ) {
+					break;
+				}
+				// Si nadie de los que frenaron a los demás dejó de escribirse, no hay más que esperar.
+				$freed = array_filter( $claims, static fn( array $claim ): bool => isset( $failed[ $claim[1] ] ) );
+				if ( array() === $freed ) {
+					foreach ( $later as $index => $item ) {
+						$results[ $index ] = $this->failure( $item[1], $this->anchor_taken() );
+					}
+					break;
+				}
+				$items = $later;
+			} while ( true );
 		}//end foreach
 
 		ksort( $results );
@@ -564,6 +751,152 @@ final class SuggestionsController implements Module {
 				'group'    => $inserted > 0 ? $this->reader->group( $batch, get_current_user_id() ) : null,
 			)
 		);
+	}
+
+	/**
+	 * Comprobación completa de un ancla ajustada: los descartes de docs/04 §5.3, las palabras ignoradas de los ajustes y,
+	 * si se conoce el destino, que la ancla (por raíz) no lleve ya a otro destino desde este origen, según el grafo y las
+	 * anclas que el panel ya ha elegido. El analizador de cada entrada y los patrones de palabras ignoradas se calculan
+	 * una sola vez por petición.
+	 *
+	 * @param int    $post_id   Entrada donde irá el enlace.
+	 * @param string $sentence  Frase.
+	 * @param int    $offset    Byte donde empieza el ancla.
+	 * @param string $anchor    Ancla.
+	 * @param int    $target_id Destino del enlace; 0 = no se comprueba la unicidad.
+	 * @param array  $taken     Anclas ya elegidas en el panel para otros destinos: `{anchor, target_id}`.
+	 *
+	 * @phpstan-param list<array<string, mixed>> $taken
+	 */
+	private function check_anchor( int $post_id, string $sentence, int $offset, string $anchor, int $target_id = 0, array $taken = array() ): AnchorCheck {
+		$analyzer = $this->analyzer( $post_id );
+		if ( null === $this->ignored ) {
+			$this->ignored = IgnoredWords::patterns( $this->settings->all()['ignored_words'] );
+		}
+
+		$check = AnchorCheck::of( $analyzer, $sentence, $offset, $anchor );
+		if ( ! $check->valid() ) {
+			return $check;
+		}
+		if ( IgnoredWords::matches( $this->ignored, $anchor ) ) {
+			return new AnchorCheck( array( AnchorCheck::IGNORED_WORD ), $check->warnings );
+		}
+		if ( $target_id > 0 && $this->goes_elsewhere( $post_id, $target_id, $anchor, $taken ) ) {
+			return new AnchorCheck( array( AnchorCheck::ANCHOR_TAKEN ), $check->warnings );
+		}
+
+		return $check;
+	}
+
+	/**
+	 * Analizador del idioma de una entrada, calculado una vez por petición.
+	 *
+	 * @param int $post_id Entrada.
+	 */
+	private function analyzer( int $post_id ): Analyzer {
+		if ( ! isset( $this->analyzers[ $post_id ] ) ) {
+			$this->analyzers[ $post_id ] = Analyzer::for_language( $this->language->for_post( $post_id ) );
+		}
+
+		return $this->analyzers[ $post_id ];
+	}
+
+	/**
+	 * Si la ancla (por raíz, con la clave del motor) ya lleva desde esa entrada a un destino distinto: según el grafo
+	 * (que se reindexa al escribir; una edición a mano aún no reindexada no se ve) o según otras anclas ya elegidas.
+	 *
+	 * @param int    $post_id   Origen.
+	 * @param int    $target_id Destino del enlace que se quiere poner.
+	 * @param string $anchor    Ancla.
+	 * @param array  $extra     Otras anclas ya elegidas: `{anchor, target_id}`.
+	 *
+	 * @phpstan-param list<array<string, mixed>> $extra
+	 */
+	private function goes_elsewhere( int $post_id, int $target_id, string $anchor, array $extra = array() ): bool {
+		$analyzer = $this->analyzer( $post_id );
+		$key      = $analyzer->phrase_key( $anchor );
+
+		foreach ( $this->graph->links_from( array( $post_id ) )[ $post_id ] ?? array() as [ $target, $text ] ) {
+			if ( null !== $target && $target !== $target_id && $analyzer->phrase_key( $text ) === $key ) {
+				return true;
+			}
+		}
+		foreach ( $extra as $other ) {
+			if ( (int) ( $other['target_id'] ?? 0 ) !== $target_id && $analyzer->phrase_key( (string) ( $other['anchor'] ?? '' ) ) === $key ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Cada petición empieza sin lo calculado por la anterior (los ajustes pueden haber cambiado).
+	 */
+	private function forget_anchor_cache(): void {
+		$this->analyzers = array();
+		$this->ignored   = null;
+	}
+
+	/**
+	 * La negativa de una ancla que ya lleva a otro destino desde el mismo origen.
+	 */
+	private function anchor_taken(): InsertionException {
+		return new InsertionException( InsertionException::BAD_ANCHOR, AnchorMessages::text( AnchorCheck::ANCHOR_TAKEN ) );
+	}
+
+	/**
+	 * Escribe los enlaces de una entrada con una sola escritura y anota el resultado de cada uno.
+	 *
+	 * @param array  $items   Índice → [petición, datos, ajustada, ancla].
+	 * @param string $batch   Lote.
+	 * @param array  $results Resultados por índice (se rellena).
+	 *
+	 * @phpstan-param array<int, array{0: InsertRequest, 1: array<string, mixed>, 2: bool, 3: string}> $items
+	 * @phpstan-param array<int, array<string, mixed>> $results
+	 *
+	 * @return array<int, true> Índices que no se escribieron.
+	 */
+	private function write_group( array $items, string $batch, array &$results ): array {
+		if ( array() === $items ) {
+			return array();
+		}
+
+		$requests = array_column( array_values( $items ), 0 );
+		$indexes  = array_keys( $items );
+		$failed   = array();
+
+		try {
+			$done = $this->inserter->insert_many( $requests, $batch );
+		} catch ( Throwable $e ) {
+			PostWriter::log( sprintf( 'Fallo inesperado al insertar enlaces en la entrada %d: %s', $requests[0]->post_id, $e->getMessage() ) );
+			$done = array_fill(
+				0,
+				count( $requests ),
+				new InsertionException( InsertionException::WRITE_FAILED, __( 'The link could not be saved; nothing was changed.', 'magic-linking' ) )
+			);
+		}
+
+		foreach ( $indexes as $position => $index ) {
+			$base   = $items[ $index ][1];
+			$result = $done[ $position ];
+			if ( $result instanceof InsertionException ) {
+				$failed[ $index ]  = true;
+				$results[ $index ] = $this->failure( $base, $result );
+				continue;
+			}
+
+			$results[ $index ] = array_merge(
+				$base,
+				array(
+					'status'    => 'inserted',
+					'change_id' => $result->change_id,
+					'path'      => $result->path,
+				)
+			);
+		}
+
+		return $failed;
 	}
 
 	/**

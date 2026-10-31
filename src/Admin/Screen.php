@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Admin;
 
 use MagicLinking\Core\Module;
+use MagicLinking\Core\Settings;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
 use MagicLinking\Rest\SettingsController;
@@ -254,6 +255,7 @@ final class Screen implements Module {
 					'perPage'     => self::per_page(),
 					'wizard'      => current_user_can( 'manage_options' ) ? ! get_user_meta( get_current_user_id(), SettingsController::wizard_meta_key(), true ) : false,
 					'settingsUrl' => self::page_url( 'settings' ),
+					'intRanges'   => Settings::INT_RANGES,
 					'initialTab'  => $this->screens[ $hook_suffix ],
 					'tabUrls'     => array(
 						'report'   => self::page_url( 'report' ),

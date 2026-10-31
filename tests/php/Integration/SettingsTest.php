@@ -79,6 +79,13 @@ final class SettingsTest extends GraphTestCase {
 		$this->assertSame( 5, $all['same_anchor_max'], 'Igual que Scorer::OVERUSED.' );
 		$this->assertSame( array(), $all['ignored_urls'] );
 		$this->assertSame( array(), $all['ignored_words'] );
+		$this->assertSame( 0, $all['alternatives'], 'D-33: sin frases alternativas hasta que el banco las valide.' );
+	}
+
+	public function test_the_alternative_sentences_are_bounded_from_0_to_2(): void {
+		$this->assertSame( 2, $this->settings()->update( array( 'alternatives' => 9 ) )['alternatives'] );
+		$this->assertSame( 0, $this->settings()->update( array( 'alternatives' => -3 ) )['alternatives'] );
+		$this->assertSame( 1, $this->settings()->update( array( 'alternatives' => '1' ) )['alternatives'] );
 	}
 
 	public function test_a_site_that_saved_settings_with_0_10_0_keeps_them_and_gets_the_new_defaults(): void {
