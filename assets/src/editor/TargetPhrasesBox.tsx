@@ -5,7 +5,6 @@ import {
 	TextControl,
 	TextareaControl,
 } from '@wordpress/components';
-import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { TargetPhrase, TargetPhrasesState } from '../types';
@@ -28,23 +27,15 @@ const toDraft = ( entry: TargetPhrase ): Draft => ( {
 } );
 
 /**
- * Variantes limpias, como las limpia el servidor: sin espacios sobrantes, sin líneas vacías y sin repetir.
+ * Variantes sin espacios sobrantes ni líneas vacías. Lo repetido lo quita el servidor y lo avisa en `removed`.
  *
  * @param text Una variante por línea.
  */
-const cleanVariants = ( text: string ): string[] => {
-	const seen = new Set< string >();
-	const out: string[] = [];
-	for ( const line of text.split( '\n' ) ) {
-		const variant = line.replace( /\s+/g, ' ' ).trim();
-		const key = variant.toLowerCase();
-		if ( variant !== '' && ! seen.has( key ) ) {
-			seen.add( key );
-			out.push( variant );
-		}
-	}
-	return out;
-};
+const cleanVariants = ( text: string ): string[] =>
+	text
+		.split( '\n' )
+		.map( ( line ) => line.replace( /\s+/g, ' ' ).trim() )
+		.filter( ( variant ) => variant !== '' );
 
 const toPhrase = ( draft: Draft ): TargetPhrase => ( {
 	phrase: draft.phrase,
@@ -95,6 +86,7 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 			.then( ( result ) => {
 				if ( ! controller.signal.aborted ) {
 					loadedFor.current = postId;
+					setError( '' );
 					load( result );
 				}
 			} )
@@ -122,6 +114,41 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 		chars: 120,
 	};
 	const dirty = signature( drafts ) !== saved;
+	/**
+	 * Lo que el servidor rechazaría por tamaño, para decirlo junto al campo sin enviar nada.
+	 *
+	 * @param draft Fila.
+	 */
+	const problem = ( draft: Draft ): string => {
+		const variants = cleanVariants( draft.variants );
+		if ( variants.length > limits.variants ) {
+			return sprintf(
+				/* translators: %d: maximum number of variants per phrase. */
+				_n(
+					'Each phrase can have up to %d variant.',
+					'Each phrase can have up to %d variants.',
+					limits.variants,
+					'magic-linking'
+				),
+				limits.variants
+			);
+		}
+		const long = [ draft.phrase.trim(), ...variants ].find(
+			( text ) => text.length > limits.chars
+		);
+		return long === undefined
+			? ''
+			: sprintf(
+					/* translators: 1: the start of the phrase, 2: maximum number of characters. */
+					__(
+						'“%1$s…” is too long: a phrase can have up to %2$d characters.',
+						'magic-linking'
+					),
+					long.slice( 0, 40 ),
+					limits.chars
+			  );
+	};
+	const blocked = drafts.some( ( draft ) => problem( draft ) !== '' );
 
 	const update = ( key: number, change: Partial< Draft > ) => {
 		setStatus( '' );
@@ -177,7 +204,6 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 						  )
 						: '';
 				setStatus( message + dropped );
-				speak( message + dropped, 'polite' );
 			} )
 			.catch( ( e: unknown ) => {
 				setError(
@@ -255,6 +281,14 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 											} )
 										}
 									/>
+									{ problem( draft ) !== '' && (
+										<p
+											className="magiclinking-panel__phrases-error"
+											id={ `${ panelId }-problem-${ draft.key }` }
+										>
+											{ problem( draft ) }
+										</p>
+									) }
 									<CheckboxControl
 										__nextHasNoMarginBottom
 										label={ __(
@@ -306,7 +340,9 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 					</Button>
 					<Button
 						variant="primary"
-						disabled={ ! dirty || saving || state === null }
+						disabled={
+							! dirty || blocked || saving || state === null
+						}
 						isBusy={ saving }
 						onClick={ save }
 					>

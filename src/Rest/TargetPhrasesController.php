@@ -12,6 +12,7 @@ namespace MagicLinking\Rest;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Analyzer;
+use MagicLinking\Engine\PhraseFinder;
 use MagicLinking\I18n\Language;
 use MagicLinking\Index\TargetPhrases;
 use WP_Error;
@@ -65,6 +66,17 @@ final class TargetPhrasesController implements Module {
 						'phrases' => array(
 							'type'     => 'array',
 							'required' => true,
+							'items'    => array(
+								'type'       => 'object',
+								'properties' => array(
+									'phrase'   => array( 'type' => array( 'string', 'number', 'null' ) ),
+									'variants' => array(
+										'type'  => 'array',
+										'items' => array( 'type' => array( 'string', 'number' ) ),
+									),
+									'gap'      => array( 'type' => 'boolean' ),
+								),
+							),
 						),
 					),
 				),
@@ -88,6 +100,15 @@ final class TargetPhrasesController implements Module {
 			return new WP_Error( 'rest_invalid_param', __( 'The phrases must be a list.', 'magic-linking' ), array( 'status' => 400 ) );
 		}
 
+		// Nada se pierde en silencio: una entrada que no es un objeto, o un valor que no es texto ni número, se rechaza.
+		foreach ( $phrases as $entry ) {
+			$variants = is_array( $entry ) ? ( $entry['variants'] ?? array() ) : null;
+			$texts    = is_array( $variants ) ? array_merge( array( $entry['phrase'] ?? null ), $variants ) : null;
+			if ( null === $texts || array_filter( $texts, static fn( $text ): bool => null !== $text && ! is_string( $text ) && ! is_int( $text ) && ! is_float( $text ) ) ) {
+				return new WP_Error( 'rest_invalid_param', __( 'Each phrase needs its text, and its variants must be text.', 'magic-linking' ), array( 'status' => 400 ) );
+			}
+		}
+
 		$list = TargetPhrases::clean( $phrases, false )['phrases'];
 		if ( count( $list ) > TargetPhrases::MAX_PHRASES ) {
 			/* translators: %d: maximum number of phrases. */
@@ -104,6 +125,10 @@ final class TargetPhrasesController implements Module {
 				if ( mb_strlen( $text ) > TargetPhrases::MAX_CHARS ) {
 					/* translators: 1: the start of the phrase, 2: maximum number of characters. */
 					return new WP_Error( 'rest_invalid_param', sprintf( __( '“%1$s…” is too long: a phrase can have up to %2$d characters.', 'magic-linking' ), mb_substr( $text, 0, 40 ), TargetPhrases::MAX_CHARS ), array( 'status' => 400 ) );
+				}
+				if ( ! PhraseFinder::has_content( $analyzer->tokenizer()->tokenize( $text ), $analyzer ) ) {
+					/* translators: %s: the phrase. */
+					return new WP_Error( 'rest_invalid_param', sprintf( __( '“%s” has no content word: add a word that is not an article, a preposition or a number, or the engine will never use it.', 'magic-linking' ), $text ), array( 'status' => 400 ) );
 				}
 				if ( TargetPhrases::words( $text, $analyzer ) > TargetPhrases::MAX_WORDS ) {
 					/* translators: 1: the phrase, 2: maximum number of words. */

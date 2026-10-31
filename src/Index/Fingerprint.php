@@ -20,11 +20,14 @@ final class Fingerprint {
 	/**
 	 * Huella de una entrada.
 	 *
-	 * @param WP_Post $post Entrada.
-	 * @param string  $html Contenido que se analiza (con el filtro `magiclinking_post_html` aplicado).
+	 * @param WP_Post    $post Entrada.
+	 * @param string     $html Contenido que se analiza (con el filtro `magiclinking_post_html` aplicado).
+	 * @param array|null $user Textos del usuario ya leídos ({@see TargetPhrases::indexed()}); null para leerlos.
+	 *
+	 * @phpstan-param list<string>|null $user
 	 */
-	public static function of( WP_Post $post, string $html ): string {
-		return sha1( implode( "\0", array( $post->post_title, implode( "\x1f", self::focus( $post->ID ) ), $html ) ) );
+	public static function of( WP_Post $post, string $html, ?array $user = null ): string {
+		return sha1( implode( "\0", array( $post->post_title, implode( "\x1f", self::focus( $post->ID, $user ) ), $html ) ) );
 	}
 
 	/**

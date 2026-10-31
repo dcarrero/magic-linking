@@ -129,11 +129,15 @@ final class TargetPhrases {
 	}
 
 	/**
-	 * Un texto como lo guarda el motor: sin etiquetas, con los espacios colapsados y recortado.
+	 * Un texto como lo guarda el motor: sin etiquetas, con los espacios colapsados y recortado. Los números pasan a texto.
 	 *
 	 * @param mixed $text Texto.
 	 */
 	public static function tidy( mixed $text ): string {
+		// Un número escrito como frase («2025») es texto; lo que no es texto ni número no es una frase.
+		if ( is_int( $text ) || is_float( $text ) ) {
+			$text = (string) $text;
+		}
 		if ( ! is_string( $text ) ) {
 			return '';
 		}
@@ -154,7 +158,7 @@ final class TargetPhrases {
 
 	/**
 	 * Limpia una lista: quita lo vacío y lo repetido (sin mirar mayúsculas; la primera aparición manda), conserva el
-	 * orden y, con `$capped`, respeta los máximos. Un texto repetido se quita solo a sí mismo: la frase conserva sus
+	 * orden y, con `$capped`, respeta los máximos (lo que queda fuera por el tope no cuenta como visto). Un texto repetido se quita solo a sí mismo: la frase conserva sus
 	 * otras variantes y su hueco. Si la frase está vacía o repetida, la primera variante que quede pasa a ser la frase;
 	 * sin variantes, la entrada desaparece. Lo repetido se devuelve en `removed` para avisar al usuario.
 	 *
@@ -173,6 +177,10 @@ final class TargetPhrases {
 			if ( ! is_array( $entry ) ) {
 				continue;
 			}
+			// Con el tope, lo que queda fuera no se da por visto: otra frase puede usarlo.
+			if ( $capped && count( $clean ) >= self::MAX_PHRASES ) {
+				break;
+			}
 			// Frase y variantes en una sola lista; la primera que queda es la frase.
 			$texts = array_merge( array( $entry['phrase'] ?? '' ), is_array( $entry['variants'] ?? null ) ? $entry['variants'] : array() );
 			$kept  = array();
@@ -186,6 +194,9 @@ final class TargetPhrases {
 					$removed[ $low ] = $text;
 					continue;
 				}
+				if ( $capped && count( $kept ) > self::MAX_VARIANTS ) {
+					break;
+				}
 				$seen[ $low ] = true;
 				$kept[]       = $text;
 			}
@@ -193,19 +204,15 @@ final class TargetPhrases {
 				continue;
 			}
 
-			$phrase = array_shift( $kept );
-			if ( $capped ) {
-				$kept = array_slice( $kept, 0, self::MAX_VARIANTS );
-			}
 			$clean[] = array(
-				'phrase'   => $phrase,
+				'phrase'   => array_shift( $kept ),
 				'variants' => $kept,
 				'gap'      => filter_var( $entry['gap'] ?? false, FILTER_VALIDATE_BOOLEAN ),
 			);
 		}//end foreach
 
 		return array(
-			'phrases' => $capped ? array_slice( $clean, 0, self::MAX_PHRASES ) : $clean,
+			'phrases' => $clean,
 			'removed' => array_values( $removed ),
 		);
 	}

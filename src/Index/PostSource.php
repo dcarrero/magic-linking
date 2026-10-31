@@ -126,15 +126,18 @@ final class PostSource implements DocumentSource {
 	/**
 	 * Documento de una entrada.
 	 *
-	 * @param WP_Post $post Entrada.
-	 * @param string  $html Contenido que se analiza; por defecto, el de la entrada con el filtro aplicado.
+	 * @param WP_Post    $post Entrada.
+	 * @param string     $html Contenido que se analiza; por defecto, el de la entrada con el filtro aplicado.
+	 * @param array|null $mine Frases objetivo del usuario ya leídas ({@see TargetPhrases::indexed()}); null para leerlas.
+	 *
+	 * @phpstan-param array{texts: list<string>, gapped: list<string>}|null $mine
 	 */
-	public function from_post( WP_Post $post, ?string $html = null ): Document {
+	public function from_post( WP_Post $post, ?string $html = null, ?array $mine = null ): Document {
 		$content = $this->extractor->extract( $html ?? self::html_of( $post ) );
 		$title   = PostTitle::of( $post );
 		$date    = strtotime( $post->post_modified_gmt . ' UTC' );
 
-		$mine = TargetPhrases::indexed( $post->ID );
+		$mine ??= TargetPhrases::indexed( $post->ID );
 
 		return new Document(
 			$post->ID,

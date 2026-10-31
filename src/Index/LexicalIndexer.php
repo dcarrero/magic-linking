@@ -333,10 +333,11 @@ final class LexicalIndexer {
 			}
 
 			$html = PostSource::html_of( $post );
+			$mine = TargetPhrases::indexed( $id );
 
 			yield array(
-				'doc'  => $this->source->from_post( $post, $html ),
-				'hash' => Fingerprint::of( $post, $html ),
+				'doc'  => $this->source->from_post( $post, $html, $mine ),
+				'hash' => Fingerprint::of( $post, $html, $mine['texts'] ),
 			);
 		}
 	}

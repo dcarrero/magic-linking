@@ -14,7 +14,10 @@ jest.mock( '../../api', () => ( {
 	errorMessage: ( e: unknown, fallback: string ) =>
 		e instanceof Error && e.message ? e.message : fallback,
 } ) );
-jest.mock( '@wordpress/a11y', () => ( { speak: jest.fn() } ) );
+const mockSpeak = jest.fn();
+jest.mock( '@wordpress/a11y', () => ( {
+	speak: ( ...args: unknown[] ) => mockSpeak( ...args ),
+} ) );
 jest.mock( '@wordpress/components', () => {
 	// eslint-disable-next-line @typescript-eslint/no-var-requires
 	const { forwardRef } = require( 'react' );
@@ -153,6 +156,7 @@ describe( 'TargetPhrasesBox', () => {
 	beforeEach( () => {
 		mockGet.mockReset();
 		mockSet.mockReset();
+		mockSpeak.mockReset();
 	} );
 
 	it( 'no pide nada al servidor hasta abrir la sección y la abre con el botón', async () => {
@@ -266,7 +270,7 @@ describe( 'TargetPhrasesBox', () => {
 		).toBe( 'ab' );
 	} );
 
-	it( 'limpia las variantes antes de enviarlas: sin líneas vacías ni repetidas', async () => {
+	it( 'quita las líneas vacías antes de enviar y deja lo repetido al servidor', async () => {
 		mockGet.mockResolvedValue( state() );
 		mockSet.mockResolvedValue( state() );
 		const host = await mount();
@@ -290,7 +294,7 @@ describe( 'TargetPhrasesBox', () => {
 		expect( mockSet ).toHaveBeenCalledWith( 5, [
 			{
 				phrase: 'principal',
-				variants: [ 'uno', 'dos', 'tres' ],
+				variants: [ 'uno', 'dos', 'UNO', 'tres' ],
 				gap: false,
 			},
 		] );
@@ -338,5 +342,87 @@ describe( 'TargetPhrasesBox', () => {
 			( host.querySelector( 'input:not([type])' ) as HTMLInputElement )
 				.disabled
 		).toBe( false );
+	} );
+
+	it( 'anuncia el resultado una sola vez: por la región de estado, sin speak()', async () => {
+		mockGet.mockResolvedValue(
+			state( [ { phrase: 'a', variants: [], gap: false } ] )
+		);
+		mockSet.mockResolvedValue(
+			state( [ { phrase: 'ab', variants: [], gap: false } ] )
+		);
+		const host = await mount();
+		await act( async () => {
+			button( host, 'Target phrases' ).click();
+		} );
+		await type(
+			host.querySelector( 'input:not([type])' ) as HTMLInputElement,
+			'ab'
+		);
+		await act( async () => {
+			button( host, 'Save phrases' ).click();
+		} );
+		expect(
+			host.querySelector( '[role="status"]' )?.textContent
+		).toContain( 'saved' );
+		expect( mockSpeak ).not.toHaveBeenCalled();
+	} );
+
+	it( 'avisa junto al campo de demasiadas variantes o de un texto largo y no envía', async () => {
+		mockGet.mockResolvedValue( state() );
+		const host = await mount();
+		await act( async () => {
+			button( host, 'Target phrases' ).click();
+		} );
+		await act( async () => {
+			button( host, 'Add phrase' ).click();
+		} );
+		await type(
+			host.querySelector( 'input:not([type])' ) as HTMLInputElement,
+			'principal'
+		);
+		await type(
+			host.querySelector( 'textarea' ) as HTMLTextAreaElement,
+			'a1\nb2\nc3\nd4\ne5\nf6\n\n'
+		);
+		expect( host.querySelector( 'fieldset' )?.textContent ).toContain(
+			'Each phrase can have up to 5 variants.'
+		);
+		expect( button( host, 'Save phrases' ).disabled ).toBe( true );
+
+		await type(
+			host.querySelector( 'textarea' ) as HTMLTextAreaElement,
+			'x'.repeat( 121 )
+		);
+		expect( host.querySelector( 'fieldset' )?.textContent ).toContain(
+			'is too long: a phrase can have up to 120 characters.'
+		);
+		expect( button( host, 'Save phrases' ).disabled ).toBe( true );
+		expect( mockSet ).not.toHaveBeenCalled();
+
+		await type(
+			host.querySelector( 'textarea' ) as HTMLTextAreaElement,
+			'ok'
+		);
+		expect( button( host, 'Save phrases' ).disabled ).toBe( false );
+	} );
+
+	it( 'al cargar bien después de un fallo, quita el aviso de error', async () => {
+		mockGet.mockRejectedValueOnce( new Error( 'Boom' ) );
+		mockGet.mockResolvedValue( state() );
+		const host = await mount();
+		await act( async () => {
+			button( host, 'Target phrases' ).click();
+		} );
+		expect( host.querySelector( '[role="alert"]' )?.textContent ).toBe(
+			'Boom'
+		);
+		await act( async () => {
+			button( host, 'Target phrases' ).click();
+		} );
+		await act( async () => {
+			button( host, 'Target phrases' ).click();
+		} );
+		expect( host.querySelector( '[role="alert"]' ) ).toBeNull();
 	} );
 } );

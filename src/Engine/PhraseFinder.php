@@ -247,7 +247,7 @@ final class PhraseFinder {
 	 *
 	 * @phpstan-param list<Token> $tokens
 	 */
-	private static function has_content( array $tokens, Analyzer $analyzer ): bool {
+	public static function has_content( array $tokens, Analyzer $analyzer ): bool {
 		foreach ( $tokens as $token ) {
 			if ( $analyzer->is_content( $token ) ) {
 				return true;

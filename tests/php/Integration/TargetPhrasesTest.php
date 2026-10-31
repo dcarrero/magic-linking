@@ -158,7 +158,7 @@ final class TargetPhrasesTest extends GraphTestCase {
 				),
 				array(
 					'phrase'   => '   ',
-					'variants' => array( 'huérfana', 'otra' ),
+					'variants' => array( 'huérfana', 'cocina nueva' ),
 					'gap'      => false,
 				),
 				array(
@@ -179,7 +179,7 @@ final class TargetPhrasesTest extends GraphTestCase {
 				),
 				array(
 					'phrase'   => 'huérfana',
-					'variants' => array( 'otra' ),
+					'variants' => array( 'cocina nueva' ),
 					'gap'      => false,
 				),
 			),
@@ -189,7 +189,7 @@ final class TargetPhrasesTest extends GraphTestCase {
 		$this->assertEqualsCanonicalizing( array( 'REFORMA DE COCINA', 'obra de cocina' ), $data['removed'], 'Lo repetido se devuelve para avisar al usuario.' );
 		$this->assertSame( $data['phrases'], $this->request( 'GET', '/target-phrases/' . $this->target )->get_data()['phrases'] );
 		$this->assertSame( array(), $this->request( 'GET', '/target-phrases/' . $this->target )->get_data()['removed'] );
-		$this->assertSame( array( 'reforma de cocina', 'obra de cocina', 'huérfana', 'otra' ), Fingerprint::focus( $this->target ) );
+		$this->assertSame( array( 'reforma de cocina', 'obra de cocina', 'huérfana', 'cocina nueva' ), Fingerprint::focus( $this->target ) );
 	}
 
 	public function test_a_phrase_equal_to_an_earlier_variant_loses_only_that_text(): void {
@@ -228,7 +228,7 @@ final class TargetPhrasesTest extends GraphTestCase {
 	}
 
 	public function test_variant_limit_counts_cleaned_variants_not_blank_lines_or_repeats(): void {
-		$variants = array( 'uno', 'dos', '', '  ', 'dos', 'tres', 'cuatro', 'cinco', 'Uno' );
+		$variants = array( 'alfa', 'beta', '', '  ', 'beta', 'gamma', 'delta', 'epsilon', 'Alfa' );
 		$ok       = $this->save(
 			array(
 				array(
@@ -245,7 +245,7 @@ final class TargetPhrasesTest extends GraphTestCase {
 			array(
 				array(
 					'phrase'   => 'principal',
-					'variants' => array( 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis' ),
+					'variants' => array( 'alfa', 'beta', 'gamma', 'delta', 'epsilon', 'zeta' ),
 					'gap'      => false,
 				),
 			)
@@ -270,7 +270,7 @@ final class TargetPhrasesTest extends GraphTestCase {
 		$slashes = $this->save(
 			array(
 				array(
-					'phrase'   => 'una/dos/tres/cuatro/cinco/seis/siete/ocho/nueve',
+					'phrase'   => 'alfa/beta/gamma/delta/epsilon/zeta/eta/theta/iota',
 					'variants' => array(),
 					'gap'      => false,
 				),
@@ -437,5 +437,132 @@ final class TargetPhrasesTest extends GraphTestCase {
 		remove_filter( 'get_post_metadata', $count, 10 );
 
 		$this->assertSame( 1, $reads, 'Textos y hueco salen de una sola lectura.' );
+	}
+
+	public function test_a_malformed_request_is_rejected_and_never_erases_the_saved_list(): void {
+		$good = array(
+			array(
+				'phrase'   => 'reforma de cocina',
+				'variants' => array(),
+				'gap'      => true,
+			),
+		);
+		$this->save( $good );
+
+		foreach ( array(
+			array( 'reforma' ),
+			array( 5 ),
+			array( array( 'phrase' => array( 'x' ) ) ),
+			array(
+				array(
+					'phrase'   => 'bien',
+					'variants' => array( array( 'a' ) ),
+				),
+			),
+		) as $bad ) {
+			$this->assertSame( 400, $this->save( $bad )->get_status(), wp_json_encode( $bad ) );
+		}
+		$this->assertSame( 'reforma de cocina', TargetPhrases::get( $this->target )[0]['phrase'] );
+	}
+
+	public function test_numbers_become_text_and_are_never_lost(): void {
+		$clean = TargetPhrases::clean(
+			array(
+				array(
+					'phrase'   => 'tarifa',
+					'variants' => array( 2026, 1.5, null ),
+					'gap'      => false,
+				),
+			)
+		);
+		$this->assertSame(
+			array(
+				'tarifa',
+				'variants' => array( '2026', '1.5' ),
+			),
+			array(
+				$clean['phrases'][0]['phrase'],
+				'variants' => $clean['phrases'][0]['variants'],
+			)
+		);
+	}
+
+	public function test_a_phrase_without_a_content_word_is_rejected_with_a_clear_message(): void {
+		foreach ( array( 'de la y', 'los 2025', '2026' ) as $text ) {
+			$response = $this->save(
+				array(
+					array(
+						'phrase'   => $text,
+						'variants' => array(),
+						'gap'      => false,
+					),
+				)
+			);
+			$this->assertSame( 400, $response->get_status(), $text );
+			$this->assertStringContainsString( 'content word', $response->get_data()['message'], $text );
+		}
+
+		$this->assertSame(
+			400,
+			$this->save(
+				array(
+					array(
+						'phrase'   => 'reforma de cocina',
+						'variants' => array( 'de la' ),
+						'gap'      => false,
+					),
+				)
+			)->get_status(),
+			'También las variantes.'
+		);
+	}
+
+	public function test_what_the_cap_cuts_is_not_marked_as_seen(): void {
+		$variants = array( 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7' );
+		$clean    = TargetPhrases::clean(
+			array(
+				array(
+					'phrase'   => 'principal',
+					'variants' => $variants,
+					'gap'      => false,
+				),
+				array(
+					'phrase'   => 'V7',
+					'variants' => array(),
+					'gap'      => false,
+				),
+			)
+		);
+
+		$this->assertSame( array( 'v1', 'v2', 'v3', 'v4', 'v5' ), $clean['phrases'][0]['variants'] );
+		$this->assertSame( 'V7', $clean['phrases'][1]['phrase'], 'La variante recortada no hace repetida a la frase siguiente.' );
+		$this->assertSame( array(), $clean['removed'] );
+	}
+
+	public function test_indexing_an_entry_reads_the_phrases_once(): void {
+		$this->save(
+			array(
+				array(
+					'phrase'   => 'reforma de cocina',
+					'variants' => array( 'obra de cocina' ),
+					'gap'      => true,
+				),
+			)
+		);
+
+		$reads = 0;
+		$count = static function ( $value, $object_id, $meta_key ) use ( &$reads ) {
+			if ( TargetPhrases::KEY === $meta_key ) {
+				++$reads;
+			}
+			return $value;
+		};
+		add_filter( 'get_post_metadata', $count, 10, 3 );
+		$indexer   = Plugin::container()->get( \MagicLinking\Index\LexicalIndexer::class );
+		$documents = new \ReflectionMethod( $indexer, 'documents' );
+		iterator_to_array( $documents->invoke( $indexer, array( $this->target ) ) );
+		remove_filter( 'get_post_metadata', $count, 10 );
+
+		$this->assertSame( 1, $reads, 'El documento y la huella salen de una sola lectura.' );
 	}
 }
