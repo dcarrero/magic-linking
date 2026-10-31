@@ -161,6 +161,9 @@ final class Jobs implements Module {
 		foreach ( array( 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ) as $hook ) {
 			add_action( $hook, array( $this, 'on_exclusion_meta' ), 10, 3 );
 		}
+		// Entrar en una categoría excluida en Ajustes (o salir de ella) saca la entrada del índice o la mete (F1-16).
+		add_action( 'set_object_terms', array( $this, 'on_terms_set' ), 10, 6 );
+		add_action( 'deleted_term_relationships', array( $this, 'on_terms_removed' ), 10, 3 );
 	}
 
 	/**
@@ -202,6 +205,72 @@ final class Jobs implements Module {
 			$this->reindex_now( $post_id );
 		} catch ( Throwable $e ) {
 			// La marca ya está guardada: la petición no falla por el índice. Se reintenta en cola.
+			unset( $e );
+			as_enqueue_async_action( self::HOOK_POSTS, array( array( $post_id ), false ), Installer::ACTION_GROUP, true );
+		}
+	}
+
+	/**
+	 * Se asignan términos a una entrada: si cambia su pertenencia a una categoría excluida, se reevalúa.
+	 *
+	 * @param int          $object_id  Entrada.
+	 * @param array<mixed> $terms      Términos recibidos (no se usa).
+	 * @param int[]        $tt_ids     `term_taxonomy_id` asignados.
+	 * @param string       $taxonomy   Taxonomía (no se usa).
+	 * @param bool         $append     Se añaden a los que ya tenía.
+	 * @param int[]        $old_tt_ids Los que tenía antes.
+	 */
+	public function on_terms_set( $object_id, $terms, $tt_ids, $taxonomy, $append = false, $old_tt_ids = array() ): void {
+		unset( $terms, $taxonomy );
+		$excluded = Exclusions::excluded_terms();
+		if ( array() === $excluded ) {
+			return;
+		}
+		$old = array_map( 'intval', (array) $old_tt_ids );
+		$new = array_map( 'intval', (array) $tt_ids );
+		$new = $append ? array_merge( $old, $new ) : $new;
+
+		if ( array() !== array_intersect( array_merge( array_diff( $old, $new ), array_diff( $new, $old ) ), $excluded ) ) {
+			$this->category_changed( (int) $object_id );
+		}
+	}
+
+	/**
+	 * Se quitan términos de una entrada: si alguno es una categoría excluida, se reevalúa.
+	 *
+	 * @param int          $object_id Entrada.
+	 * @param array<mixed> $tt_ids    `term_taxonomy_id` quitados.
+	 * @param string       $taxonomy  Taxonomía (no se usa).
+	 */
+	public function on_terms_removed( $object_id, $tt_ids = array(), $taxonomy = '' ): void {
+		unset( $taxonomy );
+		if ( array() !== array_intersect( array_map( 'intval', (array) $tt_ids ), Exclusions::excluded_terms() ) ) {
+			$this->category_changed( (int) $object_id );
+		}
+	}
+
+	/**
+	 * Reevalúa una entrada cuya pertenencia a una categoría excluida ha cambiado, igual que un cambio de su marca.
+	 *
+	 * @param int $post_id Entrada.
+	 */
+	private function category_changed( int $post_id ): void {
+		if ( $post_id <= 0 || in_array( $post_id, $this->deleting, true ) ) {
+			return;
+		}
+
+		$type = get_post_type( $post_id );
+		if ( ! is_string( $type ) || ! in_array( $type, $this->settings->post_types(), true ) ) {
+			return;
+		}
+
+		// La caché de términos de la entrada puede no estar limpia todavía: la elegibilidad se lee de ella.
+		clean_object_term_cache( $post_id, $type );
+		SuggestionCache::bump();
+
+		try {
+			$this->reindex_now( $post_id );
+		} catch ( Throwable $e ) {
 			unset( $e );
 			as_enqueue_async_action( self::HOOK_POSTS, array( array( $post_id ), false ), Installer::ACTION_GROUP, true );
 		}

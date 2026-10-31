@@ -134,7 +134,7 @@ final class RuleService {
 			return self::IGNORED;
 		}
 		// Una entrada excluida del análisis (Informe) tampoco recibe ni es destino de reglas automáticas.
-		if ( Exclusions::is_excluded( $post->ID ) || Exclusions::is_excluded( $rule->target_id ) ) {
+		if ( Exclusions::is_out( $post->ID ) || Exclusions::is_out( $rule->target_id ) ) {
 			return self::EXCLUDED_ENTRY;
 		}
 		if ( ! in_array( $post->post_type, $this->settings->post_types(), true ) ) {

@@ -92,14 +92,19 @@ final class Suggestions {
 	 * @param bool    $inbound Entrantes: el destino tiene que estar publicado.
 	 * @param bool    $draft   Se analiza el contenido del editor (una entrada nueva también vale).
 	 *
-	 * @return string `ok`, `index_not_ready`, `not_analyzed`, `excluded` o `not_published`.
+	 * @return string `ok`, `index_not_ready`, `not_analyzed`, `excluded`, `excluded_category` o `not_published`.
 	 */
 	public function state( WP_Post $post, bool $inbound = false, bool $draft = false ): string {
 		if ( ! $this->ready() ) {
 			return 'index_not_ready';
 		}
-		if ( in_array( $post->post_type, $this->settings->post_types(), true ) && Exclusions::is_excluded( $post->ID ) ) {
-			return 'excluded';
+		if ( in_array( $post->post_type, $this->settings->post_types(), true ) ) {
+			if ( Exclusions::is_excluded( $post->ID ) ) {
+				return 'excluded';
+			}
+			if ( Exclusions::in_excluded_category( $post->ID ) ) {
+				return 'excluded_category';
+			}
 		}
 		if ( ! $this->analyzes( $post, $draft ) ) {
 			return 'not_analyzed';
@@ -507,9 +512,9 @@ final class Suggestions {
 		return new Suggester(
 			$repository,
 			$documents,
-			new Indexer(),
+			new Indexer( array( 'k' => (int) $all['k_terms'] ) ),
 			new PhraseFinder(),
-			new Scorer( array(), Scorer::THRESHOLD, Scorer::DENSITY, Scorer::MIN_RELEVANCE, self::BONUSES, (int) $all['same_anchor_max'] ),
+			new Scorer( array(), (int) $all['score_threshold'] / 100, Scorer::DENSITY, Scorer::MIN_RELEVANCE, self::BONUSES, (int) $all['same_anchor_max'] ),
 			new Retriever( $repository ),
 			array_merge( $defaults, $options )
 		);

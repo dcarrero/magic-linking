@@ -272,6 +272,31 @@
 		padding: 0;
 	}
 
+	// Categorías que se pueden dejar fuera: una lista con scroll propio cuando son muchas (F1-16).
+	.magiclinking-categories__list {
+		border: 1px solid #dcdcde;
+		border-radius: 2px;
+		display: grid;
+		gap: 10px;
+		max-height: 18rem;
+		overflow-y: auto;
+		padding: 12px;
+	}
+
+	// Ajustes avanzados, plegados por defecto.
+	.magiclinking-advanced {
+		> summary {
+			cursor: pointer;
+			font-size: 14px;
+			font-weight: 600;
+			margin-bottom: 16px;
+		}
+
+		> .components-base-control + .components-base-control {
+			margin-top: 28px;
+		}
+	}
+
 	.description {
 		margin: 0;
 	}

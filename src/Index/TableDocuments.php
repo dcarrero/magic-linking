@@ -68,7 +68,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 			return;
 		}
 
-		_prime_post_caches( $ids, $this->posts->taxonomies_enabled(), true );
+		_prime_post_caches( $ids, $this->posts->taxonomies_enabled() || Exclusions::needs_terms(), true );
 
 		$links        = $this->graph->links_from( $ids );
 		$this->stored = array();

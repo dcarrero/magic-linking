@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-31T19:28:41+00:00\n"
+"POT-Creation-Date: 2026-10-31T20:31:15+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -917,7 +917,7 @@ msgstr ""
 msgid "The rule could not be saved. Try again."
 msgstr ""
 
-#: src/Rest/SettingsController.php:204
+#: src/Rest/SettingsController.php:215
 msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
 msgstr ""
 
@@ -1706,6 +1706,18 @@ msgstr ""
 #: assets/build/editor.js:35
 #: assets/build/index.js:78
 msgid "This entry is excluded from the analysis, so it has no suggestions and is not suggested anywhere. Include it again from the report."
+msgstr ""
+
+#: assets/build/classic.js:35
+#: assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is in a category that is excluded from the analysis, so it has no suggestions and is not suggested anywhere. You can change the excluded categories in Settings."
+msgstr ""
+
+#: assets/build/classic.js:35
+#: assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Open the settings"
 msgstr ""
 
 #: assets/build/classic.js:35
@@ -3556,6 +3568,14 @@ msgid "Magic Linking reads these content types to find links between them."
 msgstr ""
 
 #: assets/build/index.js:106
+msgid "Categories left out"
+msgstr ""
+
+#: assets/build/index.js:106
+msgid "Entries in the categories you tick are not analyzed, like an entry you exclude yourself: they get no suggestions and are not suggested anywhere."
+msgstr ""
+
+#: assets/build/index.js:106
 msgid "Maintenance"
 msgstr ""
 
@@ -3593,6 +3613,14 @@ msgstr ""
 
 #: assets/build/index.js:106
 msgid "When an entry is shown as linked too little."
+msgstr ""
+
+#: assets/build/index.js:106
+msgid "Advanced"
+msgstr ""
+
+#: assets/build/index.js:106
+msgid "The defaults suit almost every site. Change them only if you know what they do."
 msgstr ""
 
 #: assets/build/index.js:106
@@ -4034,6 +4062,26 @@ msgid "An entry with at least one inbound link but fewer than this number is sho
 msgstr ""
 
 #: assets/build/index.js:116
+msgid "Show advanced settings"
+msgstr ""
+
+#: assets/build/index.js:116
+msgid "Key terms per entry"
+msgstr ""
+
+#: assets/build/index.js:116
+msgid "How many of the most important terms of each entry are kept to find related entries (20 to 80). Changing it makes Magic Linking analyze your site again."
+msgstr ""
+
+#: assets/build/index.js:116
+msgid "Score threshold (%)"
+msgstr ""
+
+#: assets/build/index.js:116
+msgid "A suggestion is shown only if its score reaches this percentage. Higher shows fewer, surer suggestions; lower shows more. It does not analyze your site again."
+msgstr ""
+
+#: assets/build/index.js:116
 msgid "Headings"
 msgstr ""
 
@@ -4124,6 +4172,14 @@ msgstr ""
 #: assets/build/index.js:116
 #: assets/build/index.js:125
 msgid "Content types to analyze"
+msgstr ""
+
+#: assets/build/index.js:116
+msgid "The content types you analyze have no categories."
+msgstr ""
+
+#: assets/build/index.js:116
+msgid "Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones."
 msgstr ""
 
 #: assets/build/index.js:116

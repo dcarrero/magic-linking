@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T19:28:34+00:00\n"
+"POT-Creation-Date: 2026-10-31T20:30:58+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -863,7 +863,7 @@ msgstr "No tienes permiso para editar esta entrada."
 msgid "The rule could not be saved. Try again."
 msgstr "No se ha podido guardar la regla. Inténtalo de nuevo."
 
-#: src/Rest/SettingsController.php:204
+#: src/Rest/SettingsController.php:215
 msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
 msgstr "Ese modelo funciona por lotes, no en directo, así que no sirve para el editor. Elige otro o déjalo en automático."
 
@@ -1506,6 +1506,16 @@ msgstr "Esta entrada aún no está analizada. Guárdala y actualiza dentro de un
 #: assets/build/index.js:78
 msgid "This entry is excluded from the analysis, so it has no suggestions and is not suggested anywhere. Include it again from the report."
 msgstr "Esta entrada está excluida del análisis: no tiene sugerencias y no se sugiere en ninguna otra. Vuelve a incluirla desde el informe."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is in a category that is excluded from the analysis, so it has no suggestions and is not suggested anywhere. You can change the excluded categories in Settings."
+msgstr "Esta entrada está en una categoría excluida del análisis, así que no tiene sugerencias ni se sugiere en ningún sitio. Puedes cambiar las categorías excluidas en Ajustes."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Open the settings"
+msgstr "Abrir los ajustes"
 
 #: assets/build/classic.js:35 assets/build/editor.js:35
 #: assets/build/index.js:78
@@ -3145,6 +3155,14 @@ msgid "Magic Linking reads these content types to find links between them."
 msgstr "Magic Linking lee estos tipos de contenido para encontrar enlaces entre ellos."
 
 #: assets/build/index.js:106
+msgid "Categories left out"
+msgstr "Categorías excluidas"
+
+#: assets/build/index.js:106
+msgid "Entries in the categories you tick are not analyzed, like an entry you exclude yourself: they get no suggestions and are not suggested anywhere."
+msgstr "Las entradas de las categorías que marques no se analizan, igual que una entrada que excluyes tú: no tienen sugerencias ni se sugieren en ningún sitio."
+
+#: assets/build/index.js:106
 msgid "Maintenance"
 msgstr "Mantenimiento"
 
@@ -3183,6 +3201,14 @@ msgstr "Entradas poco enlazadas"
 #: assets/build/index.js:106
 msgid "When an entry is shown as linked too little."
 msgstr "Cuándo se muestra una entrada como poco enlazada."
+
+#: assets/build/index.js:106
+msgid "Advanced"
+msgstr "Avanzado"
+
+#: assets/build/index.js:106
+msgid "The defaults suit almost every site. Change them only if you know what they do."
+msgstr "Los valores por defecto sirven para casi cualquier sitio. Cámbialos solo si sabes lo que hacen."
 
 #: assets/build/index.js:106
 msgid "Where links can be inserted"
@@ -3607,6 +3633,26 @@ msgid "An entry with at least one inbound link but fewer than this number is sho
 msgstr "Una entrada con al menos un enlace entrante pero menos que este número se muestra como poco enlazada."
 
 #: assets/build/index.js:116
+msgid "Show advanced settings"
+msgstr "Mostrar los ajustes avanzados"
+
+#: assets/build/index.js:116
+msgid "Key terms per entry"
+msgstr "Términos clave por entrada"
+
+#: assets/build/index.js:116
+msgid "How many of the most important terms of each entry are kept to find related entries (20 to 80). Changing it makes Magic Linking analyze your site again."
+msgstr "Cuántos de los términos más importantes de cada entrada se guardan para encontrar entradas relacionadas (de 20 a 80). Al cambiarlo, Magic Linking vuelve a analizar tu sitio."
+
+#: assets/build/index.js:116
+msgid "Score threshold (%)"
+msgstr "Umbral de puntuación (%)"
+
+#: assets/build/index.js:116
+msgid "A suggestion is shown only if its score reaches this percentage. Higher shows fewer, surer suggestions; lower shows more. It does not analyze your site again."
+msgstr "Una sugerencia solo se muestra si su puntuación llega a este porcentaje. Más alto muestra menos sugerencias, pero más seguras; más bajo muestra más. No vuelve a analizar tu sitio."
+
+#: assets/build/index.js:116
 msgid "Headings"
 msgstr "Encabezados"
 
@@ -3697,6 +3743,14 @@ msgstr "Elimina sus tablas, el historial y los ajustes. Los enlaces que ya hay e
 #: assets/build/index.js:116 assets/build/index.js:125
 msgid "Content types to analyze"
 msgstr "Tipos de contenido que se analizan"
+
+#: assets/build/index.js:116
+msgid "The content types you analyze have no categories."
+msgstr "Los tipos de contenido que analizas no tienen categorías."
+
+#: assets/build/index.js:116
+msgid "Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones."
+msgstr "Cuenta solo la categoría exacta: sus subcategorías no se excluyen con ella. Al guardar, Magic Linking vuelve a analizar tu sitio. La lista sigue los tipos de contenido ya guardados, así que guarda primero si acabas de elegir otros nuevos."
 
 #: assets/build/index.js:116
 msgid "Save settings"

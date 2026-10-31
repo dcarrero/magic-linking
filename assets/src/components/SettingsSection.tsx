@@ -28,6 +28,14 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 				'magic-linking'
 			),
 		},
+		excludedCategories: {
+			...SECTION_META.excludedCategories,
+			title: __( 'Categories left out', 'magic-linking' ),
+			description: __(
+				'Entries in the categories you tick are not analyzed, like an entry you exclude yourself: they get no suggestions and are not suggested anywhere.',
+				'magic-linking'
+			),
+		},
 		maintenance: {
 			...SECTION_META.maintenance,
 			title: __( 'Maintenance', 'magic-linking' ),
@@ -65,6 +73,14 @@ export function settingsSections(): Record< SectionKey, SectionInfo > {
 			title: __( 'Under-linked entries', 'magic-linking' ),
 			description: __(
 				'When an entry is shown as linked too little.',
+				'magic-linking'
+			),
+		},
+		advanced: {
+			...SECTION_META.advanced,
+			title: __( 'Advanced', 'magic-linking' ),
+			description: __(
+				'The defaults suit almost every site. Change them only if you know what they do.',
 				'magic-linking'
 			),
 		},

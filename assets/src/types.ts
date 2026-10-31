@@ -250,6 +250,12 @@ export interface SettingsValues {
 	ignored_words: string[];
 	/** Filtros de las sugerencias por tipo, categoría y etiqueta (docs/04 §4.3). */
 	filters: SuggestionFilters;
+	/** `term_taxonomy_id` de las categorías cuyas entradas quedan fuera del análisis (F1-16). */
+	excluded_categories: number[];
+	/** Avanzado: términos que se guardan por entrada (K, docs/04 §3). */
+	k_terms: number;
+	/** Avanzado: umbral de puntuación del motor, en tanto por ciento (docs/04 §6). */
+	score_threshold: number;
 	/** Tope diario de tokens de IA; 0 = sin IA (docs/05 §5.3). */
 	ai_daily_token_limit: number;
 	/** Modelo de texto preferido; vacío = automático (docs/05 §4). */
@@ -265,9 +271,17 @@ export interface WizardResponse {
 	ai: 'connected' | 'none' | 'unavailable';
 }
 
+export interface CategoryGroup {
+	taxonomy: string;
+	label: string;
+	terms: { id: number; name: string; depth: number }[];
+}
+
 export interface SettingsResponse {
 	settings: SettingsValues;
 	post_types: { name: string; label: string }[];
+	/** Categorías entre las que elegir las que se excluyen, por taxonomía y en orden de jerarquía. */
+	category_groups: CategoryGroup[];
 	job?: Job | null;
 }
 
@@ -576,6 +590,7 @@ export type SuggestionState =
 	| 'index_not_ready'
 	| 'not_analyzed'
 	| 'excluded'
+	| 'excluded_category'
 	| 'not_published';
 
 /** Destino al que la entrada ya enlaza, para el bloque «Enlaces actuales» (docs/07 §3.3). */

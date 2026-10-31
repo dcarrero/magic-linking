@@ -18,10 +18,12 @@ export const TAB_NAMES: SettingsTabName[] = [
 
 export type SectionKey =
 	| 'content'
+	| 'excludedCategories'
 	| 'suggestions'
 	| 'overload'
 	| 'underlinked'
 	| 'filters'
+	| 'advanced'
 	| 'insertion'
 	| 'manner'
 	| 'aiConnector'
@@ -38,11 +40,16 @@ export const SECTION_META: Record<
 	{ id: string; tab: SettingsTabName }
 > = {
 	content: { id: 'magiclinking-s-content', tab: 'general' },
+	excludedCategories: {
+		id: 'magiclinking-s-excluded-categories',
+		tab: 'general',
+	},
 	maintenance: { id: 'magiclinking-maintenance', tab: 'general' },
 	suggestions: { id: 'magiclinking-s-suggestions', tab: 'suggestions' },
 	overload: { id: 'magiclinking-s-overload', tab: 'suggestions' },
 	underlinked: { id: 'magiclinking-s-underlinked', tab: 'suggestions' },
 	filters: { id: 'magiclinking-s-filters', tab: 'suggestions' },
+	advanced: { id: 'magiclinking-s-advanced', tab: 'suggestions' },
 	insertion: { id: 'magiclinking-s-insertion', tab: 'links' },
 	manner: { id: 'magiclinking-s-manner', tab: 'links' },
 	exclusions: { id: 'magiclinking-s-exclusions', tab: 'links' },
@@ -69,6 +76,9 @@ export const LEGACY_ANCHORS: Record< string, SettingsTabName > =
  */
 const TAB_OF: Record< keyof SettingsValues, SettingsTabName > = {
 	post_types: 'general',
+	excluded_categories: 'general',
+	k_terms: 'suggestions',
+	score_threshold: 'suggestions',
 	outbound_shown: 'suggestions',
 	alternatives: 'suggestions',
 	inbound_per_page: 'suggestions',

@@ -83,7 +83,7 @@ final class GraphIndexer {
 		return null !== $post
 			&& 'publish' === $post->post_status
 			&& in_array( $post->post_type, $this->settings->post_types(), true )
-			&& ! Exclusions::is_excluded( $post->ID );
+			&& ! Exclusions::is_out( $post->ID );
 	}
 
 	/**
@@ -147,7 +147,7 @@ final class GraphIndexer {
 		$post_ids = array_map( 'intval', $post_ids );
 
 		if ( count( $post_ids ) > 1 ) {
-			_prime_post_caches( $post_ids, false, true );
+			_prime_post_caches( $post_ids, Exclusions::needs_terms(), true );
 		}
 
 		$docs      = $this->repository->docs_by_ids( $post_ids );

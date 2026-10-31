@@ -25,6 +25,7 @@ use MagicLinking\Content\PostWriter;
 use MagicLinking\Content\Repairer;
 use MagicLinking\Graph\AnchorUsage;
 use MagicLinking\Graph\BrokenRepository;
+use MagicLinking\Engine\Indexer;
 use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\GraphRepository;
 use MagicLinking\Graph\LinkResolver;
@@ -232,7 +233,9 @@ final class Plugin {
 			LexicalIndexer::class          => static fn( Container $c ): LexicalIndexer => new LexicalIndexer(
 				$c->get( TableRepository::class ),
 				$c->get( PostSource::class ),
-				$c->get( JobRepository::class )
+				$c->get( JobRepository::class ),
+				// K términos por entrada (Ajustes → Avanzado): cambiarlo reconstruye el índice.
+				static fn(): Indexer => new Indexer( array( 'k' => $c->get( Settings::class )->k_terms() ) )
 			),
 			TableDocuments::class          => static function ( Container $c ): TableDocuments {
 				global $wpdb;

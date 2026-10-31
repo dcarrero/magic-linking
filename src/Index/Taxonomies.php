@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace MagicLinking\Index;
 
+use MagicLinking\Core\Settings;
+
 /**
  * Las claves son las taxonomías lógicas del motor (`category`, `post_tag`, ver
  * {@see \MagicLinking\Engine\Suggester::FILTERS}) y los valores, los `term_taxonomy_id` como texto: dos entradas
@@ -184,5 +186,112 @@ final class Taxonomies {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Taxonomías de categoría (la jerárquica principal) de los tipos indicados, sin repetir.
+	 *
+	 * @param array $post_types Tipos de contenido.
+	 *
+	 * @phpstan-param list<string> $post_types
+	 *
+	 * @return list<string> Nombres de taxonomía.
+	 */
+	public static function category_taxonomies( array $post_types ): array {
+		$names = array();
+		foreach ( $post_types as $type ) {
+			$name = self::primary( $type, 'category' );
+			if ( null !== $name && ! in_array( $name, $names, true ) ) {
+				$names[] = $name;
+			}
+		}
+
+		return $names;
+	}
+
+	/**
+	 * De los `term_taxonomy_id` recibidos, los que son de la categoría principal de algún tipo analizado (una consulta).
+	 *
+	 * @param array $tt_ids     `term_taxonomy_id`.
+	 * @param array $post_types Tipos analizados.
+	 *
+	 * @phpstan-param list<int>    $tt_ids
+	 * @phpstan-param list<string> $post_types
+	 *
+	 * @return list<int> Los válidos, en el mismo orden.
+	 */
+	public static function filter_category_terms( array $tt_ids, array $post_types ): array {
+		global $wpdb;
+
+		$names = self::category_taxonomies( $post_types );
+		if ( array() === $tt_ids || array() === $names ) {
+			return array();
+		}
+
+		$ids   = implode( ',', array_map( 'intval', $tt_ids ) );
+		$in    = implode( ',', array_fill( 0, count( $names ), '%s' ) );
+		$valid = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Los IDs son enteros; marcadores generados.
+			$wpdb->prepare( "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id IN ({$ids}) AND taxonomy IN ({$in})", $names ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
+		);
+		$valid = array_map( 'intval', $valid );
+
+		return array_values( array_filter( $tt_ids, static fn( int $id ): bool => in_array( $id, $valid, true ) ) );
+	}
+
+	/**
+	 * Categorías entre las que elegir las que se excluyen del análisis (Ajustes), por taxonomía y en orden de jerarquía.
+	 *
+	 * @param array $post_types Tipos analizados.
+	 *
+	 * @phpstan-param list<string> $post_types
+	 *
+	 * @return list<array{taxonomy: string, label: string, terms: list<array{id: int, name: string, depth: int}>}>
+	 */
+	public static function category_groups( array $post_types ): array {
+		$groups = array();
+		foreach ( self::category_taxonomies( $post_types ) as $name ) {
+			$taxonomy = get_taxonomy( $name );
+			$terms    = get_terms(
+				array(
+					'taxonomy'   => $name,
+					'hide_empty' => false,
+					'orderby'    => 'name',
+					'number'     => Settings::MAX_EXCLUDED_CATEGORIES,
+				)
+			);
+			if ( ! $taxonomy || ! is_array( $terms ) ) {
+				continue;
+			}
+
+			$by_parent = array();
+			$known     = array();
+			foreach ( $terms as $term ) {
+				$known[ $term->term_id ] = true;
+			}
+			foreach ( $terms as $term ) {
+				$by_parent[ isset( $known[ $term->parent ] ) ? $term->parent : 0 ][] = $term;
+			}
+
+			$flat  = array();
+			$visit = static function ( int $parent_id, int $depth ) use ( &$visit, &$flat, $by_parent ): void {
+				foreach ( $by_parent[ $parent_id ] ?? array() as $term ) {
+					$flat[] = array(
+						'id'    => (int) $term->term_taxonomy_id,
+						'name'  => html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ),
+						'depth' => $depth,
+					);
+					$visit( $term->term_id, $depth + 1 );
+				}
+			};
+			$visit( 0, 0 );
+
+			$groups[] = array(
+				'taxonomy' => $name,
+				'label'    => (string) ( $taxonomy->labels->name ?? $name ),
+				'terms'    => $flat,
+			);
+		}//end foreach
+
+		return $groups;
 	}
 }
