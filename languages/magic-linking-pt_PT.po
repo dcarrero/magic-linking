@@ -3,18 +3,18 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Magic Linking 0.20.0\n"
+"Project-Id-Version: Magic Linking 0.24.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-30T23:07:51+00:00\n"
-"PO-Revision-Date: 2026-10-15 12:00+0000\n"
+"POT-Creation-Date: 2026-10-31T09:29:52+00:00\n"
+"PO-Revision-Date: 2026-10-31 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Português de Portugal\n"
 "Language: pt_PT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Domain: magic-linking\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: magic-linking\n"
 
 #. Plugin Name of the plugin
 #: magic-linking.php
@@ -109,7 +109,7 @@ msgstr "Histórico"
 
 #: src/Admin/Screen.php:158 assets/build/index.js:114
 msgid "Rules"
-msgstr ""
+msgstr "Regras"
 
 #: src/Admin/Screen.php:162 assets/build/index.js:114
 msgid "Settings"
@@ -200,7 +200,7 @@ msgstr "Ação desconhecida. Use: list, undo, redo, purge ou export."
 
 #: src/Cli/Command.php:674 src/Cli/Command.php:708
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:477
+#: src/Rest/SuggestionsController.php:481
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Não tem permissão para editar um dos conteúdos envolvidos."
 
@@ -261,7 +261,7 @@ msgstr[1] "%d linhas do histórico eliminadas."
 #: src/Cli/Command.php:804 src/Cli/RulesCommand.php:301
 #: src/Rest/AiController.php:225 src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95 src/Rest/PillarController.php:127
-#: src/Rest/SuggestionsController.php:633
+#: src/Rest/SuggestionsController.php:637
 msgid "That entry does not exist."
 msgstr "Esse conteúdo não existe."
 
@@ -287,86 +287,86 @@ msgstr "Não foi possível abrir a saída."
 
 #: src/Cli/RulesCommand.php:152
 msgid "The rule could not be saved."
-msgstr ""
+msgstr "Não foi possível guardar a regra."
 
 #. translators: %d: rule ID.
 #: src/Cli/RulesCommand.php:155
 #, php-format
 msgid "Rule %d created."
-msgstr ""
+msgstr "Regra %d criada."
 
 #. translators: %d: rule ID.
 #: src/Cli/RulesCommand.php:174
 #, php-format
 msgid "Rule %d does not exist."
-msgstr ""
+msgstr "A regra %d não existe."
 
 #. translators: %d: rule ID.
 #: src/Cli/RulesCommand.php:177
 #, php-format
 msgid "Rule %d deleted."
-msgstr ""
+msgstr "Regra %d eliminada."
 
 #: src/Cli/RulesCommand.php:203
 msgid "That rule does not exist."
-msgstr ""
+msgstr "Essa regra não existe."
 
 #: src/Cli/RulesCommand.php:225
 msgid "No entry found using the index, which can miss some matches. Run it again with --full to check every entry."
-msgstr ""
+msgstr "Nenhum conteúdo encontrado através do índice, que pode deixar passar algumas correspondências. Execute novamente com --full para verificar todos os conteúdos."
 
 #. translators: %d: number of entries.
 #: src/Cli/RulesCommand.php:227
 #, php-format
 msgid "%d entry where the rule fits."
 msgid_plural "%d entries where the rule fits."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d conteúdo onde a regra se aplica."
+msgstr[1] "%d conteúdos onde a regra se aplica."
 
 #. translators: 1: number of entries shown, 2: entry ID to continue after.
 #: src/Cli/RulesCommand.php:230
 #, php-format
 msgid "%1$d entries shown. Continue with --after=%2$d"
-msgstr ""
+msgstr "%1$d conteúdos apresentados. Continue com --after=%2$d"
 
 #: src/Cli/RulesCommand.php:254 src/Rest/RulesController.php:646
 msgid "That rule or entry does not exist."
-msgstr ""
+msgstr "Essa regra ou esse conteúdo não existe."
 
 #: src/Cli/RulesCommand.php:260
 msgid "Nothing to link."
-msgstr ""
+msgstr "Nada para ligar."
 
 #: src/Cli/RulesCommand.php:267
 msgid "Nothing was written. Add --yes to add these links."
-msgstr ""
+msgstr "Nada foi escrito. Adicione --yes para adicionar estas ligações."
 
 #: src/Cli/RulesCommand.php:278 src/Cli/RulesCommand.php:319
 #: assets/build/index.js:86
 msgid "Nothing was added."
-msgstr ""
+msgstr "Nada foi adicionado."
 
 #. translators: 1: number of links added, 2: history batch ID.
 #: src/Cli/RulesCommand.php:282
 #, php-format
 msgid "%1$d link added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
 msgid_plural "%1$d links added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%1$d ligação adicionada (lote %2$s). Para anular: wp magic-linking history undo %2$s"
+msgstr[1] "%1$d ligações adicionadas (lote %2$s). Para anular: wp magic-linking history undo %2$s"
 
 #. translators: 1: rule ID, 2: reason.
 #: src/Cli/RulesCommand.php:311 src/Cli/RulesCommand.php:315
 #, php-format
 msgid "Rule %1$d: %2$s"
-msgstr ""
+msgstr "Regra %1$d: %2$s"
 
 #. translators: %d: number of links added.
 #: src/Cli/RulesCommand.php:322 assets/build/index.js:86
 #, php-format
 msgid "%d link added."
 msgid_plural "%d links added."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d ligação adicionada."
+msgstr[1] "%d ligações adicionadas."
 
 #: src/Content/BlockEditor.php:57 src/Content/LinkFixer.php:58
 msgid "The block structure of this post could not be read, so it was left untouched."
@@ -741,11 +741,11 @@ msgstr "Esse processo não existe."
 
 #: src/Rest/RulesController.php:653
 msgid "You do not have permission to edit this entry."
-msgstr ""
+msgstr "Não tem permissão para editar este conteúdo."
 
 #: src/Rest/RulesController.php:660
 msgid "The rule could not be saved. Try again."
-msgstr ""
+msgstr "Não foi possível guardar a regra. Tente novamente."
 
 #: src/Rest/SettingsController.php:201
 msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
@@ -773,115 +773,115 @@ msgstr "O destino é órfão (0 ligações de entrada)"
 msgid "Very similar in meaning"
 msgstr "Muito semelhante em significado"
 
-#: src/Rest/SuggestionsController.php:469
+#: src/Rest/SuggestionsController.php:473
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Cada ligação precisa do conteúdo, do destino, da frase, da posição e da âncora."
 
-#: src/Rest/SuggestionsController.php:524
+#: src/Rest/SuggestionsController.php:528
 msgid "The link could not be saved; nothing was changed."
 msgstr "Não foi possível guardar a ligação; nada foi alterado."
 
 #: src/Rules/RuleService.php:100
 msgid "The entry is not published."
-msgstr ""
+msgstr "O conteúdo não está publicado."
 
 #: src/Rules/RuleService.php:102
 msgid "The rule excludes this content type."
-msgstr ""
+msgstr "A regra exclui este tipo de conteúdo."
 
 #: src/Rules/RuleService.php:103
 msgid "The rule excludes a category of this entry."
-msgstr ""
+msgstr "A regra exclui uma categoria deste conteúdo."
 
 #: src/Rules/RuleService.php:104
 msgid "The entry is in a different language than the destination."
-msgstr ""
+msgstr "O conteúdo está noutro idioma, diferente do destino."
 
 #: src/Rules/RuleService.php:106
 msgid "This rule was already applied to the entry (or undone there), so it is not applied again by itself."
-msgstr ""
+msgstr "Esta regra já foi aplicada ao conteúdo (ou anulada nele), por isso não é aplicada novamente de forma automática."
 
 #: src/Rules/RuleService.php:107
 msgid "The entry or the destination is in your list of ignored URLs."
-msgstr ""
+msgstr "O conteúdo ou o destino está na sua lista de URL ignorados."
 
 #: src/Rules/RuleService.php:108
 msgid "The person who created the rule can no longer manage the site or edit this entry."
-msgstr ""
+msgstr "A pessoa que criou a regra já não pode gerir o site nem editar este conteúdo."
 
 #: src/Rules/RuleService.php:109
 msgid "Someone has the entry open in the editor."
-msgstr ""
+msgstr "Alguém tem o conteúdo aberto no editor."
 
 #: src/Rules/RuleService.php:110
 msgid "The entry is the destination itself."
-msgstr ""
+msgstr "O conteúdo é o próprio destino."
 
 #: src/Rules/RuleService.php:111
 msgid "The entry already has as many internal links as its length allows."
-msgstr ""
+msgstr "O conteúdo já tem todas as ligações internas que o seu tamanho permite."
 
 #: src/Rules/RuleService.php:112
 msgid "The entry already links to the destination as many times as allowed."
-msgstr ""
+msgstr "O conteúdo já tem ligações para o destino o número máximo de vezes permitido."
 
 #: src/Rules/RuleService.php:113
 msgid "That anchor already points to the destination from as many entries as allowed."
-msgstr ""
+msgstr "Essa âncora já aponta para o destino a partir do número máximo de conteúdos permitido."
 
 #: src/Rules/RuleService.php:114
 msgid "No phrase of the rule fits in the text."
-msgstr ""
+msgstr "Nenhuma frase da regra se encaixa no texto."
 
 #: src/Rules/RuleValidator.php:63
 msgid "The destination must be a published entry of a content type that Magic Linking analyzes."
-msgstr ""
+msgstr "O destino tem de ser um conteúdo publicado de um tipo de conteúdo que o Magic Linking analisa."
 
 #: src/Rules/RuleValidator.php:66
 msgid "That entry is in your list of ignored URLs, so it cannot be a destination."
-msgstr ""
+msgstr "Esse conteúdo está na sua lista de URL ignorados, por isso não pode ser um destino."
 
 #: src/Rules/RuleValidator.php:82
 msgid "Write at least one phrase to link."
-msgstr ""
+msgstr "Escreva pelo menos uma frase para ligar."
 
 #. translators: %d: maximum number of links a rule can add to one entry.
 #: src/Rules/RuleValidator.php:87
 #, php-format
 msgid "Links per entry must be between 1 and %d."
-msgstr ""
+msgstr "As ligações por conteúdo têm de estar entre 1 e %d."
 
 #. translators: %d: links to the same target allowed from one entry (a setting).
 #: src/Rules/RuleValidator.php:94
 #, php-format
 msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
 msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "As suas definições permitem %d ligação para o mesmo destino a partir de um conteúdo, por isso uma regra não pode adicionar mais do que isso. Aumente «Ligações para o mesmo destino a partir de um conteúdo» em Definições para usar um valor mais alto."
+msgstr[1] "As suas definições permitem %d ligações para o mesmo destino a partir de um conteúdo, por isso uma regra não pode adicionar mais do que isso. Aumente «Ligações para o mesmo destino a partir de um conteúdo» em Definições para usar um valor mais alto."
 
 #. translators: %d: maximum characters of a phrase.
 #: src/Rules/RuleValidator.php:147
 #, php-format
 msgid "A phrase can have at most %d characters."
-msgstr ""
+msgstr "Uma frase pode ter no máximo %d carateres."
 
 #. translators: 1: the phrase, 2: maximum number of words.
 #: src/Rules/RuleValidator.php:151
 #, php-format
 msgid "“%1$s” is not a usable phrase: it needs between 1 and %2$d words."
-msgstr ""
+msgstr "«%1$s» não é uma frase utilizável: tem de ter entre 1 e %2$d palavras."
 
 #. translators: %s: the phrase.
 #: src/Rules/RuleValidator.php:158
 #, php-format
 msgid "“%s” has no meaningful word to link (only articles, prepositions or numbers)."
-msgstr ""
+msgstr "«%s» não tem nenhuma palavra significativa para ligar (apenas artigos, preposições ou números)."
 
 #. translators: %d: maximum number of phrases in one rule.
 #: src/Rules/RuleValidator.php:168
 #, php-format
 msgid "A rule can have at most %d phrases."
-msgstr ""
+msgstr "Uma regra pode ter no máximo %d frases."
 
 #. translators: 1: tokens used, 2: model name.
 #: assets/build/classic.js:2 assets/build/editor.js:2
@@ -991,43 +991,43 @@ msgstr "Seguinte"
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Could not load the pillar content mark."
-msgstr ""
+msgstr "Não foi possível carregar a marcação de conteúdo pilar."
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Also marked as cornerstone content in Yoast SEO. Change that mark there."
-msgstr ""
+msgstr "Também marcado como conteúdo cornerstone no Yoast SEO. Altere essa marcação lá."
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Also marked as pillar content in Rank Math. Change that mark there."
-msgstr ""
+msgstr "Também marcado como conteúdo pilar no Rank Math. Altere essa marcação lá."
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Counts as pillar content."
-msgstr ""
+msgstr "Conta como conteúdo pilar."
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Counts as pillar content because of that mark, whatever this box says."
-msgstr ""
+msgstr "Conta como conteúdo pilar por causa dessa marcação, independentemente do que esta caixa indicar."
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Pillar content"
-msgstr ""
+msgstr "Conteúdo pilar"
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Suggestions that link to this entry rank a little higher. Nothing else changes."
-msgstr ""
+msgstr "As sugestões que apontam para este conteúdo ficam ligeiramente melhor posicionadas. Nada mais muda."
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Marked as pillar content."
-msgstr ""
+msgstr "Marcado como conteúdo pilar."
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Pillar content mark removed."
-msgstr ""
+msgstr "Marcação de conteúdo pilar removida."
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "The pillar content mark could not be saved."
-msgstr ""
+msgstr "Não foi possível guardar a marcação de conteúdo pilar."
 
 #: assets/build/classic.js:13 assets/build/classic.js:28
 #: assets/build/editor.js:13 assets/build/editor.js:28 assets/build/index.js:61
@@ -1164,17 +1164,17 @@ msgstr "Usar este texto âncora"
 #: assets/build/classic.js:24 assets/build/editor.js:24
 #: assets/build/index.js:72
 msgid "content type"
-msgstr ""
+msgstr "tipo de conteúdo"
 
 #: assets/build/classic.js:24 assets/build/editor.js:24
 #: assets/build/index.js:72
 msgid "category"
-msgstr ""
+msgstr "categoria"
 
 #: assets/build/classic.js:24 assets/build/editor.js:24
 #: assets/build/index.js:72
 msgid "tag"
-msgstr ""
+msgstr "etiqueta"
 
 #: assets/build/classic.js:24 assets/build/editor.js:24
 #: assets/build/index.js:72
@@ -1200,17 +1200,17 @@ msgstr "Os outros conteúdos só podem ligar a este depois de ser publicado."
 #: assets/build/classic.js:25 assets/build/editor.js:25
 #: assets/build/index.js:73
 msgid "There are no suggestions: only entries that match this one in %s are searched."
-msgstr ""
+msgstr "Não há sugestões: só são pesquisados os conteúdos que coincidem com este em %s."
 
 #: assets/build/classic.js:25 assets/build/editor.js:25
 #: assets/build/index.js:73
 msgid "If you want more, change the filter in <a>Settings → Suggestions</a>."
-msgstr ""
+msgstr "Se quiser mais, altere o filtro em <a>Definições → Sugestões</a>."
 
 #: assets/build/classic.js:25 assets/build/editor.js:25
 #: assets/build/index.js:73
 msgid "If you want more, ask an administrator to change the filter in Settings → Suggestions."
-msgstr ""
+msgstr "Se quiser mais, peça a um administrador que altere o filtro em Definições → Sugestões."
 
 #: assets/build/classic.js:25 assets/build/editor.js:25
 #: assets/build/index.js:73
@@ -1250,7 +1250,7 @@ msgstr "Ligação adicionada em “%s”."
 #: assets/build/classic.js:28 assets/build/editor.js:28
 #: assets/build/index.js:77
 msgid "Link to “%s” added."
-msgstr ""
+msgstr "Ligação para «%s» adicionada."
 
 #: assets/build/classic.js:28 assets/build/editor.js:28
 #: assets/build/index.js:77
@@ -1389,8 +1389,8 @@ msgstr[1] "%s conteúdos"
 #: assets/build/index.js:4
 msgid "%s rule"
 msgid_plural "%s rules"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s regra"
+msgstr[1] "%s regras"
 
 #. translators: %s: number of links.
 #: assets/build/index.js:5
@@ -1626,12 +1626,12 @@ msgstr "Painel de outro conteúdo"
 #: assets/build/index.js:13
 msgctxt "history origin"
 msgid "Automatic rule · AI"
-msgstr ""
+msgstr "Regra automática · IA"
 
 #: assets/build/index.js:13
 msgctxt "history origin"
 msgid "Automatic rule"
-msgstr ""
+msgstr "Regra automática"
 
 #: assets/build/index.js:13
 msgctxt "history origin"
@@ -1657,7 +1657,7 @@ msgstr "Adicionada a partir do painel de outro conteúdo"
 
 #: assets/build/index.js:14
 msgid "Added by an automatic rule"
-msgstr ""
+msgstr "Adicionado por uma regra automática"
 
 #: assets/build/index.js:14
 msgid "Fixed from Broken links"
@@ -2164,7 +2164,7 @@ msgstr "Painel de outro conteúdo e ligações quebradas"
 #: assets/build/index.js:51
 msgctxt "history origin filter"
 msgid "Automatic rules"
-msgstr ""
+msgstr "Regras automáticas"
 
 #: assets/build/index.js:51
 msgctxt "history origin filter"
@@ -2322,40 +2322,40 @@ msgstr "Última análise: %s"
 
 #: assets/build/index.js:73
 msgid "The suggestions could not be loaded."
-msgstr ""
+msgstr "Não foi possível carregar as sugestões."
 
 #. translators: %d: number of suggestions.
 #: assets/build/index.js:74 assets/build/index.js:80
 msgid "%d suggestion"
 msgid_plural "%d suggestions"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d sugestão"
+msgstr[1] "%d sugestões"
 
 #: assets/build/index.js:77
 msgid "The text has changed since the link was added, so it could not be removed automatically. Open the history to see why."
-msgstr ""
+msgstr "O texto mudou desde que a ligação foi adicionada, por isso não foi possível removê-la automaticamente. Abra o histórico para ver o motivo."
 
 #. translators: %s: entry title.
 #: assets/build/index.js:78
 msgid "Inbound suggestions: %s"
-msgstr ""
+msgstr "Sugestões de entrada: %s"
 
 #. translators: %s: entry title.
 #: assets/build/index.js:79
 msgid "Outbound suggestions: %s"
-msgstr ""
+msgstr "Sugestões de saída: %s"
 
 #: assets/build/index.js:79
 msgid "Sentences in other entries where a link to this one fits. Each link is added right away, one at a time, without opening the editor of that entry, and you can undo it."
-msgstr ""
+msgstr "Frases de outros conteúdos onde uma ligação para este se encaixa. Cada ligação é adicionada de imediato, uma de cada vez, sem abrir o editor desse conteúdo, e pode anulá-la."
 
 #: assets/build/index.js:79
 msgid "Sentences in this entry where a link to another entry fits. Each link is added right away, one at a time, without opening the editor, and you can undo it."
-msgstr ""
+msgstr "Frases deste conteúdo onde uma ligação para outro conteúdo se encaixa. Cada ligação é adicionada de imediato, uma de cada vez, sem abrir o editor, e pode anulá-la."
 
 #: assets/build/index.js:80
 msgid "Outbound suggestions pages"
-msgstr ""
+msgstr "Páginas de sugestões de saída"
 
 #: assets/build/index.js:80 assets/build/index.js:113
 msgid "Could not load the report."
@@ -2419,11 +2419,11 @@ msgstr "Ligações internas por conteúdo"
 
 #: assets/build/index.js:82
 msgid "Inbound suggestions"
-msgstr ""
+msgstr "Sugestões de entrada"
 
 #: assets/build/index.js:82
 msgid "Outbound suggestions"
-msgstr ""
+msgstr "Sugestões de saída"
 
 #: assets/build/index.js:82
 msgid "View broken links"
@@ -2447,306 +2447,306 @@ msgstr "Todos os idiomas"
 
 #: assets/build/index.js:82
 msgid "No more entries fit this rule."
-msgstr ""
+msgstr "Nenhum outro conteúdo se encaixa nesta regra."
 
 #. translators: %s: main phrase of the rule.
 #: assets/build/index.js:84
 msgid "Apply “%s” to existing entries"
-msgstr ""
+msgstr "Aplicar «%s» aos conteúdos existentes"
 
 #: assets/build/index.js:84
 msgid "These are the entries where the rule fits. Check the link that would be added and add it entry by entry. Each one is written safely, shown in the history and can be undone."
-msgstr ""
+msgstr "Estes são os conteúdos onde a regra se encaixa. Verifique a ligação que seria adicionada e adicione-a conteúdo a conteúdo. Cada uma é escrita em segurança, fica no histórico e pode ser anulada."
 
 #: assets/build/index.js:84
 msgid "Searching…"
-msgstr ""
+msgstr "A pesquisar…"
 
 #. translators: 1: number of entries where the rule fits, 2: number of entries checked.
 #: assets/build/index.js:85
 msgid "%1$s where it fits, %2$s checked."
-msgstr ""
+msgstr "%1$s onde se encaixa, %2$s verificados."
 
 #: assets/build/index.js:85
 msgid "Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower)."
-msgstr ""
+msgstr "Pesquisa feita através do índice: apenas conteúdos que têm a primeira palavra de uma frase entre os seus termos principais. «Pesquisar em todos os conteúdos» verifica todos (mais lenta)."
 
 #: assets/build/index.js:85
 msgid "No entry needs this rule right now."
-msgstr ""
+msgstr "Nenhum conteúdo precisa desta regra neste momento."
 
 #: assets/build/index.js:85
 msgid "The link would be added here:"
-msgstr ""
+msgstr "A ligação seria adicionada aqui:"
 
 #: assets/build/index.js:86
 msgid "The link could not be added; nothing was changed."
-msgstr ""
+msgstr "Não foi possível adicionar a ligação; nada foi alterado."
 
 #: assets/build/index.js:86
 msgid "Add link"
-msgstr ""
+msgstr "Adicionar ligação"
 
 #: assets/build/index.js:86
 msgid "Undone: the entry is back as it was."
-msgstr ""
+msgstr "Anulado: o conteúdo voltou a ficar como estava."
 
 #: assets/build/index.js:86
 msgid "Search every entry"
-msgstr ""
+msgstr "Pesquisar em todos os conteúdos"
 
 #: assets/build/index.js:86
 msgid "Keep searching"
-msgstr ""
+msgstr "Continuar a pesquisar"
 
 #: assets/build/index.js:86
 msgid "Find more entries"
-msgstr ""
+msgstr "Procurar mais conteúdos"
 
 #: assets/build/index.js:86
 msgid "Pick the entry the rule should link to."
-msgstr ""
+msgstr "Escolha o conteúdo para o qual a regra deve ligar."
 
 #: assets/build/index.js:86
 msgid "The rule could not be saved. Nothing was changed."
-msgstr ""
+msgstr "Não foi possível guardar a regra. Nada foi alterado."
 
 #: assets/build/index.js:86
 msgid "Edit rule"
-msgstr ""
+msgstr "Editar regra"
 
 #: assets/build/index.js:86
 msgid "Add a rule"
-msgstr ""
+msgstr "Adicionar uma regra"
 
 #: assets/build/index.js:86
 msgid "Phrases to link"
-msgstr ""
+msgstr "Frases a ligar"
 
 #: assets/build/index.js:86
 msgid "(required)"
-msgstr ""
+msgstr "(obrigatório)"
 
 #: assets/build/index.js:86
 msgid "One phrase per line: the first is the main one and the rest are variants. Plurals and similar forms are matched too, so “heat pump” also finds “heat pumps”. The text is linked exactly as it is written in the entry."
-msgstr ""
+msgstr "Uma frase por linha: a primeira é a principal e as restantes são variantes. Os plurais e as formas semelhantes também são encontrados, por isso «bomba de calor» encontra também «bombas de calor». O texto é ligado exatamente como está escrito no conteúdo."
 
 #: assets/build/index.js:86 assets/build/index.js:90
 msgid "Destination"
-msgstr ""
+msgstr "Destino"
 
 #: assets/build/index.js:87
 msgid "Type part of the title of the entry the links should lead to."
-msgstr ""
+msgstr "Escreva parte do título do conteúdo para o qual as ligações devem levar."
 
 #. translators: %s: entry title.
 #: assets/build/index.js:88
 msgid "Destination: %s"
-msgstr ""
+msgstr "Destino: %s"
 
 #. translators: %s: entry title.
 #: assets/build/index.js:89
 msgid "Selected: %s"
-msgstr ""
+msgstr "Selecionado: %s"
 
 #: assets/build/index.js:89
 msgid "Keep the current one"
-msgstr ""
+msgstr "Manter o atual"
 
 #: assets/build/index.js:89
 msgid "Links per entry"
-msgstr ""
+msgstr "Ligações por conteúdo"
 
 #. translators: %d: links to the same target allowed from one entry (a setting).
 #: assets/build/index.js:90
 msgid "The most links this rule adds to one entry. Your settings allow %d link to the same target from one entry, so that is the real maximum."
 msgid_plural "The most links this rule adds to one entry. Your settings allow %d links to the same target from one entry, so that is the real maximum."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "O máximo de ligações que esta regra adiciona a um conteúdo. As suas definições permitem %d ligação para o mesmo destino a partir de um conteúdo, por isso esse é o máximo real."
+msgstr[1] "O máximo de ligações que esta regra adiciona a um conteúdo. As suas definições permitem %d ligações para o mesmo destino a partir de um conteúdo, por isso esse é o máximo real."
 
 #: assets/build/index.js:90
 msgid "The most links this rule adds to one entry."
-msgstr ""
+msgstr "O máximo de ligações que esta regra adiciona a um conteúdo."
 
 #: assets/build/index.js:90
 msgid "Only the first appearance of each phrase"
-msgstr ""
+msgstr "Apenas a primeira ocorrência de cada frase"
 
 #: assets/build/index.js:90
 msgid "Allow one extra word inside a phrase"
-msgstr ""
+msgstr "Permitir mais uma palavra dentro de uma frase"
 
 #: assets/build/index.js:90
 msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words, and never across punctuation."
-msgstr ""
+msgstr "«reforma de cozinha» também encontra «reforma de uma cozinha», mas não com duas palavras a mais, e nunca através de um sinal de pontuação."
 
 #: assets/build/index.js:90
 msgid "Do not apply to"
-msgstr ""
+msgstr "Não aplicar a"
 
 #: assets/build/index.js:90
 msgid "Skip entries in these categories"
-msgstr ""
+msgstr "Ignorar os conteúdos destas categorias"
 
 #: assets/build/index.js:90
 msgid "Categories to skip"
-msgstr ""
+msgstr "Categorias a ignorar"
 
 #: assets/build/index.js:90
 msgid "Active: apply it when an entry is saved"
-msgstr ""
+msgstr "Ativa: aplicar quando um conteúdo for guardado"
 
 #: assets/build/index.js:90
 msgid "Save rule"
-msgstr ""
+msgstr "Guardar regra"
 
 #: assets/build/index.js:90 assets/build/index.js:97
 msgid "Add rule"
-msgstr ""
+msgstr "Adicionar regra"
 
 #: assets/build/index.js:90
 msgid "Could not load the rules."
-msgstr ""
+msgstr "Não foi possível carregar as regras."
 
 #: assets/build/index.js:90
 msgid "Could not load the options."
-msgstr ""
+msgstr "Não foi possível carregar as opções."
 
 #: assets/build/index.js:90
 msgid "Phrases"
-msgstr ""
+msgstr "Frases"
 
 #: assets/build/index.js:90
 msgid "(missing entry)"
-msgstr ""
+msgstr "(conteúdo inexistente)"
 
 #: assets/build/index.js:90
 msgid "not published"
-msgstr ""
+msgstr "não publicado"
 
 #: assets/build/index.js:90
 msgid "Options"
-msgstr ""
+msgstr "Opções"
 
 #. translators: %d: links per entry.
 #: assets/build/index.js:91
 msgid "%d link per entry"
 msgid_plural "%d links per entry"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d ligação por conteúdo"
+msgstr[1] "%d ligações por conteúdo"
 
 #: assets/build/index.js:91
 msgid "first appearance only"
-msgstr ""
+msgstr "apenas a primeira ocorrência"
 
 #: assets/build/index.js:91
 msgid "one extra word allowed"
-msgstr ""
+msgstr "permite mais uma palavra"
 
 #. translators: %s: content types, comma separated.
 #: assets/build/index.js:92
 msgid "skips %s"
-msgstr ""
+msgstr "ignora %s"
 
 #. translators: %d: number of categories.
 #: assets/build/index.js:93
 msgid "skips %d category"
 msgid_plural "skips %d categories"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "ignora %d categoria"
+msgstr[1] "ignora %d categorias"
 
 #: assets/build/index.js:93
 msgid "Active"
-msgstr ""
+msgstr "Ativa"
 
 #: assets/build/index.js:93
 msgid "Paused"
-msgstr ""
+msgstr "Em pausa"
 
 #: assets/build/index.js:93
 msgid "A rule turns a phrase into a link to an entry. It is applied when a published entry is saved (never when a page is shown) and it only adds links: it never removes or changes one that exists, and everything it writes can be undone from the history. If someone has the entry open in the editor, the rule waits until it is closed."
-msgstr ""
+msgstr "Uma regra transforma uma frase numa ligação para um conteúdo. É aplicada quando um conteúdo publicado é guardado (nunca ao apresentar uma página) e apenas adiciona ligações: nunca remove nem altera uma ligação que já exista, e tudo o que escreve pode ser anulado a partir do histórico. Se alguém tiver o conteúdo aberto no editor, a regra aguarda que seja fechado."
 
 #. translators: 1: words per link, 2: links to the same target per entry, 3: entries with the same anchor.
 #: assets/build/index.js:94
 msgid "Limits that rules never exceed (change them in Settings): one internal link for every %1$d words of an entry, %2$d to the same target from one entry, and %3$d entries using the same anchor text for the same target."
-msgstr ""
+msgstr "Limites que as regras nunca ultrapassam (altere-os em Definições): uma ligação interna por cada %1$d palavras de um conteúdo, %2$d para o mesmo destino a partir de um conteúdo e %3$d conteúdos com o mesmo texto de âncora para o mesmo destino."
 
 #: assets/build/index.js:94
 msgid "Open Settings"
-msgstr ""
+msgstr "Abrir Definições"
 
 #: assets/build/index.js:94
 msgid "Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed."
-msgstr ""
+msgstr "Alguns conteúdos ficaram abertos no editor durante um dia, por isso não foi possível aplicar-lhes as regras. Guarde-os novamente depois de fechados."
 
 #. translators: %s: main phrase of a rule.
 #: assets/build/index.js:95
 msgid "The rule “%s” is not being applied: the person who created it can no longer manage the site."
-msgstr ""
+msgstr "A regra «%s» não está a ser aplicada: a pessoa que a criou já não pode gerir o site."
 
 #: assets/build/index.js:95
 msgid "Notice dismissed."
-msgstr ""
+msgstr "Aviso dispensado."
 
 #. translators: %s: main phrase of the rule.
 #: assets/build/index.js:96
 msgid "Rule “%s” added. It will be applied the next time a published entry is saved. To use it on existing entries, choose “Apply to existing entries”."
-msgstr ""
+msgstr "Regra «%s» adicionada. Será aplicada da próxima vez que um conteúdo publicado for guardado. Para a usar nos conteúdos existentes, escolha «Aplicar aos conteúdos existentes»."
 
 #. translators: %s: main phrase of the rule.
 #: assets/build/index.js:97
 msgid "Rule “%s” saved."
-msgstr ""
+msgstr "Regra «%s» guardada."
 
 #: assets/build/index.js:97
 msgid "Automatic rules"
-msgstr ""
+msgstr "Regras automáticas"
 
 #: assets/build/index.js:97
 msgid "Apply to existing entries"
-msgstr ""
+msgstr "Aplicar aos conteúdos existentes"
 
 #: assets/build/index.js:97
 msgid "Rule paused."
-msgstr ""
+msgstr "Regra em pausa."
 
 #: assets/build/index.js:97
 msgid "Rule activated."
-msgstr ""
+msgstr "Regra ativada."
 
 #: assets/build/index.js:97
 msgid "The rule could not be changed."
-msgstr ""
+msgstr "Não foi possível alterar a regra."
 
 #: assets/build/index.js:97
 msgid "Activate"
-msgstr ""
+msgstr "Ativar"
 
 #: assets/build/index.js:97
 msgid "Delete"
-msgstr ""
+msgstr "Eliminar"
 
 #: assets/build/index.js:97
 msgid "There are no rules yet. Add one to link a phrase to an entry automatically."
-msgstr ""
+msgstr "Ainda não há regras. Adicione uma para ligar automaticamente uma frase a um conteúdo."
 
 #: assets/build/index.js:97
 msgid "Delete rule"
-msgstr ""
+msgstr "Eliminar regra"
 
 #: assets/build/index.js:97
 msgid "Rule deleted. The links it already added stay in your entries; you can undo them from the history."
-msgstr ""
+msgstr "Regra eliminada. As ligações que já adicionou permanecem nos seus conteúdos; pode anulá-las a partir do histórico."
 
 #: assets/build/index.js:97
 msgid "The rule could not be deleted."
-msgstr ""
+msgstr "Não foi possível eliminar a regra."
 
 #. translators: %s: main phrase of the rule.
 #: assets/build/index.js:98
 msgid "Delete the rule “%s”? The links it already added stay in your entries; you can undo them from the history."
-msgstr ""
+msgstr "Eliminar a regra «%s»? As ligações que já adicionou permanecem nos seus conteúdos; pode anulá-las a partir do histórico."
 
 #: assets/build/index.js:98
 msgid "Content analyzed"
@@ -2782,11 +2782,11 @@ msgstr "São definições de qualidade, não limites: pode sempre inserir qualqu
 
 #: assets/build/index.js:98
 msgid "Which entries are suggested"
-msgstr ""
+msgstr "Que conteúdos são sugeridos"
 
 #: assets/build/index.js:98
 msgid "Quality settings, not limits: you can always insert any link yourself. Suggestions never mix languages."
-msgstr ""
+msgstr "Definições de qualidade, não limites: pode sempre inserir qualquer ligação por si. As sugestões nunca misturam idiomas."
 
 #: assets/build/index.js:98
 msgid "Under-linked entries"
@@ -3101,15 +3101,15 @@ msgstr "Não foi possível guardar as definições."
 
 #: assets/build/index.js:109
 msgid "Ignore"
-msgstr ""
+msgstr "Ignorar"
 
 #: assets/build/index.js:109
 msgid "Take into account (a small boost if they share it)"
-msgstr ""
+msgstr "Ter em conta (um pequeno impulso se o partilharem)"
 
 #: assets/build/index.js:109
 msgid "Require (only entries that share it)"
-msgstr ""
+msgstr "Exigir (apenas conteúdos que o partilham)"
 
 #. translators: 1: minimum, 2: maximum.
 #: assets/build/index.js:110
@@ -3174,15 +3174,15 @@ msgstr "Palavras por ligação interna"
 
 #: assets/build/index.js:110
 msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed). Automatic rules never add a link to an entry that already has that many."
-msgstr ""
+msgstr "Um conteúdo com mais ligações internas do que uma por cada tantas palavras é apresentado como excesso de ligações (é sempre permitida pelo menos uma ligação). As regras automáticas nunca adicionam uma ligação a um conteúdo que já tenha essa quantidade."
 
 #: assets/build/index.js:110
 msgid "Links to the same target from one entry"
-msgstr ""
+msgstr "Ligações para o mesmo destino a partir de um conteúdo"
 
 #: assets/build/index.js:110
 msgid "Automatic rules add at most this many links from an entry to the same target. Existing links are never removed."
-msgstr ""
+msgstr "As regras automáticas adicionam no máximo esta quantidade de ligações de um conteúdo para o mesmo destino. As ligações existentes nunca são removidas."
 
 #: assets/build/index.js:110
 msgid "Entries that can use the same anchor text for the same target"
@@ -3190,27 +3190,27 @@ msgstr "Conteúdos que podem usar a mesma âncora para o mesmo destino"
 
 #: assets/build/index.js:110
 msgid "Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries."
-msgstr ""
+msgstr "A partir desta quantidade de conteúdos, o mesmo texto de âncora para o mesmo destino é menos sugerido, e as regras automáticas deixam de o usar em conteúdos novos."
 
 #: assets/build/index.js:110
 msgid "For example, suggest links from posts only to posts."
-msgstr ""
+msgstr "Por exemplo, sugerir ligações de artigos apenas para artigos."
 
 #: assets/build/index.js:110
 msgid "Category"
-msgstr ""
+msgstr "Categoria"
 
 #: assets/build/index.js:110
 msgid "In a custom content type, its main hierarchical taxonomy is used instead."
-msgstr ""
+msgstr "Num tipo de conteúdo personalizado, usa-se em seu lugar a sua principal taxonomia hierárquica."
 
 #: assets/build/index.js:110
 msgid "Tag"
-msgstr ""
+msgstr "Etiqueta"
 
 #: assets/build/index.js:110
 msgid "In a custom content type, its main non-hierarchical taxonomy is used instead."
-msgstr ""
+msgstr "Num tipo de conteúdo personalizado, usa-se em seu lugar a sua principal taxonomia não hierárquica."
 
 #: assets/build/index.js:110
 msgid "Under-linked below this many inbound links"

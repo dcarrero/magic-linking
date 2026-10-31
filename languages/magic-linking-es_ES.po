@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-30T23:07:51+00:00\n"
+"POT-Creation-Date: 2026-10-31T09:29:52+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -201,7 +201,7 @@ msgstr "Acción desconocida. Usa: list, undo, redo, purge o export."
 
 #: src/Cli/Command.php:674 src/Cli/Command.php:708
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:477
+#: src/Rest/SuggestionsController.php:481
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "No tienes permiso para editar una de las entradas afectadas."
 
@@ -262,7 +262,7 @@ msgstr[1] "Se han borrado %d filas del historial."
 #: src/Cli/Command.php:804 src/Cli/RulesCommand.php:301
 #: src/Rest/AiController.php:225 src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95 src/Rest/PillarController.php:127
-#: src/Rest/SuggestionsController.php:633
+#: src/Rest/SuggestionsController.php:637
 msgid "That entry does not exist."
 msgstr "Esa entrada no existe."
 
@@ -774,11 +774,11 @@ msgstr "El destino es huérfano (0 enlaces entrantes)"
 msgid "Very similar in meaning"
 msgstr "Muy parecidas por significado"
 
-#: src/Rest/SuggestionsController.php:469
+#: src/Rest/SuggestionsController.php:473
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Cada enlace necesita la entrada, el destino, la frase, el desplazamiento y el ancla."
 
-#: src/Rest/SuggestionsController.php:524
+#: src/Rest/SuggestionsController.php:528
 msgid "The link could not be saved; nothing was changed."
 msgstr "No se ha podido guardar el enlace; no se ha cambiado nada."
 
