@@ -12,6 +12,7 @@ import { CurrentLinks } from './CurrentLinks';
 import { outboundSignature, useCurrentLinks } from './useCurrentLinks';
 import { Pager } from './Pager';
 import { PillarBox } from './PillarBox';
+import { TargetPhrasesBox } from './TargetPhrasesBox';
 import { SuggestionCard, type CardVariants } from './SuggestionCard';
 import type { VariantView, Variants } from './useVariants';
 import { optionsOf } from './variants';
@@ -589,6 +590,7 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 					)
 				}
 			</TabPanel>
+			<TargetPhrasesBox postId={ boot.postId } />
 			<PillarBox postId={ boot.postId } />
 		</div>
 	);

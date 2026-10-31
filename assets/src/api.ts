@@ -28,6 +28,8 @@ import type {
 	InsertResponse,
 	OutboundResponse,
 	PillarState,
+	TargetPhrase,
+	TargetPhrasesState,
 	RerankItem,
 	RerankResponse,
 	RuleApplyResponse,
@@ -614,6 +616,29 @@ export const api = {
 			path: path( `/pillar/${ postId }` ),
 			method: 'POST',
 			data: { pillar },
+		} ),
+	/**
+	 * Frases objetivo que el usuario ha escrito para una entrada.
+	 *
+	 * @param postId Entrada.
+	 * @param signal Para cancelar.
+	 */
+	targetPhrases: ( postId: number, signal?: AbortSignal ) =>
+		apiFetch< TargetPhrasesState >( {
+			path: path( `/target-phrases/${ postId }` ),
+			signal,
+		} ),
+	/**
+	 * Sustituye la lista de frases objetivo de una entrada; devuelve la lista limpia tal como quedó.
+	 *
+	 * @param postId  Entrada.
+	 * @param phrases Frases.
+	 */
+	setTargetPhrases: ( postId: number, phrases: TargetPhrase[] ) =>
+		apiFetch< TargetPhrasesState >( {
+			path: path( `/target-phrases/${ postId }` ),
+			method: 'POST',
+			data: { phrases },
 		} ),
 	/**
 	 * Excluye una entrada del análisis o la vuelve a incluir.

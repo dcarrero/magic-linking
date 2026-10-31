@@ -49,6 +49,50 @@
 	color: #50575e;
 }
 
+.magiclinking-panel__phrases {
+	border-top: 1px solid #ddd;
+	margin-top: 16px;
+	padding-top: 12px;
+}
+
+.magiclinking-panel__phrases-list {
+	list-style: none;
+	margin: 12px 0 0;
+	padding: 0;
+}
+
+.magiclinking-panel__phrase {
+	border: 1px solid #ddd;
+	border-radius: 2px;
+	margin: 0 0 12px;
+	padding: 12px;
+
+	legend {
+		font-weight: 600;
+		padding: 0 4px;
+	}
+
+	> * + * {
+		margin-top: 8px;
+	}
+}
+
+.magiclinking-panel__phrases-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.magiclinking-panel__phrases-status {
+	margin: 8px 0 0;
+}
+
+.magiclinking-panel__phrases-error {
+	// Rojo de error de WordPress con contraste AA sobre blanco.
+	color: #cc1818;
+	margin: 8px 0 0;
+}
+
 .magiclinking-panel__pillar {
 	border-top: 1px solid #ddd;
 	margin-top: 16px;

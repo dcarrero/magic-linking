@@ -431,4 +431,28 @@ final class SuggesterTest extends TestCase {
 			}
 		}
 	}
+
+	/**
+	 * Frases objetivo del usuario (F1-24): con hueco encajan en «reforma de la cocina» y no en «reforma de toda la cocina».
+	 */
+	public function test_user_phrase_with_gap_suggests_one_word_in_between_and_not_two(): void {
+		$text   = 'Presupuesto y materiales para la reforma %s cocina de un piso antiguo con muebles nuevos y encimera de cuarzo.';
+		$corpus = new Corpus(
+			static function ( ArraySource $s ) use ( $text ): void {
+				$s->add( 20, 'Cocinas a medida', array( 'Diseñamos cocinas a medida con muebles y encimeras de calidad para cada piso.' ), 'es', 'post', '', 1790000000, array(), array(), array( 'reforma de cocina' ), array( 'reforma de cocina' ) );
+				$s->add( 21, 'Presupuesto de obra', array( sprintf( $text, 'de la' ) ) );
+				$s->add( 22, 'Presupuesto de piso', array( sprintf( $text, 'de toda la' ) ) );
+			}
+		);
+
+		$anchors = array();
+		foreach ( $corpus->suggester()->incoming( 20 ) as $suggestion ) {
+			$anchors[ $suggestion->source ] = $suggestion->anchor;
+		}
+
+		$this->assertSame( 'reforma de la cocina', $anchors[21] ?? null );
+		// Con dos palabras en medio la frase entera no encaja; solo queda, a lo sumo, una de sus palabras sueltas.
+		$this->assertNotSame( 'reforma de toda la cocina', $anchors[22] ?? null );
+		$this->assertStringNotContainsString( 'toda', $anchors[22] ?? '' );
+	}
 }

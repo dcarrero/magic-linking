@@ -116,7 +116,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 
 		$links = $this->links_in( $post, $html );
 
-		return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+		return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies, $document->gapped );
 	}
 
 	/**

@@ -86,18 +86,24 @@ final class PhraseFinder {
 	 */
 	public function target_phrases( DocMeta $target, array $terms, Analyzer $analyzer ): array {
 		$phrases = array();
-		$add     = static function ( array $keys, string $kind ) use ( &$phrases ): void {
+		$add     = static function ( array $keys, string $kind, bool $gap = false ) use ( &$phrases ): void {
 			$key = implode( ' ', $keys );
-			if ( '' !== $key && ( ! isset( $phrases[ $key ] ) || Scorer::ANCHOR_QUALITY[ $kind ] > Scorer::ANCHOR_QUALITY[ $phrases[ $key ]->kind ] ) ) {
-				$phrases[ $key ] = new Phrase( array_values( $keys ), $kind );
+			if ( '' === $key ) {
+				return;
+			}
+			// Gana la de más calidad; con la misma, la que admite hueco (la pidió el usuario).
+			$quality = Scorer::ANCHOR_QUALITY[ $kind ];
+			$kept    = isset( $phrases[ $key ] ) ? Scorer::ANCHOR_QUALITY[ $phrases[ $key ]->kind ] : -1.0;
+			if ( $quality > $kept || ( $quality === $kept && $gap && ! $phrases[ $key ]->gap ) ) {
+				$phrases[ $key ] = new Phrase( array_values( $keys ), $kind, $gap );
 			}
 		};
 
-		$sources = array( array( $target->title, Phrase::TITLE ) );
+		$sources = array( array( $target->title, Phrase::TITLE, false ) );
 		foreach ( $target->focus as $focus ) {
-			$sources[] = array( $focus, Phrase::FOCUS );
+			$sources[] = array( $focus, Phrase::FOCUS, in_array( $focus, $target->gapped, true ) );
 		}
-		foreach ( $sources as [ $text, $kind ] ) {
+		foreach ( $sources as [ $text, $kind, $gap ] ) {
 			foreach ( $this->segments( $analyzer->tokenizer()->tokenize( $text ) ) as $segment ) {
 				$keys = $analyzer->keys( $segment );
 				if ( count( $keys ) > $this->max_words || ! self::has_content( $segment, $analyzer ) ) {
@@ -107,7 +113,7 @@ final class PhraseFinder {
 				if ( 1 === count( $keys ) && Phrase::TITLE === $kind && ! isset( $terms[ $keys[0] ] ) ) {
 					continue;
 				}
-				$add( $keys, $kind );
+				$add( $keys, $kind, $gap );
 			}
 		}
 

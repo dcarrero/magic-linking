@@ -28,9 +28,11 @@ final class DocMeta {
 	 * @param int      $links  Enlaces internos salientes.
 	 * @param string[] $focus  Frases objetivo.
 	 * @param array    $taxonomies Taxonomía → valores (filtros por tipo o taxonomía).
+	 * @param string[] $gapped     Las de `$focus` que escribió el usuario con «permitir una palabra en medio» (F1-24).
 	 *
 	 * @phpstan-param list<string> $focus
 	 * @phpstan-param array<string, list<string>> $taxonomies
+	 * @phpstan-param list<string> $gapped
 	 */
 	public function __construct(
 		public readonly int $id,
@@ -43,7 +45,8 @@ final class DocMeta {
 		public readonly int $length,
 		public readonly int $links,
 		public readonly array $focus = array(),
-		public readonly array $taxonomies = array()
+		public readonly array $taxonomies = array(),
+		public readonly array $gapped = array()
 	) {
 	}
 }

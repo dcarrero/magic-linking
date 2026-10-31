@@ -147,7 +147,7 @@ final class Indexer {
 			}
 		}
 
-		$meta = new DocMeta( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $doc->words, $doc->length, count( $links ), $document->focus, $document->taxonomies );
+		$meta = new DocMeta( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $doc->words, $doc->length, count( $links ), $document->focus, $document->taxonomies, $document->gapped );
 
 		return new IndexedDoc( $meta, $terms, $fields, $links );
 	}

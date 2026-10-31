@@ -12,6 +12,7 @@ namespace MagicLinking\Core;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\Exclusions;
 use MagicLinking\Index\Pillars;
+use MagicLinking\Index\TargetPhrases;
 use MagicLinking\Jobs\Jobs;
 use wpdb;
 
@@ -382,9 +383,9 @@ final class Installer implements Module {
 
 		self::delete_scheduled_actions();
 
-		// Metadatos de entradas (p. ej. sugerencias descartadas) las marcas propias de contenido pilar y de exclusión del análisis (la de Yoast y Rank Math no es nuestra).
+		// Metadatos de entradas (p. ej. sugerencias descartadas) las marcas propias de contenido pilar y de exclusión del análisis y las frases objetivo (la de Yoast y Rank Math no es nuestra).
 		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Limpieza única al desinstalar.
-			$wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s OR meta_key IN (%s, %s)", $like, Pillars::OWN_KEY, Exclusions::KEY )
+			$wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s OR meta_key IN (%s, %s, %s)", $like, Pillars::OWN_KEY, Exclusions::KEY, TargetPhrases::KEY )
 		);
 		wp_cache_flush_group( 'post_meta' );
 
