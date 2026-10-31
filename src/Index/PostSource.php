@@ -145,7 +145,8 @@ final class PostSource implements DocumentSource {
 			$content->paragraphs,
 			array(),
 			Fingerprint::focus( $post->ID ),
-			$this->with_taxonomies ? Taxonomies::of( $post->ID, $post->post_type ) : array()
+			$this->with_taxonomies ? Taxonomies::of( $post->ID, $post->post_type ) : array(),
+			Fingerprint::gapped( $post->ID )
 		);
 	}
 

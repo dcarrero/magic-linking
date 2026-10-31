@@ -17,6 +17,7 @@ use MagicLinking\Graph\IndexOutcome;
 use MagicLinking\Index\Exclusions;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\SuggestionCache;
+use MagicLinking\Index\TargetPhrases;
 use Throwable;
 use WP_Post;
 
@@ -172,8 +173,9 @@ final class Jobs implements Module {
 	}
 
 	/**
-	 * Cambia la marca de exclusión de una entrada: la reindexa ahora (si deja de analizarse sale del índice con sus
-	 * enlaces y los entrantes de sus destinos se recalculan; si vuelve, se indexa) y renueva las sugerencias guardadas.
+	 * Cambia la marca de exclusión de una entrada o sus frases objetivo (F1-24): la reindexa ahora (si deja de analizarse
+	 * sale del índice con sus enlaces y los entrantes de sus destinos se recalculan; si vuelve, se indexa; las frases del
+	 * usuario entran en el índice y cambian su huella) y renueva las sugerencias guardadas.
 	 *
 	 * @param int|int[] $meta_id Identificador(es) de la meta.
 	 * @param int       $post_id Entrada.
@@ -181,7 +183,7 @@ final class Jobs implements Module {
 	 */
 	public function on_exclusion_meta( $meta_id, int $post_id, string $key ): void {
 		unset( $meta_id );
-		if ( Exclusions::KEY !== $key || in_array( $post_id, $this->deleting, true ) ) {
+		if ( ! in_array( $key, array( Exclusions::KEY, TargetPhrases::KEY ), true ) || in_array( $post_id, $this->deleting, true ) ) {
 			return;
 		}
 

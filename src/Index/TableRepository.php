@@ -814,7 +814,8 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			(int) $row['doc_len'],
 			(int) $row['outbound'],
 			Fingerprint::focus( $id ),
-			$this->with_taxonomies ? Taxonomies::of( $id, (string) $row['post_type'] ) : array()
+			$this->with_taxonomies ? Taxonomies::of( $id, (string) $row['post_type'] ) : array(),
+			Fingerprint::gapped( $id )
 		);
 	}
 
