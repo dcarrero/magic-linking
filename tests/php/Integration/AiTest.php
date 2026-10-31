@@ -1293,9 +1293,6 @@ final class AiTest extends GraphTestCase {
 		$this->assertSame( 403, $this->request( 'GET', '/ai/capabilities', array(), $this->subscriber )->get_status() );
 		$this->assertSame( 401, $this->request( 'GET', '/ai/status', array(), 0 )->get_status() );
 		$this->assertSame( 403, $this->request( 'GET', '/ai/status', array(), $this->author )->get_status(), 'El estado y el gasto son de quien administra.' );
-		$this->assertSame( 403, $this->request( 'POST', '/ai/notice', array( 'dismissed' => true ), $this->author )->get_status() );
-		$this->assertSame( 403, $this->request( 'POST', '/ai/notice', array( 'dismissed' => true ), $this->subscriber )->get_status() );
-		$this->assertSame( 400, $this->request( 'POST', '/ai/notice', array(), $this->admin )->get_status() );
 	}
 
 	public function test_rest_status_shows_connector_budget_and_the_last_thirty_days(): void {
@@ -1322,18 +1319,6 @@ final class AiTest extends GraphTestCase {
 		$this->assertNull( $costs['unpriced-model'] );
 		$this->assertContains( 'unpriced-model', array_column( $data['models'], 'model' ) );
 		$this->assertSame( 'Fake AI', $data['models'][0]['provider_name'] );
-		$this->assertFalse( $data['notice_dismissed'] );
-	}
-
-	public function test_rest_notice_is_closed_forever_per_user(): void {
-		$this->assertTrue( $this->request( 'POST', '/ai/notice', array( 'dismissed' => true ) )->get_data()['dismissed'] );
-		$this->assertSame( '1', get_user_meta( $this->admin, AiController::notice_meta_key(), true ) );
-		$this->assertTrue( $this->request( 'GET', '/ai/status' )->get_data()['notice_dismissed'] );
-
-		$other = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		$this->assertFalse( $this->request( 'GET', '/ai/status', array(), $other )->get_data()['notice_dismissed'], 'Cada usuario cierra el suyo.' );
-
-		$this->assertFalse( $this->request( 'POST', '/ai/notice', array( 'dismissed' => false ) )->get_data()['dismissed'] );
 	}
 
 	public function test_failure_messages_are_plain_language(): void {

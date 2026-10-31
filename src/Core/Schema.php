@@ -68,11 +68,13 @@ final class Schema {
 	 * @param string $charset_collate Cláusula de juego de caracteres ($wpdb->get_charset_collate()).
 	 * @param bool   $anchor_index    Incluir el índice por ancla de `links`. La actualización de un sitio con datos lo deja
 	 *                                fuera de dbDelta y lo añade en segundo plano ({@see \MagicLinking\Core\Installer}).
+	 * @param bool   $user_index      Igual con el índice `user_action` de `changes` (esquema 8).
 	 *
 	 * @return array<string, string>
 	 */
-	public static function create_statements( string $site_prefix, string $charset_collate, bool $anchor_index = true ): array {
+	public static function create_statements( string $site_prefix, string $charset_collate, bool $anchor_index = true, bool $user_index = true ): array {
 		$anchor_key = $anchor_index ? ",\n  KEY anchor (anchor(40))" : '';
+		$user_key   = $user_index ? ",\n  KEY user_action (user_id,action)" : '';
 		$docs       = self::table( $site_prefix, 'docs' );
 		$terms      = self::table( $site_prefix, 'terms' );
 		$postings   = self::table( $site_prefix, 'postings' );
@@ -191,7 +193,7 @@ final class Schema {
   KEY batch_id (batch_id),
   KEY post_created (post_id,created_at),
   KEY created_at (created_at),
-  KEY origin_key (origin_key)
+  KEY origin_key (origin_key){$user_key}
 ) {$charset_collate};",
 
 			// Procesos largos y gasto de IA.

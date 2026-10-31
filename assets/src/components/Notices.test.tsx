@@ -1,6 +1,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { api } from '../api';
+import { navigate } from '../navigate';
 import type { AdminNotice } from '../types';
 import { Notices } from './Notices';
 
@@ -11,33 +12,26 @@ jest.mock( '@wordpress/components', () => ( {
 		onRemove,
 		actions,
 		status,
+		className,
 	}: {
 		children?: unknown;
 		onRemove?: () => void;
 		status?: string;
-		actions?: {
-			label: string;
-			url?: string;
-			onClick?: () => void;
-		}[];
+		className?: string;
+		actions?: { label: string; onClick?: () => void }[];
 	} ) => (
-		<div data-status={ status }>
+		<div data-status={ status } className={ className }>
 			{ children as string }
-			{ actions?.map( ( a ) =>
-				a.url ? (
-					<a key={ a.label } href={ a.url } onClick={ a.onClick }>
-						{ a.label }
-					</a>
-				) : (
-					<button key={ a.label } type="button" onClick={ a.onClick }>
-						{ a.label }
-					</button>
-				)
-			) }
+			{ actions?.map( ( a ) => (
+				<button key={ a.label } type="button" onClick={ a.onClick }>
+					{ a.label }
+				</button>
+			) ) }
 			<button type="button" aria-label="Close" onClick={ onRemove } />
 		</div>
 	),
 } ) );
+jest.mock( '../navigate', () => ( { navigate: jest.fn() } ) );
 jest.mock( '../api', () => ( {
 	api: { dismissNotice: jest.fn() },
 } ) );
@@ -46,6 +40,7 @@ jest.mock( '../api', () => ( {
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
  ).IS_REACT_ACT_ENVIRONMENT = true;
 
+const go = navigate as unknown as jest.Mock;
 const dismiss = ( api as unknown as { dismissNotice: jest.Mock } )
 	.dismissNotice;
 
@@ -61,6 +56,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach( () => {
+	go.mockReset();
 	dismiss.mockReset().mockResolvedValue( { dismissed: 'review' } );
 	document.body.innerHTML =
 		'<div class="magiclinking-wrap"><h1>Title</h1><div id="r"></div></div>';
@@ -115,20 +111,100 @@ describe( 'Notices', () => {
 		expect( container.innerHTML ).toBe( '' );
 	} );
 
-	test( 'following the review link closes it for good too', () => {
-		render( review );
+	const flush = () =>
+		act( async () => {
+			await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+		} );
+
+	const stopNavigation = () =>
 		container
 			.querySelector( 'a' )
 			?.addEventListener( 'click', ( e ) => e.preventDefault() );
-		click( container.querySelector( 'a' ) );
+
+	test( 'a plain click on the review link saves the close first and then goes there', async () => {
+		render( review );
+		const event = new MouseEvent( 'click', {
+			bubbles: true,
+			cancelable: true,
+			button: 0,
+		} );
+		act( () => {
+			container.querySelector( 'a' )?.dispatchEvent( event );
+		} );
+		expect( event.defaultPrevented ).toBe( true );
+		expect( dismiss ).toHaveBeenCalledTimes( 1 );
 		expect( dismiss ).toHaveBeenCalledWith( 'review' );
+		await flush();
+		expect( go ).toHaveBeenCalledWith( 'https://wordpress.org/r' );
+		expect( container.innerHTML ).toBe( '' );
 	} );
 
-	test( 'a failed save does not break the page', async () => {
+	test( 'it still goes to the review page if saving the close fails', async () => {
+		dismiss.mockRejectedValue( new Error( 'x' ) );
+		render( review );
+		act( () => {
+			container.querySelector( 'a' )?.dispatchEvent(
+				new MouseEvent( 'click', {
+					bubbles: true,
+					cancelable: true,
+					button: 0,
+				} )
+			);
+		} );
+		await flush();
+		expect( go ).toHaveBeenCalledWith( 'https://wordpress.org/r' );
+	} );
+
+	test( 'a Cmd or Ctrl click on the link closes it too', async () => {
+		render( review );
+		stopNavigation();
+		act( () => {
+			container.querySelector( 'a' )?.dispatchEvent(
+				new MouseEvent( 'click', {
+					bubbles: true,
+					cancelable: true,
+					ctrlKey: true,
+					metaKey: true,
+				} )
+			);
+		} );
+		await flush();
+		expect( dismiss ).toHaveBeenCalledWith( 'review' );
+		expect( go ).not.toHaveBeenCalled();
+		expect( container.innerHTML ).toBe( '' );
+	} );
+
+	test( 'a middle click on the link closes it too', async () => {
+		render( review );
+		act( () => {
+			container.querySelector( 'a' )?.dispatchEvent(
+				new MouseEvent( 'auxclick', {
+					bubbles: true,
+					cancelable: true,
+					button: 1,
+				} )
+			);
+		} );
+		await flush();
+		expect( dismiss ).toHaveBeenCalledWith( 'review' );
+		expect( container.innerHTML ).toBe( '' );
+	} );
+
+	test( 'a failed save brings the notice back with an error message', async () => {
 		dismiss.mockRejectedValue( new Error( 'x' ) );
 		render( review );
 		click( container.querySelector( '[aria-label="Close"]' ) );
 		await act( async () => {} );
-		expect( container.innerHTML ).toBe( '' );
+		expect( container.textContent ).toContain( 'Do you like it?' );
+		expect(
+			container.querySelector( '[role="alert"]' )?.textContent
+		).toContain( 'could not be closed' );
+	} );
+
+	test( 'the AI connector notice keeps its own class', () => {
+		render( { ...review, id: 'ai-connector', action: null } );
+		expect(
+			container.querySelector( '.magiclinking-ai-notice' )
+		).not.toBeNull();
 	} );
 } );

@@ -881,7 +881,6 @@ export interface AiStatus {
 		models: AiStatusModel[];
 		prices_date: string;
 	};
-	notice_dismissed: boolean;
 }
 
 /** Reglas automáticas (F1-13). */

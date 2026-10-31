@@ -270,7 +270,7 @@ final class Screen implements Module {
 					'perPage'     => self::per_page(),
 					'wizard'      => current_user_can( 'manage_options' ) ? ! get_user_meta( get_current_user_id(), SettingsController::wizard_meta_key(), true ) : false,
 					'settingsUrl' => self::page_url( 'settings' ),
-					'notice'      => $this->notices->current( get_current_user_id() ),
+					'notice'      => $this->notices->current( get_current_user_id(), $this->screens[ $hook_suffix ] ),
 					'intRanges'   => Settings::INT_RANGES,
 					'initialTab'  => $this->screens[ $hook_suffix ],
 					'tabUrls'     => array(

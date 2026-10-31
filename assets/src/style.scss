@@ -925,6 +925,10 @@
 	margin: 12px 0;
 }
 
+.magiclinking-notice__error {
+	font-weight: 600;
+}
+
 // Panel lateral de sugerencias del informe (F1-26): un cuadro de diálogo pegado a la derecha. Las tarjetas son las del
 // editor (editor/cards.scss).
 .magiclinking-drawer-overlay.components-modal__screen-overlay {

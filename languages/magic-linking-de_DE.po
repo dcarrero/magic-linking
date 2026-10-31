@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.24.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T22:17:01+00:00\n"
+"POT-Creation-Date: 2026-10-31T23:05:10+00:00\n"
 "PO-Revision-Date: 2026-10-31 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Deutsch\n"
@@ -87,21 +87,30 @@ msgstr "Wird geladen …"
 msgid "This box needs JavaScript to show the link suggestions."
 msgstr "Dieses Feld braucht JavaScript, um die Linkvorschläge anzuzeigen."
 
-#: src/Admin/Notices.php:137
+#: src/Admin/Notices.php:176
 msgid "Do not show again"
 msgstr ""
 
-#: src/Admin/Notices.php:192
+#: src/Admin/Notices.php:265
 msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
 msgstr ""
 
-#: src/Admin/Notices.php:194
+#: src/Admin/Notices.php:267
 msgid "Write a review"
 msgstr ""
 
-#: src/Admin/Notices.php:197
+#: src/Admin/Notices.php:270
 msgid "No, thanks"
 msgstr ""
+
+#: src/Admin/Notices.php:283
+msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
+msgstr "Auf dieser Website ist keine KI verbunden. Du kannst deine eigene unter Einstellungen → Konnektoren verbinden (OpenAI, Google, lokales Ollama …). Bis dahin verwenden die Vorschläge die lexikalische Engine."
+
+#: src/Admin/Notices.php:285 assets/build/index.js:111
+#: assets/build/index.js:112
+msgid "Go to Connectors"
+msgstr "Zu den Konnektoren"
 
 #: src/Admin/Screen.php:105
 msgid "Open report"
@@ -301,7 +310,7 @@ msgid "That entry does not exist or is not of a chosen content type."
 msgstr ""
 
 #: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
-#: src/Rest/AiController.php:227 src/Rest/AnalyzedEntry.php:43
+#: src/Rest/AiController.php:196 src/Rest/AnalyzedEntry.php:43
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
 #: src/Rest/SuggestionsController.php:1027
@@ -704,50 +713,50 @@ msgstr "Dieser Beitrag wurde danach bearbeitet; entferne den Link von Hand."
 msgid "You are not allowed to export this data."
 msgstr "Du darfst diese Daten nicht exportieren."
 
-#: src/Rest/AiController.php:245 src/Rest/SuggestionsController.php:412
+#: src/Rest/AiController.php:214 src/Rest/SuggestionsController.php:412
 #: src/Rest/SuggestionsController.php:440
 msgid "The content is too long to analyze."
 msgstr "Der Inhalt ist zu lang für die Analyse."
 
 #. translators: %s: tokens one AI request needs, formatted.
-#: src/Rest/AiController.php:305
+#: src/Rest/AiController.php:274
 #, php-format
 msgid "The daily AI limit you set is lower than what one request needs (about %s tokens); raise it in Settings → AI. Showing suggestions without AI."
 msgstr "Das von dir festgelegte Tageslimit für KI ist kleiner als der Bedarf einer Anfrage (etwa %s Tokens); erhöhe es unter Einstellungen → KI. Die Vorschläge werden ohne KI angezeigt."
 
-#: src/Rest/AiController.php:309
+#: src/Rest/AiController.php:278
 msgid "You are asking for AI too often; wait a minute and try again. Showing suggestions without AI."
 msgstr "Du rufst die KI zu oft auf; warte eine Minute und versuche es erneut. Die Vorschläge werden ohne KI angezeigt."
 
-#: src/Rest/AiController.php:311
+#: src/Rest/AiController.php:280
 msgid "There is no AI connected on this site, so the suggestions are shown without AI."
 msgstr "Auf dieser Website ist keine KI verbunden, daher werden die Vorschläge ohne KI angezeigt."
 
-#: src/Rest/AiController.php:313
+#: src/Rest/AiController.php:282
 msgid "AI is turned off for this action on this site; showing suggestions without AI."
 msgstr "Die KI ist für diese Aktion auf dieser Website deaktiviert; die Vorschläge werden ohne KI angezeigt."
 
-#: src/Rest/AiController.php:315
+#: src/Rest/AiController.php:284
 msgid "The daily AI limit you set has been reached; showing suggestions without AI. It will be available again tomorrow."
 msgstr "Das von dir festgelegte Tageslimit für KI ist erreicht; die Vorschläge werden ohne KI angezeigt. Morgen steht sie wieder zur Verfügung."
 
-#: src/Rest/AiController.php:317
+#: src/Rest/AiController.php:286
 msgid "The AI provider took too long to answer; showing suggestions without AI. Try again, or pick a faster model in Settings → AI."
 msgstr "Der KI-Anbieter hat zu lange für die Antwort gebraucht; die Vorschläge werden ohne KI angezeigt. Versuche es erneut oder wähle unter Einstellungen → KI ein schnelleres Modell."
 
-#: src/Rest/AiController.php:319
+#: src/Rest/AiController.php:288
 msgid "The AI provider had a problem on its side; showing suggestions without AI. Try again in a moment."
 msgstr "Beim KI-Anbieter ist ein Problem aufgetreten; die Vorschläge werden ohne KI angezeigt. Versuche es gleich noch einmal."
 
-#: src/Rest/AiController.php:321
+#: src/Rest/AiController.php:290
 msgid "Your AI provider is limiting requests right now; showing suggestions without AI. Try again in a moment."
 msgstr "Dein KI-Anbieter begrenzt gerade die Anfragen; die Vorschläge werden ohne KI angezeigt. Versuche es in einem Moment erneut."
 
-#: src/Rest/AiController.php:323
+#: src/Rest/AiController.php:292
 msgid "None of these suggestions can be sent to AI; showing them as they are."
 msgstr "Keiner dieser Vorschläge kann an die KI gesendet werden; sie werden unverändert angezeigt."
 
-#: src/Rest/AiController.php:325 assets/build/classic.js:4
+#: src/Rest/AiController.php:294 assets/build/classic.js:4
 #: assets/build/editor.js:4
 msgid "The AI did not respond; showing suggestions without AI."
 msgstr "Die KI hat nicht geantwortet; die Vorschläge werden ohne KI angezeigt."
@@ -1749,17 +1758,9 @@ msgstr ""
 msgid "Notice closed."
 msgstr "Hinweis geschlossen."
 
-#: assets/build/index.js:1 assets/build/index.js:111 assets/build/index.js:112
-msgid "Go to Connectors"
-msgstr "Zu den Konnektoren"
-
-#: assets/build/index.js:1 assets/build/index.js:94 assets/build/index.js:129
-msgid "Close"
-msgstr "Schließen"
-
 #: assets/build/index.js:1
-msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
-msgstr "Auf dieser Website ist keine KI verbunden. Du kannst deine eigene unter Einstellungen → Konnektoren verbinden (OpenAI, Google, lokales Ollama …). Bis dahin verwenden die Vorschläge die lexikalische Engine."
+msgid "The notice could not be closed. Try again."
+msgstr ""
 
 #. translators: %s: number of entries.
 #: assets/build/index.js:3 assets/build/index.js:23
@@ -2931,6 +2932,10 @@ msgstr "Weitersuchen"
 #: assets/build/index.js:94
 msgid "Find more entries"
 msgstr "Weitere Beiträge suchen"
+
+#: assets/build/index.js:94 assets/build/index.js:129
+msgid "Close"
+msgstr "Schließen"
 
 #: assets/build/index.js:94
 msgid "Pick the entry the rule should link to."

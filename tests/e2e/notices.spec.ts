@@ -37,9 +37,11 @@ function seedReview( links: number, days: number ): void {
 		}
 		update_option( 'magiclinking_activated_at', time() - ${ days } * DAY_IN_SECONDS, false );
 		delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices' );
+		delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_notices_state' );
+		delete_transient( 'magiclinking_ai_capabilities' );
 		update_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_wizard_dismissed', '1' );
-		// El aviso de IA tiene el suyo: aquí está cerrado para que no ocupe el sitio.
-		update_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed', '1' );
+		// El aviso de IA tiene prioridad: aquí está cerrado para que no ocupe el sitio (el mismo metadato que la reseña).
+		update_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices', array( 'ai-connector' ) );
 		`
 	);
 }
@@ -59,7 +61,7 @@ test.describe( 'Notices', () => {
 			$wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_changes" );
 			delete_option( 'magiclinking_activated_at' );
 			delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices' );
-			delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed' );
+			delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_notices_state' );
 			`
 		);
 	} );
@@ -158,7 +160,7 @@ test.describe( 'Notices', () => {
 			'eval',
 			`global $wpdb; echo wp_json_encode( get_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices' ) );`
 		).trim();
-		expect( stored ).toBe( '[["review"]]' );
+		expect( stored ).toBe( '[["ai-connector","review"]]' );
 
 		for ( const url of [ SCREEN_REPORT, ...SCREENS ] ) {
 			await page.goto( url );
@@ -185,20 +187,126 @@ test.describe( 'Notices', () => {
 		await expect( page.locator( REVIEW ) ).toHaveCount( 0 );
 	} );
 
-	test( 'at most one notice at a time on the report', async ( { page } ) => {
+	test( 'no connector: the AI notice wins over a due review, never both, and the review follows once it is closed', async ( {
+		page,
+	} ) => {
 		seedReview( 25, 40 );
-		// El aviso de «Sin conector de IA» (si WordPress no tiene conector) tiene prioridad: nunca salen los dos.
+		// Sin proveedor simulado y sin lo que el plugin recuerda del conector: WordPress 7 queda «sin conector».
 		wp(
 			'eval',
-			`global $wpdb; delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed' );`
+			`
+			global $wpdb;
+			@unlink( WPMU_PLUGIN_DIR . '/magiclinking-e2e-ai.php' );
+			update_option( 'magiclinking_e2e_ai', 'off', false );
+			delete_transient( 'magiclinking_ai_capabilities' );
+			update_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices', array() );
+			`
 		);
+		const state = wp(
+			'eval',
+			'echo MagicLinking\\Core\\Plugin::container()->get( MagicLinking\\AI\\Capabilities::class )->state();'
+		).trim();
+		test.skip(
+			state === 'unavailable',
+			'Necesita el cliente de IA de WordPress 7.0 o posterior.'
+		);
+		expect( state ).toBe( 'none' );
+
 		await login( page );
+		const status = page
+			.waitForResponse( /ai(\/|%2F)status/, {
+				timeout: 3000,
+			} )
+			.catch( () => null );
 		await page.goto( SCREEN_REPORT );
-		await expect( page.locator( '.magiclinking-wrap h1' ) ).toBeVisible();
-		await page.waitForTimeout( 1500 );
+		const ai = page.locator( '.magiclinking-ai-notice' );
+		await expect( ai ).toContainText( 'This site has no AI connected.' );
+		// Ya está decidido por el servidor: ni se espera a una petición ni sale el otro.
+		await expect( page.locator( REVIEW ) ).toHaveCount( 1 );
 		await expect(
 			page.locator( '.magiclinking-wrap .components-notice' )
 		).toHaveCount( 1 );
+		await expect(
+			page.getByText( 'a review on wordpress.org' )
+		).toHaveCount( 0 );
+		expect( await status ).toBeNull();
+
+		const saved = page.waitForResponse( /notices(\/|%2F)dismiss/ );
+		await ai.getByRole( 'button', { name: 'Do not show again' } ).click();
+		await saved;
+		const stored = wp(
+			'eval',
+			`global $wpdb; echo wp_json_encode( array( get_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices', true ), metadata_exists( 'user', 1, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed' ) ) );`
+		).trim();
+		expect( stored ).toBe( '[["ai-connector"],false]' );
+
+		// Al volver a cargar sale la reseña (y solo ella).
+		await page.reload();
+		await expect(
+			page.getByText( 'a review on wordpress.org' )
+		).toHaveCount( 1 );
+		await expect(
+			page.locator( '.magiclinking-wrap .components-notice' )
+		).toHaveCount( 1 );
+		await expect( page.locator( '.magiclinking-ai-notice' ) ).toHaveCount(
+			0
+		);
+	} );
+
+	test( 'following the review link (click or Ctrl+click) closes it for good', async ( {
+		page,
+	} ) => {
+		await login( page );
+		// El enlace es externo: no se sale a la red.
+		await page.route( 'https://wordpress.org/**', ( route ) =>
+			route.fulfill( { status: 200, body: 'ok' } )
+		);
+		for ( const modifiers of [ [], [ 'ControlOrMeta' as const ] ] ) {
+			seedReview( 25, 40 );
+			await page.goto( SCREENS.at( 0 ) ?? SCREEN_REPORT );
+			const link = page
+				.locator( REVIEW )
+				.getByRole( 'link', { name: 'Write a review' } );
+			await link.click( { modifiers } );
+			// La página puede haberse ido: el cierre se comprueba en el servidor.
+			await expect
+				.poll(
+					() =>
+						wp(
+							'eval',
+							`global $wpdb; echo wp_json_encode( get_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices', true ) );`
+						).trim(),
+					{ timeout: 15000 }
+				)
+				.toBe( '["ai-connector","review"]' );
+			if ( modifiers.length > 0 ) {
+				// La página sigue aquí (el enlace se abre aparte): el aviso se oculta.
+				await expect( page.locator( REVIEW ) ).toHaveCount( 0 );
+			}
+		}
+	} );
+
+	test( 'the review is asked for one week from the first time and never again', async ( {
+		page,
+	} ) => {
+		seedReview( 25, 40 );
+		await login( page );
+		await page.goto( SCREENS.at( 0 ) ?? SCREEN_REPORT );
+		await expect( page.locator( REVIEW ) ).toHaveCount( 1 );
+
+		const backdate = ( days: number ) =>
+			wp(
+				'eval',
+				`global $wpdb; $k = $wpdb->get_blog_prefix() . 'magiclinking_notices_state'; $s = get_user_meta( 1, $k, true ); $s['seen']['review'] = time() - ${ days } * DAY_IN_SECONDS; update_user_meta( 1, $k, $s );`
+			);
+		backdate( 6 );
+		await page.reload();
+		await expect( page.locator( REVIEW ) ).toHaveCount( 1 );
+
+		backdate( 8 );
+		await page.reload();
+		await expect( page.locator( '.magiclinking-wrap h1' ) ).toBeVisible();
+		await expect( page.locator( REVIEW ) ).toHaveCount( 0 );
 	} );
 
 	test( 'the existing rule: no Magic Linking notice on the dashboard', async ( {

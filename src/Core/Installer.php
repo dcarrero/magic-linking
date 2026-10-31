@@ -44,6 +44,11 @@ final class Installer implements Module {
 	public const HOOK_ANCHOR_INDEX = 'magiclinking_add_anchor_index';
 
 	/**
+	 * Acción de Action Scheduler que añade el índice `user_action` a `changes` en una actualización (esquema 8).
+	 */
+	public const HOOK_USER_INDEX = 'magiclinking_add_user_action_index';
+
+	/**
 	 * Transitorio (sin autoload) que frena los reintentos de una migración que falló.
 	 */
 	public const RETRY_TRANSIENT = 'magiclinking_schema_retry';
@@ -143,6 +148,7 @@ final class Installer implements Module {
 	public function register(): void {
 		add_action( 'admin_init', array( $this, 'on_admin_init' ) );
 		add_action( self::HOOK_ANCHOR_INDEX, array( $this, 'add_anchor_index' ) );
+		add_action( self::HOOK_USER_INDEX, array( $this, 'add_user_action_index' ) );
 	}
 
 	/**
@@ -233,7 +239,8 @@ final class Installer implements Module {
 		// En un sitio con datos el índice por ancla de `links` no se crea en esta petición (en una tabla grande puede tardar
 		// mucho): dbDelta no lo ve y se añade en segundo plano. Las consultas funcionan sin él mientras tanto.
 		$with_index = 0 === $from || $this->has_anchor_index();
-		$this->create_tables( $with_index );
+		$with_user  = 0 === $from || $this->has_user_action_index();
+		$this->create_tables( $with_index, $with_user );
 
 		if ( array() !== $this->missing_tables() ) {
 			return false;
@@ -264,6 +271,9 @@ final class Installer implements Module {
 			if ( ! $with_index ) {
 				self::request_anchor_index();
 			}
+			if ( ! $with_user ) {
+				self::request_user_action_index();
+			}
 		}
 
 		return true;
@@ -273,13 +283,14 @@ final class Installer implements Module {
 	 * Crea las tablas que falten y añade columnas e índices nuevos.
 	 *
 	 * @param bool $anchor_index Incluir el índice por ancla de `links`.
+	 * @param bool $user_index   Incluir el índice `user_action` de `changes`.
 	 *
 	 * @return array<string, string> Cambios aplicados, según dbDelta(); vacío si no había nada que hacer.
 	 */
-	public function create_tables( bool $anchor_index = true ): array {
+	public function create_tables( bool $anchor_index = true, bool $user_index = true ): array {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$statements = Schema::create_statements( $this->wpdb->prefix, $this->wpdb->get_charset_collate(), $anchor_index );
+		$statements = Schema::create_statements( $this->wpdb->prefix, $this->wpdb->get_charset_collate(), $anchor_index, $user_index );
 
 		return dbDelta( array_values( $statements ) );
 	}
@@ -290,10 +301,31 @@ final class Installer implements Module {
 	 * @phpstan-impure
 	 */
 	public function has_anchor_index(): bool {
+		return $this->has_index( 'links', 'anchor' );
+	}
+
+	/**
+	 * Si la tabla de cambios ya tiene el índice por usuario y acción (esquema 8).
+	 *
+	 * @phpstan-impure
+	 */
+	public function has_user_action_index(): bool {
+		return $this->has_index( 'changes', 'user_action' );
+	}
+
+	/**
+	 * Si una tabla propia tiene un índice.
+	 *
+	 * @param string $table Una de Schema::TABLES.
+	 * @param string $index Nombre del índice.
+	 *
+	 * @phpstan-impure
+	 */
+	private function has_index( string $table, string $index ): bool {
 		$wpdb     = $this->wpdb;
-		$table    = Schema::table( $wpdb->prefix, 'links' );
+		$name     = Schema::table( $wpdb->prefix, $table );
 		$previous = $wpdb->suppress_errors( true );
-		$found    = $wpdb->get_var( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table, 'anchor' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Comprobación del esquema.
+		$found    = $wpdb->get_var( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $name, $index ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Comprobación del esquema.
 		$wpdb->suppress_errors( $previous );
 
 		return null !== $found;
@@ -326,6 +358,36 @@ final class Installer implements Module {
 
 		if ( false === $done && ! $this->has_anchor_index() && function_exists( 'as_schedule_single_action' ) ) {
 			as_schedule_single_action( time() + HOUR_IN_SECONDS, self::HOOK_ANCHOR_INDEX, array(), self::ACTION_GROUP, true );
+		}
+	}
+
+	/**
+	 * Pide en segundo plano (Action Scheduler) que se añada el índice `user_action`. No bloquea la petición ni duplica la
+	 * acción pendiente.
+	 */
+	public static function request_user_action_index(): void {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! did_action( 'init' ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( self::HOOK_USER_INDEX, array(), self::ACTION_GROUP, true );
+	}
+
+	/**
+	 * Acción de Action Scheduler: añade a `changes` el índice `user_action`. Idempotente y reanudable: si falla, se
+	 * vuelve a intentar dentro de una hora.
+	 */
+	public function add_user_action_index(): void {
+		if ( $this->has_user_action_index() ) {
+			return;
+		}
+
+		$wpdb  = $this->wpdb;
+		$table = esc_sql( Schema::table( $wpdb->prefix, 'changes' ) );
+		$done  = $wpdb->query( "ALTER TABLE `{$table}` ADD INDEX user_action (user_id, action)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Nombre de tabla desde constantes; no admite marcadores.
+
+		if ( false === $done && ! $this->has_user_action_index() && function_exists( 'as_schedule_single_action' ) ) {
+			as_schedule_single_action( time() + HOUR_IN_SECONDS, self::HOOK_USER_INDEX, array(), self::ACTION_GROUP, true );
 		}
 	}
 
@@ -396,7 +458,7 @@ final class Installer implements Module {
 		// Metadatos de usuario: solo las claves propias exactas de este sitio (el prefijo de sus tablas), con la
 		// caché de WordPress al día. Nada de LIKE: las claves de Magic Linking Pro (`magiclinking_pro_*`) y las de
 		// otros sitios de una red no se tocan. Con varios sitios, `uninstall_everywhere()` pasa por cada uno.
-		foreach ( array( 'magiclinking_wizard_dismissed', 'magiclinking_ai_notice_dismissed', 'magiclinking_dismissed_notices', 'magiclinking_per_page' ) as $key ) {
+		foreach ( array( 'magiclinking_wizard_dismissed', 'magiclinking_ai_notice_dismissed', 'magiclinking_dismissed_notices', 'magiclinking_notices_state', 'magiclinking_per_page' ) as $key ) {
 			delete_metadata( 'user', 0, $wpdb->get_blog_prefix() . $key, '', true );
 		}
 

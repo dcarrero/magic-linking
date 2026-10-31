@@ -6,7 +6,6 @@ import type {
 	StatusResponse,
 	Summary,
 } from '../types';
-import { AiNotice } from './AiNotice';
 import { Notices } from './Notices';
 import { BrokenTab } from './BrokenTab';
 import { HistoryTab } from './HistoryTab';
@@ -96,11 +95,6 @@ export function App( {
 	const [ wizardOpen, setWizardOpen ] = useState( false );
 	const [ reportFilter, setReportFilter ] = useState< ReportFilter >( 'all' );
 	const decided = useRef( false );
-	// El aviso de «Sin conector de IA» se averigua después de cargar; mientras se espera, o si sale, no se enseña otro.
-	const aiNoticeSlot = canManage && tab === 'report';
-	const [ aiNoticeShown, setAiNoticeShown ] = useState< boolean | null >(
-		null
-	);
 
 	// El asistente se abre solo una vez, en un sitio recién instalado (sin análisis) y mientras el usuario no
 	// lo haya cerrado; también cuando se pide a propósito desde Ajustes (?wizard=1).
@@ -186,12 +180,7 @@ export function App( {
 				/>
 			) }
 
-			{ aiNoticeSlot && ! wizardOpen && (
-				<AiNotice onSettled={ setAiNoticeShown } />
-			) }
-			{ ! wizardOpen && ( ! aiNoticeSlot || aiNoticeShown === false ) && (
-				<Notices notice={ notice } />
-			) }
+			{ ! wizardOpen && <Notices notice={ notice } /> }
 
 			<IndexStatus
 				hideIntro={ wizardOpen && tab === 'report' }

@@ -428,9 +428,10 @@ final class Plugin {
 				static fn(): Command => new Command( $c->get( Jobs::class ), $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ), $c->get( Undo::class ), $c->get( Retention::class ), $c->get( ChangeRepository::class ), $c->get( Redo::class ), $c->get( BatchJob::class ), $c->get( Settings::class ) ),
 				static fn(): RulesCommand => new RulesCommand( $c->get( RuleRepository::class ), $c->get( RuleValidator::class ), $c->get( RuleService::class ) )
 			),
-			Notices::class                 => static function (): Notices {
+			Notices::class                 => static function ( Container $c ): Notices {
 				global $wpdb;
-				return new Notices( $wpdb );
+				$capabilities = $c->get( Capabilities::class );
+				return new Notices( $wpdb, null, static fn(): string => $capabilities->state() );
 			},
 			NoticesController::class       => static fn( Container $c ): NoticesController => new NoticesController( $c->get( Notices::class ) ),
 			Screen::class                  => static fn( Container $c ): Screen => new Screen( $c->get( Jobs::class ), $c->get( Notices::class ) ),

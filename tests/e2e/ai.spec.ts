@@ -56,7 +56,8 @@ function removeProvider(): void {
 		foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'pe-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
 		foreach ( array( 'docs', 'links', 'jobs', 'changes', 'dismissed' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
 		delete_option( 'magiclinking_settings' );
-		delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed' );
+		delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices' );
+		delete_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_notices_state' );
 		`
 	);
 }
