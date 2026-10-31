@@ -86,18 +86,27 @@ final class PhraseFinder {
 	 */
 	public function target_phrases( DocMeta $target, array $terms, Analyzer $analyzer ): array {
 		$phrases = array();
-		$add     = static function ( array $keys, string $kind ) use ( &$phrases ): void {
+		$add     = static function ( array $keys, string $kind, bool $gap = false ) use ( &$phrases ): void {
 			$key = implode( ' ', $keys );
-			if ( '' !== $key && ( ! isset( $phrases[ $key ] ) || Scorer::ANCHOR_QUALITY[ $kind ] > Scorer::ANCHOR_QUALITY[ $phrases[ $key ]->kind ] ) ) {
-				$phrases[ $key ] = new Phrase( array_values( $keys ), $kind );
+			if ( '' === $key ) {
+				return;
+			}
+			// Gana la de más calidad; con la misma solo sube el hueco (la pidió el usuario) y la frase conserva su tipo.
+			$existing = $phrases[ $key ] ?? null;
+			$quality  = Scorer::ANCHOR_QUALITY[ $kind ];
+			$kept     = null === $existing ? -1.0 : Scorer::ANCHOR_QUALITY[ $existing->kind ];
+			if ( $quality > $kept ) {
+				$phrases[ $key ] = new Phrase( array_values( $keys ), $kind, $gap || ( null !== $existing && $existing->gap ) );
+			} elseif ( $quality === $kept && $gap && ! $existing->gap ) {
+				$phrases[ $key ] = new Phrase( $existing->keys, $existing->kind, true );
 			}
 		};
 
-		$sources = array( array( $target->title, Phrase::TITLE ) );
+		$sources = array( array( $target->title, Phrase::TITLE, false ) );
 		foreach ( $target->focus as $focus ) {
-			$sources[] = array( $focus, Phrase::FOCUS );
+			$sources[] = array( $focus, Phrase::FOCUS, in_array( $focus, $target->gapped, true ) );
 		}
-		foreach ( $sources as [ $text, $kind ] ) {
+		foreach ( $sources as [ $text, $kind, $gap ] ) {
 			foreach ( $this->segments( $analyzer->tokenizer()->tokenize( $text ) ) as $segment ) {
 				$keys = $analyzer->keys( $segment );
 				if ( count( $keys ) > $this->max_words || ! self::has_content( $segment, $analyzer ) ) {
@@ -107,7 +116,7 @@ final class PhraseFinder {
 				if ( 1 === count( $keys ) && Phrase::TITLE === $kind && ! isset( $terms[ $keys[0] ] ) ) {
 					continue;
 				}
-				$add( $keys, $kind );
+				$add( $keys, $kind, $gap );
 			}
 		}
 
@@ -238,7 +247,7 @@ final class PhraseFinder {
 	 *
 	 * @phpstan-param list<Token> $tokens
 	 */
-	private static function has_content( array $tokens, Analyzer $analyzer ): bool {
+	public static function has_content( array $tokens, Analyzer $analyzer ): bool {
 		foreach ( $tokens as $token ) {
 			if ( $analyzer->is_content( $token ) ) {
 				return true;

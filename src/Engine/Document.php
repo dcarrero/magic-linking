@@ -28,12 +28,14 @@ final class Document {
 	 * @param Link[]      $links      Enlaces internos que ya existen en la entrada.
 	 * @param string[]    $focus      Frases objetivo (palabra clave foco).
 	 * @param array       $taxonomies Taxonomía (`category`, `post_tag`…) → valores (slugs); para los filtros por taxonomía.
+	 * @param string[]    $gapped     Las de `$focus` que escribió el usuario con «permitir una palabra en medio» (F1-24, docs/04 §4.2).
 	 *
 	 * @phpstan-param list<string> $headings
 	 * @phpstan-param list<Paragraph> $paragraphs
 	 * @phpstan-param list<Link> $links
 	 * @phpstan-param list<string> $focus
 	 * @phpstan-param array<string, list<string>> $taxonomies
+	 * @phpstan-param list<string> $gapped
 	 */
 	public function __construct(
 		public readonly int $id,
@@ -46,7 +48,8 @@ final class Document {
 		public readonly array $paragraphs = array(),
 		public readonly array $links = array(),
 		public readonly array $focus = array(),
-		public readonly array $taxonomies = array()
+		public readonly array $taxonomies = array(),
+		public readonly array $gapped = array()
 	) {
 	}
 
@@ -73,7 +76,7 @@ final class Document {
 	 * @phpstan-param array<string, list<string>> $taxonomies
 	 */
 	public function with_taxonomies( array $taxonomies ): self {
-		return new self( $this->id, $this->type, $this->lang, $this->title, $this->slug, $this->date, $this->headings, $this->paragraphs, $this->links, $this->focus, $taxonomies );
+		return new self( $this->id, $this->type, $this->lang, $this->title, $this->slug, $this->date, $this->headings, $this->paragraphs, $this->links, $this->focus, $taxonomies, $this->gapped );
 	}
 
 	/**
@@ -83,6 +86,6 @@ final class Document {
 	public function without_links(): self {
 		$paragraphs = array_map( static fn( Paragraph $p ): Paragraph => new Paragraph( $p->text ), $this->paragraphs );
 
-		return new self( $this->id, $this->type, $this->lang, $this->title, $this->slug, $this->date, $this->headings, $paragraphs, array(), $this->focus, $this->taxonomies );
+		return new self( $this->id, $this->type, $this->lang, $this->title, $this->slug, $this->date, $this->headings, $paragraphs, array(), $this->focus, $this->taxonomies, $this->gapped );
 	}
 }

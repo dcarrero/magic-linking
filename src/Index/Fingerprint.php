@@ -20,21 +20,27 @@ final class Fingerprint {
 	/**
 	 * Huella de una entrada.
 	 *
-	 * @param WP_Post $post Entrada.
-	 * @param string  $html Contenido que se analiza (con el filtro `magiclinking_post_html` aplicado).
+	 * @param WP_Post    $post Entrada.
+	 * @param string     $html Contenido que se analiza (con el filtro `magiclinking_post_html` aplicado).
+	 * @param array|null $user Textos del usuario ya leídos ({@see TargetPhrases::indexed()}); null para leerlos.
+	 *
+	 * @phpstan-param list<string>|null $user
 	 */
-	public static function of( WP_Post $post, string $html ): string {
-		return sha1( implode( "\0", array( $post->post_title, implode( "\x1f", self::focus( $post->ID ) ), $html ) ) );
+	public static function of( WP_Post $post, string $html, ?array $user = null ): string {
+		return sha1( implode( "\0", array( $post->post_title, implode( "\x1f", self::focus( $post->ID, $user ) ), $html ) ) );
 	}
 
 	/**
-	 * Frases objetivo de una entrada: la palabra clave foco de Rank Math o de Yoast, si existe.
+	 * Frases objetivo de una entrada: la palabra clave foco de Rank Math o de Yoast, si existe, y las frases (y variantes)
+	 * que escribe el usuario en el panel ({@see TargetPhrases}).
 	 *
-	 * @param int $post_id ID.
+	 * @param int        $post_id ID.
+	 * @param array|null $user    Textos del usuario ya leídos ({@see TargetPhrases::indexed()}); null para leerlos.
 	 *
+	 * @phpstan-param list<string>|null $user
 	 * @return list<string>
 	 */
-	public static function focus( int $post_id ): array {
+	public static function focus( int $post_id, ?array $user = null ): array {
 		$phrases = array();
 
 		foreach ( array( 'rank_math_focus_keyword', '_yoast_wpseo_focuskw' ) as $key ) {
@@ -48,6 +54,10 @@ final class Fingerprint {
 					$phrases[ $phrase ] = true;
 				}
 			}
+		}
+
+		foreach ( $user ?? TargetPhrases::indexed( $post_id )['texts'] as $phrase ) {
+			$phrases[ $phrase ] = true;
 		}
 
 		return array_map( 'strval', array_keys( $phrases ) );

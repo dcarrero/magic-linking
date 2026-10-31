@@ -185,6 +185,23 @@ export interface PillarState {
 	external: 'yoast' | 'rank_math' | null;
 }
 
+/** Una frase objetivo del usuario con sus variantes (`GET|POST /target-phrases/{id}`). */
+export interface TargetPhrase {
+	phrase: string;
+	variants: string[];
+	/** Admite una palabra más entre dos palabras de la frase. */
+	gap: boolean;
+}
+
+/** Respuesta de `GET|POST /target-phrases/{id}`: la lista y los máximos que fija el servidor. */
+export interface TargetPhrasesState {
+	post_id: number;
+	phrases: TargetPhrase[];
+	/** Textos que el servidor ha quitado por repetidos al guardar. */
+	removed: string[];
+	limits: { phrases: number; variants: number; words: number; chars: number };
+}
+
 export interface SettingsValues {
 	post_types: string[];
 	low_inbound_threshold: number;

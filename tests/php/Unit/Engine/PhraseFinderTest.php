@@ -326,4 +326,43 @@ final class PhraseFinderTest extends TestCase {
 		$this->assertSame( array( 'estado de São Paulo' ), $this->anchors( $pt, 'pt', explode( ' ', Analyzer::for_language( 'pt' )->phrase_key( 'estado de São Paulo' ) ) ) );
 		$this->assertSame( array( 'son de la guitare' ), $this->anchors( $fr, 'fr', explode( ' ', Analyzer::for_language( 'fr' )->phrase_key( 'son de la guitare' ) ) ) );
 	}
+
+	public function test_user_phrase_with_gap_takes_one_word_in_between_and_not_two(): void {
+		$meta    = new DocMeta( 9, 'post', 'es', 'Cocinas a medida', 'destino', 0, 100, 50, 0, array( 'reforma de cocina' ), array(), array( 'reforma de cocina' ) );
+		$phrases = $this->finder->target_phrases( $meta, array(), $this->analyzer );
+
+		$this->assertCount( 1, array_filter( $phrases, static fn( Phrase $p ): bool => $p->gap && Phrase::FOCUS === $p->kind ) );
+
+		$one = $this->finder->find( $this->source( array( 'Hicimos una reforma de la cocina el año pasado.' ) ), $phrases, $this->analyzer );
+		$two = $this->finder->find( $this->source( array( 'Hicimos una reforma de toda la cocina el año pasado.' ) ), $phrases, $this->analyzer );
+
+		$this->assertSame( array( 'reforma de la cocina' ), array_map( static fn( $m ): string => $m->anchor, $one ) );
+		$this->assertSame( array(), $two );
+	}
+
+	public function test_user_phrase_without_gap_is_exact(): void {
+		$meta    = new DocMeta( 9, 'post', 'es', 'Cocinas a medida', 'destino', 0, 100, 50, 0, array( 'reforma de cocina' ) );
+		$phrases = $this->finder->target_phrases( $meta, array(), $this->analyzer );
+
+		$this->assertSame( array(), $this->finder->find( $this->source( array( 'Hicimos una reforma de la cocina el año pasado.' ) ), $phrases, $this->analyzer ) );
+		$this->assertCount( 1, $this->finder->find( $this->source( array( 'Hicimos una reforma de cocina el año pasado.' ) ), $phrases, $this->analyzer ) );
+	}
+
+	public function test_gap_phrase_replaces_the_same_phrase_without_gap(): void {
+		// Una palabra clave foco igual que una frase del usuario con hueco: manda el hueco que pidió el usuario.
+		$meta    = new DocMeta( 9, 'post', 'es', 'Cocinas a medida', 'destino', 0, 100, 50, 0, array( 'reforma de cocina', 'reforma de cocina' ), array(), array( 'reforma de cocina' ) );
+		$phrases = array_values( array_filter( $this->finder->target_phrases( $meta, array(), $this->analyzer ), static fn( Phrase $p ): bool => Phrase::FOCUS === $p->kind ) );
+
+		$this->assertCount( 1, $phrases );
+		$this->assertTrue( $phrases[0]->gap );
+	}
+
+	public function test_a_gap_on_a_phrase_that_is_also_the_title_keeps_the_title_kind(): void {
+		$meta    = new DocMeta( 9, 'post', 'es', 'Reforma de cocina', 'destino', 0, 100, 50, 0, array( 'reforma de cocina' ), array(), array( 'reforma de cocina' ) );
+		$phrases = array_values( array_filter( $this->finder->target_phrases( $meta, array(), $this->analyzer ), static fn( Phrase $p ): bool => 'reform de cocin' === $p->key() ) );
+
+		$this->assertCount( 1, $phrases );
+		$this->assertSame( Phrase::TITLE, $phrases[0]->kind );
+		$this->assertTrue( $phrases[0]->gap );
+	}
 }
