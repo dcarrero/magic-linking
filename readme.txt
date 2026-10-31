@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.23.1
+Stable tag: 0.24.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,7 @@ It works entirely on your server, with no account, no key and no limits, not eve
 * **One click to link**: press *Link* and the link is added in the editor itself, on that phrase only. It is part of your unsaved changes until you save, and you can undo it with the *Undo* button of the card or with the editor's own undo.
 * **Inbound suggestions**: the same panel lists other entries whose text mentions the one you are editing and could link to it. Pressing *Link* writes the link in that other entry, see "How and when it changes your content".
 * Only the entries and block types where a link can be inserted safely are proposed. Paragraphs and lists are always used; headings, quotes and tables are left alone unless you turn them on in Settings (or a developer allows them with a filter).
+* **Pillar content and filters**: mark your main entries as pillar content (the mark of an active Yoast SEO or Rank Math also counts) so links to them rank higher. In Settings > Suggestions you can ignore, consider or require the same content type, category or tag.
 * **Dismiss**: a suggestion you do not want can be dismissed for good, from either side, and restored with *Undo*.
 * **Improve with AI (optional)**: with an AI connector (WordPress 7.0 or later), *Improve with AI* sends the best 20 suggestions to your AI provider in one request. It reorders them, marks the ones it does not recommend, may propose a better anchor text from the same sentence and shows what the request cost. See "AI and your privacy".
 
@@ -159,7 +160,7 @@ The suggestions come from the index of your site, which is built in the backgrou
 
 = Can I favour my main pages, or only link within a category? =
 
-Yes. Tick *Pillar content* in the panel (Magic Linking reads the cornerstone mark of Yoast SEO and the pillar mark of Rank Math without asking you anything): links to those entries rank a little higher. In *Settings → Suggestions* you can ignore, take into account or require the content type, category and tag. These are quality settings, never limits.
+Yes. Tick *Pillar content* in the panel (while Yoast SEO or Rank Math are active, their cornerstone or pillar mark also counts, without asking you anything): links to those entries rank a little higher. In *Settings → Suggestions* you can ignore, take into account or require the content type, category and tag. These are quality settings, never limits.
 
 = Why can't I link from this phrase? =
 
@@ -260,6 +261,11 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 
 == Changelog ==
 
+= 0.24.0 =
+* New: pillar content. Tick *Pillar content* in the editor panel and links to that entry rank a little higher in the suggestions. The cornerstone mark of Yoast SEO and the pillar mark of Rank Math also count while those plugins are active.
+* New: filters by content type, category and tag in Settings > Suggestions: ignore (default), consider (entries that share them rank a little higher) or require (only entries that share them are suggested, never in another language). Suggestions use the categories and tags selected in the editor, even before you save, and the panel says when a filter is why there are no suggestions.
+* Improved: dates in the Report, Maintenance and AI settings follow the language of the site, like History, and a malformed date no longer breaks the screen.
+
 = 0.23.1 =
 * Fixed: the plugin page on WordPress.org cut off the end of the readme (Privacy and Third-party libraries) because the description was too long. The description is shorter; the plugin does not change.
 
@@ -333,6 +339,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 0.24.0 =
+Adds pillar content (also read from an active Yoast SEO or Rank Math) and filters by content type, category and tag for the suggestions. Filters are off by default; the update does not touch your content.
 
 = 0.23.1 =
 Only the readme changes: a shorter description so the plugin page shows it complete.
