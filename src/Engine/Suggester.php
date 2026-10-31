@@ -440,9 +440,13 @@ final class Suggester {
 			return array();
 		}
 		$analyzer = Analyzer::for_language( $meta->lang );
-		$phrases  = $this->finder->target_phrases( $meta, $this->index->terms( $target ), $analyzer );
-		$exclude  = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array(), $this->excluded_origins );
-		$needs    = in_array( self::REQUIRE, $this->filters, true ) ? $this->requirement( $meta->type, $meta->taxonomies ) : array();
+		$context  = $this->target_context( $target, $analyzer, $meta );
+		if ( null === $context ) {
+			return array();
+		}
+		$phrases = $context[2];
+		$exclude = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array(), $this->excluded_origins );
+		$needs   = in_array( self::REQUIRE, $this->filters, true ) ? $this->requirement( $meta->type, $meta->taxonomies ) : array();
 		if ( null === $needs ) {
 			return array();
 		}
@@ -454,6 +458,7 @@ final class Suggester {
 			$this->documents->prefetch( $origins );
 		}
 
+		$wanted     = array_fill_keys( array_keys( $context[1] ), true );
 		$similarity = array();
 		foreach ( $origins as $origin ) {
 			$similarity[ $origin ] = $this->index->similarity( $origin, $target );
@@ -478,8 +483,9 @@ final class Suggester {
 				$links    = $this->count_removed ? count( $document->links ) : null;
 				$document = $document->without_links();
 			}
-			$analyzed = $analyzer->analyze( $document, true );
-			$best     = $this->best( $analyzed, $target, $max > 0 ? $similarity[ $origin ] / $max : 0.0, $this->index->terms( $origin ), $analyzer, $this->blocked( $document, $analyzer ), null, $links );
+			// Del origen solo hacen falta las frases y las formas de los términos del destino: sus pesos ya están en el índice.
+			$analyzed = $analyzer->analyze( $document, true, $wanted );
+			$best     = $this->best( $analyzed, $target, $max > 0 ? $similarity[ $origin ] / $max : 0.0, $this->index->terms( $origin ), $analyzer, $this->blocked( $document, $analyzer ), null, $links, $context );
 			if ( null !== $best && $best[0]->score->passes ) {
 				$result[] = $best[0];
 			}
@@ -487,6 +493,25 @@ final class Suggester {
 
 		usort( $result, static fn( Suggestion $a, Suggestion $b ): int => array( $b->score->value, $a->source ) <=> array( $a->score->value, $b->source ) );
 		return $result;
+	}
+
+	/**
+	 * Lo de un destino que no depende del origen: su ficha, sus términos principales, sus frases objetivo y las palabras
+	 * con que se puede ampliar un ancla. Las salientes lo piden una vez por candidata; las entrantes, una para todos los orígenes.
+	 *
+	 * @param int          $target   ID del destino.
+	 * @param Analyzer     $analyzer Analizador del idioma.
+	 * @param DocMeta|null $meta    Su ficha, si quien llama ya la tiene.
+	 * @return array{0: DocMeta, 1: array<string, float>, 2: list<Phrase>, 3: array<string, true>}|null Null si el destino no está indexado.
+	 */
+	private function target_context( int $target, Analyzer $analyzer, ?DocMeta $meta = null ): ?array {
+		$meta ??= $this->index->meta( $target );
+		if ( null === $meta ) {
+			return null;
+		}
+		$terms = $this->index->terms( $target );
+
+		return array( $meta, $terms, $this->finder->target_phrases( $meta, $terms, $analyzer ), $this->expansions( $meta, $terms, $analyzer ) );
 	}
 
 	/**
@@ -500,16 +525,20 @@ final class Suggester {
 	 * @param array<string, int>   $blocked   Anclas que el origen ya usa → destino.
 	 * @param float|null           $semantic  Coseno reescalado del lote, si hay vectores.
 	 * @param int|null             $links     Enlaces que tenía el origen antes de retirarlos (banco), si cuentan.
+	 * @param array|null           $context   Lo del destino que no depende del origen ({@see self::target_context()}); las entrantes lo
+	 *                                        calculan una vez para todos los orígenes.
 	 * @return array{0: Suggestion, 1: int, 2: string}|null Sugerencia, índice de la frase y clave del ancla.
+	 *
+	 * @phpstan-param array{0: DocMeta, 1: array<string, float>, 2: list<Phrase>, 3: array<string, true>}|null $context
 	 */
-	private function best( AnalyzedDocument $source, int $target, float $relevance, array $weights, Analyzer $analyzer, array $blocked, ?float $semantic = null, ?int $links = null ): ?array {
-		$meta = $this->index->meta( $target );
-		if ( null === $meta ) {
+	private function best( AnalyzedDocument $source, int $target, float $relevance, array $weights, Analyzer $analyzer, array $blocked, ?float $semantic = null, ?int $links = null, ?array $context = null ): ?array {
+		$context ??= $this->target_context( $target, $analyzer );
+		if ( null === $context ) {
 			return null;
 		}
-		$terms   = $this->index->terms( $target );
-		$phrases = $this->finder->target_phrases( $meta, $terms, $analyzer );
-		$matches = $this->finder->find( $source, $phrases, $analyzer, $this->expansions( $meta, $terms, $analyzer ), $blocked, $target, $terms );
+		[ $meta, $terms, $phrases, $expansions ] = $context;
+
+		$matches = $this->finder->find( $source, $phrases, $analyzer, $expansions, $blocked, $target, $terms );
 		if ( array() === $matches ) {
 			return null;
 		}

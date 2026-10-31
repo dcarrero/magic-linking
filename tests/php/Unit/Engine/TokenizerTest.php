@@ -419,6 +419,32 @@ final class TokenizerTest extends TestCase {
 	}
 
 	/**
+	 * La memoria de formas por palabra (F1-32) no cambia los tokens: ni al repetir las mismas palabras, ni al llenarse y
+	 * vaciarse, ni con espacios duros y signos entre palabras.
+	 */
+	public function test_word_form_memory_does_not_change_tokens(): void {
+		$text  = "Las Bombas de calor\u{00A0}aerotérmicas, ¡sí! Año 2027 «Wi-Fi» no\u{00A0}y las bombas";
+		$fresh = ( new Tokenizer( self::STOPWORDS_ES ) )->tokenize( $text );
+
+		$first = $this->es->tokenize( $text );
+		$again = $this->es->tokenize( $text );
+
+		// Más palabras distintas que las que recuerda: la memoria se vacía y sigue dando lo mismo.
+		$words = array();
+		for ( $i = 0; $i < 20500; $i++ ) {
+			$words[] = 'palabra' . $i;
+		}
+		$this->es->tokenize( implode( ' ', $words ) );
+
+		$this->assertEquals( $fresh, $first );
+		$this->assertEquals( $fresh, $again );
+		$this->assertEquals( $fresh, $this->es->tokenize( $text ) );
+		$breaks = array_map( static fn( Token $t ): bool => $t->break_before, $first );
+		$this->assertFalse( $breaks[4], 'el espacio duro no es un corte' );
+		$this->assertTrue( $breaks[5], 'tras la coma hay un corte' );
+	}
+
+	/**
 	 * @param list<NGram> $ngrams
 	 * @return list<string>
 	 */

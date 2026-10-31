@@ -242,6 +242,14 @@ final class Spanish implements StemmerInterface {
 	private array $sorted = array();
 
 	/**
+	 * Cada lista de sufijos como conjunto, con las longitudes que tiene (de mayor a menor): el sufijo más largo de una palabra
+	 * se busca mirando sus últimos bytes en el conjunto, no recorriendo la lista entera (F1-32).
+	 *
+	 * @var array<string, array{lengths: list<int>, set: array<string, true>}>
+	 */
+	private array $sets = array();
+
+	/**
 	 * Inicio de RV en bytes.
 	 *
 	 * @var int
@@ -274,6 +282,14 @@ final class Spanish implements StemmerInterface {
 			'verb'     => self::by_length( array_merge( self::VERB_GU, self::VERB ) ),
 			'residual' => self::by_length( self::RESIDUAL ),
 		);
+		foreach ( $this->sorted as $name => $list ) {
+			$lengths = array_values( array_unique( array_map( 'strlen', $list ) ) );
+			rsort( $lengths );
+			$this->sets[ $name ] = array(
+				'lengths' => $lengths,
+				'set'     => array_fill_keys( $list, true ),
+			);
+		}
 	}
 
 	/**
@@ -376,13 +392,13 @@ final class Spanish implements StemmerInterface {
 	 * @return string Palabra sin el pronombre.
 	 */
 	private function attached_pronoun( string $word ): string {
-		$pronoun = self::longest( $word, $this->sorted['pronouns'] );
+		$pronoun = $this->longest( $word, 'pronouns' );
 		if ( '' === $pronoun ) {
 			return $word;
 		}
 
 		$rest = substr( $word, 0, -strlen( $pronoun ) );
-		$host = self::longest( $rest, $this->sorted['hosts'] );
+		$host = $this->longest( $rest, 'hosts' );
 		if ( '' === $host ) {
 			return $word;
 		}
@@ -405,7 +421,7 @@ final class Spanish implements StemmerInterface {
 	 * @return string Palabra con el sufijo tratado.
 	 */
 	private function standard_suffix( string $word ): string {
-		$suffix = self::longest( $word, $this->sorted['standard'] );
+		$suffix = $this->longest( $word, 'standard' );
 		if ( '' === $suffix ) {
 			return $word;
 		}
@@ -476,7 +492,7 @@ final class Spanish implements StemmerInterface {
 	 * @return string Palabra con el sufijo tratado.
 	 */
 	private function y_verb_suffix( string $word ): string {
-		$suffix = $this->longest_in( $word, $this->sorted['y_verb'], $this->rv );
+		$suffix = $this->longest_in( $word, 'y_verb', $this->rv );
 		if ( '' === $suffix ) {
 			return $word;
 		}
@@ -493,7 +509,7 @@ final class Spanish implements StemmerInterface {
 	 * @return string Palabra con el sufijo tratado.
 	 */
 	private function verb_suffix( string $word ): string {
-		$suffix = $this->longest_in( $word, $this->sorted['verb'], $this->rv );
+		$suffix = $this->longest_in( $word, 'verb', $this->rv );
 		if ( '' === $suffix ) {
 			return $word;
 		}
@@ -513,7 +529,7 @@ final class Spanish implements StemmerInterface {
 	 * @return string Palabra con el sufijo tratado.
 	 */
 	private function residual_suffix( string $word ): string {
-		$suffix = $this->longest_in( $word, $this->sorted['residual'], $this->rv );
+		$suffix = $this->longest_in( $word, 'residual', $this->rv );
 		if ( '' !== $suffix ) {
 			return substr( $word, 0, -strlen( $suffix ) );
 		}
@@ -546,15 +562,17 @@ final class Spanish implements StemmerInterface {
 	/**
 	 * Sufijo más largo de la lista que termina la palabra y cabe en la región.
 	 *
-	 * @param string   $word     Palabra.
-	 * @param string[] $suffixes Sufijos ordenados de mayor a menor longitud.
-	 * @param int      $region   Inicio de la región en bytes.
+	 * @param string $word   Palabra.
+	 * @param string $suffixes Lista de sufijos ({@see self::$sets}).
+	 * @param int    $region Inicio de la región en bytes.
 	 * @return string Sufijo, o cadena vacía.
 	 */
-	private function longest_in( string $word, array $suffixes, int $region ): string {
-		foreach ( $suffixes as $suffix ) {
-			if ( $this->ends_in( $word, $suffix, $region ) ) {
-				return $suffix;
+	private function longest_in( string $word, string $suffixes, int $region ): string {
+		$length = strlen( $word );
+		foreach ( $this->sets[ $suffixes ]['lengths'] as $size ) {
+			// Como mucho hay un sufijo de cada longitud que termine la palabra; si no cabe en la región, se sigue con los más cortos.
+			if ( $size <= $length && $length - $size >= $region && isset( $this->sets[ $suffixes ]['set'][ substr( $word, -$size ) ] ) ) {
+				return substr( $word, -$size );
 			}
 		}
 
@@ -574,14 +592,15 @@ final class Spanish implements StemmerInterface {
 	/**
 	 * Sufijo más largo de la lista que termina la palabra.
 	 *
-	 * @param string   $word     Palabra.
-	 * @param string[] $suffixes Sufijos ordenados de mayor a menor longitud.
+	 * @param string $word Palabra.
+	 * @param string $suffixes Lista de sufijos ({@see self::$sets}).
 	 * @return string Sufijo, o cadena vacía.
 	 */
-	private static function longest( string $word, array $suffixes ): string {
-		foreach ( $suffixes as $suffix ) {
-			if ( str_ends_with( $word, $suffix ) ) {
-				return $suffix;
+	private function longest( string $word, string $suffixes ): string {
+		$length = strlen( $word );
+		foreach ( $this->sets[ $suffixes ]['lengths'] as $size ) {
+			if ( $size <= $length && isset( $this->sets[ $suffixes ]['set'][ substr( $word, -$size ) ] ) ) {
+				return substr( $word, -$size );
 			}
 		}
 

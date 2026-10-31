@@ -119,6 +119,50 @@ final class AnalyzerTest extends TestCase {
 		$this->assertSame( 10, $analyzed->words );
 	}
 
+	/**
+	 * Con los términos pedidos (las entrantes) el análisis no cuenta el documento, pero las frases, las palabras y las formas
+	 * para mostrar de esos términos son exactamente las del análisis completo (F1-32).
+	 */
+	public function test_wanted_terms_skip_the_counts_and_keep_sentences_and_forms(): void {
+		$source   = new ArraySource();
+		$document = $source->add(
+			1,
+			'Suelo radiante y bombas de calor',
+			array(
+				'El suelo radiante calienta. Ver la [[bomba de calor|2]] aquí, con el Suelo Radiante nuevo.',
+				'Las bombas de calor y los suelos radiantes comparten la caldera. Una bomba de calor aerotérmica.',
+			),
+			'es',
+			'post',
+			'',
+			0,
+			array( 'Ventajas del suelo radiante' )
+		);
+		$analyzer = Analyzer::for_language( 'es' );
+		$full     = $analyzer->analyze( $document, true );
+		$wanted   = array(
+			'suel radiant'  => true,
+			'bomb de calor' => true,
+			'calder'        => true,
+			'inexistente'   => true,
+		);
+
+		$lean = $analyzer->analyze( $document, true, $wanted );
+
+		$this->assertSame( array(), $lean->counts[ Analyzer::BODY ] );
+		$this->assertSame( 0, $lean->length );
+		$this->assertSame( $full->words, $lean->words );
+		$this->assertEquals( $full->sentences, $lean->sentences );
+		$this->assertSame( $full->positions(), $lean->positions() );
+		$expected = array_keys( array_intersect_key( $full->surfaces, $wanted ) );
+		sort( $expected );
+		$this->assertSame( array( 'bomb de calor', 'calder', 'suel radiant' ), $expected );
+		foreach ( array_keys( $wanted ) as $term ) {
+			$this->assertSame( $full->surfaces[ $term ] ?? null, $lean->surfaces[ $term ] ?? null, $term );
+		}
+		$this->assertSame( array_keys( $lean->surfaces ), array_keys( array_intersect_key( $lean->surfaces, $wanted ) ), 'solo las formas pedidas' );
+	}
+
 	public function test_display_term_drops_edge_stopwords_and_unusable_terms(): void {
 		$es = Analyzer::for_language( 'es' );
 

@@ -1,0 +1,18 @@
+{
+    "defecto": {
+        "found": 450,
+        "sha1": "95e5d458482ea4cb5cc404e0c01a959b6cc873cc"
+    },
+    "sin-enlaces": {
+        "found": 546,
+        "sha1": "bd5d6f46e4ec47f5ab7b2230e8e20ec12bf5115f"
+    },
+    "pilares": {
+        "found": 449,
+        "sha1": "da9fe85c9aa3252697c7ed62aa2cc1ebebc03bad"
+    },
+    "filtros": {
+        "found": 327,
+        "sha1": "f564500b56d8c779e5c81a3e4d4c87b1313bd5e4"
+    }
+}

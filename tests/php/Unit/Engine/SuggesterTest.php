@@ -17,6 +17,7 @@ use MagicLinking\Engine\Reason;
 use MagicLinking\Engine\Retriever;
 use MagicLinking\Engine\Scorer;
 use MagicLinking\Engine\Semantic;
+use MagicLinking\Engine\Suggester;
 use MagicLinking\Engine\Suggestion;
 use PHPUnit\Framework\TestCase;
 
@@ -55,6 +56,21 @@ final class SuggesterTest extends TestCase {
 		$this->assertArrayNotHasKey( 2, $candidates );
 		$this->assertArrayNotHasKey( 5, $candidates, 'la cocina no comparte términos' );
 		$this->assertSame( 1, array_key_first( $candidates ) );
+	}
+
+	/**
+	 * Lo del destino (ficha, términos, frases objetivo) no depende del origen: las entrantes lo calculan una vez, no una por
+	 * origen (F1-32). Cuenta las consultas de la ficha del destino en un índice que anota sus llamadas.
+	 */
+	public function test_incoming_reads_the_target_once_for_all_origins(): void {
+		$spy       = new SpyIndex( $this->corpus->index );
+		$suggester = new Suggester( $spy, $this->corpus->source, $this->corpus->indexer, new PhraseFinder(), new Scorer(), null, array( 'now' => Corpus::NOW ) );
+
+		$found = $suggester->incoming( 1 );
+
+		$this->assertGreaterThanOrEqual( 2, count( $found ), 'varios orígenes proponen enlazar al destino' );
+		$metas = array_keys( $spy->log, 'meta', true );
+		$this->assertLessThanOrEqual( 1, count( $metas ), 'la ficha del destino se pide una vez por cálculo, no una por origen' );
 	}
 
 	public function test_incoming_retrieval_uses_target_phrases_and_skips_existing_sources(): void {
