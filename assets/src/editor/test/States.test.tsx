@@ -62,3 +62,19 @@ describe( 'EmptyState con filtros Exigir', () => {
 		expect( host.textContent ).toContain( 'enough confidence' );
 	} );
 } );
+
+describe( 'EmptyState de una entrada excluida', () => {
+	it( 'dice que está excluida y enlaza al informe para volver a incluirla', () => {
+		const host = mount(
+			<EmptyState
+				state="excluded"
+				direction="outbound"
+				reportUrl="/report"
+			/>
+		);
+		expect( host.textContent ).toContain( 'excluded from the analysis' );
+		expect( host.querySelector( 'a' )?.getAttribute( 'href' ) ).toBe(
+			'/report'
+		);
+	} );
+} );

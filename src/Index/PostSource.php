@@ -75,14 +75,15 @@ final class PostSource implements DocumentSource {
 	}
 
 	/**
-	 * Si una entrada se indexa: publicada y de un tipo elegido en los ajustes.
+	 * Si una entrada se indexa: publicada, de un tipo elegido en los ajustes y no excluida.
 	 *
 	 * @param WP_Post|null $post Entrada.
 	 */
 	public function is_eligible( ?WP_Post $post ): bool {
 		return null !== $post
 			&& 'publish' === $post->post_status
-			&& in_array( $post->post_type, $this->settings->post_types(), true );
+			&& in_array( $post->post_type, $this->settings->post_types(), true )
+			&& ! Exclusions::is_excluded( $post->ID );
 	}
 
 	/**

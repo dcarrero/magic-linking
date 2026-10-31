@@ -61,6 +61,7 @@ use MagicLinking\Rest\EditorHistoryController;
 use MagicLinking\Rest\FixController;
 use MagicLinking\Rest\HistoryController;
 use MagicLinking\Rest\JobsController;
+use MagicLinking\Rest\ExclusionController;
 use MagicLinking\Rest\PillarController;
 use MagicLinking\Rest\ReportController;
 use MagicLinking\Rest\RulesController;
@@ -96,6 +97,7 @@ final class Plugin {
 		SuggestionCache::class,
 		Pillars::class,
 		PillarController::class,
+		ExclusionController::class,
 		SuggestionsController::class,
 		DismissalsController::class,
 		RulesController::class,
@@ -249,6 +251,7 @@ final class Plugin {
 				return new Pillars( $wpdb );
 			},
 			PillarController::class        => static fn( Container $c ): PillarController => new PillarController( $c->get( Pillars::class ), $c->get( Settings::class ) ),
+			ExclusionController::class     => static fn( Container $c ): ExclusionController => new ExclusionController( $c->get( Settings::class ) ),
 			SuggestionCache::class         => static fn(): SuggestionCache => new SuggestionCache(),
 			SuggestionPresenter::class     => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ) ),
 			SuggestionsController::class   => static fn( Container $c ): SuggestionsController => new SuggestionsController(

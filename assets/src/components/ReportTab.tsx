@@ -26,6 +26,16 @@ interface Props {
 	reportUrl?: string;
 }
 
+// Celda sin cifra (las excluidas no están en el índice); un guion largo que un lector de pantalla lee como «no disponible».
+const NO_FIGURE = (
+	<>
+		<span aria-hidden="true">{ '–' }</span>
+		<span className="screen-reader-text">
+			{ __( 'Not analyzed', 'magic-linking' ) }
+		</span>
+	</>
+);
+
 const PER_PAGE = window.magiclinking?.perPage ?? 20;
 
 const STATUS_LABEL: Record< ReportItem[ 'status' ], () => string > = {
@@ -33,6 +43,7 @@ const STATUS_LABEL: Record< ReportItem[ 'status' ], () => string > = {
 	low: () => __( 'Under-linked', 'magic-linking' ),
 	over: () => __( 'Over-linked', 'magic-linking' ),
 	ok: () => __( 'OK', 'magic-linking' ),
+	excluded: () => __( 'Excluded', 'magic-linking' ),
 };
 
 /**
@@ -65,6 +76,11 @@ export function ReportTab( {
 	const perPage = PER_PAGE;
 	const debounced = useDebounced( search );
 	const first = useIsFirstRender();
+	const root = useRef< HTMLDivElement >( null );
+	// Entrada cuya exclusión (o vuelta) se está guardando, y el aviso si falla; `reload` repite la carga tras un cambio.
+	const [ toggling, setToggling ] = useState< number | null >( null );
+	const [ toggleError, setToggleError ] = useState( '' );
+	const [ reload, setReload ] = useState( 0 );
 	// Panel lateral de sugerencias de una fila y filas refrescadas desde el servidor tras añadir o deshacer un enlace.
 	const [ panel, setPanel ] = useState< {
 		row: ReportItem;
@@ -99,6 +115,7 @@ export function ReportTab( {
 			page,
 			perPage,
 			refreshKey,
+			reload,
 		],
 		__( 'Could not load the report.', 'magic-linking' )
 	);
@@ -188,6 +205,61 @@ export function ReportTab( {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ data ] );
 
+	/**
+	 * Excluye la entrada del análisis o la vuelve a incluir. La fila sale de la lista (no se reordena nada más: se
+	 * vuelve a cargar la página), se anuncia y el foco pasa a la pestaña activa, porque el botón pulsado desaparece.
+	 * @param row     Fila.
+	 * @param exclude Excluir (true) o volver a incluir (false).
+	 */
+	const toggleExcluded = ( row: ReportItem, exclude: boolean ) => {
+		setToggling( row.id );
+		setToggleError( '' );
+		api.setExcluded( row.id, exclude )
+			.then( () => {
+				if ( panel?.row.id === row.id ) {
+					setPanel( null );
+				}
+				speak(
+					exclude
+						? sprintf(
+								/* translators: %s: entry title. */
+								__(
+									'%s excluded from the analysis.',
+									'magic-linking'
+								),
+								row.title
+						  )
+						: sprintf(
+								/* translators: %s: entry title. */
+								__(
+									'%s included in the analysis again.',
+									'magic-linking'
+								),
+								row.title
+						  ),
+					'polite'
+				);
+				setReload( ( value ) => value + 1 );
+				root.current
+					?.querySelector< HTMLElement >( '.subsubsub a.current' )
+					?.focus();
+			} )
+			.catch( () =>
+				setToggleError(
+					exclude
+						? __(
+								'Could not exclude the entry from the analysis.',
+								'magic-linking'
+						  )
+						: __(
+								'Could not include the entry in the analysis again.',
+								'magic-linking'
+						  )
+				)
+			)
+			.finally( () => setToggling( null ) );
+	};
+
 	const multilingual = summary?.multilingual ?? false;
 	const views: { id: ReportFilter; label: string; count?: number }[] = [
 		{
@@ -216,6 +288,14 @@ export function ReportTab( {
 			count: summary?.broken_posts,
 		},
 	];
+	// Solo hay pestaña de excluidas si hay alguna (o si es la que está abierta).
+	if ( ( summary?.excluded ?? 0 ) > 0 || filter === 'excluded' ) {
+		views.push( {
+			id: 'excluded',
+			label: __( 'Excluded', 'magic-linking' ),
+			count: summary?.excluded ?? 0,
+		} );
+	}
 
 	const change =
 		< T, >( setter: ( value: T ) => void ) =>
@@ -265,45 +345,57 @@ export function ReportTab( {
 			header: __( 'Inbound', 'magic-linking' ),
 			sortKey: 'inbound',
 			numeric: true,
-			render: ( row ) => (
-				<span
-					className={
-						row.inbound === 0 ? 'magiclinking-zero' : undefined
-					}
-				>
-					{ row.inbound }
-				</span>
-			),
+			render: ( row ) =>
+				row.status === 'excluded' ? (
+					NO_FIGURE
+				) : (
+					<span
+						className={
+							row.inbound === 0 ? 'magiclinking-zero' : undefined
+						}
+					>
+						{ row.inbound }
+					</span>
+				),
 		},
 		{
 			id: 'outbound',
 			header: __( 'Internal outbound', 'magic-linking' ),
 			sortKey: 'outbound',
 			numeric: true,
-			render: ( row ) => (
-				<span
-					className={
-						row.status === 'over' ? 'magiclinking-warn' : undefined
-					}
-				>
-					{ row.outbound }
-				</span>
-			),
+			render: ( row ) =>
+				row.status === 'excluded' ? (
+					NO_FIGURE
+				) : (
+					<span
+						className={
+							row.status === 'over'
+								? 'magiclinking-warn'
+								: undefined
+						}
+					>
+						{ row.outbound }
+					</span>
+				),
 		},
 		{
 			id: 'external',
 			header: __( 'External', 'magic-linking' ),
 			sortKey: 'external',
 			numeric: true,
-			render: ( row ) => row.external,
+			render: ( row ) =>
+				row.status === 'excluded' ? NO_FIGURE : row.external,
 		},
 		{
 			id: 'broken',
 			header: __( 'Broken', 'magic-linking' ),
 			sortKey: 'broken',
 			numeric: true,
-			render: ( row ) =>
-				row.broken > 0 ? (
+			render: ( row ) => {
+				if ( row.status === 'excluded' ) {
+					return NO_FIGURE;
+				}
+				return row.broken > 0 ? (
 					<button
 						type="button"
 						className="button-link"
@@ -321,7 +413,8 @@ export function ReportTab( {
 					</button>
 				) : (
 					0
-				),
+				);
+			},
 		},
 		{
 			id: 'status',
@@ -338,11 +431,14 @@ export function ReportTab( {
 			id: 'indexed_at',
 			header: __( 'Analyzed', 'magic-linking' ),
 			sortKey: 'indexed_at',
-			render: ( row ) => (
-				<time dateTime={ dateTimeAttr( row.indexed_at ) }>
-					{ formatDate( row.indexed_at ) }
-				</time>
-			),
+			render: ( row ) =>
+				row.status === 'excluded' ? (
+					NO_FIGURE
+				) : (
+					<time dateTime={ dateTimeAttr( row.indexed_at ) }>
+						{ formatDate( row.indexed_at ) }
+					</time>
+				),
 		},
 	];
 
@@ -389,7 +485,8 @@ export function ReportTab( {
 				),
 			} );
 		}
-		if ( row.edit_url ) {
+		const excluded = row.status === 'excluded';
+		if ( row.edit_url && ! excluded ) {
 			// Hace falta poder editar la entrada de la fila (las rutas de sugerencias lo exigen).
 			( [ 'inbound', 'outbound' ] as const ).forEach( ( direction ) =>
 				items.push( {
@@ -412,7 +509,29 @@ export function ReportTab( {
 				} )
 			);
 		}
-		if ( row.broken > 0 ) {
+		if ( row.edit_url ) {
+			// Hace falta poder editar la entrada; el servidor lo vuelve a comprobar.
+			items.push( {
+				id: excluded ? 'include' : 'exclude',
+				node: (
+					<button
+						type="button"
+						className="button-link"
+						disabled={ toggling === row.id }
+						onClick={ () => toggleExcluded( row, ! excluded ) }
+					>
+						{ excluded
+							? __( 'Include in the analysis', 'magic-linking' )
+							: __(
+									'Exclude from the analysis',
+									'magic-linking'
+							  ) }
+						{ title }
+					</button>
+				),
+			} );
+		}
+		if ( row.broken > 0 && ! excluded ) {
 			items.push( {
 				id: 'broken',
 				node: (
@@ -431,7 +550,7 @@ export function ReportTab( {
 	};
 
 	return (
-		<div className="magiclinking-report">
+		<div className="magiclinking-report" ref={ root }>
 			<ul className="subsubsub">
 				{ views.map( ( view, index ) => (
 					<li key={ view.id } className={ view.id }>
@@ -470,9 +589,9 @@ export function ReportTab( {
 				onChange={ change( setSearch ) }
 			/>
 
-			{ error && (
+			{ ( error || toggleError ) && (
 				<p className="magiclinking-error" role="alert">
-					{ error }
+					{ error || toggleError }
 				</p>
 			) }
 
@@ -486,10 +605,17 @@ export function ReportTab( {
 				order={ order }
 				onSort={ onSort }
 				busy={ loading }
-				emptyMessage={ __(
-					'No entries match these filters.',
-					'magic-linking'
-				) }
+				emptyMessage={
+					filter === 'excluded'
+						? __(
+								'No entries are excluded from the analysis.',
+								'magic-linking'
+						  )
+						: __(
+								'No entries match these filters.',
+								'magic-linking'
+						  )
+				}
 				actions={
 					<>
 						{ ( summary?.types.length ?? 0 ) > 1 && (

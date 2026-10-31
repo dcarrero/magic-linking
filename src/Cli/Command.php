@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Cli;
 
+use MagicLinking\Core\Settings;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\IndexOutcome;
 use MagicLinking\Graph\ReportRepository;
@@ -19,6 +20,7 @@ use MagicLinking\History\Redo;
 use MagicLinking\History\Retention;
 use MagicLinking\History\Undo;
 use MagicLinking\History\UndoResult;
+use MagicLinking\Index\Exclusions;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\CsvExporter;
@@ -347,7 +349,7 @@ final class Command {
 		$format  = (string) ( $assoc_args['format'] ?? 'table' );
 
 		if ( ! in_array( $filter, ReportRepository::FILTERS, true ) ) {
-			WP_CLI::error( __( 'Invalid filter. Use: all, orphans, low, over or broken.', 'magic-linking' ) );
+			WP_CLI::error( __( 'Invalid filter. Use: all, orphans, low, over, broken or excluded.', 'magic-linking' ) );
 		}
 		if ( ! in_array( $orderby, ReportRepository::order_keys(), true ) ) {
 			WP_CLI::error( __( 'Invalid column for --orderby.', 'magic-linking' ) );
@@ -791,6 +793,96 @@ final class Command {
 				$deleted
 			)
 		);
+	}
+
+	/**
+	 * Excluye entradas del análisis.
+	 *
+	 * Una entrada excluida sale del índice: no aparece como origen ni como destino de sugerencias y solo se ve en el
+	 * filtro «Excluded» del informe. No cambia su contenido. `wp magic-linking include` la vuelve a incluir.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>...
+	 * : Una o varias entradas.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp magic-linking exclude 123 456
+	 *
+	 * @param array<int, string>   $args       Entradas.
+	 * @param array<string, mixed> $assoc_args Opciones.
+	 */
+	public function exclude( array $args, array $assoc_args ): void {
+		unset( $assoc_args );
+
+		$ids = $this->analyzed_ids( $args );
+		foreach ( $ids as $id ) {
+			Exclusions::set( $id, true );
+		}
+
+		WP_CLI::success(
+			sprintf(
+				/* translators: %d: number of entries. */
+				_n( '%d entry excluded from the analysis.', '%d entries excluded from the analysis.', count( $ids ), 'magic-linking' ),
+				count( $ids )
+			)
+		);
+	}
+
+	/**
+	 * Vuelve a incluir en el análisis entradas excluidas.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>...
+	 * : Una o varias entradas.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp magic-linking include 123 456
+	 *
+	 * @subcommand include
+	 *
+	 * @param array<int, string>   $args       Entradas.
+	 * @param array<string, mixed> $assoc_args Opciones.
+	 */
+	public function restore( array $args, array $assoc_args ): void {
+		unset( $assoc_args );
+
+		$ids = $this->analyzed_ids( $args );
+		foreach ( $ids as $id ) {
+			Exclusions::set( $id, false );
+		}
+
+		WP_CLI::success(
+			sprintf(
+				/* translators: %d: number of entries. */
+				_n( '%d entry included in the analysis again.', '%d entries included in the analysis again.', count( $ids ), 'magic-linking' ),
+				count( $ids )
+			)
+		);
+	}
+
+	/**
+	 * Valida las entradas dadas (que existan y sean de un tipo que se analiza) antes de tocar ninguna.
+	 *
+	 * @param array<int, string> $args IDs recibidos.
+	 *
+	 * @return list<int>
+	 */
+	private function analyzed_ids( array $args ): array {
+		$types = ( new Settings() )->post_types();
+		$ids   = array();
+		foreach ( $args as $arg ) {
+			$post = ctype_digit( $arg ) ? get_post( (int) $arg ) : null;
+			if ( ! $post instanceof \WP_Post || ! in_array( $post->post_type, $types, true ) ) {
+				WP_CLI::error( __( 'That entry does not exist or is not of a chosen content type.', 'magic-linking' ) );
+			}
+			$ids[] = $post->ID;
+		}
+
+		return array_values( array_unique( $ids ) );
 	}
 
 	/**

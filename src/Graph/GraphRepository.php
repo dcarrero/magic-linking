@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Graph;
 
 use MagicLinking\Core\Schema;
+use MagicLinking\Index\Exclusions;
 use wpdb;
 
 /**
@@ -441,6 +442,8 @@ final class GraphRepository {
 		if ( array() !== $exclude ) {
 			$not = ' AND ID NOT IN (' . implode( ',', array_map( 'intval', $exclude ) ) . ')';
 		}
+		// Las excluidas del análisis (F1-12) no se recorren.
+		$not .= Exclusions::not_excluded_sql();
 
 		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Consulta de análisis sobre el núcleo.
 			$wpdb->prepare( "SELECT ID FROM %i WHERE post_status = 'publish' AND ID > %d AND post_type IN ({$in}){$not} ORDER BY ID ASC LIMIT %d", array_merge( array( $wpdb->posts, $after_id ), $post_types, array( $limit ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
@@ -463,7 +466,7 @@ final class GraphRepository {
 		$in   = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
 
 		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Consulta de análisis sobre el núcleo.
-			$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE post_status = 'publish' AND post_type IN ({$in})", array_merge( array( $wpdb->posts ), $post_types ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+			$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE post_status = 'publish' AND post_type IN ({$in})" . Exclusions::not_excluded_sql(), array_merge( array( $wpdb->posts ), $post_types ) ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
 		);
 	}
 

@@ -85,11 +85,14 @@ final class Suggestions {
 	 * @param bool    $inbound Entrantes: el destino tiene que estar publicado.
 	 * @param bool    $draft   Se analiza el contenido del editor (una entrada nueva también vale).
 	 *
-	 * @return string `ok`, `index_not_ready`, `not_analyzed` o `not_published`.
+	 * @return string `ok`, `index_not_ready`, `not_analyzed`, `excluded` o `not_published`.
 	 */
 	public function state( WP_Post $post, bool $inbound = false, bool $draft = false ): string {
 		if ( ! $this->ready() ) {
 			return 'index_not_ready';
+		}
+		if ( in_array( $post->post_type, $this->settings->post_types(), true ) && Exclusions::is_excluded( $post->ID ) ) {
+			return 'excluded';
 		}
 		if ( ! $this->analyzes( $post, $draft ) ) {
 			return 'not_analyzed';
@@ -261,7 +264,7 @@ final class Suggestions {
 	}
 
 	/**
-	 * Si una entrada es de un tipo que se analiza y no está en un estado que se descarta.
+	 * Si una entrada es de un tipo que se analiza, no está en un estado que se descarta y no está excluida.
 	 *
 	 * @param WP_Post $post  Entrada.
 	 * @param bool    $draft Se analiza lo que hay en el editor: un borrador automático también vale.
@@ -269,7 +272,7 @@ final class Suggestions {
 	private function analyzes( WP_Post $post, bool $draft = false ): bool {
 		$never = $draft ? array_diff( self::NEVER_STATUS, array( 'auto-draft' ) ) : self::NEVER_STATUS;
 
-		return in_array( $post->post_type, $this->settings->post_types(), true ) && ! in_array( $post->post_status, $never, true );
+		return in_array( $post->post_type, $this->settings->post_types(), true ) && ! in_array( $post->post_status, $never, true ) && ! Exclusions::is_excluded( $post->ID );
 	}
 
 	/**

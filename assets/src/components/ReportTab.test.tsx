@@ -19,7 +19,11 @@ jest.mock( './SuggestionsDrawer', () => ( {
 	),
 } ) );
 jest.mock( '../api', () => ( {
-	api: { report: jest.fn(), reportRows: jest.fn() },
+	api: {
+		report: jest.fn(),
+		reportRows: jest.fn(),
+		setExcluded: jest.fn(),
+	},
 	errorMessage: ( _e: unknown, fallback: string ) => fallback,
 	errorStatus: () => 0,
 } ) );
@@ -31,9 +35,10 @@ jest.mock( '../api', () => ( {
 const mocked = api as unknown as {
 	report: jest.Mock;
 	reportRows: jest.Mock;
+	setExcluded: jest.Mock;
 };
 
-const summary = ( orphans: number ): Summary =>
+const summary = ( orphans: number, excluded = 0 ): Summary =>
 	( {
 		analyzed: 5,
 		orphans,
@@ -42,6 +47,7 @@ const summary = ( orphans: number ): Summary =>
 		broken_posts: 0,
 		internal_links: 3,
 		broken_links: 0,
+		excluded,
 		types: [],
 		langs: [],
 		multilingual: false,
@@ -167,6 +173,85 @@ describe( 'ReportTab refreshing rows after a change', () => {
 
 		expect( inboundCell() ).toBe( '2' );
 		expect( host.textContent ).toContain( 'Orphans (3)' );
+	} );
+} );
+
+describe( 'ReportTab exclude from the analysis', () => {
+	const excludedRow = (): ReportItem =>
+		( {
+			...row( 0 ),
+			status: 'excluded',
+			lang: '',
+			indexed_at: '',
+		} ) as ReportItem;
+
+	it( 'offers "Exclude from the analysis" on each row and posts it, then reloads', async () => {
+		mocked.setExcluded.mockResolvedValue( { post_id: 1, excluded: true } );
+		await mount();
+		expect( host.textContent ).toContain( 'Exclude from the analysis' );
+		mocked.report.mockResolvedValue( {
+			items: [],
+			summary: summary( 4, 1 ),
+			total: 0,
+			total_pages: 1,
+			page: 1,
+		} );
+
+		await clickText( 'Exclude from the analysis' );
+
+		expect( mocked.setExcluded ).toHaveBeenCalledWith( 1, true );
+		expect( mocked.report ).toHaveBeenCalledTimes( 2 );
+		expect( host.querySelector( 'tbody tr td' )?.textContent ).toContain(
+			'No entries match these filters.'
+		);
+		expect( host.textContent ).toContain( 'Excluded (1)' );
+	} );
+
+	it( 'shows the Excluded tab only when there are excluded entries (or it is the open one)', async () => {
+		await mount();
+		expect( host.textContent ).not.toContain( 'Excluded (' );
+	} );
+
+	it( 'excluded rows offer "Include in the analysis" and no figures or suggestions', async () => {
+		mocked.report.mockResolvedValue( {
+			items: [ excludedRow() ],
+			summary: summary( 0, 1 ),
+			total: 1,
+			total_pages: 1,
+			page: 1,
+		} );
+		mocked.setExcluded.mockResolvedValue( { post_id: 1, excluded: false } );
+		await mount();
+		await act( async () => {
+			(
+				Array.from( host.querySelectorAll( '.subsubsub a' ) ).find(
+					( a ) => ( a.textContent ?? '' ).includes( 'Excluded' )
+				) as HTMLElement
+			 ).click();
+		} );
+		await flush();
+
+		expect( host.textContent ).toContain( 'Include in the analysis' );
+		expect( host.textContent ).not.toContain( 'Exclude from the analysis' );
+		expect( host.textContent ).not.toContain( 'Inbound suggestions' );
+		expect( host.querySelector( '.magiclinking-badge' )?.textContent ).toBe(
+			'Excluded'
+		);
+
+		await clickText( 'Include in the analysis' );
+		expect( mocked.setExcluded ).toHaveBeenCalledWith( 1, false );
+	} );
+
+	it( 'tells the user when it fails and keeps the row', async () => {
+		mocked.setExcluded.mockRejectedValue( new Error( 'x' ) );
+		await mount();
+
+		await clickText( 'Exclude from the analysis' );
+
+		expect( host.querySelector( '[role="alert"]' )?.textContent ).toBe(
+			'Could not exclude the entry from the analysis.'
+		);
+		expect( host.querySelectorAll( 'tbody tr' ) ).toHaveLength( 1 );
 	} );
 } );
 

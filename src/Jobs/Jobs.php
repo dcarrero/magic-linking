@@ -14,7 +14,9 @@ use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\IndexOutcome;
+use MagicLinking\Index\Exclusions;
 use MagicLinking\Index\LexicalIndexer;
+use MagicLinking\Index\SuggestionCache;
 use Throwable;
 use WP_Post;
 
@@ -145,6 +147,28 @@ final class Jobs implements Module {
 		add_action( self::HOOK_RECONCILE, array( $this, 'reconcile' ) );
 		add_action( 'wp_after_insert_post', array( $this, 'on_post_saved' ), 20, 4 );
 		add_action( 'deleted_post', array( $this, 'on_post_deleted' ), 10, 1 );
+		// Excluir una entrada del análisis (o volver a incluirla) la saca del índice o la mete (F1-12).
+		foreach ( array( 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ) as $hook ) {
+			add_action( $hook, array( $this, 'on_exclusion_meta' ), 10, 3 );
+		}
+	}
+
+	/**
+	 * Cambia la marca de exclusión de una entrada: la reindexa ahora (si deja de analizarse sale del índice con sus
+	 * enlaces y los entrantes de sus destinos se recalculan; si vuelve, se indexa) y renueva las sugerencias guardadas.
+	 *
+	 * @param int|int[] $meta_id Identificador(es) de la meta.
+	 * @param int       $post_id Entrada.
+	 * @param string    $key     Clave.
+	 */
+	public function on_exclusion_meta( $meta_id, int $post_id, string $key ): void {
+		unset( $meta_id );
+		if ( Exclusions::KEY !== $key ) {
+			return;
+		}
+
+		$this->reindex_now( $post_id );
+		SuggestionCache::bump();
 	}
 
 	/**
