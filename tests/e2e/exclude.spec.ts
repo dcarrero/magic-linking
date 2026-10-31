@@ -212,6 +212,36 @@ test.describe( 'Exclude from the analysis', () => {
 		expect( status ).toBe( 403 );
 	} );
 
+	test( 'an excluded draft is listed with its state and can be included again', async ( {
+		page,
+	} ) => {
+		wp(
+			'eval',
+			"$id = get_page_by_path( 'ex-otra', OBJECT, 'post' )->ID; update_post_meta( $id, '_magiclinking_excluded', '1' ); wp_update_post( array( 'ID' => $id, 'post_status' => 'draft' ) );"
+		);
+		await login( page );
+		await page.goto( SCREEN );
+		await page
+			.locator( '.subsubsub' )
+			.getByRole( 'link', { name: /^Excluded/ } )
+			.click();
+		const table = page.getByRole( 'table', {
+			name: 'Internal links by entry',
+		} );
+		await expect( table.locator( 'tbody' ) ).toContainText(
+			'Excluded · Draft'
+		);
+		const include = table.getByRole( 'button', {
+			name: /Include in the analysis/,
+		} );
+		await include.focus();
+		await page.keyboard.press( 'Enter' );
+		await expect( table.locator( 'tbody' ) ).toContainText(
+			'No entries are excluded from the analysis.'
+		);
+		expect( ( await axe( page ) ).violations ).toEqual( [] );
+	} );
+
 	test( 'axe finds no violations in the report with an excluded entry', async ( {
 		page,
 	} ) => {

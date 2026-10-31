@@ -39,6 +39,9 @@ export interface ReportItem {
 	indexed_at: string;
 	url: string;
 	edit_url: string;
+	/** Solo en las excluidas: estado de la entrada (un borrador excluido también se lista). */
+	post_status?: string;
+	post_status_label?: string;
 }
 
 export interface CountLabel {

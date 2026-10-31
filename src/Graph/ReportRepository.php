@@ -146,7 +146,7 @@ final class ReportRepository {
 	}
 
 	/**
-	 * Las entradas excluidas del análisis: publicadas, de un tipo que se analiza y con la marca. No están en el índice,
+	 * Las entradas excluidas del análisis: de un tipo que se analiza, con la marca y en cualquier estado menos papelera (un borrador excluido tiene que poder volver a incluirse), sin filtrar por idioma (no están en el índice, no tienen). No están en el índice,
 	 * así que solo tienen título, tipo y enlaces para verlas o editarlas (sin cifras ni idioma), y solo se ordenan por
 	 * título o tipo.
 	 *
@@ -156,7 +156,7 @@ final class ReportRepository {
 	 */
 	private function excluded( array $args ): array {
 		$types = $this->settings->post_types();
-		if ( array() === $types || ( ! empty( $args['lang'] ) ) ) {
+		if ( array() === $types ) {
 			return array(
 				'items' => array(),
 				'total' => 0,
@@ -165,7 +165,7 @@ final class ReportRepository {
 
 		$wpdb  = $this->wpdb;
 		$in    = implode( ',', array_fill( 0, count( $types ), '%s' ) );
-		$where = $wpdb->prepare( "p.post_status = 'publish' AND p.post_type IN ({$in})", $types ) . $wpdb->prepare( ' AND m.meta_key = %s AND m.meta_value = %s', Exclusions::KEY, '1' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
+		$where = $wpdb->prepare( "p.post_status NOT IN ('trash', 'auto-draft') AND p.post_type IN ({$in})", $types ) . $wpdb->prepare( ' AND m.meta_key = %s AND m.meta_value = %s', Exclusions::KEY, '1' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
 		if ( ! empty( $args['search'] ) ) {
 			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( (string) $args['search'] ) . '%' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Preparado.
 		}
@@ -183,7 +183,7 @@ final class ReportRepository {
 		);
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fragmentos preparados y ORDER BY de una lista cerrada.
-			$wpdb->prepare( "SELECT p.ID AS post_id, p.post_title, p.post_type FROM %i p INNER JOIN %i m ON m.post_id = p.ID WHERE {$where} ORDER BY {$column} {$direction}, p.ID ASC LIMIT %d OFFSET %d", $wpdb->posts, $wpdb->postmeta, $per_page, $offset ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmentos preparados.
+			$wpdb->prepare( "SELECT p.ID AS post_id, p.post_title, p.post_type, p.post_status FROM %i p INNER JOIN %i m ON m.post_id = p.ID WHERE {$where} ORDER BY {$column} {$direction}, p.ID ASC LIMIT %d OFFSET %d", $wpdb->posts, $wpdb->postmeta, $per_page, $offset ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmentos preparados.
 			ARRAY_A
 		);
 
@@ -211,7 +211,7 @@ final class ReportRepository {
 		$in   = implode( ',', array_fill( 0, count( $types ), '%s' ) );
 
 		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Marcadores generados.
-			$wpdb->prepare( "SELECT COUNT(*) FROM %i p INNER JOIN %i m ON m.post_id = p.ID WHERE p.post_status = 'publish' AND p.post_type IN ({$in}) AND m.meta_key = %s AND m.meta_value = %s", array_merge( array( $wpdb->posts, $wpdb->postmeta ), $types, array( Exclusions::KEY, '1' ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+			$wpdb->prepare( "SELECT COUNT(*) FROM %i p INNER JOIN %i m ON m.post_id = p.ID WHERE p.post_status NOT IN ('trash', 'auto-draft') AND p.post_type IN ({$in}) AND m.meta_key = %s AND m.meta_value = %s", array_merge( array( $wpdb->posts, $wpdb->postmeta ), $types, array( Exclusions::KEY, '1' ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
 		);
 	}
 
@@ -223,27 +223,27 @@ final class ReportRepository {
 	 * @return array<string, mixed>
 	 */
 	private function excluded_item( array $row ): array {
-		$id       = (int) $row['post_id'];
-		$type     = (string) $row['post_type'];
-		$object   = get_post_type_object( $type );
-		$title    = PostTitle::plain( (string) $row['post_title'] );
-		$can_edit = current_user_can( 'edit_post', $id );
+		$status = (string) $row['post_status'];
+		$object = get_post_status_object( $status );
 
-		return array(
-			'id'         => $id,
-			'title'      => '' !== trim( $title ) ? $title : __( '(no title)', 'magic-linking' ),
-			'type'       => $type,
-			'type_label' => null !== $object ? (string) $object->labels->singular_name : $type,
-			'lang'       => '',
-			'inbound'    => 0,
-			'outbound'   => 0,
-			'external'   => 0,
-			'broken'     => 0,
-			'words'      => 0,
-			'status'     => self::EXCLUDED_STATUS,
-			'indexed_at' => '',
-			'url'        => (string) get_permalink( $id ),
-			'edit_url'   => $can_edit ? (string) get_edit_post_link( $id, 'raw' ) : '',
+		return array_merge(
+			$this->item(
+				$row + array(
+					'lang'       => '',
+					'inbound'    => 0,
+					'outbound'   => 0,
+					'external'   => 0,
+					'broken'     => 0,
+					'word_count' => 0,
+					'indexed_at' => '',
+				)
+			),
+			array(
+				'status'            => self::EXCLUDED_STATUS,
+				'indexed_at'        => '',
+				'post_status'       => $status,
+				'post_status_label' => null !== $object ? (string) $object->label : $status,
+			)
 		);
 	}
 

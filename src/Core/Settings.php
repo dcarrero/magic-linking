@@ -122,6 +122,17 @@ final class Settings {
 	}
 
 	/**
+	 * La entrada, si existe y es de un tipo que se analiza.
+	 *
+	 * @param int $post_id ID.
+	 */
+	public function analyzed_post( int $post_id ): ?\WP_Post {
+		$post = get_post( $post_id );
+
+		return $post instanceof \WP_Post && in_array( $post->post_type, $this->post_types(), true ) ? $post : null;
+	}
+
+	/**
 	 * Tipos de contenido que se analizan.
 	 *
 	 * @return list<string>

@@ -58,8 +58,9 @@ final class Exclusions {
 		global $wpdb;
 
 		return $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- La columna llega de una constante de quien llama.
-			" AND NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} ex WHERE ex.post_id = {$posts_column} AND ex.meta_key = %s )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			self::KEY
+			" AND NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} ex WHERE ex.post_id = {$posts_column} AND ex.meta_key = %s AND ex.meta_value = %s )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			self::KEY,
+			'1'
 		);
 	}
 }

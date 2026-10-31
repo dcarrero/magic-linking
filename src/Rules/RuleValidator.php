@@ -13,6 +13,7 @@ use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Analyzer;
 use MagicLinking\Engine\PhraseFinder;
 use MagicLinking\I18n\Language;
+use MagicLinking\Index\Exclusions;
 use WP_Error;
 use WP_Post;
 
@@ -64,6 +65,9 @@ final class RuleValidator {
 			}
 			if ( in_array( $target_id, $this->settings->all()['ignored_ids'], true ) ) {
 				return $this->error( __( 'That entry is in your list of ignored URLs, so it cannot be a destination.', 'magic-linking' ) );
+			}
+			if ( Exclusions::is_excluded( $target_id ) ) {
+				return $this->error( __( 'That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first.', 'magic-linking' ) );
 			}
 			$lang = $this->language->for_post( $target_id );
 			$url  = (string) get_permalink( $target );

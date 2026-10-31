@@ -405,7 +405,11 @@ final class GraphRepository {
 		} else {
 			$other = $wpdb->get_col( $wpdb->prepare( 'SELECT post_id FROM %i', $this->docs ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
 		}
-		$ids = array_merge( $ids, $other );
+		// Las excluidas (F1-12) también: repara una marca que llegó sin pasar por el hook (importación, restauración).
+		$excluded = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb->prepare( 'SELECT d.post_id FROM %i d JOIN %i m ON m.post_id = d.post_id WHERE m.meta_key = %s AND m.meta_value = %s', $this->docs, $wpdb->postmeta, Exclusions::KEY, '1' )
+		);
+		$ids      = array_merge( $ids, $other, $excluded );
 
 		$affected = array();
 		$ids      = array_values( array_unique( array_map( 'intval', $ids ) ) );

@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.24.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T14:28:19+00:00\n"
+"POT-Creation-Date: 2026-10-31T15:04:41+00:00\n"
 "PO-Revision-Date: 2026-10-31 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Deutsch\n"
@@ -128,130 +128,130 @@ msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp
 msgstr "Diese Ansicht braucht JavaScript. Denselben Bericht erhältst du mit WP-CLI: wp magic-linking report"
 
 #. translators: %d: process ID.
-#: src/Cli/Command.php:167
+#: src/Cli/Command.php:176
 #, php-format
 msgid "Process %1$d is paused. Resume it with: wp magic-linking job resume %2$d"
 msgstr "Vorgang %1$d ist pausiert. Setze ihn fort mit: wp magic-linking job resume %2$d"
 
 #. translators: %d: process ID.
-#: src/Cli/Command.php:178
+#: src/Cli/Command.php:187
 #, php-format
 msgid "Process %d queued. It will run in the background with Action Scheduler."
 msgstr "Vorgang %d in die Warteschlange gestellt. Er läuft im Hintergrund mit Action Scheduler."
 
-#: src/Cli/Command.php:185
+#: src/Cli/Command.php:194
 msgid "Analyzing entries"
 msgstr "Beiträge werden analysiert"
 
 #. translators: 1: new or modified entries, 2: unchanged entries skipped.
-#: src/Cli/Command.php:201
+#: src/Cli/Command.php:210
 #, php-format
 msgid "%1$d new or modified, %2$d unchanged and skipped."
 msgstr "%1$d neu oder geändert, %2$d unverändert und übersprungen."
 
 #. translators: %d: number of entries.
-#: src/Cli/Command.php:209
+#: src/Cli/Command.php:218
 #, php-format
 msgid "%d entry analyzed."
 msgid_plural "%d entries analyzed."
 msgstr[0] "%d Beitrag analysiert."
 msgstr[1] "%d Beiträge analysiert."
 
-#: src/Cli/Command.php:219
+#: src/Cli/Command.php:228
 msgid "The process did not finish. Check its state with: wp magic-linking status"
 msgstr "Der Vorgang wurde nicht abgeschlossen. Prüfe seinen Zustand mit: wp magic-linking status"
 
-#: src/Cli/Command.php:352
+#: src/Cli/Command.php:361
 msgid "Invalid filter. Use: all, orphans, low, over, broken or excluded."
 msgstr ""
 
-#: src/Cli/Command.php:355
+#: src/Cli/Command.php:364
 msgid "Invalid column for --orderby."
 msgstr "Ungültige Spalte für --orderby."
 
-#: src/Cli/Command.php:478
+#: src/Cli/Command.php:487
 msgid "Unknown action. Use: list, pause, resume or cancel."
 msgstr "Unbekannte Aktion. Verwende: list, pause, resume oder cancel."
 
-#: src/Cli/Command.php:483
+#: src/Cli/Command.php:492
 msgid "There is no such process."
 msgstr "Diesen Vorgang gibt es nicht."
 
-#: src/Cli/Command.php:498 src/Rest/HistoryController.php:478
+#: src/Cli/Command.php:507 src/Rest/HistoryController.php:478
 #: src/Rest/JobsController.php:170 src/Rest/JobsController.php:185
 msgid "That process cannot be changed in its current state."
 msgstr "Dieser Vorgang lässt sich in seinem aktuellen Zustand nicht ändern."
 
 #. translators: 1: process ID, 2: new state.
-#: src/Cli/Command.php:504
+#: src/Cli/Command.php:513
 #, php-format
 msgid "Process %1$d is now %2$s."
 msgstr "Vorgang %1$d ist jetzt %2$s."
 
 #. translators: %s: batch ID.
-#: src/Cli/Command.php:601
+#: src/Cli/Command.php:610
 #, php-format
 msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
 msgstr "Es gibt weitere Durchgänge. Fahre fort mit: wp magic-linking history list --before=%s"
 
-#: src/Cli/Command.php:626
+#: src/Cli/Command.php:635
 msgid "Unknown action. Use: list, undo, redo, purge or export."
 msgstr "Unbekannte Aktion. Verwende: list, undo, redo, purge oder export."
 
-#: src/Cli/Command.php:676 src/Cli/Command.php:710
+#: src/Cli/Command.php:685 src/Cli/Command.php:719
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
 #: src/Rest/SuggestionsController.php:645
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Du hast keine Berechtigung, einen der betroffenen Beiträge zu bearbeiten."
 
-#: src/Cli/Command.php:681 src/History/Redo.php:65 src/History/Undo.php:165
+#: src/Cli/Command.php:690 src/History/Redo.php:65 src/History/Undo.php:165
 #: src/Rest/HistoryController.php:788
 msgid "That change does not exist."
 msgstr "Diese Änderung existiert nicht."
 
-#: src/Cli/Command.php:685 src/Cli/Command.php:705
+#: src/Cli/Command.php:694 src/Cli/Command.php:714
 #: src/Rest/HistoryController.php:774
 msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
 msgstr "Dieser Durchgang wird gerade im Hintergrund verarbeitet. Warte, bis er abgeschlossen ist, oder brich ihn ab."
 
-#: src/Cli/Command.php:701
+#: src/Cli/Command.php:710
 msgid "There is no such group in the history (or you cannot edit all of its entries)."
 msgstr "Diese Gruppe gibt es im Verlauf nicht (oder du darfst nicht alle ihre Beiträge bearbeiten)."
 
 #. translators: %d: number of changes.
-#: src/Cli/Command.php:746
+#: src/Cli/Command.php:755
 #, php-format
 msgid "%d change could not be applied by itself."
 msgid_plural "%d changes could not be applied by themselves."
 msgstr[0] "%d Änderung konnte nicht einzeln angewendet werden."
 msgstr[1] "%d Änderungen konnten nicht einzeln angewendet werden."
 
-#: src/Cli/Command.php:753
+#: src/Cli/Command.php:762
 msgid "Group redone."
 msgstr "Gruppe wiederhergestellt."
 
-#: src/Cli/Command.php:753
+#: src/Cli/Command.php:762
 msgid "Group undone."
 msgstr "Gruppe rückgängig gemacht."
 
-#: src/Cli/Command.php:764
+#: src/Cli/Command.php:773
 msgid "The history never expires with the current setting; nothing to delete."
 msgstr "Mit der aktuellen Einstellung läuft der Verlauf nie ab; es gibt nichts zu löschen."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:773
+#: src/Cli/Command.php:782
 #, php-format
 msgid "%d history row has expired."
 msgid_plural "%d history rows have expired."
 msgstr[0] "%d Verlaufseintrag ist abgelaufen."
 msgstr[1] "%d Verlaufseinträge sind abgelaufen."
 
-#: src/Cli/Command.php:782
+#: src/Cli/Command.php:791
 msgid "Nothing has expired."
 msgstr "Nichts ist abgelaufen."
 
 #. translators: %d: number of history rows.
-#: src/Cli/Command.php:792
+#: src/Cli/Command.php:801
 #, php-format
 msgid "%d history row deleted."
 msgid_plural "%d history rows deleted."
@@ -259,7 +259,7 @@ msgstr[0] "%d Verlaufseintrag gelöscht."
 msgstr[1] "%d Verlaufseinträge gelöscht."
 
 #. translators: %d: number of entries.
-#: src/Cli/Command.php:827
+#: src/Cli/Command.php:836
 #, php-format
 msgid "%d entry excluded from the analysis."
 msgid_plural "%d entries excluded from the analysis."
@@ -267,41 +267,42 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of entries.
-#: src/Cli/Command.php:861
+#: src/Cli/Command.php:870
 #, php-format
 msgid "%d entry included in the analysis again."
 msgid_plural "%d entries included in the analysis again."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/Cli/Command.php:880
+#: src/Cli/Command.php:888
 msgid "That entry does not exist or is not of a chosen content type."
 msgstr ""
 
-#: src/Cli/Command.php:896 src/Cli/RulesCommand.php:301
-#: src/Rest/AiController.php:225 src/Rest/DismissalsController.php:141
-#: src/Rest/EditorHistoryController.php:95 src/Rest/ExclusionController.php:84
-#: src/Rest/PillarController.php:127 src/Rest/SuggestionsController.php:970
+#: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
+#: src/Rest/AiController.php:225 src/Rest/AnalyzedEntry.php:43
+#: src/Rest/DismissalsController.php:141
+#: src/Rest/EditorHistoryController.php:95
+#: src/Rest/SuggestionsController.php:970
 msgid "That entry does not exist."
 msgstr "Dieser Beitrag existiert nicht."
 
-#: src/Cli/Command.php:903
+#: src/Cli/Command.php:911
 msgid "Entry analyzed."
 msgstr "Beitrag analysiert."
 
-#: src/Cli/Command.php:906
+#: src/Cli/Command.php:914
 msgid "Nothing changed since the last analysis. Use --force to analyze it again."
 msgstr "Seit der letzten Analyse hat sich nichts geändert. Verwende --force, um ihn erneut zu analysieren."
 
-#: src/Cli/Command.php:909
+#: src/Cli/Command.php:917
 msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
 msgstr "Der Beitrag ist nicht veröffentlicht oder gehört zu keinem ausgewählten Inhaltstyp: Er wurde aus dem Bericht entfernt."
 
-#: src/Cli/Command.php:912
+#: src/Cli/Command.php:920
 msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
 msgstr "Der Beitrag ist nicht veröffentlicht oder gehört zu keinem ausgewählten Inhaltstyp und wird daher nicht analysiert."
 
-#: src/Cli/Command.php:925
+#: src/Cli/Command.php:933
 msgid "Could not open the output."
 msgstr "Die Ausgabe konnte nicht geöffnet werden."
 
@@ -567,10 +568,10 @@ msgstr "Der Zielbeitrag ist nicht veröffentlicht (Entwurf, ausstehend oder gepl
 msgid "The destination entry is private."
 msgstr "Der Zielbeitrag ist privat."
 
-#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:234
-#: src/Graph/ReportRepository.php:446 src/Rest/FixController.php:207
-#: assets/build/classic.js:15 assets/build/editor.js:15
-#: assets/build/index.js:15 assets/build/index.js:65 assets/build/index.js:83
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:446
+#: src/Rest/FixController.php:207 assets/build/classic.js:15
+#: assets/build/editor.js:15 assets/build/index.js:15 assets/build/index.js:65
+#: assets/build/index.js:83
 msgid "(no title)"
 msgstr "(kein Titel)"
 
@@ -919,26 +920,30 @@ msgstr "Dieser Ankertext verweist bereits aus so vielen Beiträgen auf das Ziel,
 msgid "No phrase of the rule fits in the text."
 msgstr "Keine Wortgruppe der Regel passt in den Text."
 
-#: src/Rules/RuleValidator.php:63
+#: src/Rules/RuleValidator.php:64
 msgid "The destination must be a published entry of a content type that Magic Linking analyzes."
 msgstr "Das Ziel muss ein veröffentlichter Beitrag eines Inhaltstyps sein, den Magic Linking analysiert."
 
-#: src/Rules/RuleValidator.php:66
+#: src/Rules/RuleValidator.php:67
 msgid "That entry is in your list of ignored URLs, so it cannot be a destination."
 msgstr "Dieser Beitrag steht in deiner Liste ignorierter URLs und kann daher kein Ziel sein."
 
-#: src/Rules/RuleValidator.php:82
+#: src/Rules/RuleValidator.php:70
+msgid "That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first."
+msgstr ""
+
+#: src/Rules/RuleValidator.php:86
 msgid "Write at least one phrase to link."
 msgstr "Gib mindestens eine Wortgruppe zum Verlinken ein."
 
 #. translators: %d: maximum number of links a rule can add to one entry.
-#: src/Rules/RuleValidator.php:87
+#: src/Rules/RuleValidator.php:91
 #, php-format
 msgid "Links per entry must be between 1 and %d."
 msgstr "Links pro Beitrag müssen zwischen 1 und %d liegen."
 
 #. translators: %d: links to the same target allowed from one entry (a setting).
-#: src/Rules/RuleValidator.php:94
+#: src/Rules/RuleValidator.php:98
 #, php-format
 msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
 msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
@@ -946,25 +951,25 @@ msgstr[0] "Deine Einstellungen erlauben %d Link auf dasselbe Ziel aus einem Beit
 msgstr[1] "Deine Einstellungen erlauben %d Links auf dasselbe Ziel aus einem Beitrag, daher kann eine Regel nicht mehr hinzufügen. Erhöhe „Links auf dasselbe Ziel aus einem Beitrag“ in den Einstellungen, um einen höheren Wert zu verwenden."
 
 #. translators: %d: maximum characters of a phrase.
-#: src/Rules/RuleValidator.php:147
+#: src/Rules/RuleValidator.php:151
 #, php-format
 msgid "A phrase can have at most %d characters."
 msgstr "Eine Wortgruppe darf höchstens %d Zeichen lang sein."
 
 #. translators: 1: the phrase, 2: maximum number of words.
-#: src/Rules/RuleValidator.php:151
+#: src/Rules/RuleValidator.php:155
 #, php-format
 msgid "“%1$s” is not a usable phrase: it needs between 1 and %2$d words."
 msgstr "„%1$s“ ist keine verwendbare Wortgruppe: Sie muss aus 1 bis %2$d Wörtern bestehen."
 
 #. translators: %s: the phrase.
-#: src/Rules/RuleValidator.php:158
+#: src/Rules/RuleValidator.php:162
 #, php-format
 msgid "“%s” has no meaningful word to link (only articles, prepositions or numbers)."
 msgstr "„%s“ enthält kein aussagekräftiges Wort zum Verlinken (nur Artikel, Präpositionen oder Zahlen)."
 
 #. translators: %d: maximum number of phrases in one rule.
-#: src/Rules/RuleValidator.php:168
+#: src/Rules/RuleValidator.php:172
 #, php-format
 msgid "A rule can have at most %d phrases."
 msgstr "Eine Regel darf höchstens %d Wortgruppen enthalten."

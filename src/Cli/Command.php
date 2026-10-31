@@ -97,6 +97,13 @@ final class Command {
 	private BatchJob $batches;
 
 	/**
+	 * Ajustes.
+	 *
+	 * @var Settings
+	 */
+	private Settings $settings;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Jobs             $jobs      Procesos.
@@ -108,8 +115,10 @@ final class Command {
 	 * @param ChangeRepository $changes   Historial.
 	 * @param Redo             $redo      Rehacer.
 	 * @param BatchJob         $batches   Procesos de deshacer en segundo plano.
+	 * @param Settings|null    $settings  Ajustes (tipos que se analizan).
 	 */
-	public function __construct( Jobs $jobs, ReportRepository $report, BrokenRepository $broken, Reader $history, Undo $undo, Retention $retention, ChangeRepository $changes, Redo $redo, BatchJob $batches ) {
+	public function __construct( Jobs $jobs, ReportRepository $report, BrokenRepository $broken, Reader $history, Undo $undo, Retention $retention, ChangeRepository $changes, Redo $redo, BatchJob $batches, ?Settings $settings = null ) {
+		$this->settings  = $settings ?? new Settings();
 		$this->jobs      = $jobs;
 		$this->report    = $report;
 		$this->broken    = $broken;
@@ -872,11 +881,10 @@ final class Command {
 	 * @return list<int>
 	 */
 	private function analyzed_ids( array $args ): array {
-		$types = ( new Settings() )->post_types();
-		$ids   = array();
+		$ids = array();
 		foreach ( $args as $arg ) {
-			$post = ctype_digit( $arg ) ? get_post( (int) $arg ) : null;
-			if ( ! $post instanceof \WP_Post || ! in_array( $post->post_type, $types, true ) ) {
+			$post = ctype_digit( $arg ) ? $this->settings->analyzed_post( (int) $arg ) : null;
+			if ( null === $post ) {
 				WP_CLI::error( __( 'That entry does not exist or is not of a chosen content type.', 'magic-linking' ) );
 			}
 			$ids[] = $post->ID;

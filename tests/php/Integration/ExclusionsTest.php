@@ -352,18 +352,6 @@ final class ExclusionsTest extends GraphTestCase {
 		$this->assertSame( 0, $none['total'] );
 	}
 
-	public function test_a_draft_that_was_excluded_does_not_show_in_the_filter(): void {
-		$this->exclude( $this->sources[1] );
-		wp_update_post(
-			array(
-				'ID'          => $this->sources[1],
-				'post_status' => 'draft',
-			)
-		);
-
-		$this->assertSame( 0, $this->request( 'GET', '/report', array( 'filter' => 'excluded' ) )->get_data()['total'] );
-	}
-
 	// ------------------------------------------------------------------ Reglas.
 
 	public function test_rules_skip_an_excluded_origin_or_destination(): void {
@@ -377,6 +365,109 @@ final class ExclusionsTest extends GraphTestCase {
 		$this->exclude( $this->sources[1], false );
 		$this->exclude( $this->target );
 		$this->assertSame( RuleService::EXCLUDED_ENTRY, $service->why_not( get_post( $this->sources[1] ), $rule ) );
+	}
+
+	// ------------------------------------------------------------------ Revisión del PR.
+
+	public function test_the_excluded_filter_also_lists_drafts_with_their_state_and_never_the_trashed(): void {
+		$this->exclude( $this->sources[1] );
+		wp_update_post(
+			array(
+				'ID'          => $this->sources[1],
+				'post_status' => 'draft',
+			)
+		);
+
+		$list = $this->request( 'GET', '/report', array( 'filter' => 'excluded' ) )->get_data();
+		$this->assertSame( 1, $list['total'] );
+		$this->assertSame( $this->sources[1], $list['items'][0]['id'] );
+		$this->assertSame( 'draft', $list['items'][0]['post_status'] );
+		$this->assertSame( 1, $list['summary']['excluded'] );
+
+		// Y se puede volver a incluir desde el Informe.
+		$this->assertSame( 200, $this->exclude( $this->sources[1], false )->get_status() );
+		$this->assertSame( 0, $this->request( 'GET', '/report', array( 'filter' => 'excluded' ) )->get_data()['total'] );
+
+		$this->exclude( $this->sources[2] );
+		wp_trash_post( $this->sources[2] );
+		$trashed = $this->request( 'GET', '/report', array( 'filter' => 'excluded' ) )->get_data();
+		$this->assertSame( 0, $trashed['total'] );
+		$this->assertSame( 0, $trashed['summary']['excluded'] );
+	}
+
+	public function test_deleting_an_excluded_entry_does_not_reindex_it_on_the_way(): void {
+		$this->exclude( $this->sources[1] );
+		$seen = array();
+		$id   = $this->sources[1];
+		add_action(
+			'deleted_post',
+			function ( int $post_id ) use ( &$seen, $id ): void {
+				if ( $post_id === $id ) {
+					$seen[] = $this->doc_row( $id );
+				}
+			},
+			1
+		);
+
+		wp_delete_post( $id, true );
+
+		$this->assertSame( array( null ), $seen, 'Al borrarla no se indexa un instante.' );
+		$this->assertNull( $this->doc_row( $id ) );
+	}
+
+	public function test_only_the_value_one_counts_as_excluded_everywhere(): void {
+		update_post_meta( $this->sources[1], Exclusions::KEY, '0' );
+
+		$this->assertFalse( Exclusions::is_excluded( $this->sources[1] ) );
+		$repo = Plugin::container()->get( GraphRepository::class );
+		$this->assertContains( $this->sources[1], $repo->eligible_ids( array( 'post' ), 0, 100 ) );
+		$this->assertNotNull( $this->doc_row( $this->sources[1] ) );
+	}
+
+	public function test_the_excluded_filter_ignores_the_language_filter_so_rows_match_the_tab(): void {
+		$this->exclude( $this->sources[1] );
+
+		$list = $this->request(
+			'GET',
+			'/report',
+			array(
+				'filter' => 'excluded',
+				'lang'   => 'es',
+			)
+		)->get_data();
+
+		$this->assertSame( 1, $list['total'] );
+		$this->assertSame( 1, $list['summary']['excluded'] );
+	}
+
+	public function test_the_nightly_purge_removes_excluded_entries_that_slipped_in(): void {
+		// Una importación SQL o una restauración dejan la marca sin que el hook se dispare.
+		$jobs = Plugin::container()->get( Jobs::class );
+		remove_action( 'added_post_meta', array( $jobs, 'on_exclusion_meta' ), 10 );
+		add_post_meta( $this->sources[1], Exclusions::KEY, '1' );
+		$this->assertNotNull( $this->doc_row( $this->sources[1] ) );
+
+		$removed = Plugin::container()->get( GraphRepository::class )->purge_out_of_scope( array( 'post' ) );
+
+		$this->assertSame( 1, $removed );
+		$this->assertNull( $this->doc_row( $this->sources[1] ) );
+		add_action( 'added_post_meta', array( $jobs, 'on_exclusion_meta' ), 10, 3 );
+	}
+
+	public function test_a_rule_cannot_target_an_excluded_entry(): void {
+		$this->exclude( $this->target );
+
+		$result = Plugin::container()->get( \MagicLinking\Rules\RuleValidator::class )->validate(
+			array(
+				'phrases'   => array( 'aerotermia' ),
+				'target_id' => $this->target,
+			),
+			null,
+			$this->admin
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertStringContainsString( 'excluded', $result->get_error_message() );
 	}
 
 	// ------------------------------------------------------------------ WP-CLI.

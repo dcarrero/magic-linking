@@ -1,5 +1,6 @@
 // The Jest globalSetup (tests/js/global-setup.js) sets TZ=Asia/Tokyo (not UTC), so reading the server date as local time would change the hour.
 import { getSettings, setSettings } from '@wordpress/date';
+import { speak } from '@wordpress/a11y';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { api } from '../api';
@@ -240,6 +241,87 @@ describe( 'ReportTab exclude from the analysis', () => {
 
 		await clickText( 'Include in the analysis' );
 		expect( mocked.setExcluded ).toHaveBeenCalledWith( 1, false );
+	} );
+
+	it( 'announces only the exclusion, not the entry count of the reload', async () => {
+		mocked.setExcluded.mockResolvedValue( { post_id: 1, excluded: true } );
+		await mount();
+		( speak as jest.Mock ).mockClear();
+		mocked.report.mockResolvedValue( {
+			items: [],
+			summary: summary( 4, 1 ),
+			total: 0,
+			total_pages: 1,
+			page: 1,
+		} );
+
+		await clickText( 'Exclude from the analysis' );
+
+		expect( speak ).toHaveBeenCalledTimes( 1 );
+		expect( speak ).toHaveBeenCalledWith(
+			'Entry excluded from the analysis.',
+			'polite'
+		);
+	} );
+
+	it( 'keeps every row being saved disabled, not just the last one', async () => {
+		const two = [ row( 0 ), { ...row( 0 ), id: 2, title: 'Second' } ];
+		mocked.report.mockResolvedValue( {
+			items: two,
+			summary: summary( 5 ),
+			total: 2,
+			total_pages: 1,
+			page: 1,
+		} );
+		mocked.setExcluded.mockReturnValue( new Promise( () => undefined ) );
+		await mount();
+		const buttons = () =>
+			Array.from( host.querySelectorAll( 'button' ) ).filter( ( b ) =>
+				( b.textContent ?? '' ).includes( 'Exclude from the analysis' )
+			);
+		await act( async () => buttons()[ 0 ]?.click() );
+		await act( async () => buttons()[ 1 ]?.click() );
+
+		expect( buttons().map( ( b ) => b.disabled ) ).toEqual( [
+			true,
+			true,
+		] );
+	} );
+
+	it( 'in the Excluded tab only title and type can be sorted', async () => {
+		mocked.report.mockResolvedValue( {
+			items: [ excludedRow() ],
+			summary: summary( 0, 1 ),
+			total: 1,
+			total_pages: 1,
+			page: 1,
+		} );
+		await mount();
+		await act( async () => {
+			(
+				Array.from( host.querySelectorAll( '.subsubsub a' ) ).find(
+					( a ) => ( a.textContent ?? '' ).includes( 'Excluded' )
+				) as HTMLElement
+			 ).click();
+		} );
+		await flush();
+
+		const sortable = Array.from(
+			host.querySelectorAll( 'thead th a[href="#sort"]' )
+		).map( ( a ) => a.textContent );
+		expect( sortable.join( '|' ) ).toMatch( /^Title.*\|Type/ );
+		expect( sortable ).toHaveLength( 2 );
+		// La flecha dice el orden real: por título, ascendente.
+		expect(
+			host.querySelector( 'thead th.sorted' )?.getAttribute( 'aria-sort' )
+		).toBe( 'ascending' );
+		expect(
+			host.querySelector( 'thead th.sorted' )?.textContent
+		).toContain( 'Title' );
+		expect( mocked.report.mock.calls.at( -1 )[ 0 ] ).toMatchObject( {
+			orderby: 'title',
+			order: 'asc',
+		} );
 	} );
 
 	it( 'tells the user when it fails and keeps the row', async () => {
