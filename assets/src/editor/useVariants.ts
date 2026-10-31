@@ -31,11 +31,11 @@ export interface Variants {
 	view: ( item: Suggestion, original: Suggestion ) => VariantView | null;
 	/** Elige otra frase (0 = la principal); se pierde el ancla ajustada de la anterior. Devuelve si se aplicó. */
 	choose: ( original: Suggestion, option: number ) => boolean;
-	/** Fija el tramo de la frase elegida que va enlazado (índices UTF-16). Devuelve si se aplicó. */
+	/** Fija el tramo de la frase elegida que va enlazado (índices UTF-16). */
 	adjust: (
 		original: Suggestion,
 		span: { start: number; end: number }
-	) => boolean;
+	) => void;
 	/** Quita todas las elecciones (al volver a pedir la lista). */
 	reset: () => void;
 	/** Sugerencias de la lista que ya no se enseñan porque otra tomó su frase. */
@@ -49,12 +49,14 @@ export interface Variants {
  * libre o desaparece, y se anuncia. Las tarjetas ya enlazadas o descartadas (`frozen`) no pierden nada: la elección que
  * choque con ellas se rechaza con un aviso.
  *
- * @param items  Lista tal como la dio el servidor.
- * @param frozen Claves de las tarjetas enlazadas, descartadas o en curso.
+ * @param items     Lista tal como la dio el servidor.
+ * @param frozen    Claves de las tarjetas enlazadas, descartadas o en curso.
+ * @param direction En las entrantes las tarjetas se nombran por la entrada de origen, no por el destino.
  */
 export function useVariants(
 	items: Suggestion[],
-	frozen: ReadonlySet< string >
+	frozen: ReadonlySet< string >,
+	direction: 'outbound' | 'inbound' = 'outbound'
 ): Variants {
 	const [ choices, setChoices ] = useState< Choices >( {} );
 	const choicesRef = useRef( choices );
@@ -76,15 +78,35 @@ export function useVariants(
 			for ( const change of displacements(
 				before.options,
 				after.options,
-				key,
-				[ before.spans, after.spans ]
+				key
 			) ) {
 				const other = items.find(
 					( item ) => suggestionKey( item ) === change.key
 				);
-				const name = other?.target.title ?? '';
-				speak(
-					change.kind === 'moved'
+				const moved = change.kind === 'moved';
+				let text: string;
+				if ( direction === 'inbound' ) {
+					const name = other?.source.title ?? '';
+					text = moved
+						? sprintf(
+								/* translators: %s: title of the entry where the link would go. */
+								__(
+									'The suggestion in “%s” has changed sentence.',
+									'magic-linking'
+								),
+								name
+						  )
+						: sprintf(
+								/* translators: %s: title of the entry where the link would go. */
+								__(
+									'The suggestion in “%s” was removed because its sentence is now used by another one.',
+									'magic-linking'
+								),
+								name
+						  );
+				} else {
+					const name = other?.target.title ?? '';
+					text = moved
 						? sprintf(
 								/* translators: %s: title of the destination of the suggestion. */
 								__(
@@ -100,12 +122,12 @@ export function useVariants(
 									'magic-linking'
 								),
 								name
-						  ),
-					'polite'
-				);
+						  );
+				}
+				speak( text, 'polite' );
 			}
 		},
-		[ items ]
+		[ items, direction ]
 	);
 
 	const choose = useCallback(
@@ -123,7 +145,7 @@ export function useVariants(
 			if ( after.options.get( key ) !== option ) {
 				speak(
 					__(
-						'That sentence cannot be used: a link you added or dismissed, or another anchor, already takes it.',
+						'That sentence cannot be used: a link you added or dismissed already takes it.',
 						'magic-linking'
 					),
 					'assertive'
@@ -156,29 +178,9 @@ export function useVariants(
 					span,
 				},
 			};
-			const after = resolveAll( items, next, suggestionKey, frozen );
-			const kept = after.spans.get( key );
-			if ( kept?.start !== span.start || kept.end !== span.end ) {
-				speak(
-					__(
-						'That anchor already links to another entry from this one, so it was not applied.',
-						'magic-linking'
-					),
-					'assertive'
-				);
-				return false;
-			}
-			const before = resolveAll(
-				items,
-				choicesRef.current,
-				suggestionKey,
-				frozen
-			);
-			announce( key, before, after );
 			commit( next );
-			return true;
 		},
-		[ announce, commit, items, frozen, resolved ]
+		[ commit, resolved ]
 	);
 
 	const reset = useCallback( () => commit( {} ), [ commit ] );

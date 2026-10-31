@@ -42,6 +42,8 @@ export interface CardVariants {
 	onSelect: ( option: number ) => void;
 	/** El usuario confirmó otro tramo de la frase como ancla (índices UTF-16). */
 	onAdjust: ( span: { start: number; end: number } ) => void;
+	/** Anclas que otras tarjetas de la lista llevan a otros destinos (solo salientes). */
+	taken?: { anchor: string; target_id: number }[];
 }
 
 interface Props {
@@ -334,6 +336,8 @@ export function SuggestionCard( {
 			{ adjusting && variants ? (
 				<AnchorAdjuster
 					postId={ source.id }
+					targetId={ target.id }
+					taken={ variants.taken }
 					sentence={ suggestion.sentence }
 					start={ suggestion.anchor_start }
 					end={ suggestion.anchor_end }

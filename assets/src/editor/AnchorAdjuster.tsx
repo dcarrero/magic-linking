@@ -23,6 +23,10 @@ type Check =
 interface Props {
 	/** Entrada donde irá el enlace: el servidor usa su idioma para comprobar el ancla. */
 	postId: number;
+	/** Destino del enlace: con él el servidor comprueba que la ancla no lleve ya a otro destino desde este origen. */
+	targetId: number;
+	/** Anclas que el panel ya ha elegido para otros destinos del mismo origen. */
+	taken?: { anchor: string; target_id: number }[];
 	sentence: string;
 	/** Tramo actual del ancla (índices UTF-16 de la frase). */
 	start: number;
@@ -43,6 +47,8 @@ const DEBOUNCE = 250;
  *
  * @param root0
  * @param root0.postId
+ * @param root0.targetId
+ * @param root0.taken
  * @param root0.sentence
  * @param root0.start
  * @param root0.end
@@ -51,6 +57,8 @@ const DEBOUNCE = 250;
  */
 export function AnchorAdjuster( {
 	postId,
+	targetId,
+	taken = [],
 	sentence,
 	start,
 	end,
@@ -87,6 +95,8 @@ export function AnchorAdjuster( {
 			sentence,
 			byteLength( sentence.slice( 0, range?.start ?? 0 ) ),
 			anchor,
+			targetId,
+			taken,
 			signal
 		);
 	const failureMessage = ( error: unknown ) =>
@@ -185,8 +195,9 @@ export function AnchorAdjuster( {
 			cancel();
 			return;
 		}
-		// Un tramo que el servidor ya rechazó no se vuelve a enviar hasta que cambie.
-		if ( check.state === 'failed' || ( result && ! result.valid ) ) {
+		// Un tramo que el servidor ya rechazó no se vuelve a enviar hasta que cambie; si la comprobación falló por la red,
+		// confirmar la vuelve a lanzar.
+		if ( result && ! result.valid ) {
 			return;
 		}
 		// Siempre se vuelve a preguntar al servidor: lo que se ve puede ser de un tramo anterior.
@@ -263,9 +274,7 @@ export function AnchorAdjuster( {
 	};
 
 	const blocked =
-		check.state === 'pending' ||
-		check.state === 'failed' ||
-		( result !== null && ! result.valid );
+		check.state === 'pending' || ( result !== null && ! result.valid );
 
 	// El texto de la frase alrededor de cada palabra se pinta tal cual: nada se edita.
 	const parts: JSX.Element[] = [];

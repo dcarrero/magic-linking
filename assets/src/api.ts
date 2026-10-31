@@ -449,6 +449,8 @@ export const api = {
 	 * @param sentence Frase de la sugerencia.
 	 * @param offset   Byte de la frase donde empieza el ancla.
 	 * @param anchor   Ancla propuesta.
+	 * @param targetId Destino del enlace (para que el ancla no lleve a dos destinos desde el origen).
+	 * @param taken    Anclas que el panel ya ha elegido para otros destinos del mismo origen.
 	 * @param signal   Para cancelar.
 	 */
 	checkAnchor: (
@@ -456,12 +458,21 @@ export const api = {
 		sentence: string,
 		offset: number,
 		anchor: string,
+		targetId: number,
+		taken: { anchor: string; target_id: number }[],
 		signal?: AbortSignal
 	) =>
 		apiFetch< AnchorCheckResponse >( {
 			path: path( '/suggestions/anchor' ),
 			method: 'POST',
-			data: { post_id: postId, sentence, offset, anchor },
+			data: {
+				post_id: postId,
+				sentence,
+				offset,
+				anchor,
+				target_id: targetId,
+				taken,
+			},
 			signal,
 		} ),
 	/**

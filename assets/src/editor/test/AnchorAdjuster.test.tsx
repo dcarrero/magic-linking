@@ -47,6 +47,8 @@ const mount = ( text = sentence, from = start, to = end ) => {
 		root.render(
 			<AnchorAdjuster
 				postId={ 5 }
+				targetId={ 77 }
+				taken={ [ { anchor: 'otra ancla', target_id: 3 } ] }
 				sentence={ text }
 				start={ from }
 				end={ to }
@@ -245,6 +247,8 @@ describe( 'AnchorAdjuster keyboard', () => {
 			sentence,
 			byteLength( sentence.slice( 0, start ) ),
 			'bomba de calor aerotérmica',
+			77,
+			[ { anchor: 'otra ancla', target_id: 3 } ],
 			expect.anything()
 		);
 		press( 'Enter' );
@@ -306,15 +310,35 @@ describe( 'AnchorAdjuster keyboard', () => {
 		expect( onCancel ).toHaveBeenCalledTimes( 1 );
 	} );
 
-	it( 'does not confirm when the server cannot be reached', async () => {
-		check.mockRejectedValue( new Error( 'offline' ) );
+	it( 'lets the user try again when the server could not be reached', async () => {
+		check.mockRejectedValueOnce( new Error( 'offline' ) );
 		await mount();
 		press( 'ArrowRight' );
 		await wait( 300 );
 		expect( state() ).toContain( 'The anchor could not be checked' );
+		const apply = Array.from( host.querySelectorAll( 'button' ) ).find(
+			( b ) => b.textContent === 'Apply anchor'
+		);
+		// Aplicar sigue activo: es lo que permite reintentar.
+		expect( apply?.disabled ).toBe( false );
+		check.mockResolvedValue( { valid: true, errors: [], warnings: [] } );
 		press( 'Enter' );
 		await wait( 0 );
-		expect( onApply ).not.toHaveBeenCalled();
+		expect( onApply ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'retries with the Apply button too', async () => {
+		check.mockRejectedValueOnce( new Error( 'offline' ) );
+		await mount();
+		press( 'ArrowRight' );
+		await wait( 300 );
+		check.mockResolvedValue( { valid: true, errors: [], warnings: [] } );
+		const apply = Array.from( host.querySelectorAll( 'button' ) ).find(
+			( b ) => b.textContent === 'Apply anchor'
+		);
+		await act( async () => apply?.click() );
+		await wait( 0 );
+		expect( onApply ).toHaveBeenCalledTimes( 1 );
 	} );
 
 	it( 'extends or trims with the mouse', async () => {

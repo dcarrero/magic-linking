@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-31T12:31:40+00:00\n"
+"POT-Creation-Date: 2026-10-31T13:05:19+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -71,7 +71,7 @@ msgstr ""
 
 #: src/Admin/EditorPanel.php:84
 #: src/Admin/Screen.php:294
-#: assets/build/editor.js:37
+#: assets/build/editor.js:39
 #: assets/build/index.js:119
 msgid "Internal links"
 msgstr ""
@@ -215,7 +215,7 @@ msgstr ""
 #: src/Cli/Command.php:708
 #: src/Rest/EditorHistoryController.php:98
 #: src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:587
+#: src/Rest/SuggestionsController.php:645
 msgid "You do not have permission to edit one of the entries involved."
 msgstr ""
 
@@ -282,7 +282,7 @@ msgstr[1] ""
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
 #: src/Rest/PillarController.php:127
-#: src/Rest/SuggestionsController.php:831
+#: src/Rest/SuggestionsController.php:970
 msgid "That entry does not exist."
 msgstr ""
 
@@ -707,7 +707,7 @@ msgid "You are not allowed to export this data."
 msgstr ""
 
 #: src/Rest/AiController.php:243
-#: src/Rest/SuggestionsController.php:370
+#: src/Rest/SuggestionsController.php:390
 msgid "The content is too long to analyze."
 msgstr ""
 
@@ -768,48 +768,52 @@ msgid "The anchor contains a word or phrase you chose to ignore in the settings.
 msgstr ""
 
 #: src/Rest/AnchorMessages.php:34
-msgid "The anchor cannot start or end with a space."
+msgid "This anchor already links to a different entry from this one. Use another anchor."
 msgstr ""
 
 #: src/Rest/AnchorMessages.php:36
+msgid "The anchor cannot start or end with a space."
+msgstr ""
+
+#: src/Rest/AnchorMessages.php:38
 msgid "The anchor is too short."
 msgstr ""
 
 #. translators: %d: maximum number of words of an anchor.
-#: src/Rest/AnchorMessages.php:39
+#: src/Rest/AnchorMessages.php:41
 #, php-format
 msgid "The anchor has more than %d words."
 msgstr ""
 
-#: src/Rest/AnchorMessages.php:41
+#: src/Rest/AnchorMessages.php:43
 msgid "The anchor needs at least one meaningful word, not only filler words."
 msgstr ""
 
-#: src/Rest/AnchorMessages.php:43
+#: src/Rest/AnchorMessages.php:45
 msgid "The anchor cannot start with a filler word or a number."
 msgstr ""
 
-#: src/Rest/AnchorMessages.php:45
+#: src/Rest/AnchorMessages.php:47
 msgid "The anchor cannot end with a unit, a magnitude or a month."
 msgstr ""
 
-#: src/Rest/AnchorMessages.php:47
+#: src/Rest/AnchorMessages.php:49
 msgid "The anchor starts with a verb form. It usually reads better starting with a noun."
 msgstr ""
 
-#: src/Rest/AnchorMessages.php:49
+#: src/Rest/AnchorMessages.php:51
 msgid "The anchor ends with a verb form. It usually reads better ending with a noun."
 msgstr ""
 
-#: src/Rest/AnchorMessages.php:51
+#: src/Rest/AnchorMessages.php:53
 msgid "The anchor ends with a filler word."
 msgstr ""
 
-#: src/Rest/AnchorMessages.php:53
+#: src/Rest/AnchorMessages.php:55
 msgid "This anchor is too generic: it says nothing about the destination."
 msgstr ""
 
-#: src/Rest/AnchorMessages.php:55
+#: src/Rest/AnchorMessages.php:57
 msgid "The anchor is not valid."
 msgstr ""
 
@@ -881,15 +885,11 @@ msgstr ""
 msgid "Very similar in meaning"
 msgstr ""
 
-#: src/Rest/SuggestionsController.php:579
+#: src/Rest/SuggestionsController.php:637
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr ""
 
-#: src/Rest/SuggestionsController.php:636
-msgid "This anchor already links to a different entry from this one. Use another anchor."
-msgstr ""
-
-#: src/Rest/SuggestionsController.php:654
+#: src/Rest/SuggestionsController.php:876
 msgid "The link could not be saved; nothing was changed."
 msgstr ""
 
@@ -1552,7 +1552,7 @@ msgstr ""
 #. translators: %d: number of suggestions.
 #: assets/build/classic.js:32
 #: assets/build/editor.js:32
-#: assets/build/editor.js:38
+#: assets/build/editor.js:40
 #, js-format
 msgid "%d outbound suggestion"
 msgid_plural "%d outbound suggestions"
@@ -1710,28 +1710,37 @@ msgstr ""
 msgid "The suggestions could not be loaded. Check your connection and try again."
 msgstr ""
 
-#. translators: %s: title of the destination of the suggestion.
+#. translators: %s: title of the entry where the link would go.
 #: assets/build/classic.js:36
 #: assets/build/editor.js:36
+#, js-format
+msgid "The suggestion in “%s” has changed sentence."
+msgstr ""
+
+#. translators: %s: title of the entry where the link would go.
+#: assets/build/classic.js:37
+#: assets/build/editor.js:37
+#, js-format
+msgid "The suggestion in “%s” was removed because its sentence is now used by another one."
+msgstr ""
+
+#. translators: %s: title of the destination of the suggestion.
+#: assets/build/classic.js:38
+#: assets/build/editor.js:38
 #, js-format
 msgid "The suggestion to “%s” has changed sentence."
 msgstr ""
 
 #. translators: %s: title of the destination of the suggestion.
-#: assets/build/classic.js:37
-#: assets/build/editor.js:37
+#: assets/build/classic.js:39
+#: assets/build/editor.js:39
 #, js-format
 msgid "The suggestion to “%s” was removed because its sentence is now used by another one."
 msgstr ""
 
-#: assets/build/classic.js:37
-#: assets/build/editor.js:37
-msgid "That sentence cannot be used: a link you added or dismissed, or another anchor, already takes it."
-msgstr ""
-
-#: assets/build/classic.js:37
-#: assets/build/editor.js:37
-msgid "That anchor already links to another entry from this one, so it was not applied."
+#: assets/build/classic.js:39
+#: assets/build/editor.js:39
+msgid "That sentence cannot be used: a link you added or dismissed already takes it."
 msgstr ""
 
 #: assets/build/index.js:1

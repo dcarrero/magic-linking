@@ -5,7 +5,6 @@ import {
 	signature,
 	byteLength,
 	displacements,
-	resolve,
 	resolveAll,
 	spanForWords,
 	wordRange,
@@ -267,9 +266,8 @@ describe( 'card keys', () => {
 	} );
 } );
 
-describe( 'frozen cards and shared anchors', () => {
+describe( 'frozen cards', () => {
 	const T1 = 'La bomba de calor ahorra mucho en casa.';
-	const T2 = 'El consumo baja con una buena bomba de calor.';
 	const T3 = 'Revisar la caldera cada año evita averías costosas.';
 	const mk = (
 		target: number,
@@ -299,91 +297,15 @@ describe( 'frozen cards and shared anchors', () => {
 		expect( frozen.options.get( keyOf( a ) ) ).toBe( 0 );
 		expect( frozen.options.get( keyOf( b ) ) ).toBe( 0 );
 	} );
-
-	it( 'gives the shared anchor to the most recent choice and moves the other card', () => {
-		const a = mk( 9, alt( T1, 'bomba de calor', 0 ), [
-			alt( T3, 'caldera', 2 ),
-		] );
-		const b = mk( 8, alt( T2, 'consumo', 1 ), [
-			alt( T2.replace( 'consumo', 'Consumo' ), 'bomba de calor', 1 ),
-		] );
-		const choices: Choices = {
-			[ keyOf( b ) ]: { option: 1, seq: 3, sig: signature( b ) },
-		};
-		const out = resolveAll( [ a, b ], choices, keyOf );
-		expect( out.options.get( keyOf( b ) ) ).toBe( 1 );
-		// a vuelve a una frase con otra ancla.
-		expect( out.options.get( keyOf( a ) ) ).toBe( 1 );
-	} );
-
-	it( 'drops an adjusted span that repeats another anchor and hides a card with nowhere to go', () => {
-		const a = mk( 9, alt( T1, 'Bomba de CALOR', 0 ) );
-		const b = mk( 8, alt( T2, 'consumo', 1 ) );
-		const start = T2.indexOf( 'bomba' );
-		const choices: Choices = {
-			[ keyOf( b ) ]: {
-				option: 0,
-				seq: 4,
-				sig: signature( b ),
-				span: { start, end: start + 'bomba de calor'.length },
-			},
-		};
-		const out = resolveAll( [ a, b ], choices, keyOf );
-		// b es la elección más reciente y se queda con el ancla; a no tiene otra frase.
-		expect( out.spans.get( keyOf( b ) ) ).toEqual( {
-			start,
-			end: start + 14,
-		} );
-		expect( out.options.get( keyOf( a ) ) ).toBeNull();
-	} );
-
-	it( 'rejects the span when the card that has the anchor is frozen', () => {
-		const a = mk( 9, alt( T1, 'bomba de calor', 0 ) );
-		const b = mk( 8, alt( T2, 'consumo', 1 ) );
-		const start = T2.indexOf( 'bomba' );
-		const choices: Choices = {
-			[ keyOf( b ) ]: {
-				option: 0,
-				seq: 4,
-				sig: signature( b ),
-				span: { start, end: start + 14 },
-			},
-		};
-		const out = resolveAll(
-			[ a, b ],
-			choices,
-			keyOf,
-			new Set( [ keyOf( a ) ] )
-		);
-		expect( out.options.get( keyOf( a ) ) ).toBe( 0 );
-		expect( out.spans.has( keyOf( b ) ) ).toBe( false );
-	} );
-
-	it( 'does not mind the same anchor towards the same target', () => {
-		const a = mk( 9, alt( T1, 'bomba de calor', 0 ) );
-		const b = mk( 9, alt( T2, 'bomba de calor', 1 ) );
-		const out = resolveAll( [ a, b ], {}, keyOf );
-		expect( out.options.get( keyOf( a ) ) ).toBe( 0 );
-		expect( out.options.get( keyOf( b ) ) ).toBe( 0 );
-	} );
-
-	it( 'compares anchors without case, accents or extra spaces', () => {
-		const a = mk(
-			9,
-			alt( 'La  calefacción central.', 'calefacción  central', 0 )
-		);
-		const b = mk(
-			8,
-			alt( 'Una calefaccion Central barata.', 'calefaccion Central', 1 )
-		);
-		const out = resolveAll( [ a, b ], {}, keyOf );
-		// Sin elecciones del usuario ninguna es más reciente: gana la que va primero.
-		expect( out.options.get( keyOf( a ) ) ).toBe( 0 );
-		expect( out.options.get( keyOf( b ) ) ).toBeNull();
-	} );
 } );
 
-describe( 'resolve', () => {
+const resolve = (
+	items: Suggestion[],
+	choices: Choices,
+	keyOf: ( item: Suggestion ) => string
+) => resolveAll( items, choices, keyOf ).options;
+
+describe( 'resolveAll', () => {
 	const a = suggestion( 9, alt( S1, 'bomba de calor', 0 ), [
 		alt( S2, 'bomba de calor', 1 ),
 		alt( S3, 'bomba de calor', 2 ),

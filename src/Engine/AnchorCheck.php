@@ -21,6 +21,7 @@ final class AnchorCheck {
 	public const NOT_LITERAL        = 'not_literal';
 	public const NOT_WORD_BOUNDARY  = 'not_word_boundary';
 	public const IGNORED_WORD       = 'ignored_word';
+	public const ANCHOR_TAKEN       = 'anchor_taken';
 	public const SPACES             = 'spaces';
 	public const TOO_SHORT          = 'too_short';
 	public const TOO_MANY_WORDS     = 'too_many_words';

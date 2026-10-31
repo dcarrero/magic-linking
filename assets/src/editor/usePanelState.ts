@@ -85,7 +85,11 @@ export function usePanelState(
 		[ statuses ]
 	);
 	const outVariants = useVariants( outbound.data?.items ?? NONE, frozen );
-	const inVariants = useVariants( inbound.data?.items ?? NONE, frozen );
+	const inVariants = useVariants(
+		inbound.data?.items ?? NONE,
+		frozen,
+		'inbound'
+	);
 
 	// Las filas de «descartada» son de la página que se dejó: al cambiar de página se olvidan.
 	const { reset: resetInVariants } = inVariants;

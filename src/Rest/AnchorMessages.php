@@ -30,6 +30,8 @@ final class AnchorMessages {
 				return __( 'The anchor has to start and end at the edge of a word.', 'magic-linking' );
 			case AnchorCheck::IGNORED_WORD:
 				return __( 'The anchor contains a word or phrase you chose to ignore in the settings.', 'magic-linking' );
+			case AnchorCheck::ANCHOR_TAKEN:
+				return __( 'This anchor already links to a different entry from this one. Use another anchor.', 'magic-linking' );
 			case AnchorCheck::SPACES:
 				return __( 'The anchor cannot start or end with a space.', 'magic-linking' );
 			case AnchorCheck::TOO_SHORT:

@@ -409,45 +409,6 @@ final class Suggester {
 			}
 		}
 
-		return $this->without_taken_anchors( $result, $anchors, $analyzer );
-	}
-
-	/**
-	 * Quita de las frases alternativas las que usan el ancla (por raíz) que ya es la principal de otra sugerencia:
-	 * la misma ancla no puede llevar a dos destinos desde el mismo origen (docs/04 §5.3).
-	 *
-	 * @param Suggestion[]        $result   Sugerencias elegidas.
-	 * @param array<string, true> $anchors  Claves de las anclas principales.
-	 * @param Analyzer            $analyzer Analizador del origen.
-	 *
-	 * @phpstan-param list<Suggestion> $result
-	 *
-	 * @return list<Suggestion>
-	 */
-	private function without_taken_anchors( array $result, array $anchors, Analyzer $analyzer ): array {
-		if ( 0 === $this->alternatives ) {
-			return $result;
-		}
-
-		foreach ( $result as $n => $suggestion ) {
-			if ( array() === $suggestion->alternatives ) {
-				continue;
-			}
-			$own  = $analyzer->phrase_key( $suggestion->anchor );
-			$kept = array_values(
-				array_filter(
-					$suggestion->alternatives,
-					static function ( Suggestion $alternative ) use ( $anchors, $analyzer, $own ): bool {
-						$key = $analyzer->phrase_key( $alternative->anchor );
-						return $key === $own || ! isset( $anchors[ $key ] );
-					}
-				)
-			);
-			if ( count( $kept ) !== count( $suggestion->alternatives ) ) {
-				$result[ $n ] = $suggestion->with_alternatives( $kept );
-			}
-		}
-
 		return $result;
 	}
 

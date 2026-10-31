@@ -48,7 +48,7 @@ const card = (
 ) =>
 	( {
 		...main,
-		source: { id: 1 },
+		source: { id: 1, title: `S${ target }` },
 		target: { id: target, title: `T${ target }` },
 		can_insert: true,
 		reasons: [],
@@ -67,9 +67,10 @@ const seen: Variants[] = [];
 const last = () => seen[ seen.length - 1 ] as Variants;
 let probeItems: Suggestion[] = items;
 let probeFrozen: ReadonlySet< string > = new Set();
+let probeDirection: 'outbound' | 'inbound' = 'outbound';
 
 function Probe() {
-	seen.push( useVariants( probeItems, probeFrozen ) );
+	seen.push( useVariants( probeItems, probeFrozen, probeDirection ) );
 	return null;
 }
 
@@ -77,6 +78,7 @@ beforeEach( () => {
 	seen.length = 0;
 	probeItems = items;
 	probeFrozen = new Set();
+	probeDirection = 'outbound';
 	( speak as jest.Mock ).mockReset();
 	root = createRoot( document.createElement( 'div' ) );
 } );
@@ -124,6 +126,35 @@ describe( 'useVariants', () => {
 		expect( shown?.item.sentence ).toBe( T1 );
 		expect( suggestionKey( shown?.item as Suggestion ) ).toBe(
 			suggestionKey( wants )
+		);
+	} );
+
+	it( 'names the destination in the outbound notices and the source entry in the inbound ones', async () => {
+		probeItems = pair;
+		await act( () => root.render( <Probe /> ) );
+		await act( () => {
+			last().choose( wants, 1 );
+		} );
+		expect( speak ).toHaveBeenCalledWith(
+			expect.stringContaining( '“T9”' ),
+			'polite'
+		);
+
+		( speak as jest.Mock ).mockReset();
+		probeDirection = 'inbound';
+		await act( () => root.render( <Probe /> ) );
+		await act( () => {
+			last().reset();
+		} );
+		await act( () => {
+			last().choose( wants, 1 );
+		} );
+		const said = ( speak as jest.Mock ).mock.calls.map( ( c ) => c[ 0 ] );
+		expect( said.some( ( text: string ) => text.includes( '“S9”' ) ) ).toBe(
+			true
+		);
+		expect( said.some( ( text: string ) => text.includes( '“T9”' ) ) ).toBe(
+			false
 		);
 	} );
 } );

@@ -78,13 +78,16 @@ function failureText( reason: ApplyFailure ): string {
  * @param shown    La tarjeta con las elecciones aplicadas.
  * @param original La sugerencia tal como la dio el servidor.
  * @param variants Elecciones de la lista.
+ * @param taken    Anclas que las otras tarjetas de la lista llevan a otros destinos (solo salientes).
  */
 function cardVariants(
 	shown: VariantView,
 	original: Suggestion,
-	variants: Variants
+	variants: Variants,
+	taken?: CardVariants[ 'taken' ]
 ): CardVariants {
 	return {
+		taken,
 		options: optionsOf( shown.base ),
 		selected: shown.option,
 		onSelect: ( option ) => {
@@ -107,9 +110,7 @@ function cardVariants(
 			);
 		},
 		onAdjust: ( span ) => {
-			if ( ! variants.adjust( original, span ) ) {
-				return;
-			}
+			variants.adjust( original, span );
 			speak(
 				sprintf(
 					/* translators: %s: anchor text. */
@@ -296,21 +297,49 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 									>
 										{ state.ai
 											.view( outbound.data.items )
+											.map( ( row ) => ( {
+												...row,
+												shown: state.outVariants.view(
+													row.item,
+													row.original
+												),
+											} ) )
 											.map(
-												( {
-													item,
-													original,
-													mark,
-													aiAnchor,
-												} ) => {
-													const shown =
-														state.outVariants.view(
-															item,
-															original
-														);
+												(
+													{
+														original,
+														mark,
+														aiAnchor,
+														shown,
+													},
+													_index,
+													rows
+												) => {
 													if ( ! shown ) {
 														return null;
 													}
+													// Las anclas que las demás tarjetas llevan ahora a otros destinos: el servidor no deja repetirlas.
+													const taken = rows.flatMap(
+														( other ) =>
+															other.shown &&
+															other.original !==
+																original
+																? [
+																		{
+																			anchor: other
+																				.shown
+																				.item
+																				.anchor,
+																			target_id:
+																				other
+																					.shown
+																					.item
+																					.target
+																					.id,
+																		},
+																  ]
+																: []
+													);
 													// Con otra frase u otro ancla elegidos, lo que opinó la IA ya no se refiere a lo que se ve.
 													const aiMark = shown.changed
 														? undefined
@@ -326,7 +355,8 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 															variants={ cardVariants(
 																shown,
 																original,
-																state.outVariants
+																state.outVariants,
+																taken
 															) }
 															ai={ aiMark }
 															onUseAnchor={ (

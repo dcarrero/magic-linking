@@ -1247,7 +1247,7 @@ final class SuggestionsRestTest extends GraphTestCase {
 				'post_title'   => 'Notas con un encabezado',
 				'post_author'  => $this->admin,
 				'post_content' => $this->p( 'Primero hablamos de la aerotermia como sistema de calefacción para la vivienda.' )
-					. "<!-- wp:heading -->\n<h2>La aerotermia en el título de esta sección de la casa</h2>\n<!-- /wp:heading -->"
+					. "<!-- wp:acme/note -->\n<div class=\"wp-block-acme-note\">La aerotermia en el título de esta sección de la casa</div>\n<!-- /wp:acme/note -->"
 					. $this->p( 'Al final la aerotermia gana por consumo y por facilidad de instalación en casa.' ),
 			)
 		);
@@ -1437,36 +1437,154 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->assertSame( $before, $this->stored( $this->sources[1] ) );
 	}
 
-	public function test_the_same_anchor_cannot_go_to_two_targets_from_one_entry_in_a_batch(): void {
-		$this->corpus();
-		$item   = $this->first_outbound( $this->sources[1] );
-		$other  = $this->sources[2];
-		$before = $this->stored( $this->sources[1] );
-		$second = array_merge( $item['insert'], array( 'target_id' => $other ) );
+	/**
+	 * Cuerpo de insertar la sugerencia con otro destino y el ancla marcada como ajustada.
+	 *
+	 * @param array<string, mixed> $item   Sugerencia saliente.
+	 * @param int                  $target Destino.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function adjusted_to( array $item, int $target ): array {
+		return array_merge(
+			$item['insert'],
+			array(
+				'target_id' => $target,
+				'adjusted'  => true,
+			)
+		);
+	}
 
-		$data = $this->request( 'POST', '/links', array( 'links' => array( $item['insert'], $second ) ) )->get_data();
+	public function test_an_adjusted_anchor_cannot_go_to_two_targets_from_one_entry_in_a_batch(): void {
+		$this->corpus();
+		$item = $this->first_outbound( $this->sources[1] );
+
+		$data = $this->request( 'POST', '/links', array( 'links' => array( $this->adjusted_to( $item, $this->target ), $this->adjusted_to( $item, $this->sources[2] ) ) ) )->get_data();
 
 		$this->assertSame( 'inserted', $data['results'][0]['status'] );
 		$this->assertSame( 'failed', $data['results'][1]['status'] );
 		$this->assertSame( 'bad_anchor', $data['results'][1]['reason'] );
 		$this->assertNotSame( '', $data['results'][1]['message'] );
 		$this->assertSame( 1, substr_count( $this->stored( $this->sources[1] ), '<a href=' ) );
-		$this->assertNotSame( $before, $this->stored( $this->sources[1] ) );
 	}
 
-	public function test_the_same_anchor_cannot_go_to_another_target_when_the_entry_already_has_it(): void {
+	public function test_a_failed_insertion_does_not_reserve_its_anchor_for_the_rest_of_the_batch(): void {
+		$this->corpus();
+		$item   = $this->first_outbound( $this->sources[1] );
+		$broken = $this->adjusted_to( $item, $this->target );
+		// Una frase que ya no está en la entrada: la inserción falla, pero el ancla es válida.
+		$broken['sentence'] = 'Texto ' . $item['anchor'] . ' que no existe en la entrada.';
+		$broken['offset']   = strlen( 'Texto ' );
+
+		$data = $this->request( 'POST', '/links', array( 'links' => array( $broken, $this->adjusted_to( $item, $this->sources[2] ) ) ) )->get_data();
+
+		$this->assertSame( 'failed', $data['results'][0]['status'] );
+		$this->assertSame( 'text_changed', $data['results'][0]['reason'] );
+		$this->assertSame( 'inserted', $data['results'][1]['status'], wp_json_encode( $data['results'][1] ) );
+	}
+
+	public function test_an_adjusted_anchor_cannot_go_to_another_target_when_the_entry_already_has_it(): void {
 		$this->corpus();
 		$item = $this->first_outbound( $this->sources[1] );
 		$this->assertSame( 1, $this->request( 'POST', '/links', $item['insert'] )->get_data()['inserted'] );
 		$stored = $this->stored( $this->sources[1] );
 
-		// La misma ancla, hacia otro destino.
-		$result = $this->request( 'POST', '/links', array_merge( $item['insert'], array( 'target_id' => $this->sources[2] ) ) )->get_data()['results'][0];
+		$result = $this->request( 'POST', '/links', $this->adjusted_to( $item, $this->sources[2] ) )->get_data()['results'][0];
 
 		$this->assertSame( 'failed', $result['status'] );
 		$this->assertSame( 'bad_anchor', $result['reason'] );
 		$this->assertNotSame( '', $result['message'] );
 		$this->assertSame( $stored, $this->stored( $this->sources[1] ) );
+	}
+
+	public function test_an_anchor_that_is_not_adjusted_keeps_its_behavior_with_the_graph(): void {
+		$this->corpus();
+		$item = $this->first_outbound( $this->sources[1] );
+		$this->assertSame( 1, $this->request( 'POST', '/links', $item['insert'] )->get_data()['inserted'] );
+
+		// Sin `adjusted` el servidor no sabe de dónde viene el ancla (IA, reglas, Informe): no cambia nada.
+		$result = $this->request( 'POST', '/links', array_merge( $item['insert'], array( 'target_id' => $this->sources[2] ) ) )->get_data()['results'][0];
+
+		$this->assertNotSame( 'bad_anchor', $result['reason'] ?? '' );
+	}
+
+	public function test_the_anchor_check_knows_when_the_anchor_goes_to_another_target(): void {
+		$this->corpus();
+		$item  = $this->first_outbound( $this->sources[1] );
+		$base  = array(
+			'post_id'  => $this->sources[1],
+			'sentence' => $item['sentence'],
+			'offset'   => $item['offset'],
+			'anchor'   => $item['anchor'],
+		);
+		$codes = fn( array $extra ): array => array_column( $this->request( 'POST', '/suggestions/anchor', array_merge( $base, $extra ) )->get_data()['errors'], 'code' );
+
+		// Sin destino no se comprueba.
+		$this->assertNotContains( 'anchor_taken', $codes( array() ) );
+
+		// Contra las anclas que el panel ya ha elegido (por raíz: sin mayúsculas ni tildes).
+		$taken = array(
+			array(
+				'anchor'    => strtoupper( $item['anchor'] ),
+				'target_id' => $this->sources[2],
+			),
+		);
+		$this->assertContains(
+			'anchor_taken',
+			$codes(
+				array(
+					'target_id' => $this->target,
+					'taken'     => $taken,
+				)
+			)
+		);
+		$this->assertNotContains(
+			'anchor_taken',
+			$codes(
+				array(
+					'target_id' => $this->sources[2],
+					'taken'     => $taken,
+				)
+			),
+			'El mismo destino no choca consigo mismo.'
+		);
+
+		// Contra el grafo.
+		$this->assertSame( 1, $this->request( 'POST', '/links', $item['insert'] )->get_data()['inserted'] );
+		$this->assertContains( 'anchor_taken', $codes( array( 'target_id' => $this->sources[2] ) ) );
+		$this->assertNotContains( 'anchor_taken', $codes( array( 'target_id' => $this->target ) ) );
+	}
+
+	public function test_inbound_alternatives_are_only_offered_where_the_source_can_link_them(): void {
+		$this->corpus( 1 );
+		$source = self::factory()->post->create(
+			array(
+				'post_title'   => 'Notas con una cita',
+				'post_author'  => $this->admin,
+				'post_content' => $this->p( 'Primero hablamos de la aerotermia como sistema de calefacción para la vivienda.' )
+					. "<!-- wp:acme/note -->\n<div class=\"wp-block-acme-note\">La aerotermia dentro de una cita sobre la casa y su consumo anual.</div>\n<!-- /wp:acme/note -->"
+					. $this->p( 'Al final la aerotermia gana por consumo y por facilidad de instalación en casa.' ),
+			)
+		);
+		$this->build_index();
+		$this->save_settings( array( 'alternatives' => 2 ) );
+
+		$data = $this->request(
+			'GET',
+			'/suggestions/inbound',
+			array(
+				'post_id'  => $this->target,
+				'per_page' => 50,
+			)
+		)->get_data();
+		$mine = array_values( array_filter( $data['items'], static fn( array $item ): bool => $item['source']['id'] === $source ) );
+
+		$this->assertCount( 1, $mine );
+		$this->assertStringNotContainsString( 'dentro de una cita', $mine[0]['sentence'] );
+		$this->assertNotEmpty( $mine[0]['alternatives'], 'Debe quedar alguna alternativa que sí se puede enlazar.' );
+		foreach ( $mine[0]['alternatives'] as $alternative ) {
+			$this->assertStringNotContainsString( 'dentro de una cita', $alternative['sentence'] );
+		}
 	}
 
 	public function test_ignored_words_also_apply_to_an_adjusted_anchor(): void {
