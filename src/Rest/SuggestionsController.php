@@ -475,13 +475,18 @@ final class SuggestionsController implements Module {
 		}
 
 		// Solo se guardan las de una entrada publicada: la de un borrador cambia con cada guardado y no invalida nada.
+		// Los enlaces actuales salen del mismo documento que analiza el motor; si las sugerencias vienen de la caché, se
+		// guardan también (misma clave de renovación) y, sin caché, se leen del grafo.
+		$links = null;
 		if ( null !== $content ) {
-			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms, $names );
+			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms, $names, $links );
 		} elseif ( 'publish' === $post->post_status ) {
 			$found = SuggestionCache::remember( 'out', $post_id, fn(): array => $this->suggestions->outgoing( $post_id ) );
+			$links = SuggestionCache::remember( 'links', $post_id, fn(): array => $this->suggestions->current_links( $post_id ) );
 		} else {
-			$found = $this->suggestions->outgoing( $post_id );
+			$found = $this->suggestions->outgoing( $post_id, array(), null, null, null, null, $links );
 		}
+		$links ??= $this->suggestions->current_links( $post_id, $content, $title );
 
 		// Solo se proponen frases donde el editor puede poner el enlace (docs/06 §2): el motor lee más
 		// contenedores que los bloques de texto admitidos y una sugerencia imposible volvería siempre.
@@ -505,7 +510,7 @@ final class SuggestionsController implements Module {
 				// Filtros en modo Exigir (type, category, tag) que son la causa de que no haya sugerencias; si no, vacío.
 				'required'      => $required,
 				// A quién enlaza ya la entrada, para el bloque «Enlaces actuales» (docs/07 §3.3).
-				'current_links' => $this->presenter->current_links( $this->suggestions->current_links( $post_id, $content, $title ) ),
+				'current_links' => $this->presenter->current_links( $links ),
 			)
 		);
 	}

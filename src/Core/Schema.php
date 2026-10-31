@@ -66,18 +66,21 @@ final class Schema {
 	 *
 	 * @param string $site_prefix     Prefijo del sitio ($wpdb->prefix).
 	 * @param string $charset_collate Cláusula de juego de caracteres ($wpdb->get_charset_collate()).
+	 * @param bool   $anchor_index    Incluir el índice por ancla de `links`. La actualización de un sitio con datos lo deja
+	 *                                fuera de dbDelta y lo añade en segundo plano ({@see \MagicLinking\Core\Installer}).
 	 *
 	 * @return array<string, string>
 	 */
-	public static function create_statements( string $site_prefix, string $charset_collate ): array {
-		$docs     = self::table( $site_prefix, 'docs' );
-		$terms    = self::table( $site_prefix, 'terms' );
-		$postings = self::table( $site_prefix, 'postings' );
-		$links    = self::table( $site_prefix, 'links' );
-		$rules    = self::table( $site_prefix, 'rules' );
-		$changes  = self::table( $site_prefix, 'changes' );
-		$jobs     = self::table( $site_prefix, 'jobs' );
-		$dismiss  = self::table( $site_prefix, 'dismissed' );
+	public static function create_statements( string $site_prefix, string $charset_collate, bool $anchor_index = true ): array {
+		$anchor_key = $anchor_index ? ",\n  KEY anchor (anchor(40))" : '';
+		$docs       = self::table( $site_prefix, 'docs' );
+		$terms      = self::table( $site_prefix, 'terms' );
+		$postings   = self::table( $site_prefix, 'postings' );
+		$links      = self::table( $site_prefix, 'links' );
+		$rules      = self::table( $site_prefix, 'rules' );
+		$changes    = self::table( $site_prefix, 'changes' );
+		$jobs       = self::table( $site_prefix, 'jobs' );
+		$dismiss    = self::table( $site_prefix, 'dismissed' );
 
 		return array(
 			// Una fila por entrada indexada.
@@ -145,8 +148,7 @@ final class Schema {
   PRIMARY KEY  (id),
   KEY source_id (source_id),
   KEY target_id (target_id),
-  KEY is_broken (is_broken),
-  KEY anchor (anchor(40))
+  KEY is_broken (is_broken){$anchor_key}
 ) {$charset_collate};",
 
 			// Reglas automáticas, sin límite de filas.

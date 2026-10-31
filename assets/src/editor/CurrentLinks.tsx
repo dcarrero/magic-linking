@@ -14,17 +14,21 @@ function LinkName( { link }: { link: CurrentLink } ) {
 		return <>{ __( 'Internal link (no access)', 'magic-linking' ) }</>;
 	}
 	const title = link.title || __( '(no title)', 'magic-linking' );
+	const state = link.status_label ? ` (${ link.status_label })` : '';
 	if ( ! link.url ) {
-		return <>{ title }</>;
+		return <>{ title + state }</>;
 	}
 	return (
-		<a href={ link.url } target="_blank" rel="noopener noreferrer">
-			{ title }
-			<span className="screen-reader-text">
-				{ ' ' }
-				{ __( '(opens in a new tab)', 'magic-linking' ) }
-			</span>
-		</a>
+		<>
+			<a href={ link.url } target="_blank" rel="noopener noreferrer">
+				{ title }
+				<span className="screen-reader-text">
+					{ ' ' }
+					{ __( '(opens in a new tab)', 'magic-linking' ) }
+				</span>
+			</a>
+			{ state }
+		</>
 	);
 }
 

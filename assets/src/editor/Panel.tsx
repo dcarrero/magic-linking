@@ -9,7 +9,7 @@ import type { ApplyFailure, EditorAdapter } from './adapters/types';
 import type { EditorBoot } from './boot';
 import { suggestionKey } from './keys';
 import { CurrentLinks } from './CurrentLinks';
-import { useCurrentLinks } from './useCurrentLinks';
+import { outboundSignature, useCurrentLinks } from './useCurrentLinks';
 import { Pager } from './Pager';
 import { PillarBox } from './PillarBox';
 import { SuggestionCard, type CardVariants } from './SuggestionCard';
@@ -228,11 +228,7 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 	const currentLinks = useCurrentLinks(
 		adapter,
 		outbound.data?.current_links,
-		Object.entries( statuses )
-			.filter( ( [ , status ] ) => status.kind === 'added' )
-			.map( ( [ key ] ) => key )
-			.sort()
-			.join( '\n' )
+		outboundSignature( statuses, adapter.postId )
 	);
 
 	const outboundCount = state.visibleOutbound.length;

@@ -661,4 +661,158 @@ final class AnchorNotesTest extends GraphTestCase {
 		);
 		$this->assertStringNotContainsString( 'secreto', (string) wp_json_encode( $rows ) );
 	}
+
+	// ------------------------------------------------------------------ Segunda revisión de F1-23.
+
+	public function test_unsaved_content_is_resolved_live_not_from_what_the_graph_resolved_when_saving(): void {
+		global $wpdb;
+		$this->corpus();
+		$gone = self::factory()->post->create( array( 'post_title' => 'Se despublicó' ) );
+		$from = self::factory()->post->create(
+			array(
+				'post_title'   => 'Casa eficiente',
+				'post_content' => $this->p( 'Mira <a href="' . get_permalink( $gone ) . '">la que se fue</a>.' ),
+			)
+		);
+		$this->build_index();
+		$content = $this->p( 'Mira <a href="' . get_permalink( $gone ) . '">la que se fue</a> otra vez.' );
+		$address = get_permalink( $gone );
+		// El destino pasa a borrador sin que el grafo se entere (la entrada sigue guardada como estaba).
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $gone ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		clean_post_cache( $gone );
+		Plugin::container()->get( \MagicLinking\Graph\GraphIndexer::class )->flush();
+
+		$data = $this->request(
+			'POST',
+			'/suggestions/current-links',
+			array(
+				'post_id' => $from,
+				'title'   => 'Casa eficiente',
+				'content' => $content,
+			)
+		)->get_data();
+
+		$this->assertNotEmpty( $address );
+		$this->assertSame( array(), $data['current_links'], 'Un destino que ya no está publicado no es un enlace que funcione.' );
+	}
+
+	public function test_saved_content_still_reads_the_graph(): void {
+		$this->corpus();
+		$guide = self::factory()->post->create( array( 'post_title' => 'Guía de ahorro' ) );
+		$from  = self::factory()->post->create(
+			array(
+				'post_title'   => 'Casa eficiente',
+				'post_content' => $this->p( 'Lee <a href="' . get_permalink( $guide ) . '">la guía</a> y <a href="' . get_permalink( $guide ) . '#x">La Guía</a>.' ),
+			)
+		);
+		$this->build_index();
+
+		$data = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $from ) )->get_data();
+
+		$this->assertSame( array( $guide ), array_column( $data['current_links'], 'id' ) );
+		$this->assertSame( array( 'la guía' ), $data['current_links'][0]['anchors'], 'Las anclas que son la misma por raíz se juntan.' );
+	}
+
+	public function test_outbound_from_the_editor_reads_the_content_once_for_suggestions_and_current_links(): void {
+		$this->corpus();
+		$reads = 0;
+		add_filter(
+			'magiclinking_post_html',
+			static function ( $html ) use ( &$reads ) {
+				++$reads;
+				return $html;
+			}
+		);
+
+		$data = $this->request(
+			'POST',
+			'/suggestions/outbound',
+			array(
+				'post_id' => $this->sources[0],
+				'title'   => 'Otro título',
+				'content' => $this->p( 'Mira <a href="' . get_permalink( $this->target ) . '">la aerotermia</a> con calma.' ),
+			)
+		)->get_data();
+
+		$this->assertSame( array( $this->target ), array_column( $data['current_links'], 'id' ) );
+		$this->assertSame( 1, $reads, 'El contenido se lee y se resuelve una vez, no otra más para los enlaces actuales.' );
+	}
+
+	public function test_with_a_cache_the_current_links_are_cached_with_the_suggestions(): void {
+		$this->corpus();
+		wp_using_ext_object_cache( true );
+		$reads = 0;
+		add_filter(
+			'magiclinking_post_html',
+			static function ( $html ) use ( &$reads ) {
+				++$reads;
+				return $html;
+			}
+		);
+		$this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $this->sources[0] ) );
+		$first = $reads;
+		$this->assertGreaterThan( 0, $first );
+
+		$reads = 0;
+		$again = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $this->sources[0] ) )->get_data();
+		wp_using_ext_object_cache( false );
+
+		$this->assertSame( 0, $reads, 'La segunda vez no se lee nada: ni sugerencias ni enlaces actuales.' );
+		$this->assertArrayHasKey( 'current_links', $again );
+	}
+
+	public function test_a_draft_or_private_destination_the_user_can_read_shows_its_title_and_status(): void {
+		$this->corpus();
+		$private   = self::factory()->post->create(
+			array(
+				'post_title'  => 'Nota privada',
+				'post_status' => 'private',
+			)
+		);
+		$presenter = Plugin::container()->get( \MagicLinking\Rest\SuggestionPresenter::class );
+		wp_set_current_user( $this->admin );
+
+		$rows = $presenter->current_links(
+			array(
+				array(
+					'id'      => $private,
+					'anchors' => array( 'la nota' ),
+				),
+			)
+		);
+
+		$this->assertArrayNotHasKey( 'restricted', $rows[0] );
+		$this->assertSame( 'Nota privada', $rows[0]['title'] );
+		$this->assertSame( 'private', $rows[0]['status'] );
+		$this->assertNotSame( '', $rows[0]['status_label'] );
+	}
+
+	public function test_the_language_of_an_origin_is_asked_once_per_origin(): void {
+		$this->corpus();
+		$asked = 0;
+		$mine  = $this->sources[0];
+		add_filter(
+			'magiclinking_post_language',
+			static function ( $lang, $id ) use ( &$asked, $mine ) {
+				if ( (int) $id === $mine ) {
+					++$asked;
+				}
+				return $lang;
+			},
+			10,
+			2
+		);
+
+		$pairs = array(
+			array( 'aerotermia', $this->target, $mine ),
+			array( 'bomba de calor', $this->target, $mine ),
+			array( 'suelo radiante', $this->target, $mine ),
+		);
+		$this->notes()->prime( $pairs );
+		foreach ( $pairs as list( $anchor, $target, $source ) ) {
+			$this->notes()->for_anchor( $anchor, $target, $source );
+		}
+
+		$this->assertSame( 1, $asked );
+	}
 }

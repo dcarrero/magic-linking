@@ -62,13 +62,15 @@ final class AnchorUsage {
 	 * @return array<string, array{same: int, elsewhere: list<array{target: int, count: int}>}>
 	 */
 	public function measure( array $pairs, Analyzer $analyzer ): array {
-		$keys    = array();
-		$targets = array();
+		$keys     = array();
+		$targets  = array();
+		$surfaces = array();
 		foreach ( $pairs as [ $anchor, $target ] ) {
 			$key = $analyzer->phrase_key( $anchor );
 			if ( '' !== $key && $target > 0 ) {
-				$keys[ $anchor ] = $key;
-				$targets[]       = $target;
+				$keys[ $anchor ]  = $key;
+				$surfaces[ $key ] = (string) $anchor;
+				$targets[]        = $target;
 			}
 		}
 		if ( array() === $keys ) {
@@ -76,7 +78,7 @@ final class AnchorUsage {
 		}
 
 		$wanted = array_flip( array_values( array_unique( $keys ) ) );
-		$same   = $this->same_target( array_values( array_unique( $targets ) ), $wanted, $analyzer );
+		$same   = $this->same_target( array_values( array_unique( $targets ) ), $wanted, $surfaces, $analyzer );
 		$other  = $this->other_targets( array_map( 'strval', array_keys( $keys ) ), $wanted, $analyzer );
 
 		$out = array();
@@ -111,37 +113,60 @@ final class AnchorUsage {
 	}
 
 	/**
+	 * Fragmentos de texto que tiene que contener el enlace de otra forma de la misma ancla, uno por clave: el comienzo de
+	 * su raíz más larga. Solo vale si esa raíz aparece tal cual en el texto de la ancla; si alguna no aparece (el
+	 * lematizador cambia letras: «ß» por «ss», terminaciones, diéresis) no se puede adelantar nada en SQL sin perder
+	 * variantes y se devuelve null: se leen todos los enlaces del destino y se confirma por clave.
+	 *
+	 * @param array $surfaces Texto de la ancla por su clave de raíz.
+	 *
+	 * @phpstan-param array<string, string> $surfaces
+	 *
+	 * @return list<string>|null
+	 */
+	public static function stem_substrings( array $surfaces ): ?array {
+		$out = array();
+		foreach ( $surfaces as $key => $surface ) {
+			$longest = '';
+			foreach ( explode( ' ', (string) $key ) as $stem ) {
+				if ( mb_strlen( $stem ) > mb_strlen( $longest ) ) {
+					$longest = $stem;
+				}
+			}
+			// Dos formas de una misma raíz no siempre comparten todas sus letras: se pide solo el comienzo.
+			$part = mb_substr( $longest, 0, max( 3, mb_strlen( $longest ) - 1 ) );
+			if ( '' === $part || false === mb_strpos( mb_strtolower( $surface ), mb_strtolower( $part ) ) ) {
+				return null;
+			}
+			$out[ $part ] = true;
+		}
+
+		return array() === $out ? null : array_map( 'strval', array_keys( $out ) );
+	}
+
+	/**
 	 * Entradas distintas que llevan cada ancla a cada destino, por clave. Una consulta por el índice de destino que solo
 	 * trae los enlaces cuyo texto contiene la raíz de alguna de las anclas.
 	 *
 	 * @param array    $targets  Destinos.
 	 * @param array    $wanted   Claves de las anclas que importan (como claves del array).
+	 * @param array    $surfaces Texto de cada ancla por su clave.
 	 * @param Analyzer $analyzer Analizador.
 	 *
 	 * @phpstan-param list<int> $targets
 	 * @phpstan-param array<string, int> $wanted
+	 * @phpstan-param array<string, string> $surfaces
 	 *
 	 * @return array<int, array<string, array<int, true>>> Destino → clave → entradas.
 	 */
-	private function same_target( array $targets, array $wanted, Analyzer $analyzer ): array {
+	private function same_target( array $targets, array $wanted, array $surfaces, Analyzer $analyzer ): array {
 		$wpdb  = $this->wpdb;
 		$table = Schema::table( $wpdb->prefix, 'links' );
 		$in    = implode( ',', array_fill( 0, count( $targets ), '%d' ) );
 
-		// Dos formas de una misma raíz no siempre comparten todas sus letras: se pide solo el comienzo de la raíz más larga.
-		$likes = array();
-		foreach ( array_keys( $wanted ) as $key ) {
-			$stems   = explode( ' ', (string) $key );
-			$longest = '';
-			foreach ( $stems as $stem ) {
-				if ( mb_strlen( $stem ) > mb_strlen( $longest ) ) {
-					$longest = $stem;
-				}
-			}
-			$likes[ '%' . $wpdb->esc_like( mb_substr( $longest, 0, max( 3, mb_strlen( $longest ) - 1 ) ) ) . '%' ] = true;
-		}
-		$likes = array_keys( $likes );
-		$any   = implode( ' OR ', array_fill( 0, count( $likes ), 'anchor LIKE %s' ) );
+		$substrings = self::stem_substrings( $surfaces );
+		$likes      = array_map( static fn( string $text ): string => '%' . $wpdb->esc_like( $text ) . '%', $substrings ?? array() );
+		$any        = array() === $likes ? '1 = 1' : implode( ' OR ', array_fill( 0, count( $likes ), 'anchor LIKE %s' ) );
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia.
 			$wpdb->prepare( "SELECT source_id, target_id, anchor FROM %i WHERE target_id IN ({$in}) AND is_internal = 1 AND is_broken = 0 AND source_id <> target_id AND ({$any})", array_merge( array( $table ), $targets, $likes ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.

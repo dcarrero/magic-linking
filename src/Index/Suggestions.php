@@ -11,7 +11,10 @@ namespace MagicLinking\Index;
 
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\Analyzer;
 use MagicLinking\Engine\Indexer;
+use MagicLinking\Engine\Link;
+use MagicLinking\I18n\Language;
 use MagicLinking\Engine\PhraseFinder;
 use MagicLinking\Engine\Retriever;
 use MagicLinking\Engine\Scorer;
@@ -57,6 +60,7 @@ final class Suggestions {
 	 * @param Settings            $settings   Ajustes.
 	 * @param DismissalRepository $dismissals Pares descartados.
 	 * @param Pillars             $pillars    Contenido pilar.
+	 * @param Language            $language   Idioma por entrada (para agrupar las anclas de los enlaces actuales).
 	 */
 	public function __construct(
 		private TableRepository $repository,
@@ -64,7 +68,8 @@ final class Suggestions {
 		private TableDocuments $documents,
 		private Settings $settings,
 		private DismissalRepository $dismissals,
-		private Pillars $pillars
+		private Pillars $pillars,
+		private Language $language
 	) {
 	}
 
@@ -116,10 +121,14 @@ final class Suggestions {
 	 * @return list<Suggestion> Vacío si el índice no está listo o la entrada no se analiza.
 	 *
 	 * @phpstan-param array<string, mixed> $options
+	 * @param array|null  $links   Se rellena con los enlaces actuales de la entrada ({@see self::current_links()}), leídos del
+	 *                             mismo documento que analiza el motor: no hace falta leer ni resolver el contenido otra vez.
+	 *
 	 * @phpstan-param array<string, mixed>|null $terms
 	 * @phpstan-param array<string, mixed>|null $names
+	 * @phpstan-param list<array{id: int, anchors: list<string>}>|null $links
 	 */
-	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null, ?array $terms = null, ?array $names = null ): array {
+	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null, ?array $terms = null, ?array $names = null, ?array &$links = null ): array {
 		$prepared = $this->prepare_outgoing( $post_id, $options, $content, $title, $terms, $names );
 		if ( null === $prepared ) {
 			return array();
@@ -128,6 +137,7 @@ final class Suggestions {
 		[ $suggester, $document, $documents ] = $prepared;
 		try {
 			$found = $suggester->outgoing( $document );
+			$links = $this->group_links( $document->links, $post_id );
 
 			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
 		} finally {
@@ -163,14 +173,37 @@ final class Suggestions {
 
 		try {
 			$this->documents->prefetch( array( $post_id ) );
-			$by_target = array();
-			foreach ( $this->documents->links_in( $post ) as $link ) {
-				if ( null !== $link->target && ! in_array( $link->anchor, $by_target[ $link->target ] ?? array(), true ) ) {
-					$by_target[ $link->target ][] = $link->anchor;
-				}
-			}
+
+			return $this->group_links( $this->documents->links_in( $post ), $post_id );
 		} finally {
 			$this->documents->release();
+		}
+	}
+
+	/**
+	 * Enlaces de una entrada agrupados por destino, con sus anclas sin repetir (por clave de raíz, como en el resto del
+	 * plugin: «Bomba de calor» y «bombas de calor» son la misma). Los rotos no cuentan.
+	 *
+	 * @param array $links   Enlaces del documento.
+	 * @param int   $post_id Entrada (su idioma decide la clave de las anclas).
+	 *
+	 * @phpstan-param list<Link> $links
+	 *
+	 * @return list<array{id: int, anchors: list<string>}>
+	 */
+	private function group_links( array $links, int $post_id ): array {
+		$analyzer  = Analyzer::for_language( $this->language->for_post( $post_id ) );
+		$by_target = array();
+		$seen      = array();
+		foreach ( $links as $link ) {
+			if ( null === $link->target ) {
+				continue;
+			}
+			$key = $analyzer->phrase_key( $link->anchor );
+			if ( ! isset( $seen[ $link->target ][ $key ] ) ) {
+				$seen[ $link->target ][ $key ] = true;
+				$by_target[ $link->target ][]  = $link->anchor;
+			}
 		}
 
 		$out = array();

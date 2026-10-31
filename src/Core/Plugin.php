@@ -244,7 +244,8 @@ final class Plugin {
 				$c->get( TableDocuments::class ),
 				$c->get( Settings::class ),
 				$c->get( DismissalRepository::class ),
-				$c->get( Pillars::class )
+				$c->get( Pillars::class ),
+				$c->get( Language::class )
 			),
 			Pillars::class                 => static function (): Pillars {
 				global $wpdb;

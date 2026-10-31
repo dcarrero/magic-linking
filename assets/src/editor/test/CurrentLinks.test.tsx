@@ -104,4 +104,31 @@ describe( 'CurrentLinks', () => {
 		expect( row?.textContent ).toContain( 'Already linked' );
 		expect( row?.querySelector( 'a' ) ).toBeNull();
 	} );
+
+	it( 'shows the state of a draft or private destination the user can read', async () => {
+		await act( () =>
+			root.render(
+				<CurrentLinks
+					links={ [
+						{
+							id: 4,
+							title: 'Nota privada',
+							url: 'https://example.org/nota/',
+							status: 'private',
+							status_label: 'Private',
+							anchors: [],
+						},
+					] }
+				/>
+			)
+		);
+		await act( () => host.querySelector( 'button' )?.click() );
+
+		expect( host.querySelector( 'li' )?.textContent ).toContain(
+			'Nota privada'
+		);
+		expect( host.querySelector( 'li' )?.textContent ).toContain(
+			'(Private)'
+		);
+	} );
 } );

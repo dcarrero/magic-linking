@@ -7,6 +7,28 @@ import type { EditorAdapter } from './adapters/types';
 const SETTLE = 300;
 
 /**
+ * Resumen de los enlaces que el panel ha puesto en la entrada abierta (tarjetas salientes enlazadas): cambia al enlazar
+ * o deshacer uno. Las tarjetas entrantes enlazan en otras entradas y no cuentan. La clave de una saliente empieza por el
+ * ID de la entrada abierta (`origen:destino:posición:ancla`).
+ *
+ * @param statuses Estado de cada tarjeta por clave.
+ * @param postId   Entrada abierta.
+ */
+export function outboundSignature(
+	statuses: Record< string, { kind: string } >,
+	postId: number
+): string {
+	return Object.entries( statuses )
+		.filter(
+			( [ key, status ] ) =>
+				status.kind === 'added' && key.startsWith( `${ postId }:` )
+		)
+		.map( ( [ key ] ) => key )
+		.sort()
+		.join( '\n' );
+}
+
+/**
  * Los enlaces actuales de la entrada para el bloque «Enlaces actuales» (docs/07 §3.3). Parten de los que dio el servidor
  * con las salientes y, cuando cambia lo enlazado desde el panel (`signature`: al enlazar o al deshacer), se vuelven a
  * pedir al servidor con lo que hay ahora en el editor: así deshacer o cambiar el contenido a mano se refleja y las
@@ -37,7 +59,8 @@ export function useCurrentLinks(
 		if ( seen.current.signature === signature ) {
 			return undefined;
 		}
-		seen.current.signature = signature;
+		// La firma solo se da por atendida cuando la respuesta llega: si el efecto se repite antes (un render que cambia
+		// el editor, el doble efecto del modo estricto), se cancela esta petición y se vuelve a lanzar.
 		const controller = new AbortController();
 		const timer = window.setTimeout( () => {
 			api.currentLinks(
@@ -48,6 +71,7 @@ export function useCurrentLinks(
 			)
 				.then( ( reply ) => {
 					if ( ! controller.signal.aborted ) {
+						seen.current.signature = signature;
 						setFresh( {
 							base: initial,
 							links: reply.current_links,

@@ -47,13 +47,6 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	private array $stored = array();
 
 	/**
-	 * URL ya resueltas por el grafo de las entradas traídas por adelantado: URL → destino (null si está roto).
-	 *
-	 * @var array<int, array<string, int|null>>
-	 */
-	private array $resolved = array();
-
-	/**
 	 * Constructor.
 	 *
 	 * @param PostSource      $posts    Entradas como documentos.
@@ -77,9 +70,8 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 
 		_prime_post_caches( $ids, $this->posts->taxonomies_enabled(), true );
 
-		$links          = $this->graph->links_from( $ids );
-		$this->resolved = $this->graph->resolved_urls( $ids );
-		$this->stored   = array();
+		$links        = $this->graph->links_from( $ids );
+		$this->stored = array();
 		foreach ( $this->graph->docs_by_ids( $ids ) as $id => $row ) {
 			$this->stored[ $id ] = array(
 				'hash'  => $row['content_hash'],
@@ -130,7 +122,9 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	/**
 	 * Enlaces internos del contenido de una entrada, en orden: el destino (null si está roto o no es una entrada) y el
 	 * ancla. Si la entrada se trajo por adelantado ({@see self::prefetch()}) y su huella es la del contenido de ahora,
-	 * salen del grafo; si no, del propio HTML, resolviendo cada URL. Un enlace a la propia entrada no cuenta.
+	 * salen del grafo; si no (contenido sin guardar), del propio HTML y se resuelven en vivo, todas las URL juntas
+	 * ({@see LinkResolver::prime()}): lo que el grafo resolvió al guardar puede estar viejo (un destino que se publicó,
+	 * se despublicó o se borró). Un enlace a la propia entrada no cuenta.
 	 *
 	 * @param WP_Post     $post Entrada, con el contenido que se quiere leer.
 	 * @param string|null $html HTML ya preparado (con el filtro `magiclinking_post_html`); null = prepararlo aquí.
@@ -153,30 +147,24 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 			return $links;
 		}
 
+		$parsed = array();
 		foreach ( $this->parser()->parse( $html ) as $link ) {
-			if ( ! $link->internal ) {
-				continue;
+			if ( $link->internal ) {
+				$parsed[] = $link;
 			}
+		}
+		$this->resolver->prime( array_map( static fn( $link ): string => $link->url, $parsed ) );
 
-			// Una URL que la entrada ya tenía al guardarse la resolvió el grafo: no se vuelve a resolver (una consulta o
-			// más por URL). Solo las nuevas pasan por el resolutor.
-			if ( array_key_exists( $link->url, $this->resolved[ $post->ID ] ?? array() ) ) {
-				$target = $this->resolved[ $post->ID ][ $link->url ];
-			} else {
-				$resolution = $this->resolver->resolve( $link->url );
-				if ( $resolution->target_id === $post->ID ) {
-					continue;
-				}
-				$target = BrokenReason::NONE === $resolution->broken ? $resolution->target_id : null;
-			}
+		foreach ( $parsed as $link ) {
+			$resolution = $this->resolver->resolve( $link->url );
 
 			// Un enlace a la propia entrada no cuenta.
-			if ( $target === $post->ID ) {
+			if ( $resolution->target_id === $post->ID ) {
 				continue;
 			}
 
-			$links[] = new Link( $target, $link->anchor );
-		}//end foreach
+			$links[] = new Link( BrokenReason::NONE === $resolution->broken ? $resolution->target_id : null, $link->anchor );
+		}
 
 		return $links;
 	}
@@ -204,8 +192,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	 * Olvida lo resuelto (el estado de las entradas puede cambiar entre dos cálculos).
 	 */
 	public function release(): void {
-		$this->stored   = array();
-		$this->resolved = array();
+		$this->stored = array();
 		$this->resolver->flush();
 	}
 

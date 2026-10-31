@@ -142,8 +142,8 @@ final class SuggestionPresenter {
 
 			$anchors = array( 'anchors' => array_values( array_filter( $link['anchors'], static fn( string $anchor ): bool => '' !== trim( $anchor ) ) ) );
 
-			// Ni el título ni la dirección de un destino que el usuario no puede leer o que no está publicado.
-			if ( 'publish' !== $post->post_status || ! current_user_can( 'read_post', $post->ID ) ) {
+			// Ni el título ni la dirección de un destino que el usuario no puede leer.
+			if ( ! current_user_can( 'read_post', $post->ID ) ) {
 				$out[] = array_merge(
 					array(
 						'id'         => $link['id'],
@@ -154,7 +154,17 @@ final class SuggestionPresenter {
 				continue;
 			}
 
-			$out[] = array_merge( $this->post( $link['id'] ), $anchors );
+			// Un borrador, una entrada programada o una privada que sí puede leer se enseñan con su estado.
+			$state = array();
+			if ( 'publish' !== $post->post_status ) {
+				$status = get_post_status_object( $post->post_status );
+				$state  = array(
+					'status'       => $post->post_status,
+					'status_label' => null === $status ? $post->post_status : $status->label,
+				);
+			}
+
+			$out[] = array_merge( $this->post( $link['id'] ), $state, $anchors );
 		}//end foreach
 
 		return $out;

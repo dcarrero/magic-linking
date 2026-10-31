@@ -93,7 +93,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( 7, $this->installer()->installed_version() );
 	}
 
-	public function test_upgrading_from_schema_6_adds_the_anchor_index_to_links_and_keeps_the_rows(): void {
+	public function test_upgrading_from_schema_6_adds_the_anchor_index_in_the_background_not_in_the_request(): void {
 		global $wpdb;
 		$this->installer()->maybe_upgrade();
 		$table = Schema::table( $wpdb->prefix, 'links' );
@@ -103,13 +103,33 @@ final class InstallerTest extends WP_UnitTestCase {
 		$wpdb->query( "INSERT INTO {$table} ( source_id, target_id, target_url, anchor, is_internal ) VALUES ( 1, 2, 'http://example.org/a/', 'bomba de calor', 1 )" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
 		update_option( Installer::DB_VERSION_OPTION, 6, false );
 		Installer::forget_check();
-		$this->assertNotContains( 'anchor', $this->index_names( 'links' ) );
+		as_unschedule_all_actions( Installer::HOOK_ANCHOR_INDEX );
 
 		$this->assertTrue( $this->installer()->maybe_upgrade() );
 
+		// La petición de actualización no toca la tabla: el índice llega después, con una acción reanudable.
+		$this->assertNotContains( 'anchor', $this->index_names( 'links' ) );
+		$this->assertSame( 7, $this->installer()->installed_version() );
+		$this->assertTrue( as_has_scheduled_action( Installer::HOOK_ANCHOR_INDEX, array(), Installer::ACTION_GROUP ) );
+
+		$this->installer()->add_anchor_index();
 		$this->assertContains( 'anchor', $this->index_names( 'links' ) );
 		$this->assertSame( 'bomba de calor', $wpdb->get_var( "SELECT anchor FROM {$table} WHERE source_id = 1" ) ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
-		$this->assertSame( 7, $this->installer()->installed_version() );
+
+		// Idempotente: una segunda ejecución no falla ni duplica.
+		$this->installer()->add_anchor_index();
+		$this->assertSame( 1, count( array_keys( $this->index_names( 'links' ), 'anchor', true ) ) );
+	}
+
+	public function test_a_later_upgrade_does_not_add_the_anchor_index_either_while_it_is_missing(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'links' );
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX anchor" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+
+		$this->installer()->create_tables( $this->installer()->has_anchor_index() );
+
+		$this->assertNotContains( 'anchor', $this->index_names( 'links' ) );
 	}
 
 	public function test_a_fresh_install_has_the_anchor_index_on_links(): void {

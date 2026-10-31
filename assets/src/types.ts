@@ -521,8 +521,11 @@ export interface CurrentLink {
 	edit_url?: string | null;
 	/** Textos de ancla con los que ya enlaza, sin repetir. */
 	anchors: string[];
-	/** El usuario no puede leer el destino (o no está publicado): no se manda su título ni su dirección. */
+	/** El usuario no puede leer el destino: no se manda su título ni su dirección. */
 	restricted?: boolean;
+	/** Estado del destino si no está publicado (borrador, programada, privada), con su nombre. */
+	status?: string;
+	status_label?: string;
 }
 
 export interface OutboundResponse {

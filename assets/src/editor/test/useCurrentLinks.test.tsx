@@ -1,9 +1,9 @@
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { CurrentLink } from '../../types';
 import { api } from '../../api';
 import type { EditorAdapter } from '../adapters/types';
-import { useCurrentLinks } from '../useCurrentLinks';
+import { outboundSignature, useCurrentLinks } from '../useCurrentLinks';
 
 jest.mock( '../../api', () => ( { api: { currentLinks: jest.fn() } } ) );
 
@@ -13,11 +13,13 @@ jest.mock( '../../api', () => ( { api: { currentLinks: jest.fn() } } ) );
 
 const guide: CurrentLink = { id: 7, title: 'Guía', anchors: [ 'guía' ] };
 const bomba: CurrentLink = { id: 9, title: 'Bomba', anchors: [ 'bomba' ] };
-const adapter = {
-	postId: 5,
-	getContent: () => '<p>texto</p>',
-	getTitle: () => 'Título',
-} as unknown as EditorAdapter;
+const makeAdapter = () =>
+	( {
+		postId: 5,
+		getContent: () => '<p>texto</p>',
+		getTitle: () => 'Título',
+	} ) as unknown as EditorAdapter;
+const adapter = makeAdapter();
 
 let root: Root;
 let host: HTMLElement;
@@ -26,11 +28,13 @@ let shown: number[] = [];
 function Probe( {
 	initial,
 	signature,
+	editor = adapter,
 }: {
 	initial: CurrentLink[];
 	signature: string;
+	editor?: EditorAdapter;
 } ) {
-	shown = useCurrentLinks( adapter, initial, signature ).map(
+	shown = useCurrentLinks( editor, initial, signature ).map(
 		( link ) => link.id
 	);
 	return null;
@@ -104,5 +108,58 @@ describe( 'useCurrentLinks', () => {
 
 		expect( shown ).toEqual( [ 9 ] );
 		expect( api.currentLinks ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'does not lose the request when the effect repeats before it is sent (new editor object, strict mode)', async () => {
+		( api.currentLinks as jest.Mock ).mockResolvedValue( {
+			current_links: [ guide, bomba ],
+		} );
+		await act( async () => {
+			root.render(
+				<StrictMode>
+					<Probe initial={ initial } signature="" />
+				</StrictMode>
+			);
+		} );
+		await act( async () => {
+			root.render(
+				<StrictMode>
+					<Probe initial={ initial } signature="a" />
+				</StrictMode>
+			);
+		} );
+		// Antes de los 300 ms el editor cambia de objeto y el efecto se repite.
+		await act( async () => {
+			root.render(
+				<StrictMode>
+					<Probe
+						initial={ initial }
+						signature="a"
+						editor={ makeAdapter() }
+					/>
+				</StrictMode>
+			);
+		} );
+		await settle();
+
+		expect( api.currentLinks ).toHaveBeenCalled();
+		expect( shown ).toEqual( [ 7, 9 ] );
+	} );
+} );
+
+describe( 'outboundSignature', () => {
+	it( 'changes with the links added in this entry and ignores the inbound ones', () => {
+		const added = { kind: 'added' };
+		expect(
+			outboundSignature(
+				{
+					'5:9:3:bomba': added,
+					'5:2:1:guia': { kind: 'dismissed' },
+					'77:5:0:otra': added,
+				},
+				5
+			)
+		).toBe( '5:9:3:bomba' );
+		expect( outboundSignature( { '77:5:0:otra': added }, 5 ) ).toBe( '' );
 	} );
 } );

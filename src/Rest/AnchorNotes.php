@@ -37,6 +37,13 @@ final class AnchorNotes {
 	private array $measured = array();
 
 	/**
+	 * Idioma de cada origen, resuelto una vez por origen en esta tanda.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $languages = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param AnchorUsage $usage    Uso de las anclas en el grafo.
@@ -58,12 +65,13 @@ final class AnchorNotes {
 	 */
 	public function prime( array $items, bool $reset = true ): void {
 		if ( $reset ) {
-			$this->measured = array();
+			$this->measured  = array();
+			$this->languages = array();
 		}
 
 		$by_language = array();
 		foreach ( $items as [ $anchor, $target, $source ] ) {
-			$language = $this->language->for_post( $source );
+			$language = $this->language_of( $source );
 			if ( ! isset( $this->measured[ self::key( $language, $anchor, $target, $source ) ] ) ) {
 				$by_language[ $language ][] = array( $anchor, $target, $source );
 			}
@@ -101,7 +109,7 @@ final class AnchorNotes {
 	 * @return list<array{code: string, text: string}>
 	 */
 	public function for_anchor( string $anchor, int $target, int $source ): array {
-		$key = self::key( $this->language->for_post( $source ), $anchor, $target, $source );
+		$key = self::key( $this->language_of( $source ), $anchor, $target, $source );
 		if ( ! isset( $this->measured[ $key ] ) ) {
 			$this->prime( array( array( $anchor, $target, $source ) ), false );
 		}
@@ -147,6 +155,15 @@ final class AnchorNotes {
 		}
 
 		return $notes;
+	}
+
+	/**
+	 * Idioma del origen, preguntado una sola vez por origen (el filtro de idioma lo pueden usar otros plugins).
+	 *
+	 * @param int $source Origen.
+	 */
+	private function language_of( int $source ): string {
+		return $this->languages[ $source ] ??= $this->language->for_post( $source );
 	}
 
 	/**
