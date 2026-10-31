@@ -53,6 +53,22 @@ final class AnchorCheckTest extends TestCase {
 		$this->assertSame( array( AnchorCheck::NOT_LITERAL ), $this->check( 'casas', null, -1 )->errors );
 	}
 
+	public function test_the_anchor_has_to_start_and_end_at_a_word_boundary(): void {
+		$sentence = 'La instalación de la calefacción eléctrica sale cara en invierno.';
+
+		foreach ( array( 'lefacción elé', 'calefacción elé', 'alefacción eléctrica', 'instalación de la calefacció' ) as $anchor ) {
+			$result = $this->check( $anchor, $sentence );
+			$this->assertSame( array( AnchorCheck::NOT_WORD_BOUNDARY ), $result->errors, $anchor );
+		}
+
+		// Un tramo que empieza y acaba en límite de palabra, con tildes y eñes, vale.
+		$this->assertTrue( $this->check( 'calefacción eléctrica', $sentence )->valid() );
+		$this->assertTrue( AnchorCheck::boundaries( 'Ñoño bebe café caliente.', 7, 'bebe café' ) );
+		$this->assertFalse( AnchorCheck::boundaries( 'Ñoño bebe café caliente.', 8, 'ebe café' ) );
+		// Un desplazamiento que cae dentro de un carácter de varios bytes no es un tramo válido.
+		$this->assertFalse( AnchorCheck::boundaries( 'Ñoño bebe', 1, "\xB1o\xC3\xB1o" ) );
+	}
+
 	public function test_the_anchor_cannot_start_or_end_with_a_space(): void {
 		$this->assertContains( AnchorCheck::SPACES, $this->check( ' bomba de calor' )->errors );
 		$this->assertContains( AnchorCheck::SPACES, $this->check( 'bomba de calor ', null, (int) strpos( self::SENTENCE, 'bomba' ) )->errors );

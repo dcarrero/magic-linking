@@ -1,6 +1,8 @@
 import type { Suggestion, SuggestionAlternative } from '../types';
+import { suggestionKey } from './keys';
 import {
 	applyChoice,
+	signature,
 	byteLength,
 	displacements,
 	resolve,
@@ -98,11 +100,17 @@ describe( 'applyChoice', () => {
 
 	it( 'leaves the suggestion as it is without a choice', () => {
 		expect( applyChoice( item, undefined ) ).toBe( item );
-		expect( applyChoice( item, { option: 0, seq: 1 } ) ).toBe( item );
+		expect(
+			applyChoice( item, { option: 0, seq: 1, sig: signature( item ) } )
+		).toBe( item );
 	} );
 
 	it( 'shows an alternative sentence and inserts with it', () => {
-		const chosen = applyChoice( item, { option: 1, seq: 1 } );
+		const chosen = applyChoice( item, {
+			option: 1,
+			seq: 1,
+			sig: signature( item ),
+		} );
 		expect( chosen.sentence ).toBe( S2 );
 		expect( chosen.before ).toBe( 'Una ' );
 		expect( chosen.insert ).toEqual( first.insert );
@@ -116,6 +124,7 @@ describe( 'applyChoice', () => {
 		const chosen = applyChoice( item, {
 			option: 1,
 			seq: 1,
+			sig: signature( item ),
 			span: { start, end },
 		} );
 		expect( chosen.anchor ).toBe( 'bomba de calor bien dimensionada' );
@@ -139,6 +148,7 @@ describe( 'applyChoice', () => {
 		const chosen = applyChoice( withEmoji, {
 			option: 0,
 			seq: 1,
+			sig: '',
 			span: { start, end: sentence.indexOf( 'muy' ) + 3 },
 		} );
 		expect( chosen.insert?.offset ).toBe(
@@ -152,9 +162,25 @@ describe( 'applyChoice', () => {
 		const chosen = applyChoice( readOnly, {
 			option: 0,
 			seq: 1,
+			sig: '',
 			span: { start: 0, end: 2 },
 		} );
 		expect( chosen.insert ).toBeUndefined();
+	} );
+} );
+
+describe( 'stability', () => {
+	it( 'keeps the key of a card when another sentence or anchor is chosen', () => {
+		const item = suggestion( 9, alt( S1, 'bomba de calor' ), [
+			alt( S2, 'bomba de calor', 1 ),
+		] );
+		const other = applyChoice( item, {
+			option: 1,
+			seq: 1,
+			sig: signature( item ),
+			span: { start: 5, end: 10 },
+		} );
+		expect( suggestionKey( other ) ).toBe( suggestionKey( item ) );
 	} );
 } );
 
@@ -168,8 +194,7 @@ describe( 'resolve', () => {
 		alt( S3, 'consumo', 2 ),
 	] );
 	const c = suggestion( 7, alt( S3, 'consumo', 2 ) );
-	const keyOf = ( s: Suggestion ) =>
-		[ s.source.id, s.target.id, s.offset, s.anchor ].join( ':' );
+	const keyOf = suggestionKey;
 
 	it( 'keeps everything as the engine said without choices', () => {
 		const out = resolve( [ a, b ], {}, keyOf );
@@ -178,14 +203,18 @@ describe( 'resolve', () => {
 	} );
 
 	it( 'moves the other suggestion to its next free sentence when one takes its sentence', () => {
-		const choices: Choices = { [ keyOf( a ) ]: { option: 1, seq: 1 } };
+		const choices: Choices = {
+			[ keyOf( a ) ]: { option: 1, seq: 1, sig: signature( a ) },
+		};
 		const out = resolve( [ a, b ], choices, keyOf );
 		expect( out.get( keyOf( a ) ) ).toBe( 1 );
 		expect( out.get( keyOf( b ) ) ).toBe( 1 );
 	} );
 
 	it( 'hides the other suggestion when it has no free sentence left', () => {
-		const choices: Choices = { [ keyOf( a ) ]: { option: 1, seq: 1 } };
+		const choices: Choices = {
+			[ keyOf( a ) ]: { option: 1, seq: 1, sig: signature( a ) },
+		};
 		const out = resolve( [ a, c, b ], choices, keyOf );
 		// c usa S3, b pasaría a S3 pero c la tiene: b desaparece.
 		expect( out.get( keyOf( c ) ) ).toBe( 0 );
@@ -194,19 +223,37 @@ describe( 'resolve', () => {
 
 	it( 'lets the latest choice win when two suggestions want the same sentence', () => {
 		const choices: Choices = {
-			[ keyOf( a ) ]: { option: 1, seq: 1 },
-			[ keyOf( b ) ]: { option: 0, seq: 2 },
+			[ keyOf( a ) ]: { option: 1, seq: 1, sig: signature( a ) },
+			[ keyOf( b ) ]: { option: 0, seq: 2, sig: signature( b ) },
 		};
 		const out = resolve( [ a, b ], choices, keyOf );
 		expect( out.get( keyOf( b ) ) ).toBe( 0 );
 		expect( out.get( keyOf( a ) ) ).toBe( 0 );
 	} );
 
+	it( 'ignores a choice made for a list that has changed', () => {
+		const stale: Choices = {
+			[ keyOf( a ) ]: { option: 1, seq: 1, sig: 'otra frase' },
+		};
+		expect( resolve( [ a, b ], stale, keyOf ).get( keyOf( a ) ) ).toBe( 0 );
+		// La misma sugerencia con las frases en otro orden tampoco hereda la elección.
+		const reordered = suggestion( 9, alt( S2, 'bomba de calor', 1 ), [
+			alt( S1, 'bomba de calor', 0 ),
+		] );
+		const choices: Choices = {
+			[ keyOf( a ) ]: { option: 1, seq: 1, sig: signature( a ) },
+		};
+		expect( signature( reordered ) ).not.toBe( signature( a ) );
+		expect(
+			resolve( [ reordered ], choices, keyOf ).get( keyOf( reordered ) )
+		).toBe( 0 );
+	} );
+
 	it( 'reports who moved or disappeared because of a choice', () => {
 		const before = resolve( [ a, c, b ], {}, keyOf );
 		const after = resolve(
 			[ a, c, b ],
-			{ [ keyOf( a ) ]: { option: 1, seq: 1 } },
+			{ [ keyOf( a ) ]: { option: 1, seq: 1, sig: signature( a ) } },
 			keyOf
 		);
 		expect( displacements( before, after, keyOf( a ) ) ).toEqual( [
@@ -214,7 +261,7 @@ describe( 'resolve', () => {
 		] );
 		const withoutC = resolve(
 			[ a, b ],
-			{ [ keyOf( a ) ]: { option: 1, seq: 1 } },
+			{ [ keyOf( a ) ]: { option: 1, seq: 1, sig: signature( a ) } },
 			keyOf
 		);
 		expect(

@@ -26,6 +26,10 @@ final class AnchorMessages {
 		switch ( $code ) {
 			case AnchorCheck::NOT_LITERAL:
 				return __( 'The anchor has to be a literal part of the sentence.', 'magic-linking' );
+			case AnchorCheck::NOT_WORD_BOUNDARY:
+				return __( 'The anchor has to start and end at the edge of a word.', 'magic-linking' );
+			case AnchorCheck::IGNORED_WORD:
+				return __( 'The anchor contains a word or phrase you chose to ignore in the settings.', 'magic-linking' );
 			case AnchorCheck::SPACES:
 				return __( 'The anchor cannot start or end with a space.', 'magic-linking' );
 			case AnchorCheck::TOO_SHORT:

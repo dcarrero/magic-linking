@@ -1402,6 +1402,64 @@ final class SuggestionsRestTest extends GraphTestCase {
 		$this->assertSame( $before, preg_replace( '#<a href="[^"]*">([^<]*)</a>#', '$1', $after ) );
 	}
 
+	public function test_an_anchor_that_cuts_a_word_is_refused_even_without_the_adjusted_flag(): void {
+		$this->corpus();
+		$item   = $this->first_outbound( $this->sources[1] );
+		$before = $this->stored( $this->sources[1] );
+		// Del segundo carácter del ancla al segundo de la palabra siguiente.
+		$cut = substr( $item['anchor'], 1, -1 );
+
+		$check  = $this->request(
+			'POST',
+			'/suggestions/anchor',
+			array(
+				'post_id'  => $this->sources[1],
+				'sentence' => $item['sentence'],
+				'offset'   => $item['offset'] + 1,
+				'anchor'   => $cut,
+			)
+		)->get_data();
+		$result = $this->request(
+			'POST',
+			'/links',
+			array_merge(
+				$item['insert'],
+				array(
+					'offset' => $item['offset'] + 1,
+					'anchor' => $cut,
+				)
+			)
+		)->get_data()['results'][0];
+
+		$this->assertSame( 'not_word_boundary', $check['errors'][0]['code'] );
+		$this->assertSame( 'bad_anchor', $result['reason'] );
+		$this->assertNotSame( '', $result['message'] );
+		$this->assertSame( $before, $this->stored( $this->sources[1] ) );
+	}
+
+	public function test_ignored_words_also_apply_to_an_adjusted_anchor(): void {
+		$this->corpus();
+		$item = $this->first_outbound( $this->sources[1] );
+		$this->save_settings( array( 'ignored_words' => $item['anchor'] ) );
+		$base = array(
+			'post_id'  => $this->sources[1],
+			'sentence' => $item['sentence'],
+			'offset'   => $item['offset'],
+			'anchor'   => $item['anchor'],
+		);
+
+		$check = $this->request( 'POST', '/suggestions/anchor', $base )->get_data();
+		$this->assertFalse( $check['valid'] );
+		$this->assertContains( 'ignored_word', array_column( $check['errors'], 'code' ) );
+
+		$result = $this->request( 'POST', '/links', array_merge( $item['insert'], array( 'adjusted' => true ) ) )->get_data()['results'][0];
+		$this->assertSame( 'bad_anchor', $result['reason'] );
+		$this->assertStringNotContainsString( '<a href=', $this->stored( $this->sources[1] ) );
+
+		// Sin ajustar, el comportamiento de siempre.
+		$this->assertSame( 1, $this->request( 'POST', '/links', $item['insert'] )->get_data()['inserted'] );
+	}
+
 	public function test_an_anchor_that_crosses_an_existing_link_is_refused_with_a_message(): void {
 		$this->corpus();
 		$item = $this->first_outbound( $this->sources[1] );

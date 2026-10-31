@@ -19,6 +19,7 @@ use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Analyzer;
 use MagicLinking\Engine\AnchorCheck;
+use MagicLinking\Engine\IgnoredWords;
 use MagicLinking\Engine\Suggester;
 use MagicLinking\Engine\Suggestion;
 use MagicLinking\History\AiOrigin;
@@ -58,6 +59,20 @@ final class SuggestionsController implements Module {
 	 * Tamaño máximo del contenido del editor que se analiza, en bytes.
 	 */
 	public const MAX_DRAFT = 2000000;
+
+	/**
+	 * Analizador por entrada, calculado una vez por petición.
+	 *
+	 * @var array<int, Analyzer>
+	 */
+	private array $analyzers = array();
+
+	/**
+	 * Patrones de las palabras ignoradas, calculados una vez por petición.
+	 *
+	 * @var list<string>|null
+	 */
+	private ?array $ignored = null;
 
 	/**
 	 * Constructor.
@@ -306,12 +321,13 @@ final class SuggestionsController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function post_anchor( WP_REST_Request $request ) {
+		$this->forget_anchor_cache();
 		$post_id = (int) $request['post_id'];
 		if ( ! get_post( $post_id ) instanceof WP_Post ) {
 			return $this->not_found();
 		}
 
-		$check = AnchorCheck::of( Analyzer::for_language( $this->language->for_post( $post_id ) ), (string) $request['sentence'], (int) $request['offset'], (string) $request['anchor'] );
+		$check = $this->check_anchor( $post_id, (string) $request['sentence'], (int) $request['offset'], (string) $request['anchor'] );
 
 		return new WP_REST_Response(
 			array(
@@ -530,6 +546,7 @@ final class SuggestionsController implements Module {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function post_links( WP_REST_Request $request ) {
+		$this->forget_anchor_cache();
 		$links = $request['links'];
 		if ( ! is_array( $links ) || array() === $links ) {
 			$links = array(
@@ -584,13 +601,14 @@ final class SuggestionsController implements Module {
 				continue;
 			}
 
-			// Un ancla ajustada por el usuario pasa otra vez por los descartes de docs/04 §5.3; la del motor ya los pasó.
-			if ( ! empty( $link['adjusted'] ) ) {
-				$check = AnchorCheck::of( Analyzer::for_language( $this->language->for_post( $post_id ) ), (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] );
-				if ( ! $check->valid() ) {
-					$results[ $index ] = $this->failure( $base, new InsertionException( InsertionException::BAD_ANCHOR, AnchorMessages::text( $check->errors[0] ) ) );
-					continue;
-				}
+			// Un ancla ajustada por el usuario pasa otra vez por los descartes de docs/04 §5.3 y por las palabras ignoradas;
+			// la del motor ya los pasó. Que el tramo sea literal y empiece y acabe en límite de palabra se exige siempre.
+			$problem = ! empty( $link['adjusted'] )
+				? $this->check_anchor( $post_id, (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] )->errors
+				: ( $this->cuts_a_word( (string) $link['sentence'], (int) $link['offset'], (string) $link['anchor'] ) ? array( AnchorCheck::NOT_WORD_BOUNDARY ) : array() );
+			if ( array() !== $problem ) {
+				$results[ $index ] = $this->failure( $base, new InsertionException( InsertionException::BAD_ANCHOR, AnchorMessages::text( $problem[0] ) ) );
+				continue;
 			}
 
 			$path = isset( $link['block_path'] ) && is_string( $link['block_path'] ) && '' !== $link['block_path'] ? $link['block_path'] : null;
@@ -654,6 +672,50 @@ final class SuggestionsController implements Module {
 				'group'    => $inserted > 0 ? $this->reader->group( $batch, get_current_user_id() ) : null,
 			)
 		);
+	}
+
+	/**
+	 * Comprobación completa de un ancla ajustada: los descartes de docs/04 §5.3 y las palabras ignoradas de los ajustes.
+	 * El analizador de cada entrada y los patrones de palabras ignoradas se calculan una sola vez por petición.
+	 *
+	 * @param int    $post_id  Entrada donde irá el enlace.
+	 * @param string $sentence Frase.
+	 * @param int    $offset   Byte donde empieza el ancla.
+	 * @param string $anchor   Ancla.
+	 */
+	private function check_anchor( int $post_id, string $sentence, int $offset, string $anchor ): AnchorCheck {
+		if ( ! isset( $this->analyzers[ $post_id ] ) ) {
+			$this->analyzers[ $post_id ] = Analyzer::for_language( $this->language->for_post( $post_id ) );
+		}
+		if ( null === $this->ignored ) {
+			$this->ignored = IgnoredWords::patterns( $this->settings->all()['ignored_words'] );
+		}
+
+		$check = AnchorCheck::of( $this->analyzers[ $post_id ], $sentence, $offset, $anchor );
+		if ( $check->valid() && IgnoredWords::matches( $this->ignored, $anchor ) ) {
+			return new AnchorCheck( array( AnchorCheck::IGNORED_WORD ), $check->warnings );
+		}
+
+		return $check;
+	}
+
+	/**
+	 * Cada petición empieza sin lo calculado por la anterior (los ajustes pueden haber cambiado).
+	 */
+	private function forget_anchor_cache(): void {
+		$this->analyzers = array();
+		$this->ignored   = null;
+	}
+
+	/**
+	 * Si un tramo literal de la frase corta una palabra por la mitad (uno que no es literal lo rechaza la inserción).
+	 *
+	 * @param string $sentence Frase.
+	 * @param int    $offset   Byte donde empieza el ancla.
+	 * @param string $anchor   Ancla.
+	 */
+	private function cuts_a_word( string $sentence, int $offset, string $anchor ): bool {
+		return '' !== $anchor && $offset >= 0 && substr( $sentence, $offset, strlen( $anchor ) ) === $anchor && ! AnchorCheck::boundaries( $sentence, $offset, $anchor );
 	}
 
 	/**

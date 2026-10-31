@@ -8,6 +8,7 @@ import {
 	displacements,
 	optionsOf,
 	resolve,
+	signature,
 	type Choice,
 	type Choices,
 } from './variants';
@@ -102,7 +103,11 @@ export function useVariants( items: Suggestion[] ): Variants {
 			const key = suggestionKey( original );
 			const next: Choices = {
 				...choicesRef.current,
-				[ key ]: { option, seq: ++seq.current },
+				[ key ]: {
+					option,
+					seq: ++seq.current,
+					sig: signature( original ),
+				},
 			};
 			announce( key, next );
 			commit( next );
@@ -119,6 +124,7 @@ export function useVariants( items: Suggestion[] ): Variants {
 				[ key ]: {
 					option: current?.option ?? 0,
 					seq: ++seq.current,
+					sig: signature( original ),
 					span,
 				},
 			};
@@ -136,7 +142,10 @@ export function useVariants( items: Suggestion[] ): Variants {
 			if ( option === null ) {
 				return null;
 			}
-			const choice = choices[ key ];
+			const stored = choices[ key ];
+			// Una elección hecha para otras frases (la lista se volvió a pedir) no se aplica.
+			const choice =
+				stored?.sig === signature( original ) ? stored : undefined;
 			const shown = option ?? 0;
 			// Si la frase elegida se la quedó otra tarjeta, la elección ya no vale (tampoco su tramo).
 			const effective: Choice | undefined =
@@ -144,6 +153,7 @@ export function useVariants( items: Suggestion[] ): Variants {
 					? {
 							option: shown,
 							seq: choice?.seq ?? 0,
+							sig: choice?.sig ?? '',
 							span:
 								choice && choice.option === shown
 									? choice.span
@@ -172,5 +182,8 @@ export function useVariants( items: Suggestion[] ): Variants {
 		[ resolved ]
 	);
 
-	return { view, choose, adjust, reset, hidden };
+	return useMemo(
+		() => ( { view, choose, adjust, reset, hidden } ),
+		[ view, choose, adjust, reset, hidden ]
+	);
 }

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Tests\Unit\Engine;
 
+use MagicLinking\Engine\Analyzer;
 use MagicLinking\Engine\Candidate;
 use MagicLinking\Engine\Phrase;
 use MagicLinking\Engine\Scorer;
@@ -105,6 +106,57 @@ final class SuggesterOptionsTest extends TestCase {
 		);
 		$this->assertNotNull( $none );
 		$this->assertSame( array(), $none->alternatives, 'con margen negativo ninguna alternativa cabe' );
+	}
+
+	public function test_an_alternative_never_repeats_the_anchor_another_suggestion_already_uses(): void {
+		$corpus   = new Corpus(
+			static function ( ArraySource $s ): void {
+				$s->add(
+					20,
+					'Calefacción eficiente',
+					array(
+						'La calefacción eficiente reduce el gasto de cada invierno.',
+						'Una buena calefacción necesita una revisión anual.',
+					)
+				);
+				$s->add(
+					9,
+					'Notas sueltas',
+					array(
+						'Una bomba de calor bien dimensionada ahorra mucho dinero.',
+						'La calefacción de la casa baja de consumo en invierno.',
+						'Revisar la calefacción cada año evita averías costosas.',
+						'Un buen aislamiento mejora el confort de toda la casa.',
+					)
+				);
+			}
+		);
+		$document = $corpus->source->get( 9 );
+		$this->assertNotNull( $document );
+		$analyzer = Analyzer::for_language( 'es' );
+
+		$found = $corpus->suggester(
+			array(
+				'alternatives'       => 2,
+				'alternative_margin' => 1.0,
+			),
+			self::loose()
+		)->outgoing( $document );
+		$keys  = array();
+		foreach ( $found as $suggestion ) {
+			$keys[ $suggestion->target ] = $analyzer->phrase_key( $suggestion->anchor );
+		}
+		$this->assertGreaterThanOrEqual( 2, count( $found ), 'Hacen falta dos sugerencias para comparar.' );
+
+		$checked = 0;
+		foreach ( $found as $suggestion ) {
+			foreach ( $suggestion->alternatives as $alternative ) {
+				++$checked;
+				$others = array_diff_key( $keys, array( $suggestion->target => true ) );
+				$this->assertNotContains( $analyzer->phrase_key( $alternative->anchor ), $others, 'La ancla de una alternativa ya es la principal de otra sugerencia.' );
+			}
+		}
+		$this->assertGreaterThan( 0, $checked, 'Debe haber alguna alternativa que comprobar.' );
 	}
 
 	public function test_pillar_bonus_reorders_but_cannot_pass_the_threshold_alone(): void {

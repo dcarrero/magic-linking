@@ -41,15 +41,15 @@ let host: HTMLElement;
 const onApply = jest.fn();
 const onCancel = jest.fn();
 
-const mount = () => {
+const mount = ( text = sentence, from = start, to = end ) => {
 	document.body.appendChild( host );
 	return act( () => {
 		root.render(
 			<AnchorAdjuster
 				postId={ 5 }
-				sentence={ sentence }
-				start={ start }
-				end={ end }
+				sentence={ text }
+				start={ from }
+				end={ to }
 				onApply={ onApply }
 				onCancel={ onCancel }
 			/>
@@ -97,6 +97,19 @@ afterEach( () => {
 } );
 
 describe( 'AnchorAdjuster keyboard', () => {
+	it( 'respects an engine anchor that does not fit the word boundaries until the user moves it', async () => {
+		const text = 'Aprender C++ lleva tiempo y práctica diaria.';
+		const from = text.indexOf( 'C++' );
+		await mount( text, from, from + 3 );
+		// Sin tocar nada, Aplicar cierra sin cambiar el ancla.
+		expect( state() ).toContain( 'Anchor: C++, 1 word' );
+		press( 'Enter' );
+		await wait( 0 );
+		expect( check ).not.toHaveBeenCalled();
+		expect( onApply ).not.toHaveBeenCalled();
+		expect( onCancel ).toHaveBeenCalledTimes( 1 );
+	} );
+
 	it( 'is a labelled group that takes the focus and is a tab stop', async () => {
 		await mount();
 		expect( group().getAttribute( 'aria-label' ) ).toBe( 'Adjust anchor' );

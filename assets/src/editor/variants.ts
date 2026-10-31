@@ -9,6 +9,8 @@ export interface Choice {
 	option: number;
 	/** Orden en que se eligió; la elección más reciente gana si dos tarjetas quieren la misma frase. */
 	seq: number;
+	/** Las frases de la sugerencia cuando se eligió ({@see signature}): si la lista cambia, la elección ya no vale. */
+	sig: string;
 	span?: { start: number; end: number };
 }
 
@@ -118,6 +120,18 @@ export function optionsOf( item: Suggestion ): SuggestionAlternative[] {
 }
 
 /**
+ * Huella de las frases que ofrece una sugerencia (párrafo y texto, en orden). Una elección solo vale mientras el
+ * servidor siga devolviendo las mismas frases en el mismo orden.
+ *
+ * @param item Sugerencia tal como la dio el servidor.
+ */
+export function signature( item: Suggestion ): string {
+	return optionsOf( item )
+		.map( ( option ) => `${ option.paragraph }|${ option.sentence }` )
+		.join( '\n' );
+}
+
+/**
  * La sugerencia tal como queda con una elección: la frase alternativa y/o el tramo ajustado. Sin elección (o con la
  * principal sin tocar) es la misma, así que lo que se enseña y se inserta sigue siendo lo que dijo el motor.
  *
@@ -196,7 +210,9 @@ export function resolve(
 	const decided = new Set< string >();
 
 	const chosen = items
-		.filter( ( item ) => choices[ keyOf( item ) ] !== undefined )
+		.filter(
+			( item ) => choices[ keyOf( item ) ]?.sig === signature( item )
+		)
 		.sort(
 			( x, y ) =>
 				( choices[ keyOf( y ) ]?.seq ?? 0 ) -

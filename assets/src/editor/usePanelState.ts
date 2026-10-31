@@ -74,10 +74,16 @@ export function usePanelState(
 	const inVariants = useVariants( inbound.data?.items ?? NONE );
 
 	// Las filas de «descartada» son de la página que se dejó: al cambiar de página se olvidan.
-	const changePage = useCallback( ( next: number ) => {
-		setStatuses( withoutGhosts );
-		setPage( next );
-	}, [] );
+	const { reset: resetInVariants } = inVariants;
+	const changePage = useCallback(
+		( next: number ) => {
+			setStatuses( withoutGhosts );
+			// Las frases y anclas elegidas son de la página que se deja.
+			resetInVariants();
+			setPage( next );
+		},
+		[ resetInVariants ]
+	);
 
 	const setStatus = useCallback(
 		( suggestion: Suggestion, status: CardStatus | null ) => {

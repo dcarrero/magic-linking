@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-import { login, wp } from './wp';
+import { login, openSettingsTab, SCREEN_SETTINGS, wp } from './wp';
 
 /**
  * Más frases y ancla ajustable (F1-22, D-30): la tarjeta del panel ofrece otras frases del mismo origen y deja ajustar
@@ -293,6 +293,8 @@ test.describe( 'More sentences and adjustable anchor', () => {
 		await card.getByRole( 'button', { name: /^Link to/ } ).click();
 		const link = canvas( page ).locator( 'a[href]' );
 		await expect( link ).toHaveCount( 1 );
+		// La tarjeta sigue siendo la misma aunque haya cambiado de frase: queda plegada como enlazada y se deshace.
+		await expect( panel.locator( '.magiclinking-card.is-added' ) ).toHaveCount( 1 );
 		await expect( canvas( page ).locator( 'p[data-block]' ).filter( { has: link } ) ).toContainText( chosen.replace( /\s+/g, ' ' ).slice( 0, 20 ) );
 
 		await page.evaluate( () =>
@@ -314,6 +316,23 @@ test.describe( 'More sentences and adjustable anchor', () => {
 			.find( ( paragraph ) => paragraph.includes( '<a href=' ) );
 		expect( linked?.replace( /<[^>]+>/g, '' ).trim() ).toBe( chosen.trim() );
 		expect( after.split( '\n\n' )[ 0 ] ).not.toContain( '<a href=' );
+	} );
+
+	test( 'settings: the limit of alternative sentences comes from the server', async ( {
+		page,
+	} ) => {
+		await login( page );
+		await page.goto( SCREEN_SETTINGS );
+		await openSettingsTab( page, 'Suggestions' );
+		const field = page.getByLabel( 'Alternative sentences per suggestion' );
+		await expect( field ).toHaveAttribute( 'min', '0' );
+		await expect( field ).toHaveAttribute( 'max', '2' );
+		expect(
+			await page.evaluate(
+				// @ts-expect-error lo pone Screen::enqueue.
+				() => window.magiclinking.intRanges.alternatives
+			)
+		).toEqual( [ 0, 2 ] );
 	} );
 
 	test( 'inbound: the anchor is adjusted and inserted on the server, with its history and undo', async ( {

@@ -221,6 +221,8 @@ export interface Boot {
 	/** Elementos por página (Opciones de pantalla). */
 	perPage?: number;
 	settingsUrl: string;
+	/** Mínimo y máximo de los ajustes numéricos, tal como los aplica el servidor (`Settings::INT_RANGES`). */
+	intRanges?: Record< string, [ number, number ] >;
 	initialTab?: 'report' | 'broken' | 'history' | 'rules' | 'settings';
 	tabUrls?: Record<
 		'report' | 'broken' | 'history' | 'rules' | 'settings',

@@ -69,9 +69,11 @@ export function AnchorAdjuster( {
 	const changed = useRef( false );
 	const id = useId();
 
-	const range = words.length > 0 ? wordRange( words, first, last ) : null;
+	// Sin mover nada, el ancla es la del motor tal cual, aunque no encaje en los límites de palabra de aquí.
+	const same = first === initial.first && last === initial.last;
+	const moved = words.length > 0 ? wordRange( words, first, last ) : null;
+	const range = same ? { start, end } : moved;
 	const anchor = range ? sentence.slice( range.start, range.end ) : '';
-	const same = !! range && range.start === start && range.end === end;
 	// El tramo del motor es válido por construcción: solo se comprueba lo que el usuario cambia.
 	const needsCheck = changed.current && ! same;
 	const count = last - first + 1;

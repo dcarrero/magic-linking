@@ -19,6 +19,8 @@ namespace MagicLinking\Engine;
 final class AnchorCheck {
 
 	public const NOT_LITERAL        = 'not_literal';
+	public const NOT_WORD_BOUNDARY  = 'not_word_boundary';
+	public const IGNORED_WORD       = 'ignored_word';
 	public const SPACES             = 'spaces';
 	public const TOO_SHORT          = 'too_short';
 	public const TOO_MANY_WORDS     = 'too_many_words';
@@ -54,6 +56,29 @@ final class AnchorCheck {
 	}
 
 	/**
+	 * Si el tramo empieza y acaba en límite de palabra (Unicode): no corta una palabra por la mitad ni un carácter de
+	 * varios bytes. Es la comprobación barata que se hace siempre, también con anclas del motor o de la IA.
+	 *
+	 * @param string $sentence Frase.
+	 * @param int    $offset   Byte donde empieza el ancla.
+	 * @param string $anchor   Ancla.
+	 */
+	public static function boundaries( string $sentence, int $offset, string $anchor ): bool {
+		$before = substr( $sentence, 0, $offset );
+		$after  = substr( $sentence, $offset + strlen( $anchor ) );
+		if ( ! mb_check_encoding( $before, 'UTF-8' ) || ! mb_check_encoding( $anchor, 'UTF-8' ) || ! mb_check_encoding( $after, 'UTF-8' ) ) {
+			return false;
+		}
+
+		$word = '[\p{L}\p{N}\p{M}]';
+		if ( 1 === preg_match( "/{$word}\$/u", $before ) && 1 === preg_match( "/^{$word}/u", $anchor ) ) {
+			return false;
+		}
+
+		return ! ( 1 === preg_match( "/{$word}\$/u", $anchor ) && 1 === preg_match( "/^{$word}/u", $after ) );
+	}
+
+	/**
 	 * Comprueba un ancla.
 	 *
 	 * @param Analyzer $analyzer Analizador del idioma de la entrada.
@@ -68,6 +93,9 @@ final class AnchorCheck {
 		}
 		if ( trim( $anchor ) !== $anchor ) {
 			return new self( array( self::SPACES ), array() );
+		}
+		if ( ! self::boundaries( $sentence, $offset, $anchor ) ) {
+			return new self( array( self::NOT_WORD_BOUNDARY ), array() );
 		}
 
 		$tokens = $analyzer->tokenizer()->tokenize( $anchor );
