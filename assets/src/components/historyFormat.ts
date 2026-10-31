@@ -34,6 +34,44 @@ export function dateTimeAttr( value: string ): string | undefined {
 }
 
 /**
+ * Quita los caracteres escapados con `\` de un formato de fecha de PHP, para mirar solo sus códigos.
+ * @param pattern Formato.
+ */
+function codes( pattern: string ): string {
+	return pattern.replace( /\\./g, '' );
+}
+
+/**
+ * Si el formato ya muestra la zona (`T`, `e`, `O`, `P`).
+ * @param pattern Formato.
+ */
+function hasZone( pattern: string ): boolean {
+	return /[TeOP]/.test( codes( pattern ) );
+}
+
+/**
+ * Formato de hora con segundos: si ya los tiene no cambia; si no, los añade tras los minutos (`i`) o al final.
+ * @param time Formato de hora.
+ */
+function withSeconds( time: string ): string {
+	if ( /[sU]/.test( codes( time ) ) ) {
+		return time;
+	}
+	let index = -1;
+	for ( let i = 0; i < time.length; i++ ) {
+		if ( time[ i ] === '\\' ) {
+			i++;
+		} else if ( time[ i ] === 'i' ) {
+			index = i;
+			break;
+		}
+	}
+	return index < 0
+		? time + ':s'
+		: time.slice( 0, index + 1 ) + ':s' + time.slice( index + 1 );
+}
+
+/**
  * Fecha y hora con la zona horaria y los formatos del sitio (Ajustes → Generales), no los del navegador, para que
  * coincida con wp-admin, WP-CLI y el CSV. `wp.date` recibe esos ajustes del núcleo.
  * @param value    Fecha del servidor.
@@ -46,9 +84,9 @@ function format( value: string, withSecs: boolean ): string {
 	}
 	const { date: dateFormat, time } = getSettings().formats;
 	const pattern = withSecs
-		? `${ dateFormat } ${
-				/i/.test( time ) ? time.replace( 'i', 'i:s' ) : time + ':s'
-		  } T`
+		? `${ dateFormat } ${ withSeconds( time ) }${
+				hasZone( dateFormat + time ) ? '' : ' T'
+		  }`
 		: `${ dateFormat } ${ time }`;
 	return dateI18n( pattern, date );
 }
@@ -75,12 +113,15 @@ export function formatFullDate( value: string ): string {
  * @param to   Fin.
  */
 export function formatDuration( from: string, to: string ): string {
-	const start = parseServerDate( from ).getTime();
-	const end = parseServerDate( to ).getTime();
-	if ( Number.isNaN( start ) || Number.isNaN( end ) || start <= 0 ) {
-		return '—';
+	const start = validServerDate( from );
+	const end = validServerDate( to );
+	if ( ! start || ! end ) {
+		return NO_DATE;
 	}
-	const seconds = Math.max( 0, Math.round( ( end - start ) / 1000 ) );
+	const seconds = Math.max(
+		0,
+		Math.round( ( end.getTime() - start.getTime() ) / 1000 )
+	);
 	if ( seconds < 60 ) {
 		return sprintf(
 			/* translators: %s: number of seconds. */

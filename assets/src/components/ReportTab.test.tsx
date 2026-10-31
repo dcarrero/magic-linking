@@ -171,6 +171,14 @@ describe( 'ReportTab refreshing rows after a change', () => {
 } );
 
 describe( 'ReportTab dates', () => {
+	let saved: ReturnType< typeof getSettings >;
+	beforeEach( () => {
+		saved = getSettings();
+	} );
+	afterEach( () => {
+		setSettings( saved );
+	} );
+
 	it( 'shows "Analyzed" in the timezone and format of the site, not the browser (Asia/Tokyo)', async () => {
 		setSettings( {
 			...getSettings(),
@@ -183,6 +191,9 @@ describe( 'ReportTab dates', () => {
 			},
 		} );
 		await mount();
+		expect(
+			host.querySelector( 'tbody time' )?.getAttribute( 'datetime' )
+		).toMatch( /Z$/ );
 		// 10:00 UTC del 30 de octubre = 11:00 en Madrid (CET, UTC+1); en Tokio serían las 19:00.
 		expect( host.querySelector( 'tbody time' )?.textContent ).toBe(
 			'30/10/2026 11:00'

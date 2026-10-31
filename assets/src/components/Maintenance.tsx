@@ -4,7 +4,7 @@ import { speak } from '@wordpress/a11y';
 import { __ } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { StatusResponse } from '../types';
-import { formatDate, formatDuration } from './historyFormat';
+import { dateTimeAttr, formatDate, formatDuration } from './historyFormat';
 import { SettingsSection, settingsSections } from './SettingsSection';
 
 interface Props {
@@ -70,7 +70,7 @@ export function Maintenance( { status, control, onOpenWizard }: Props ) {
 					<div>
 						<dt>{ __( 'Last full analysis', 'magic-linking' ) }</dt>
 						<dd>
-							<time dateTime={ last.updated_at }>
+							<time dateTime={ dateTimeAttr( last.updated_at ) }>
 								{ formatDate( last.updated_at ) }
 							</time>
 						</dd>

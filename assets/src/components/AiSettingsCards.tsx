@@ -473,9 +473,9 @@ function costCell( row: { local: boolean; cost: number | null } ): string {
 }
 
 /**
- * Fecha y hora local de una marca ISO; si no se entiende, la marca tal cual.
+ * Fecha y hora de una marca del servidor, en la zona y el formato del sitio; «—» si no es una fecha real.
  *
- * @param iso Fecha ISO 8601.
+ * @param iso Fecha del servidor.
  */
 function whenText( iso: string ): string {
 	return formatDate( iso );
