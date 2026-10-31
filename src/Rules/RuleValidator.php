@@ -69,6 +69,9 @@ final class RuleValidator {
 			if ( Exclusions::is_excluded( $target_id ) ) {
 				return $this->error( __( 'That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first.', 'magic-linking' ) );
 			}
+			if ( Exclusions::in_excluded_category( $target_id ) ) {
+				return $this->error( __( 'That entry is in a category excluded from the analysis, so it cannot be a destination. Change the excluded categories in Settings → General first.', 'magic-linking' ) );
+			}
 			$lang = $this->language->for_post( $target_id );
 			$url  = (string) get_permalink( $target );
 		}

@@ -18,6 +18,7 @@ import type {
 	SettingsValues,
 	StatusResponse,
 } from '../types';
+import { CategoryList } from './CategoryList';
 import { AiSettingsCards } from './AiSettingsCards';
 import { Maintenance, useMaintenance } from './Maintenance';
 import { SettingsSection, settingsSections } from './SettingsSection';
@@ -60,6 +61,8 @@ type NumberKey =
 	| 'alternatives'
 	| 'inbound_per_page'
 	| 'low_inbound_threshold'
+	| 'k_terms'
+	| 'score_threshold'
 	| 'ai_daily_token_limit';
 
 /** Límites y valor de respaldo de cada campo numérico (los mismos que aplica el servidor). */
@@ -74,6 +77,8 @@ const NUMBER_RULES: Record<
 	alternatives: { fallback: 0, min: 0, max: 2 },
 	inbound_per_page: { fallback: 10, min: 5, max: 50 },
 	low_inbound_threshold: { fallback: 2, min: 1, max: 20 },
+	k_terms: { fallback: 40, min: 20, max: 80 },
+	score_threshold: { fallback: 35, min: 20, max: 60 },
 	ai_daily_token_limit: { fallback: 2000000, min: 0, max: 1000000000 },
 };
 /**
@@ -126,8 +131,11 @@ function draftOf( settings: SettingsValues ): Draft {
  */
 function effective( draft: Draft ): SettingsValues {
 	const values = { ...draft.values };
-	// Los tipos de contenido son un conjunto: el orden en que se marcaron no es un cambio.
+	// Los tipos de contenido y las categorías excluidas son conjuntos: el orden en que se marcaron no es un cambio.
 	values.post_types = [ ...values.post_types ].sort();
+	values.excluded_categories = [ ...values.excluded_categories ].sort(
+		( a, b ) => a - b
+	);
 	NUMBER_KEYS.forEach( ( key ) => {
 		const { fallback, min, max } = rule( key );
 		values[ key ] = whole( draft.numbers[ key ], fallback, min, max );
@@ -296,6 +304,13 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 	const setText = ( key: 'urls' | 'words', value: string ) => {
 		setDraft( { ...draft, [ key ]: value } );
 		setMessage( '' );
+	};
+
+	const toggleCategory = ( id: number, checked: boolean ) => {
+		const next = checked
+			? [ ...values.excluded_categories, id ]
+			: values.excluded_categories.filter( ( term ) => term !== id );
+		set( 'excluded_categories', next );
 	};
 
 	const toggleType = ( name: string, checked: boolean ) => {
@@ -625,6 +640,38 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 								)
 							) }
 						</SettingsSection>
+						<SettingsSection section={ sections.advanced }>
+							<details className="magiclinking-advanced">
+								<summary>
+									{ __(
+										'Show advanced settings',
+										'magic-linking'
+									) }
+								</summary>
+								{ number(
+									'k_terms',
+									__(
+										'Key terms per entry',
+										'magic-linking'
+									),
+									__(
+										'How many of the most important terms of each entry are kept to find related entries (20 to 80). Changing it makes Magic Linking analyze your site again.',
+										'magic-linking'
+									)
+								) }
+								{ number(
+									'score_threshold',
+									__(
+										'Score threshold (%)',
+										'magic-linking'
+									),
+									__(
+										'A suggestion is shown only if its score reaches this percentage. Higher shows fewer, surer suggestions; lower shows more. It does not analyze your site again.',
+										'magic-linking'
+									)
+								) }
+							</details>
+						</SettingsSection>
 					</>
 				);
 			case 'links':
@@ -825,29 +872,72 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 				);
 			default:
 				return (
-					<SettingsSection section={ sections.content }>
-						<fieldset>
-							<legend>
+					<>
+						<SettingsSection section={ sections.content }>
+							<fieldset>
+								<legend>
+									{ __(
+										'Content types to analyze',
+										'magic-linking'
+									) }
+								</legend>
+								{ data.post_types.map( ( type ) => (
+									<CheckboxControl
+										key={ type.name }
+										__nextHasNoMarginBottom
+										label={ type.label }
+										checked={ values.post_types.includes(
+											type.name
+										) }
+										onChange={ ( checked ) =>
+											toggleType( type.name, checked )
+										}
+									/>
+								) ) }
+							</fieldset>
+						</SettingsSection>
+						<SettingsSection
+							section={ sections.excludedCategories }
+						>
+							{ data.category_groups.length === 0 ? (
+								<p className="description">
+									{ __(
+										'The content types you analyze have no categories.',
+										'magic-linking'
+									) }
+								</p>
+							) : (
+								data.category_groups.map( ( group ) => (
+									<CategoryList
+										key={ group.taxonomy }
+										group={ group }
+										selected={ values.excluded_categories }
+										full={
+											values.excluded_categories.length >=
+											data.max_excluded
+										}
+										onToggle={ toggleCategory }
+									/>
+								) )
+							) }
+							<p className="description">
+								{ values.excluded_categories.length >=
+									data.max_excluded &&
+									sprintf(
+										/* translators: %d: maximum number of categories. */
+										__(
+											'You have reached the limit of %d categories. Untick one to choose another.',
+											'magic-linking'
+										),
+										data.max_excluded
+									) + ' ' }
 								{ __(
-									'Content types to analyze',
+									'Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones.',
 									'magic-linking'
 								) }
-							</legend>
-							{ data.post_types.map( ( type ) => (
-								<CheckboxControl
-									key={ type.name }
-									__nextHasNoMarginBottom
-									label={ type.label }
-									checked={ values.post_types.includes(
-										type.name
-									) }
-									onChange={ ( checked ) =>
-										toggleType( type.name, checked )
-									}
-								/>
-							) ) }
-						</fieldset>
-					</SettingsSection>
+							</p>
+						</SettingsSection>
+					</>
 				);
 		}
 	};

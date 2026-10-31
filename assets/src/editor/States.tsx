@@ -86,6 +86,24 @@ export function EmptyState( {
 			</p>
 		);
 	}
+	if ( state === 'excluded_category' ) {
+		return (
+			<p className="magiclinking-panel__empty">
+				{ __(
+					'This entry is in a category that is excluded from the analysis, so it has no suggestions and is not suggested anywhere. You can change the excluded categories in Settings.',
+					'magic-linking'
+				) }
+				{ settingsUrl && (
+					<>
+						{ ' ' }
+						<a href={ settingsUrl }>
+							{ __( 'Open the settings', 'magic-linking' ) }
+						</a>
+					</>
+				) }
+			</p>
+		);
+	}
 	if ( state === 'not_published' ) {
 		return (
 			<p className="magiclinking-panel__empty">

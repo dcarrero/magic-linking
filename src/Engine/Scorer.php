@@ -55,9 +55,14 @@ final class Scorer {
 	public const AFFINITY_CAP = 0.10;
 
 	/**
+	 * Umbral mínimo para mostrar, en tanto por ciento (el ajuste avanzado lo guarda así).
+	 */
+	public const THRESHOLD_PERCENT = 35;
+
+	/**
 	 * Umbral mínimo para mostrar.
 	 */
-	public const THRESHOLD = 0.35;
+	public const THRESHOLD = self::THRESHOLD_PERCENT / 100;
 
 	/**
 	 * Relevancia mínima, aparte del umbral: sin ella, necesidad + posición +

@@ -409,7 +409,16 @@ final class GraphRepository {
 		$excluded = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
 			$wpdb->prepare( 'SELECT d.post_id FROM %i d JOIN %i m ON m.post_id = d.post_id WHERE m.meta_key = %s AND m.meta_value = %s', $this->docs, $wpdb->postmeta, Exclusions::KEY, '1' )
 		);
-		$ids      = array_merge( $ids, $other, $excluded );
+		// Y las de una categoría excluida en Ajustes (F1-16), por si cambió sin pasar por el hook.
+		$in_category = array();
+		$terms       = Exclusions::excluded_terms();
+		if ( array() !== $terms ) {
+			$marks       = implode( ',', array_fill( 0, count( $terms ), '%d' ) );
+			$in_category = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; marcadores generados.
+				$wpdb->prepare( "SELECT DISTINCT d.post_id FROM %i d JOIN %i r ON r.object_id = d.post_id WHERE r.term_taxonomy_id IN ({$marks})", array_merge( array( $this->docs, $wpdb->term_relationships ), $terms ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+			);
+		}
+		$ids = array_merge( $ids, $other, $excluded, $in_category );
 
 		$affected = array();
 		$ids      = array_values( array_unique( array_map( 'intval', $ids ) ) );

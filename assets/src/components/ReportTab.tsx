@@ -475,6 +475,8 @@ export function ReportTab( {
 						row.post_status !== 'publish' &&
 						row.post_status_label &&
 						` · ${ row.post_status_label }` }
+					{ row.excluded_by === 'category' &&
+						` · ${ __( 'category excluded', 'magic-linking' ) }` }
 				</span>
 			),
 		},
@@ -560,7 +562,24 @@ export function ReportTab( {
 				} )
 			);
 		}
-		if ( row.edit_url ) {
+		if ( excluded && row.excluded_by === 'category' ) {
+			// Fuera por una categoría de Ajustes: no hay marca que quitar aquí; se cambia en Ajustes.
+			const settings = window.magiclinking?.tabUrls?.settings;
+			if ( settings ) {
+				items.push( {
+					id: 'category-settings',
+					node: (
+						<a href={ `${ settings }#tab=general` }>
+							{ __(
+								'Change excluded categories',
+								'magic-linking'
+							) }
+							{ title }
+						</a>
+					),
+				} );
+			}
+		} else if ( row.edit_url ) {
 			// Hace falta poder editar la entrada; el servidor lo vuelve a comprobar.
 			items.push( {
 				id: excluded ? 'include' : 'exclude',

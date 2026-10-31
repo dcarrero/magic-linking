@@ -44,6 +44,7 @@ use MagicLinking\Index\Pillars;
 use MagicLinking\Index\PostSource;
 use MagicLinking\Index\ScopedExtractor;
 use MagicLinking\Index\SuggestionCache;
+use MagicLinking\Index\EngineFactory;
 use MagicLinking\Index\EngineTiming;
 use MagicLinking\Index\Suggestions;
 use MagicLinking\Index\TableDocuments;
@@ -232,7 +233,9 @@ final class Plugin {
 			LexicalIndexer::class          => static fn( Container $c ): LexicalIndexer => new LexicalIndexer(
 				$c->get( TableRepository::class ),
 				$c->get( PostSource::class ),
-				$c->get( JobRepository::class )
+				$c->get( JobRepository::class ),
+				// K términos por entrada (Ajustes → Avanzado): cambiarlo reconstruye el índice.
+				new EngineFactory( $c->get( Settings::class ) )
 			),
 			TableDocuments::class          => static function ( Container $c ): TableDocuments {
 				global $wpdb;

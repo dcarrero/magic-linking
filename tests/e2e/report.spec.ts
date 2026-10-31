@@ -202,7 +202,10 @@ test.describe( 'Internal links', () => {
 
 		// Cada pestaña, con sus tarjetas (h2).
 		const groups: [ 'General' | 'Suggestions' | 'Links' | 'AI' | 'History and data', string[] ][] = [
-			[ 'General', [ 'Content analyzed', 'Maintenance' ] ],
+			[
+				'General',
+				[ 'Content analyzed', 'Categories left out', 'Maintenance' ],
+			],
 			[
 				'Suggestions',
 				[
@@ -210,6 +213,7 @@ test.describe( 'Internal links', () => {
 					'To avoid overloading your texts',
 					'Which entries are suggested',
 					'Under-linked entries',
+					'Advanced',
 				],
 			],
 			[

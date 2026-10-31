@@ -9,11 +9,13 @@ declare(strict_types=1);
 
 namespace MagicLinking\Core;
 
-use MagicLinking\AI\Models;
-
 use MagicLinking\AI\Budget;
+use MagicLinking\AI\Models;
+use MagicLinking\Engine\Indexer;
 use MagicLinking\Engine\RuleLimits;
+use MagicLinking\Engine\Scorer;
 use MagicLinking\Engine\Suggester;
+use MagicLinking\Index\Taxonomies;
 
 /**
  * Lee y guarda la opción magiclinking_settings, la única en autoload.
@@ -53,9 +55,21 @@ final class Settings {
 			'category' => Suggester::IGNORE,
 			'tag'      => Suggester::IGNORE,
 		),
+		// Categorías que quedan fuera del análisis (F1-16): `term_taxonomy_id` de la taxonomía jerárquica principal
+		// de cada tipo analizado, igual que los filtros por categoría (D-67); una entrada excluida a mano (D-70) no entra aquí.
+		'excluded_categories'          => array(),
+		// Avanzado (docs/07 §8): términos que se guardan por entrada (docs/04 §3) y umbral de puntuación en tanto por
+		// ciento (docs/04 §6); los valores por defecto son los congelados del motor (D-35).
+		'k_terms'                      => Indexer::DEFAULTS['k'],
+		'score_threshold'              => Scorer::THRESHOLD_PERCENT,
 		'ai_daily_token_limit'         => Budget::DEFAULT_LIMIT,
 		'ai_model'                     => '',
 	);
+
+	/**
+	 * Máximo de categorías excluidas que se guardan.
+	 */
+	public const MAX_EXCLUDED_CATEGORIES = 500;
 
 	/**
 	 * Días que se conserva el historial de cambios (docs/03 §4.6): 30, 90, 365 o 0 (sin caducidad).
@@ -79,6 +93,9 @@ final class Settings {
 		'alternatives'          => array( 0, Suggester::MAX_ALTERNATIVES ),
 		// Enlaces al mismo destino desde una entrada (docs/04 §6.1): tope duro de las reglas.
 		'links_per_target_max'  => array( 1, 10 ),
+		// Avanzado: K términos por entrada (docs/04 §3: 20 a 80) y umbral de puntuación en % (docs/04 §6: el barrido llegó a 0,30–0,45).
+		'k_terms'               => array( 20, 80 ),
+		'score_threshold'       => array( 20, 60 ),
 		// Tope diario de tokens de IA (docs/05 §5.3): 0 = sin IA.
 		'ai_daily_token_limit'  => array( 0, Budget::MAX_LIMIT ),
 	);
@@ -139,6 +156,34 @@ final class Settings {
 	 */
 	public function post_types(): array {
 		return $this->all()['post_types'];
+	}
+
+	/**
+	 * Umbral de puntuación del motor (docs/04 §6), de 0 a 1.
+	 */
+	public function score_threshold(): float {
+		return $this->bounded( 'score_threshold' ) / 100;
+	}
+
+	/**
+	 * Términos que se guardan por entrada en el índice léxico (K, docs/04 §3). Barato: lo llama el indexado por
+	 * cada entrada, así que lee solo este ajuste y no sanea todos.
+	 */
+	public function k_terms(): int {
+		return $this->bounded( 'k_terms' );
+	}
+
+	/**
+	 * Un ajuste de entero leído solo, con el mismo límite que le aplica {@see self::all()}.
+	 *
+	 * @param string $key Clave de {@see self::INT_RANGES}.
+	 */
+	private function bounded( string $key ): int {
+		$stored        = get_option( Installer::SETTINGS_OPTION, array() );
+		$value         = is_array( $stored ) ? ( $stored[ $key ] ?? self::DEFAULTS[ $key ] ) : self::DEFAULTS[ $key ];
+		[ $min, $max ] = self::INT_RANGES[ $key ];
+
+		return max( $min, min( $max, (int) $value ) );
 	}
 
 	/**
@@ -235,6 +280,13 @@ final class Settings {
 			$settings['ignored_ids'] = array_values( array_unique( $ids ) );
 		}
 
+		// Solo valen los términos de la taxonomía jerárquica principal de un tipo analizado: se comprueba una vez, al
+		// guardar, y no en cada lectura.
+		// También si cambian los tipos: las categorías de un tipo que ya no se analiza dejan de valer.
+		if ( $settings['excluded_categories'] !== $before['excluded_categories'] || $settings['post_types'] !== $before['post_types'] ) {
+			$settings['excluded_categories'] = Taxonomies::filter_category_terms( $settings['excluded_categories'], $settings['post_types'] );
+		}
+
 		update_option( Installer::SETTINGS_OPTION, $settings, true );
 
 		return $settings;
@@ -271,6 +323,8 @@ final class Settings {
 			$out[ $key ] = filter_var( $input[ $key ] ?? $base[ $key ] ?? false, FILTER_VALIDATE_BOOLEAN );
 		}
 
+		$out['excluded_categories'] = self::clean_ids( $input['excluded_categories'] ?? $base['excluded_categories'] ?? array(), self::MAX_EXCLUDED_CATEGORIES );
+
 		$out['ai_model'] = self::clean_model( $input['ai_model'] ?? $base['ai_model'] ?? '' );
 
 		$out['extra_rel'] = self::clean_rel( $input['extra_rel'] ?? $base['extra_rel'] ?? '' );
@@ -292,6 +346,29 @@ final class Settings {
 		$out['ignored_ids'] = array_values( array_map( 'intval', (array) ( $input['ignored_ids'] ?? $base['ignored_ids'] ?? array() ) ) );
 
 		return $out;
+	}
+
+	/**
+	 * Lista de IDs enteros positivos, sin repetir.
+	 *
+	 * @param mixed $value Lista recibida.
+	 * @param int   $limit Máximo de elementos.
+	 *
+	 * @return list<int>
+	 */
+	private static function clean_ids( $value, int $limit ): array {
+		$ids = array();
+		foreach ( is_array( $value ) ? $value : array() as $id ) {
+			if ( ( is_int( $id ) || ( is_string( $id ) && ctype_digit( $id ) ) ) && (int) $id > 0 ) {
+				$ids[ (int) $id ] = true;
+			}
+		}
+
+		// Ordenados: el mismo conjunto marcado en otro orden no es un cambio (no relanza el análisis).
+		$ids = array_keys( $ids );
+		sort( $ids );
+
+		return array_slice( $ids, 0, $limit );
 	}
 
 	/**

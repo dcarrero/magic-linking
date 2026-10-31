@@ -88,18 +88,31 @@ final class Suggestions {
 	/**
 	 * Estado de una entrada de cara a las sugerencias: `ok`, o por qué no las hay.
 	 *
-	 * @param WP_Post $post    Entrada abierta.
-	 * @param bool    $inbound Entrantes: el destino tiene que estar publicado.
-	 * @param bool    $draft   Se analiza el contenido del editor (una entrada nueva también vale).
+	 * @param WP_Post    $post    Entrada abierta.
+	 * @param bool       $inbound Entrantes: el destino tiene que estar publicado.
+	 * @param bool       $draft   Se analiza el contenido del editor (una entrada nueva también vale).
+	 * @param array|null $terms IDs de categorías y etiquetas que el editor tiene elegidas ahora, sin guardar (solo con `$draft`).
+	 * @param array|null $names Nombres de etiquetas del editor clásico, sin guardar.
 	 *
-	 * @return string `ok`, `index_not_ready`, `not_analyzed`, `excluded` o `not_published`.
+	 * @phpstan-param array<string, mixed>|null $terms
+	 * @phpstan-param array<string, mixed>|null $names
+	 *
+	 * @return string `ok`, `index_not_ready`, `not_analyzed`, `excluded`, `excluded_category` o `not_published`.
 	 */
-	public function state( WP_Post $post, bool $inbound = false, bool $draft = false ): string {
+	public function state( WP_Post $post, bool $inbound = false, bool $draft = false, ?array $terms = null, ?array $names = null ): string {
 		if ( ! $this->ready() ) {
 			return 'index_not_ready';
 		}
-		if ( in_array( $post->post_type, $this->settings->post_types(), true ) && Exclusions::is_excluded( $post->ID ) ) {
-			return 'excluded';
+		if ( in_array( $post->post_type, $this->settings->post_types(), true ) ) {
+			if ( Exclusions::is_excluded( $post->ID ) ) {
+				return 'excluded';
+			}
+			// Con el editor abierto manda lo que tiene elegido ahora (como los filtros de taxonomía, D-67 §4); si no
+			// manda la categoría, las guardadas.
+			$chosen = $draft && ( null !== $terms || null !== $names ) ? Taxonomies::resolve( $post->post_type, $terms ?? array(), $names ?? array() ) : array();
+			if ( isset( $chosen['category'] ) ? Exclusions::any_excluded( self::or_default_category( $post->post_type, $chosen['category'] ) ) : Exclusions::in_excluded_category( $post->ID ) ) {
+				return 'excluded_category';
+			}
 		}
 		if ( ! $this->analyzes( $post, $draft ) ) {
 			return 'not_analyzed';
@@ -109,6 +122,27 @@ final class Suggestions {
 		}
 
 		return 'ok';
+	}
+
+	/**
+	 * Las categorías elegidas en el editor; si no hay ninguna, la categoría por defecto, que es la que WordPress
+	 * le pondrá al guardar la entrada.
+	 *
+	 * @param string $post_type Tipo de contenido.
+	 * @param array  $chosen    `term_taxonomy_id` de las categorías elegidas.
+	 *
+	 * @phpstan-param list<string> $chosen
+	 *
+	 * @return list<string>
+	 */
+	private static function or_default_category( string $post_type, array $chosen ): array {
+		if ( array() !== $chosen || 'category' !== Taxonomies::primary( $post_type, 'category' ) ) {
+			return $chosen;
+		}
+
+		$default = get_term( (int) get_option( 'default_category' ), 'category' );
+
+		return $default instanceof \WP_Term ? array( (string) $default->term_taxonomy_id ) : $chosen;
 	}
 
 	/**
@@ -507,9 +541,9 @@ final class Suggestions {
 		return new Suggester(
 			$repository,
 			$documents,
-			new Indexer(),
+			new Indexer( array( 'k' => (int) $all['k_terms'] ) ),
 			new PhraseFinder(),
-			new Scorer( array(), Scorer::THRESHOLD, Scorer::DENSITY, Scorer::MIN_RELEVANCE, self::BONUSES, (int) $all['same_anchor_max'] ),
+			new Scorer( array(), (int) $all['score_threshold'] / 100, Scorer::DENSITY, Scorer::MIN_RELEVANCE, self::BONUSES, (int) $all['same_anchor_max'] ),
 			new Retriever( $repository ),
 			array_merge( $defaults, $options )
 		);

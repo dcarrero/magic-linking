@@ -124,6 +124,13 @@ final class Jobs implements Module {
 	private LexicalIndexer $lexical;
 
 	/**
+	 * Entradas cuya categoría excluida ha cambiado en esta petición y aún no se han reevaluado (ID => true).
+	 *
+	 * @var array<int, true>
+	 */
+	private array $pending_terms = array();
+
+	/**
 	 * Entradas que se están borrando en esta petición.
 	 *
 	 * @var list<int>
@@ -161,6 +168,10 @@ final class Jobs implements Module {
 		foreach ( array( 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ) as $hook ) {
 			add_action( $hook, array( $this, 'on_exclusion_meta' ), 10, 3 );
 		}
+		// Entrar en una categoría excluida en Ajustes (o salir de ella) saca la entrada del índice o la mete (F1-16).
+		add_action( 'set_object_terms', array( $this, 'on_terms_set' ), 10, 6 );
+		add_action( 'deleted_term_relationships', array( $this, 'on_terms_removed' ), 10, 3 );
+		add_action( 'shutdown', array( $this, 'flush_category_changes' ), 5 );
 	}
 
 	/**
@@ -205,6 +216,91 @@ final class Jobs implements Module {
 			unset( $e );
 			as_enqueue_async_action( self::HOOK_POSTS, array( array( $post_id ), false ), Installer::ACTION_GROUP, true );
 		}
+	}
+
+	/**
+	 * Se asignan términos a una entrada: si cambia su pertenencia a una categoría excluida, se reevalúa.
+	 *
+	 * @param int          $object_id  Entrada.
+	 * @param array<mixed> $terms      Términos recibidos (no se usa).
+	 * @param int[]        $tt_ids     `term_taxonomy_id` asignados.
+	 * @param string       $taxonomy   Taxonomía (no se usa).
+	 * @param bool         $append     Se añaden a los que ya tenía.
+	 * @param int[]        $old_tt_ids Los que tenía antes.
+	 */
+	public function on_terms_set( $object_id, $terms, $tt_ids, $taxonomy, $append = false, $old_tt_ids = array() ): void {
+		unset( $terms, $taxonomy );
+		$excluded = Exclusions::excluded_terms();
+		if ( array() === $excluded ) {
+			return;
+		}
+		$old = array_map( 'intval', (array) $old_tt_ids );
+		$new = array_map( 'intval', (array) $tt_ids );
+		$new = $append ? array_merge( $old, $new ) : $new;
+
+		if ( array() !== array_intersect( array_merge( array_diff( $old, $new ), array_diff( $new, $old ) ), $excluded ) ) {
+			$this->category_changed( (int) $object_id );
+		}
+	}
+
+	/**
+	 * Se quitan términos de una entrada: si alguno es una categoría excluida, se reevalúa.
+	 *
+	 * @param int          $object_id Entrada.
+	 * @param array<mixed> $tt_ids    `term_taxonomy_id` quitados.
+	 * @param string       $taxonomy  Taxonomía (no se usa).
+	 */
+	public function on_terms_removed( $object_id, $tt_ids = array(), $taxonomy = '' ): void {
+		unset( $taxonomy );
+		if ( array() !== array_intersect( array_map( 'intval', (array) $tt_ids ), Exclusions::excluded_terms() ) ) {
+			$this->category_changed( (int) $object_id );
+		}
+	}
+
+	/**
+	 * Apunta una entrada cuya pertenencia a una categoría excluida ha cambiado. No se reindexa en el momento: un mismo
+	 * cambio dispara varios hooks (asignar y quitar términos) y el borrado o la edición en bloque de una categoría
+	 * toca miles de entradas. Se juntan sin repetir y se tratan una vez al final de la petición
+	 * ({@see self::flush_category_changes()}).
+	 *
+	 * @param int $post_id Entrada.
+	 */
+	private function category_changed( int $post_id ): void {
+		if ( $post_id <= 0 || in_array( $post_id, $this->deleting, true ) ) {
+			return;
+		}
+
+		$type = get_post_type( $post_id );
+		if ( ! is_string( $type ) || ! in_array( $type, $this->settings->post_types(), true ) ) {
+			return;
+		}
+
+		// La caché de términos de la entrada puede no estar limpia todavía: la elegibilidad se lee de ella.
+		clean_object_term_cache( $post_id, $type );
+		$this->pending_terms[ $post_id ] = true;
+	}
+
+	/**
+	 * Reevalúa las entradas apuntadas por {@see self::category_changed()}, cada una una vez y por el mismo camino que
+	 * guardar una entrada ({@see self::index_or_queue()}): pocas se reindexan ahora y, si son muchas (borrar o editar en
+	 * bloque una categoría), van a Action Scheduler en lotes (regla 10). Las que el guardado de la propia entrada ya
+	 * trató después del cambio (`on_post_saved`) no están en la lista. Se llama al terminar la petición (`shutdown`).
+	 */
+	public function flush_category_changes(): void {
+		if ( array() === $this->pending_terms ) {
+			return;
+		}
+
+		$ids                 = array_map( 'intval', array_keys( $this->pending_terms ) );
+		$this->pending_terms = array();
+		SuggestionCache::bump();
+
+		if ( ! $this->is_ready() ) {
+			return;
+		}
+
+		$this->indexer->flush();
+		$this->index_or_queue( $ids, false );
 	}
 
 	/**
@@ -721,6 +817,8 @@ final class Jobs implements Module {
 
 		$this->indexer->flush();
 		$this->index_or_queue( array( $post_id ), false );
+		// Con las categorías que tiene ahora: un cambio de categoría anterior a este guardado ya está tratado.
+		unset( $this->pending_terms[ $post_id ] );
 
 		$changed_state = null === $post_before
 			|| $post_before->post_status !== $post->post_status

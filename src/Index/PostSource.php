@@ -83,7 +83,7 @@ final class PostSource implements DocumentSource {
 		return null !== $post
 			&& 'publish' === $post->post_status
 			&& in_array( $post->post_type, $this->settings->post_types(), true )
-			&& ! Exclusions::is_excluded( $post->ID );
+			&& ! Exclusions::is_out( $post->ID );
 	}
 
 	/**

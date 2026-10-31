@@ -469,7 +469,7 @@ final class SuggestionsController implements Module {
 			return $this->not_found();
 		}
 
-		$state = $this->suggestions->state( $post, false, null !== $content );
+		$state = $this->suggestions->state( $post, false, null !== $content, null !== $content ? $terms : null, null !== $content ? $names : null );
 		if ( 'ok' !== $state ) {
 			return $this->empty( $state );
 		}

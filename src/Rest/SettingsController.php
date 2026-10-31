@@ -16,6 +16,7 @@ use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\Engine\Suggester;
 use MagicLinking\I18n\Language;
+use MagicLinking\Index\Taxonomies;
 use MagicLinking\Jobs\Jobs;
 use WP_Error;
 use WP_REST_Request;
@@ -194,6 +195,18 @@ final class SettingsController implements Module {
 							),
 							'additionalProperties' => false,
 						),
+						'excluded_categories'          => array(
+							'type'     => 'array',
+							'items'    => array( 'type' => 'integer' ),
+							// Más de las que se pueden guardar es un error, no un recorte en silencio.
+							'maxItems' => Settings::MAX_EXCLUDED_CATEGORIES,
+						),
+						'k_terms'                      => array(
+							'type' => 'integer',
+						),
+						'score_threshold'              => array(
+							'type' => 'integer',
+						),
 						'ai_daily_token_limit'         => array(
 							'type' => 'integer',
 						),
@@ -281,10 +294,18 @@ final class SettingsController implements Module {
 	public function update_settings( WP_REST_Request $request ): WP_REST_Response {
 		$types         = $this->settings->post_types();
 		$scope         = $this->settings->link_scope();
+		$categories    = $this->settings->all()['excluded_categories'];
+		$k_terms       = $this->settings->k_terms();
 		$input         = array_intersect_key( $request->get_json_params() ?: $request->get_body_params(), $this->settings->all() ); // phpcs:ignore Universal.Operators.DisallowShortTernary.Found -- JSON o formulario.
 		$after         = $this->settings->update( $input );
 		$types_changed = $types !== $after['post_types'];
 		$scope_changed = $scope !== $this->settings->link_scope();
+
+		// Qué categorías se excluyen cambia qué entradas se analizan, como los tipos (grafo incluido); K cambia lo que
+		// se guarda de cada una, como el texto que se lee (releer todas y reconstruir). El umbral solo se aplica al
+		// puntuar: la caché de sugerencias se renueva sola al cambiar la opción y no hace falta reindexar.
+		$types_changed = $types_changed || $categories !== $after['excluded_categories'];
+		$scope_changed = $scope_changed || $k_terms !== $after['k_terms'];
 
 		$job = null;
 		if ( $types_changed || $scope_changed ) {
@@ -329,9 +350,13 @@ final class SettingsController implements Module {
 			);
 		}
 
+		$all = $this->settings->all();
+
 		return array(
-			'settings'   => $this->settings->all(),
-			'post_types' => $types,
+			'settings'        => $all,
+			'post_types'      => $types,
+			'category_groups' => Taxonomies::category_groups( $all['post_types'] ),
+			'max_excluded'    => Settings::MAX_EXCLUDED_CATEGORIES,
 		);
 	}
 }

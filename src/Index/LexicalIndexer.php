@@ -82,23 +82,30 @@ final class LexicalIndexer {
 	/**
 	 * Cálculo de pesos.
 	 *
-	 * @var Indexer
+	 * @var Indexer|EngineFactory
 	 */
-	private Indexer $engine;
+	private Indexer|EngineFactory $engine;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param TableRepository $repository Almacén.
-	 * @param PostSource      $source     Entradas.
-	 * @param JobRepository   $jobs       Procesos.
-	 * @param Indexer|null    $engine     Cálculo de pesos; null para la configuración por defecto.
+	 * @param TableRepository            $repository Almacén.
+	 * @param PostSource                 $source     Entradas.
+	 * @param JobRepository              $jobs       Procesos.
+	 * @param Indexer|EngineFactory|null $engine Cálculo de pesos, o quien lo da en cada uso (para que K siga a los ajustes); null para la configuración por defecto.
 	 */
-	public function __construct( TableRepository $repository, PostSource $source, JobRepository $jobs, ?Indexer $engine = null ) {
+	public function __construct( TableRepository $repository, PostSource $source, JobRepository $jobs, Indexer|EngineFactory|null $engine = null ) {
 		$this->repository = $repository;
 		$this->source     = $source;
 		$this->jobs       = $jobs;
 		$this->engine     = $engine ?? new Indexer();
+	}
+
+	/**
+	 * Cálculo de pesos con la configuración de ahora.
+	 */
+	private function engine(): Indexer {
+		return $this->engine instanceof EngineFactory ? $this->engine->indexer() : $this->engine;
 	}
 
 	/**
@@ -169,7 +176,7 @@ final class LexicalIndexer {
 	 * Entre las dos pasadas: descarta del vocabulario lo que no puede unir dos entradas.
 	 */
 	public function end_scan(): void {
-		$this->repository->prune_terms( $this->engine->config()['min_df'] );
+		$this->repository->prune_terms( $this->engine()->config()['min_df'] );
 	}
 
 	/**
@@ -360,7 +367,7 @@ final class LexicalIndexer {
 		$lang       = $analyzed->document->lang;
 		[ $stats, ] = $this->repository->stats_for( $lang, $analyzed->terms() );
 
-		return $this->engine->index( $analyzed, $stats, Analyzer::for_language( $lang ) );
+		return $this->engine()->index( $analyzed, $stats, Analyzer::for_language( $lang ) );
 	}
 
 	/**
