@@ -185,8 +185,24 @@ final class Jobs implements Module {
 			return;
 		}
 
-		$this->reindex_now( $post_id );
 		SuggestionCache::bump();
+
+		// `delete_post_meta_by_key()` avisa con el ID 0: no se sabe cuáles vuelven a ser elegibles. Se deja en cola
+		// un análisis (salta lo que no ha cambiado) y la purga nocturna retira las que se hayan excluido por esa vía.
+		if ( $post_id <= 0 ) {
+			if ( $this->is_ready() ) {
+				$this->start_index( 0, true, false, true, false, true );
+			}
+			return;
+		}
+
+		try {
+			$this->reindex_now( $post_id );
+		} catch ( Throwable $e ) {
+			// La marca ya está guardada: la petición no falla por el índice. Se reintenta en cola.
+			unset( $e );
+			as_enqueue_async_action( self::HOOK_POSTS, array( array( $post_id ), false ), Installer::ACTION_GROUP, true );
+		}
 	}
 
 	/**

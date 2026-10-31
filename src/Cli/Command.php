@@ -115,10 +115,10 @@ final class Command {
 	 * @param ChangeRepository $changes   Historial.
 	 * @param Redo             $redo      Rehacer.
 	 * @param BatchJob         $batches   Procesos de deshacer en segundo plano.
-	 * @param Settings|null    $settings  Ajustes (tipos que se analizan).
+	 * @param Settings         $settings  Ajustes (tipos que se analizan).
 	 */
-	public function __construct( Jobs $jobs, ReportRepository $report, BrokenRepository $broken, Reader $history, Undo $undo, Retention $retention, ChangeRepository $changes, Redo $redo, BatchJob $batches, ?Settings $settings = null ) {
-		$this->settings  = $settings ?? new Settings();
+	public function __construct( Jobs $jobs, ReportRepository $report, BrokenRepository $broken, Reader $history, Undo $undo, Retention $retention, ChangeRepository $changes, Redo $redo, BatchJob $batches, Settings $settings ) {
+		$this->settings  = $settings;
 		$this->jobs      = $jobs;
 		$this->report    = $report;
 		$this->broken    = $broken;

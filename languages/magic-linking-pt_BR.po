@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.24.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T15:04:41+00:00\n"
+"POT-Creation-Date: 2026-10-31T15:47:15+00:00\n"
 "PO-Revision-Date: 2026-10-31 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Português do Brasil\n"
@@ -568,7 +568,7 @@ msgstr "O conteúdo de destino não está publicado (rascunho, pendente ou agend
 msgid "The destination entry is private."
 msgstr "O conteúdo de destino é privado."
 
-#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:446
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:465
 #: src/Rest/FixController.php:207 assets/build/classic.js:15
 #: assets/build/editor.js:15 assets/build/index.js:15 assets/build/index.js:65
 #: assets/build/index.js:83

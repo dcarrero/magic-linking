@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-31T15:04:54+00:00\n"
+"POT-Creation-Date: 2026-10-31T15:47:15+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -606,7 +606,7 @@ msgid "The destination entry is private."
 msgstr ""
 
 #: src/Graph/BrokenRepository.php:146
-#: src/Graph/ReportRepository.php:446
+#: src/Graph/ReportRepository.php:465
 #: src/Rest/FixController.php:207
 #: assets/build/classic.js:15
 #: assets/build/editor.js:15

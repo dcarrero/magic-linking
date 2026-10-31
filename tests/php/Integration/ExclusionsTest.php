@@ -470,6 +470,59 @@ final class ExclusionsTest extends GraphTestCase {
 		$this->assertStringContainsString( 'excluded', $result->get_error_message() );
 	}
 
+	// ------------------------------------------------------------------ Segunda revisión.
+
+	public function test_deleting_the_meta_by_key_reindexes_what_becomes_eligible_again(): void {
+		$this->exclude( $this->sources[1] );
+		$this->assertNull( $this->doc_row( $this->sources[1] ) );
+		$jobs = Plugin::container()->get( Jobs::class );
+		$this->assertNull( $jobs->status()['job'] );
+
+		// Sin entrada concreta: WordPress avisa con el ID 0.
+		delete_post_meta_by_key( Exclusions::KEY );
+
+		$this->assertNotNull( $jobs->status()['job'], 'Queda un análisis en cola para las que vuelven a ser elegibles.' );
+	}
+
+	public function test_a_failing_reindex_does_not_break_the_request_and_is_queued(): void {
+		$this->exclude( $this->sources[1] );
+		add_filter(
+			'magiclinking_post_html',
+			static function (): string {
+				throw new \RuntimeException( 'boom' );
+			}
+		);
+
+		$response = $this->exclude( $this->sources[1], false );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertFalse( Exclusions::is_excluded( $this->sources[1] ) );
+		$this->assertTrue( as_has_scheduled_action( Jobs::HOOK_POSTS, null, Installer::ACTION_GROUP ), 'Se deja en cola.' );
+	}
+
+	public function test_several_meta_rows_do_not_duplicate_the_entry_and_any_one_counts(): void {
+		add_post_meta( $this->sources[1], Exclusions::KEY, '0' );
+		add_post_meta( $this->sources[1], Exclusions::KEY, '1' );
+		add_post_meta( $this->sources[1], Exclusions::KEY, '1' );
+
+		$this->assertTrue( Exclusions::is_excluded( $this->sources[1] ) );
+		$list = $this->request( 'GET', '/report', array( 'filter' => 'excluded' ) )->get_data();
+		$this->assertSame( 1, $list['total'] );
+		$this->assertCount( 1, $list['items'] );
+		$this->assertSame( 1, $list['summary']['excluded'] );
+
+		$this->exclude( $this->sources[1], false );
+		$this->assertSame( array(), get_post_meta( $this->sources[1], Exclusions::KEY, false ), 'Al incluir se borran todas.' );
+	}
+
+	public function test_the_excluded_tab_reuses_its_total_for_the_summary(): void {
+		$this->exclude( $this->sources[1] );
+
+		$data = $this->request( 'GET', '/report', array( 'filter' => 'excluded' ) )->get_data();
+
+		$this->assertSame( $data['total'], $data['summary']['excluded'] );
+	}
+
 	// ------------------------------------------------------------------ WP-CLI.
 
 	public function test_wp_cli_excludes_and_includes_entries(): void {
@@ -503,7 +556,8 @@ final class ExclusionsTest extends GraphTestCase {
 			$c->get( \MagicLinking\History\Retention::class ),
 			$c->get( \MagicLinking\History\ChangeRepository::class ),
 			$c->get( \MagicLinking\History\Redo::class ),
-			$c->get( \MagicLinking\History\BatchJob::class )
+			$c->get( \MagicLinking\History\BatchJob::class ),
+			$c->get( \MagicLinking\Core\Settings::class )
 		);
 	}
 

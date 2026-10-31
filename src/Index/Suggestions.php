@@ -264,7 +264,7 @@ final class Suggestions {
 	}
 
 	/**
-	 * Si una entrada es de un tipo que se analiza, no está en un estado que se descarta y no está excluida.
+	 * Si una entrada es de un tipo que se analiza, no está en un estado que se descarta.
 	 *
 	 * @param WP_Post $post  Entrada.
 	 * @param bool    $draft Se analiza lo que hay en el editor: un borrador automático también vale.
@@ -272,7 +272,7 @@ final class Suggestions {
 	private function analyzes( WP_Post $post, bool $draft = false ): bool {
 		$never = $draft ? array_diff( self::NEVER_STATUS, array( 'auto-draft' ) ) : self::NEVER_STATUS;
 
-		return in_array( $post->post_type, $this->settings->post_types(), true ) && ! in_array( $post->post_status, $never, true ) && ! Exclusions::is_excluded( $post->ID );
+		return in_array( $post->post_type, $this->settings->post_types(), true ) && ! in_array( $post->post_status, $never, true );
 	}
 
 	/**

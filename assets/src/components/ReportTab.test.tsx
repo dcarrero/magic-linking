@@ -324,6 +324,157 @@ describe( 'ReportTab exclude from the analysis', () => {
 		} );
 	} );
 
+	const openExcludedTab = async () => {
+		await act( async () => {
+			(
+				Array.from( host.querySelectorAll( '.subsubsub a' ) ).find(
+					( a ) => ( a.textContent ?? '' ).includes( 'Excluded' )
+				) as HTMLElement
+			 ).click();
+		} );
+		await flush();
+	};
+
+	it( 'the first click on Title in the Excluded tab flips the order', async () => {
+		mocked.report.mockResolvedValue( {
+			items: [ excludedRow() ],
+			summary: summary( 0, 1 ),
+			total: 1,
+			total_pages: 1,
+			page: 1,
+		} );
+		await mount();
+		await openExcludedTab();
+		expect( mocked.report.mock.calls.at( -1 )[ 0 ] ).toMatchObject( {
+			orderby: 'title',
+			order: 'asc',
+		} );
+
+		await act( async () => {
+			(
+				host.querySelector( 'thead th a[href="#sort"]' ) as HTMLElement
+			 ).click();
+		} );
+		await flush();
+
+		expect( mocked.report.mock.calls.at( -1 )[ 0 ] ).toMatchObject( {
+			orderby: 'title',
+			order: 'desc',
+		} );
+		expect(
+			host.querySelector( 'thead th.sorted' )?.getAttribute( 'aria-sort' )
+		).toBe( 'descending' );
+	} );
+
+	it( 'goes to the last page left when the reload has fewer pages', async () => {
+		mocked.report.mockImplementation(
+			async ( query: { page: number } ) => ( {
+				items: [ row( 0 ) ],
+				summary: summary( 5 ),
+				total: 40,
+				total_pages: query.page === 2 ? 2 : 2,
+				page: query.page,
+			} )
+		);
+		mocked.setExcluded.mockResolvedValue( { post_id: 1, excluded: true } );
+		await mount();
+		await act( async () => {
+			(
+				Array.from( host.querySelectorAll( 'a, button' ) ).find(
+					( b ) =>
+						b.getAttribute( 'aria-label' ) === 'Next page' ||
+						( b.textContent ?? '' ).includes( 'Next page' )
+				) as HTMLElement
+			 ).click();
+		} );
+		await flush();
+		expect( mocked.report.mock.calls.at( -1 )[ 0 ].page ).toBe( 2 );
+		mocked.report.mockImplementation(
+			async ( query: { page: number } ) => ( {
+				items: [],
+				summary: summary( 4 ),
+				total: 20,
+				total_pages: 1,
+				page: query.page,
+			} )
+		);
+
+		await clickText( 'Exclude from the analysis' );
+
+		expect( mocked.report.mock.calls.at( -1 )[ 0 ].page ).toBe( 1 );
+	} );
+
+	it( 'in the Excluded tab there is no language filter, no empty language and the query carries none', async () => {
+		const multilingual = {
+			...summary( 0, 1 ),
+			multilingual: true,
+			langs: [ 'es', 'en' ],
+		};
+		mocked.report.mockResolvedValue( {
+			items: [ { ...row( 0 ), lang: 'es' } ],
+			summary: multilingual,
+			total: 1,
+			total_pages: 1,
+			page: 1,
+		} );
+		await mount();
+		const select = host.querySelector< HTMLSelectElement >(
+			'#magiclinking-filter-lang'
+		);
+		await act( async () => {
+			if ( select ) {
+				select.value = 'es';
+				select.dispatchEvent(
+					new Event( 'change', { bubbles: true } )
+				);
+			}
+		} );
+		await flush();
+		mocked.report.mockResolvedValue( {
+			items: [ excludedRow() ],
+			summary: multilingual,
+			total: 1,
+			total_pages: 1,
+			page: 1,
+		} );
+		await openExcludedTab();
+
+		expect( host.querySelector( '#magiclinking-filter-lang' ) ).toBeNull();
+		expect( mocked.report.mock.calls.at( -1 )[ 0 ].lang ).toBe( '' );
+		expect(
+			host.querySelector( 'tbody td:nth-child(2)' )?.textContent
+		).toBe( 'Post' );
+		expect(
+			host.querySelector( 'a.button' )?.getAttribute( 'href' )
+		).not.toContain( 'lang=' );
+	} );
+
+	it( 'still announces the count after a reload that failed', async () => {
+		mocked.setExcluded.mockResolvedValue( { post_id: 1, excluded: true } );
+		await mount();
+		mocked.report.mockRejectedValueOnce( new Error( 'x' ) );
+		await clickText( 'Exclude from the analysis' );
+		( speak as jest.Mock ).mockClear();
+		mocked.report.mockImplementation( async () => ( {
+			items: [ row( 0 ) ],
+			summary: summary( 5 ),
+			total: 1,
+			total_pages: 1,
+			page: 1,
+		} ) );
+
+		await act( async () => {
+			(
+				Array.from( host.querySelectorAll( '.subsubsub a' ) ).find(
+					( a ) => ( a.textContent ?? '' ).includes( 'Orphans' )
+				) as HTMLElement
+			 ).click();
+		} );
+		await flush();
+
+		expect( speak ).toHaveBeenCalledWith( '1 entry', 'polite' );
+	} );
+
 	it( 'tells the user when it fails and keeps the row', async () => {
 		mocked.setExcluded.mockRejectedValue( new Error( 'x' ) );
 		await mount();

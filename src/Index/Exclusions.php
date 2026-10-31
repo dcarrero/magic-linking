@@ -31,7 +31,8 @@ final class Exclusions {
 	 * @param int $post_id ID.
 	 */
 	public static function is_excluded( int $post_id ): bool {
-		return '1' === (string) get_post_meta( $post_id, self::KEY, true );
+		// Excluida = existe una fila con valor `1` (vale cualquiera si hay varias).
+		return in_array( '1', array_map( 'strval', get_post_meta( $post_id, self::KEY, false ) ), true );
 	}
 
 	/**

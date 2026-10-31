@@ -73,8 +73,10 @@ export function ReportTab( {
 	const [ search, setSearch ] = useState( '' );
 	const [ postType, setPostType ] = useState( '' );
 	const [ lang, setLang ] = useState( '' );
-	const [ chosenOrderby, setOrderby ] = useState< SortKey >( 'inbound' );
-	const [ chosenOrder, setOrder ] = useState< 'asc' | 'desc' >( 'asc' );
+	const [ orderby, setOrderby ] = useState< SortKey >(
+		initialFilter === 'excluded' ? 'title' : 'inbound'
+	);
+	const [ order, setOrder ] = useState< 'asc' | 'desc' >( 'asc' );
 	const [ page, setPage ] = useState( 1 );
 	const perPage = PER_PAGE;
 	const debounced = useDebounced( search );
@@ -99,19 +101,14 @@ export function ReportTab( {
 		summary: Summary | null;
 	} >( { rows: {}, summary: null } );
 
-	// En «Excluded» el servidor solo ordena por título o tipo: la tabla enseña el orden real.
+	// En «Excluded» no hay cifras ni idioma: solo se ordena por título o tipo y no se filtra por idioma.
 	const excludedView = filter === 'excluded';
-	const orderby =
-		excludedView && ! EXCLUDED_SORTS.includes( chosenOrderby )
-			? 'title'
-			: chosenOrderby;
-	const order = orderby === chosenOrderby ? chosenOrder : 'asc';
 
 	const query = {
 		filter,
 		search: debounced,
 		post_type: postType,
-		lang,
+		lang: excludedView ? '' : lang,
 		orderby,
 		order,
 		page,
@@ -124,7 +121,7 @@ export function ReportTab( {
 			filter,
 			debounced,
 			postType,
-			lang,
+			excludedView ? '' : lang,
 			orderby,
 			order,
 			page,
@@ -142,6 +139,13 @@ export function ReportTab( {
 			onSummary( summary );
 		}
 	}, [ summary, onSummary ] );
+
+	// Si tras excluir o incluir la página ya no existe, se va a la última que quede.
+	useEffect( () => {
+		if ( data && page > data.total_pages ) {
+			setPage( Math.max( 1, data.total_pages ) );
+		}
+	}, [ data, page ] );
 
 	const rowIds = new Set( ( data?.items ?? [] ).map( ( row ) => row.id ) );
 	const rowIdsRef = useRef( rowIds );
@@ -223,6 +227,14 @@ export function ReportTab( {
 		// Solo al llegar datos nuevos.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ data ] );
+
+	// Al acabar cualquier carga (con datos nuevos, iguales o con error) el silencio de la acción de fila termina; va
+	// después del efecto que anuncia el recuento, que es quien lo consulta.
+	useEffect( () => {
+		if ( ! loading ) {
+			quiet.current = false;
+		}
+	}, [ loading ] );
 
 	/**
 	 * Excluye la entrada del análisis o la vuelve a incluir. La fila sale de la lista (no se reordena nada más: se
@@ -330,6 +342,15 @@ export function ReportTab( {
 			setPage( 1 );
 		};
 
+	const changeFilter = ( next: ReportFilter ) => {
+		// «Excluded» solo se ordena por título o tipo: el orden que se pinta es el que se pide.
+		if ( next === 'excluded' && ! EXCLUDED_SORTS.includes( orderby ) ) {
+			setOrderby( 'title' );
+			setOrder( 'asc' );
+		}
+		change( setFilter )( next );
+	};
+
 	const onSort = ( key: SortKey ) => {
 		if ( key === orderby ) {
 			setOrder( order === 'asc' ? 'desc' : 'asc' );
@@ -362,7 +383,7 @@ export function ReportTab( {
 				: __( 'Type', 'magic-linking' ),
 			sortKey: 'type',
 			render: ( row ) =>
-				multilingual
+				multilingual && row.lang
 					? `${ row.type_label } · ${ row.lang }`
 					: row.type_label,
 		},
@@ -484,7 +505,7 @@ export function ReportTab( {
 	if ( postType ) {
 		exportParams.set( 'post_type', postType );
 	}
-	if ( lang ) {
+	if ( lang && ! excludedView ) {
 		exportParams.set( 'lang', lang );
 	}
 
@@ -592,7 +613,7 @@ export function ReportTab( {
 							}
 							onClick={ ( event ) => {
 								event.preventDefault();
-								change( setFilter )( view.id );
+								changeFilter( view.id );
 							} }
 						>
 							{ view.label }
@@ -682,6 +703,7 @@ export function ReportTab( {
 							</>
 						) }
 						{ multilingual &&
+							! excludedView &&
 							( summary?.langs.length ?? 0 ) > 1 && (
 								<>
 									<label
