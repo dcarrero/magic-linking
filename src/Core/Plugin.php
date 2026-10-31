@@ -25,7 +25,6 @@ use MagicLinking\Content\PostWriter;
 use MagicLinking\Content\Repairer;
 use MagicLinking\Graph\AnchorUsage;
 use MagicLinking\Graph\BrokenRepository;
-use MagicLinking\Engine\Indexer;
 use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\GraphRepository;
 use MagicLinking\Graph\LinkResolver;
@@ -45,6 +44,7 @@ use MagicLinking\Index\Pillars;
 use MagicLinking\Index\PostSource;
 use MagicLinking\Index\ScopedExtractor;
 use MagicLinking\Index\SuggestionCache;
+use MagicLinking\Index\EngineFactory;
 use MagicLinking\Index\EngineTiming;
 use MagicLinking\Index\Suggestions;
 use MagicLinking\Index\TableDocuments;
@@ -235,12 +235,7 @@ final class Plugin {
 				$c->get( PostSource::class ),
 				$c->get( JobRepository::class ),
 				// K términos por entrada (Ajustes → Avanzado): cambiarlo reconstruye el índice.
-				static function (): Indexer {
-					// K sale de los ajustes ya leídos de la petición; un Indexer por valor de K, no por documento.
-					static $made = array();
-					$k = SuggestionCache::site_settings()['k_terms'];
-					return $made[ $k ] ??= new Indexer( array( 'k' => $k ) );
-				}
+				new EngineFactory( $c->get( Settings::class ) )
 			),
 			TableDocuments::class          => static function ( Container $c ): TableDocuments {
 				global $wpdb;

@@ -42,6 +42,8 @@ export interface ReportItem {
 	/** Solo en las excluidas: estado de la entrada (un borrador excluido también se lista). */
 	post_status?: string;
 	post_status_label?: string;
+	/** Solo en las excluidas: su propia marca (se puede volver a incluir) o una categoría excluida en Ajustes. */
+	excluded_by?: 'entry' | 'category';
 }
 
 export interface CountLabel {
@@ -282,6 +284,8 @@ export interface SettingsResponse {
 	post_types: { name: string; label: string }[];
 	/** Categorías entre las que elegir las que se excluyen, por taxonomía y en orden de jerarquía. */
 	category_groups: CategoryGroup[];
+	/** Máximo de categorías que se pueden excluir. */
+	max_excluded: number;
 	job?: Job | null;
 }
 

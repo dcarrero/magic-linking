@@ -912,11 +912,25 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 										key={ group.taxonomy }
 										group={ group }
 										selected={ values.excluded_categories }
+										full={
+											values.excluded_categories.length >=
+											data.max_excluded
+										}
 										onToggle={ toggleCategory }
 									/>
 								) )
 							) }
 							<p className="description">
+								{ values.excluded_categories.length >=
+									data.max_excluded &&
+									sprintf(
+										/* translators: %d: maximum number of categories. */
+										__(
+											'You have reached the limit of %d categories. Untick one to choose another.',
+											'magic-linking'
+										),
+										data.max_excluded
+									) + ' ' }
 								{ __(
 									'Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones.',
 									'magic-linking'

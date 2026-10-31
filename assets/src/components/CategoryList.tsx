@@ -11,6 +11,8 @@ export const SHOWN_MAX = 200;
 interface Props {
 	group: CategoryGroup;
 	selected: number[];
+	/** Si ya no se pueden marcar más (las marcadas se pueden quitar). */
+	full: boolean;
 	onToggle: ( id: number, checked: boolean ) => void;
 }
 
@@ -20,21 +22,23 @@ interface Props {
  * @param root0
  * @param root0.group
  * @param root0.selected
+ * @param root0.full
  * @param root0.onToggle
  */
-export function CategoryList( { group, selected, onToggle }: Props ) {
+export function CategoryList( { group, selected, full, onToggle }: Props ) {
+	const chosen = new Set( selected );
 	const [ search, setSearch ] = useState( '' );
 	const many = group.terms.length > FILTER_FROM;
 	const needle = search.trim().toLowerCase();
 	const matching = group.terms.filter(
 		( term ) =>
-			selected.includes( term.id ) ||
+			chosen.has( term.id ) ||
 			needle === '' ||
 			term.name.toLowerCase().includes( needle )
 	);
 	let free = 0;
 	const shown = matching.filter( ( term ) => {
-		if ( selected.includes( term.id ) ) {
+		if ( chosen.has( term.id ) ) {
 			return true;
 		}
 		free += 1;
@@ -71,7 +75,8 @@ export function CategoryList( { group, selected, onToggle }: Props ) {
 						<CheckboxControl
 							__nextHasNoMarginBottom
 							label={ term.name }
-							checked={ selected.includes( term.id ) }
+							checked={ chosen.has( term.id ) }
+							disabled={ full && ! chosen.has( term.id ) }
 							onChange={ ( checked ) =>
 								onToggle( term.id, checked )
 							}

@@ -173,8 +173,9 @@ final class ReportRepository {
 			$wpdb->prepare( 'SELECT COUNT(*) FROM %i p WHERE ' . $where, $wpdb->posts ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmentos preparados.
 		);
 
-		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fragmentos preparados y ORDER BY de una lista cerrada.
-			$wpdb->prepare( "SELECT p.ID AS post_id, p.post_title, p.post_type, p.post_status FROM %i p WHERE {$where} ORDER BY {$column} {$direction}, p.ID ASC LIMIT %d OFFSET %d", $wpdb->posts, $per_page, $offset ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmentos preparados.
+		$marked = self::marked_sql( $wpdb, '' );
+		$rows   = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fragmentos preparados y ORDER BY de una lista cerrada.
+			$wpdb->prepare( "SELECT p.ID AS post_id, p.post_title, p.post_type, p.post_status, ( {$marked} ) AS marked FROM %i p WHERE {$where} ORDER BY {$column} {$direction}, p.ID ASC LIMIT %d OFFSET %d", $wpdb->posts, $per_page, $offset ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmentos preparados.
 			ARRAY_A
 		);
 
@@ -205,7 +206,13 @@ final class ReportRepository {
 		$wpdb  = $this->wpdb;
 		$in    = implode( ',', array_fill( 0, count( $types ), '%s' ) );
 		$where = $wpdb->prepare( "p.post_status NOT IN ('trash', 'auto-draft') AND p.post_type IN ({$in})", $types ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
-			. $wpdb->prepare( ' AND EXISTS ( SELECT 1 FROM %i m WHERE m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = %s )', $wpdb->postmeta, Exclusions::KEY, '1' );
+			. ' ' . self::marked_sql( $wpdb, 'AND' );
+		// Y las que están en una categoría excluida en Ajustes (F1-16): mismo filtro, con su motivo en la fila.
+		$in_category = Exclusions::in_category_sql( 'p.ID', 'EXISTS' );
+		if ( '' !== $in_category ) {
+			$where = $wpdb->prepare( "p.post_status NOT IN ('trash', 'auto-draft') AND p.post_type IN ({$in})", $types ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
+				. ' AND ( ' . self::marked_sql( $wpdb, '' ) . ' OR ' . substr( $in_category, 5 ) . ' )';
+		}
 		if ( ! empty( $args['search'] ) ) {
 			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( (string) $args['search'] ) . '%' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Preparado.
 		}
@@ -214,6 +221,16 @@ final class ReportRepository {
 		}
 
 		return $where;
+	}
+
+	/**
+	 * Condición de «tiene la marca de exclusión» (`EXISTS`, sin duplicar por varias filas).
+	 *
+	 * @param \wpdb  $wpdb   Base de datos.
+	 * @param string $prefix `AND` para añadirla a otra condición, vacío si va sola.
+	 */
+	private static function marked_sql( \wpdb $wpdb, string $prefix ): string {
+		return trim( $prefix . ' ' . $wpdb->prepare( 'EXISTS ( SELECT 1 FROM %i m WHERE m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = %s )', $wpdb->postmeta, Exclusions::KEY, '1' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Preparado.
 	}
 
 	/**
@@ -257,6 +274,8 @@ final class ReportRepository {
 			),
 			array(
 				'status'            => self::EXCLUDED_STATUS,
+				// Quién la deja fuera: su propia marca (se puede volver a incluir desde aquí) o una categoría de Ajustes.
+				'excluded_by'       => '1' === (string) ( $row['marked'] ?? '1' ) ? 'entry' : 'category',
 				'indexed_at'        => '',
 				'post_status'       => $status,
 				'post_status_label' => null !== $object ? (string) $object->label : $status,

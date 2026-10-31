@@ -287,7 +287,7 @@ final class ExcludedCategoriesTest extends GraphTestCase {
 
 	public function test_a_bulk_change_goes_to_action_scheduler_not_to_the_request(): void {
 		$ids = array();
-		for ( $i = 0; $i < Jobs::CATEGORY_INLINE_LIMIT + 10; $i++ ) {
+		for ( $i = 0; $i < 30; $i++ ) {
 			$ids[] = self::factory()->post->create(
 				array(
 					'post_title'    => "Masiva $i",
@@ -439,26 +439,115 @@ final class ExcludedCategoriesTest extends GraphTestCase {
 
 	public function test_k_is_resolved_once_per_value_not_per_document(): void {
 		$lexical = Plugin::container()->get( \MagicLinking\Index\LexicalIndexer::class );
-		$engine  = new \ReflectionProperty( $lexical, 'engine' );
-		$resolve = $engine->getValue( $lexical );
-		$this->assertInstanceOf( \Closure::class, $resolve );
+		$factory = ( new \ReflectionProperty( $lexical, 'engine' ) )->getValue( $lexical );
+		$this->assertInstanceOf( \MagicLinking\Index\EngineFactory::class, $factory );
 
-		$first = $resolve();
-		$reads = 0;
-		add_filter(
-			'pre_option_magiclinking_settings',
-			static function ( $pre ) use ( &$reads ) {
-				++$reads;
-				return $pre;
-			}
-		);
+		$first = $factory->indexer();
 		for ( $i = 0; $i < 50; $i++ ) {
-			$this->assertSame( $first, $resolve() );
+			$this->assertSame( $first, $factory->indexer(), 'El mismo objeto mientras K no cambia.' );
 		}
-		$this->assertSame( 0, $reads );
 
 		$this->request( 'POST', '/settings', array( 'k_terms' => 25 ) );
-		$this->assertSame( 25, $resolve()->config()['k'] );
+		$this->assertSame( 25, $factory->indexer()->config()['k'] );
+		$this->assertSame( 25, Plugin::container()->get( Settings::class )->k_terms() );
+	}
+
+	public function test_saving_an_entry_into_the_setting_indexes_it_once(): void {
+		wp_set_post_categories( $this->sources[1], array( $this->category ) );
+		$this->save_excluded( array( $this->tt ) );
+		$this->flush();
+		$this->assertNull( $this->doc_row( $this->sources[1] ) );
+
+		$reads = 0;
+		add_filter(
+			'magiclinking_post_html',
+			static function ( $html ) use ( &$reads ) {
+				++$reads;
+				return $html;
+			}
+		);
+		Plugin::container()->get( Jobs::class )->reindex_now( $this->sources[2] );
+		$once  = $reads;
+		$reads = 0;
+
+		// Un guardado normal: la entrada sale de la categoría excluida y queda elegible.
+		wp_update_post(
+			array(
+				'ID'            => $this->sources[1],
+				'post_category' => array( 1 ),
+			)
+		);
+		$this->flush();
+
+		$this->assertSame( $once, $reads, 'La reindexa el guardado; los hooks de términos no lo repiten.' );
+		$this->assertNotNull( $this->doc_row( $this->sources[1] ) );
+	}
+
+	public function test_a_rule_cannot_target_an_entry_in_an_excluded_category_and_the_message_says_where_to_change_it(): void {
+		wp_set_post_categories( $this->target, array( $this->category ) );
+		$this->save_excluded( array( $this->tt ) );
+
+		wp_set_current_user( $this->admin );
+		$result = Plugin::container()->get( \MagicLinking\Rules\RuleValidator::class )->validate(
+			array(
+				'phrases'   => array( 'aerotermia' ),
+				'target_id' => $this->target,
+			),
+			null,
+			$this->admin
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertStringContainsString( 'excluded categories', $result->get_error_message() );
+		$this->assertStringContainsString( 'Settings', $result->get_error_message() );
+	}
+
+	public function test_the_report_lists_entries_left_out_by_category_with_their_reason(): void {
+		wp_set_post_categories( $this->sources[1], array( $this->category ) );
+		update_post_meta( $this->sources[2], Exclusions::KEY, '1' );
+		$this->save_excluded( array( $this->tt ) );
+
+		$list = $this->request(
+			'GET',
+			'/report',
+			array(
+				'filter'   => 'excluded',
+				'per_page' => 50,
+			)
+		)->get_data();
+
+		$by_id = array_column( $list['items'], null, 'id' );
+		$this->assertSame( 2, $list['total'] );
+		$this->assertSame( 'category', $by_id[ $this->sources[1] ]['excluded_by'] );
+		$this->assertSame( 'entry', $by_id[ $this->sources[2] ]['excluded_by'] );
+		$this->assertSame( 2, $this->request( 'GET', '/report' )->get_data()['summary']['excluded'], 'Cuentan en el resumen.' );
+	}
+
+	public function test_more_categories_than_can_be_saved_is_an_error_not_a_silent_cut(): void {
+		$many = range( 1, Settings::MAX_EXCLUDED_CATEGORIES + 1 );
+
+		$response = $this->request( 'POST', '/settings', array( 'excluded_categories' => $many ) );
+
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( Settings::MAX_EXCLUDED_CATEGORIES, $this->request( 'GET', '/settings' )->get_data()['max_excluded'] );
+	}
+
+	public function test_a_draft_with_no_category_is_judged_by_the_default_category(): void {
+		$default = (int) get_option( 'default_category' );
+		$tt      = (int) get_term( $default, 'category' )->term_taxonomy_id;
+		// Solo el ajuste, sin reindexar: casi todo el corpus está en la categoría por defecto y vaciaría el índice.
+		update_option( Installer::SETTINGS_OPTION, array( 'excluded_categories' => array( $tt ) ) );
+		$draft   = self::factory()->post->create(
+			array(
+				'post_status'  => 'draft',
+				'post_title'   => 'Sin categoría',
+				'post_content' => $this->p( 'Aerotermia.' ),
+			)
+		);
+		$service = Plugin::container()->get( \MagicLinking\Index\Suggestions::class );
+
+		$this->assertSame( 'excluded_category', $service->state( get_post( $draft ), false, true, array( 'category' => array() ) ), 'Sin ninguna marcada, WordPress le pondrá la de por defecto.' );
+		$this->assertSame( 'ok', $service->state( get_post( $draft ), false, true, array( 'category' => array( $this->category ) ) ) );
 	}
 
 	public function test_a_new_entry_in_an_excluded_category_is_never_indexed(): void {

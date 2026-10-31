@@ -147,6 +147,29 @@ final class Exclusions {
 	}
 
 	/**
+	 * Condición SQL (empieza por « AND ») sobre `term_relationships`: la entrada tiene (`EXISTS`) o no tiene
+	 * (`NOT EXISTS`) alguna de las categorías excluidas. Vacía si no hay ninguna. Preparada, con un `%d` por categoría.
+	 *
+	 * @param string $posts_column Columna con el ID de la entrada.
+	 * @param string $quantifier   `EXISTS` o `NOT EXISTS`.
+	 */
+	public static function in_category_sql( string $posts_column, string $quantifier ): string {
+		global $wpdb;
+
+		$terms = self::excluded_terms();
+		if ( array() === $terms ) {
+			return '';
+		}
+
+		$marks = implode( ',', array_fill( 0, count( $terms ), '%d' ) );
+
+		return $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- La columna llega de una constante de quien llama; marcadores generados.
+			" AND {$quantifier} ( SELECT 1 FROM {$wpdb->term_relationships} ec WHERE ec.object_id = {$posts_column} AND ec.term_taxonomy_id IN ({$marks}) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			$terms
+		);
+	}
+
+	/**
 	 * Excluye la entrada o vuelve a incluirla.
 	 *
 	 * @param int  $post_id  ID.
@@ -175,12 +198,6 @@ final class Exclusions {
 			'1'
 		);
 
-		$terms = self::excluded_terms();
-		if ( array() !== $terms ) {
-			// Son enteros ya saneados (`excluded_terms()`).
-			$sql .= " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} ec WHERE ec.object_id = {$posts_column} AND ec.term_taxonomy_id IN (" . implode( ',', $terms ) . ') )'; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		}
-
-		return $sql;
+		return $sql . self::in_category_sql( $posts_column, 'NOT EXISTS' );
 	}
 }

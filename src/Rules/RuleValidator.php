@@ -66,8 +66,11 @@ final class RuleValidator {
 			if ( in_array( $target_id, $this->settings->all()['ignored_ids'], true ) ) {
 				return $this->error( __( 'That entry is in your list of ignored URLs, so it cannot be a destination.', 'magic-linking' ) );
 			}
-			if ( Exclusions::is_out( $target_id ) ) {
+			if ( Exclusions::is_excluded( $target_id ) ) {
 				return $this->error( __( 'That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first.', 'magic-linking' ) );
+			}
+			if ( Exclusions::in_excluded_category( $target_id ) ) {
+				return $this->error( __( 'That entry is in a category excluded from the analysis, so it cannot be a destination. Change the excluded categories in Settings → General first.', 'magic-linking' ) );
 			}
 			$lang = $this->language->for_post( $target_id );
 			$url  = (string) get_permalink( $target );

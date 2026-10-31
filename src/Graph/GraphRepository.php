@@ -413,8 +413,9 @@ final class GraphRepository {
 		$in_category = array();
 		$terms       = Exclusions::excluded_terms();
 		if ( array() !== $terms ) {
-			$in_category = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; IDs enteros.
-				$wpdb->prepare( 'SELECT DISTINCT d.post_id FROM %i d JOIN %i r ON r.object_id = d.post_id WHERE r.term_taxonomy_id IN (' . implode( ',', $terms ) . ')', $this->docs, $wpdb->term_relationships ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$marks       = implode( ',', array_fill( 0, count( $terms ), '%d' ) );
+			$in_category = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Tabla propia; marcadores generados.
+				$wpdb->prepare( "SELECT DISTINCT d.post_id FROM %i d JOIN %i r ON r.object_id = d.post_id WHERE r.term_taxonomy_id IN ({$marks})", array_merge( array( $this->docs, $wpdb->term_relationships ), $terms ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
 			);
 		}
 		$ids = array_merge( $ids, $other, $excluded, $in_category );

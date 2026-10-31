@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { login, openSettingsTab, SCREEN_SETTINGS, wp } from "./wp";
+import { login, openSettingsTab, SCREEN, SCREEN_SETTINGS, wp } from "./wp";
 
 /**
  * Ajustes → General «Categories left out» y Ajustes → Sugerencias «Advanced» (F1-16): marcar categorías con el
@@ -211,5 +211,37 @@ test.describe("Settings: categories left out and advanced", () => {
 			"eval",
 			`foreach ( get_terms( array( 'taxonomy' => 'category', 'name__like' => 'Masiva', 'hide_empty' => false ) ) as $t ) { wp_delete_term( $t->term_id, 'category' ); }`,
 		);
+	});
+
+	test("the report lists entries left out by category with their reason and a link to the settings", async ({
+		page,
+	}) => {
+		wp(
+			"eval",
+			`$t = get_term_by( 'name', 'Privada cat', 'category' ); $s = new MagicLinking\\Core\\Settings(); $s->update( array( 'excluded_categories' => array( (int) $t->term_taxonomy_id ) ) );`,
+		);
+		finishJob();
+		await login(page);
+		await page.goto(SCREEN);
+		await page
+			.locator(".subsubsub")
+			.getByRole("link", { name: /Excluded/ })
+			.click();
+		const table = page.getByRole("table", { name: "Internal links by entry" });
+		const row = table.locator("tbody tr", {
+			hasText: "Guía de calefacción para casas",
+		});
+		await expect(row).toContainText("category excluded");
+		const link = row.getByRole("link", {
+			name: /Change excluded categories/,
+		});
+		await expect(link).toHaveAttribute(
+			"href",
+			/magic-linking-settings.*#tab=general/,
+		);
+		await expect(
+			row.getByRole("button", { name: /Include in the analysis/ }),
+		).toHaveCount(0);
+		expect((await axe(page, ".magiclinking-wrap")).violations).toEqual([]);
 	});
 });

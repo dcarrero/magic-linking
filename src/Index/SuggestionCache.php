@@ -171,10 +171,10 @@ final class SuggestionCache implements Module {
 	}
 
 	/**
-	 * Lo que los hooks de términos y el indexado necesitan de los ajustes (los filtros por taxonomía, las categorías
-	 * excluidas y K, F1-16), con una sola lectura por petición.
+	 * Lo que los hooks de términos y el indexado necesitan de los ajustes (los filtros por taxonomía y las categorías
+	 * excluidas, F1-16), con una sola lectura por petición.
 	 *
-	 * @return array{filters: array<string, string>, excluded_categories: list<int>, k_terms: int}
+	 * @return array{filters: array<string, string>, excluded_categories: list<int>}
 	 */
 	public static function site_settings(): array {
 		$cached = wp_cache_get( 'site_settings', self::RUNTIME_GROUP );
@@ -186,7 +186,6 @@ final class SuggestionCache implements Module {
 		$read = array(
 			'filters'             => $all['filters'],
 			'excluded_categories' => $all['excluded_categories'],
-			'k_terms'             => $all['k_terms'],
 		);
 		wp_cache_set( 'site_settings', $read, self::RUNTIME_GROUP );
 

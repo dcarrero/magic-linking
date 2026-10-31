@@ -82,19 +82,19 @@ final class LexicalIndexer {
 	/**
 	 * Cálculo de pesos.
 	 *
-	 * @var Indexer|\Closure
+	 * @var Indexer|EngineFactory
 	 */
-	private Indexer|\Closure $engine;
+	private Indexer|EngineFactory $engine;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param TableRepository       $repository Almacén.
-	 * @param PostSource            $source     Entradas.
-	 * @param JobRepository         $jobs       Procesos.
-	 * @param Indexer|\Closure|null $engine Cálculo de pesos, o quien lo da en cada uso (para que K siga a los ajustes); null para la configuración por defecto.
+	 * @param TableRepository            $repository Almacén.
+	 * @param PostSource                 $source     Entradas.
+	 * @param JobRepository              $jobs       Procesos.
+	 * @param Indexer|EngineFactory|null $engine Cálculo de pesos, o quien lo da en cada uso (para que K siga a los ajustes); null para la configuración por defecto.
 	 */
-	public function __construct( TableRepository $repository, PostSource $source, JobRepository $jobs, Indexer|\Closure|null $engine = null ) {
+	public function __construct( TableRepository $repository, PostSource $source, JobRepository $jobs, Indexer|EngineFactory|null $engine = null ) {
 		$this->repository = $repository;
 		$this->source     = $source;
 		$this->jobs       = $jobs;
@@ -105,7 +105,7 @@ final class LexicalIndexer {
 	 * Cálculo de pesos con la configuración de ahora.
 	 */
 	private function engine(): Indexer {
-		return $this->engine instanceof \Closure ? ( $this->engine )() : $this->engine;
+		return $this->engine instanceof EngineFactory ? $this->engine->indexer() : $this->engine;
 	}
 
 	/**

@@ -162,14 +162,28 @@ final class Settings {
 	 * Umbral de puntuación del motor (docs/04 §6), de 0 a 1.
 	 */
 	public function score_threshold(): float {
-		return $this->all()['score_threshold'] / 100;
+		return $this->bounded( 'score_threshold' ) / 100;
 	}
 
 	/**
-	 * Términos que se guardan por entrada en el índice léxico (K, docs/04 §3).
+	 * Términos que se guardan por entrada en el índice léxico (K, docs/04 §3). Barato: lo llama el indexado por
+	 * cada entrada, así que lee solo este ajuste y no sanea todos.
 	 */
 	public function k_terms(): int {
-		return $this->all()['k_terms'];
+		return $this->bounded( 'k_terms' );
+	}
+
+	/**
+	 * Un ajuste de entero leído solo, con el mismo límite que le aplica {@see self::all()}.
+	 *
+	 * @param string $key Clave de {@see self::INT_RANGES}.
+	 */
+	private function bounded( string $key ): int {
+		$stored        = get_option( Installer::SETTINGS_OPTION, array() );
+		$value         = is_array( $stored ) ? ( $stored[ $key ] ?? self::DEFAULTS[ $key ] ) : self::DEFAULTS[ $key ];
+		[ $min, $max ] = self::INT_RANGES[ $key ];
+
+		return max( $min, min( $max, (int) $value ) );
 	}
 
 	/**

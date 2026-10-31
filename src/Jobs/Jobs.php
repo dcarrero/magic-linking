@@ -91,12 +91,6 @@ final class Jobs implements Module {
 	public const MEMORY_MARGIN = 8 * MB_IN_BYTES;
 
 	/**
-	 * Hasta cuántas entradas con la categoría excluida cambiada se reindexan en la propia petición; si son más (borrar
-	 * o editar en bloque una categoría), van a Action Scheduler.
-	 */
-	public const CATEGORY_INLINE_LIMIT = 20;
-
-	/**
 	 * Por encima de este número de entradas indexadas, guardar una entrada encola el trabajo.
 	 */
 	public const INLINE_LIMIT = 500;
@@ -287,9 +281,10 @@ final class Jobs implements Module {
 	}
 
 	/**
-	 * Reevalúa las entradas apuntadas por {@see self::category_changed()}, cada una una vez. Hasta
-	 * {@see self::CATEGORY_INLINE_LIMIT} se reindexan ahora (un guardado normal es una sola entrada); si son más, se
-	 * pasan a Action Scheduler en lotes (regla 10). Se llama al terminar la petición (`shutdown`).
+	 * Reevalúa las entradas apuntadas por {@see self::category_changed()}, cada una una vez y por el mismo camino que
+	 * guardar una entrada ({@see self::index_or_queue()}): pocas se reindexan ahora y, si son muchas (borrar o editar en
+	 * bloque una categoría), van a Action Scheduler en lotes (regla 10). Las que el guardado de la propia entrada ya
+	 * trató después del cambio (`on_post_saved`) no están en la lista. Se llama al terminar la petición (`shutdown`).
 	 */
 	public function flush_category_changes(): void {
 		if ( array() === $this->pending_terms ) {
@@ -300,21 +295,12 @@ final class Jobs implements Module {
 		$this->pending_terms = array();
 		SuggestionCache::bump();
 
-		if ( count( $ids ) > self::CATEGORY_INLINE_LIMIT ) {
-			foreach ( array_chunk( $ids, 25 ) as $chunk ) {
-				as_enqueue_async_action( self::HOOK_POSTS, array( $chunk, false ), Installer::ACTION_GROUP );
-			}
+		if ( ! $this->is_ready() ) {
 			return;
 		}
 
-		foreach ( $ids as $post_id ) {
-			try {
-				$this->reindex_now( $post_id );
-			} catch ( Throwable $e ) {
-				unset( $e );
-				as_enqueue_async_action( self::HOOK_POSTS, array( array( $post_id ), false ), Installer::ACTION_GROUP, true );
-			}
-		}
+		$this->indexer->flush();
+		$this->index_or_queue( $ids, false );
 	}
 
 	/**
@@ -831,6 +817,8 @@ final class Jobs implements Module {
 
 		$this->indexer->flush();
 		$this->index_or_queue( array( $post_id ), false );
+		// Con las categorías que tiene ahora: un cambio de categoría anterior a este guardado ya está tratado.
+		unset( $this->pending_terms[ $post_id ] );
 
 		$changed_state = null === $post_before
 			|| $post_before->post_status !== $post->post_status

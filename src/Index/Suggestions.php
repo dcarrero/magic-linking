@@ -110,7 +110,7 @@ final class Suggestions {
 			// Con el editor abierto manda lo que tiene elegido ahora (como los filtros de taxonomía, D-67 §4); si no
 			// manda la categoría, las guardadas.
 			$chosen = $draft && ( null !== $terms || null !== $names ) ? Taxonomies::resolve( $post->post_type, $terms ?? array(), $names ?? array() ) : array();
-			if ( isset( $chosen['category'] ) ? Exclusions::any_excluded( $chosen['category'] ) : Exclusions::in_excluded_category( $post->ID ) ) {
+			if ( isset( $chosen['category'] ) ? Exclusions::any_excluded( self::or_default_category( $post->post_type, $chosen['category'] ) ) : Exclusions::in_excluded_category( $post->ID ) ) {
 				return 'excluded_category';
 			}
 		}
@@ -122,6 +122,27 @@ final class Suggestions {
 		}
 
 		return 'ok';
+	}
+
+	/**
+	 * Las categorías elegidas en el editor; si no hay ninguna, la categoría por defecto, que es la que WordPress
+	 * le pondrá al guardar la entrada.
+	 *
+	 * @param string $post_type Tipo de contenido.
+	 * @param array  $chosen    `term_taxonomy_id` de las categorías elegidas.
+	 *
+	 * @phpstan-param list<string> $chosen
+	 *
+	 * @return list<string>
+	 */
+	private static function or_default_category( string $post_type, array $chosen ): array {
+		if ( array() !== $chosen || 'category' !== Taxonomies::primary( $post_type, 'category' ) ) {
+			return $chosen;
+		}
+
+		$default = get_term( (int) get_option( 'default_category' ), 'category' );
+
+		return $default instanceof \WP_Term ? array( (string) $default->term_taxonomy_id ) : $chosen;
 	}
 
 	/**
@@ -520,9 +541,9 @@ final class Suggestions {
 		return new Suggester(
 			$repository,
 			$documents,
-			new Indexer( array( 'k' => $this->settings->k_terms() ) ),
+			new Indexer( array( 'k' => (int) $all['k_terms'] ) ),
 			new PhraseFinder(),
-			new Scorer( array(), $this->settings->score_threshold(), Scorer::DENSITY, Scorer::MIN_RELEVANCE, self::BONUSES, (int) $all['same_anchor_max'] ),
+			new Scorer( array(), (int) $all['score_threshold'] / 100, Scorer::DENSITY, Scorer::MIN_RELEVANCE, self::BONUSES, (int) $all['same_anchor_max'] ),
 			new Retriever( $repository ),
 			array_merge( $defaults, $options )
 		);

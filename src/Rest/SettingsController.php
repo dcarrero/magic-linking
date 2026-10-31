@@ -196,8 +196,10 @@ final class SettingsController implements Module {
 							'additionalProperties' => false,
 						),
 						'excluded_categories'          => array(
-							'type'  => 'array',
-							'items' => array( 'type' => 'integer' ),
+							'type'     => 'array',
+							'items'    => array( 'type' => 'integer' ),
+							// Más de las que se pueden guardar es un error, no un recorte en silencio.
+							'maxItems' => Settings::MAX_EXCLUDED_CATEGORIES,
 						),
 						'k_terms'                      => array(
 							'type' => 'integer',
@@ -354,6 +356,7 @@ final class SettingsController implements Module {
 			'settings'        => $all,
 			'post_types'      => $types,
 			'category_groups' => Taxonomies::category_groups( $all['post_types'] ),
+			'max_excluded'    => Settings::MAX_EXCLUDED_CATEGORIES,
 		);
 	}
 }

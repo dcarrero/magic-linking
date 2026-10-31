@@ -9,8 +9,6 @@ declare(strict_types=1);
 
 namespace MagicLinking\Index;
 
-use MagicLinking\Core\Settings;
-
 /**
  * Las claves son las taxonomías lógicas del motor (`category`, `post_tag`, ver
  * {@see \MagicLinking\Engine\Suggester::FILTERS}) y los valores, los `term_taxonomy_id` como texto: dos entradas
@@ -234,10 +232,10 @@ final class Taxonomies {
 			return array();
 		}
 
-		$ids   = implode( ',', array_map( 'intval', $tt_ids ) );
+		$ids   = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
 		$in    = implode( ',', array_fill( 0, count( $names ), '%s' ) );
-		$valid = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Los IDs son enteros; marcadores generados.
-			$wpdb->prepare( "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id IN ({$ids}) AND taxonomy IN ({$in})", $names ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
+		$valid = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Marcadores generados.
+			$wpdb->prepare( "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id IN ({$ids}) AND taxonomy IN ({$in})", array_merge( $tt_ids, $names ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
 		);
 		$valid = array_map( 'intval', $valid );
 
