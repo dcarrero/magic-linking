@@ -16,7 +16,7 @@ use MagicLinking\Report\ExportHandler;
 use MagicLinking\Rest\SettingsController;
 
 /**
- * Menú propio «Magic Linking» con cuatro páginas (Informe, Enlaces rotos, Historial, Ajustes) que pintan la misma aplicación.
+ * Menú propio «Magic Linking» con seis páginas (Informe, Enlaces rotos, Historial, Reglas, Estado, Ajustes) que pintan la misma aplicación.
  *
  * Los scripts y estilos se cargan solo en esas pantallas. El plugin no muestra avisos en
  * ninguna otra pantalla del administrador.
@@ -28,6 +28,7 @@ final class Screen implements Module {
 	public const SLUG_BROKEN   = 'magic-linking-broken';
 	public const SLUG_HISTORY  = 'magic-linking-history';
 	public const SLUG_RULES    = 'magic-linking-rules';
+	public const SLUG_STATUS   = 'magic-linking-status';
 	public const SLUG_SETTINGS = 'magic-linking-settings';
 
 	/**
@@ -110,6 +111,7 @@ final class Screen implements Module {
 			'broken'   => self::SLUG_BROKEN,
 			'history'  => self::SLUG_HISTORY,
 			'rules'    => self::SLUG_RULES,
+			'status'   => self::SLUG_STATUS,
 			'settings' => self::SLUG_SETTINGS,
 		);
 
@@ -159,6 +161,10 @@ final class Screen implements Module {
 				add_submenu_page( self::SLUG, __( 'Rules', 'magic-linking' ), __( 'Rules', 'magic-linking' ), 'manage_options', self::SLUG_RULES, array( $this, 'render' ) ),
 			),
 			array(
+				'status',
+				add_submenu_page( self::SLUG, __( 'Status', 'magic-linking' ), __( 'Status', 'magic-linking' ), 'edit_posts', self::SLUG_STATUS, array( $this, 'render' ) ),
+			),
+			array(
 				'settings',
 				add_submenu_page( self::SLUG, __( 'Settings', 'magic-linking' ), __( 'Settings', 'magic-linking' ), 'manage_options', self::SLUG_SETTINGS, array( $this, 'render' ) ),
 			),
@@ -203,7 +209,7 @@ final class Screen implements Module {
 	 */
 	public function on_load(): void {
 		$screen = get_current_screen();
-		if ( $screen && ! in_array( $this->screens[ $screen->id ] ?? '', array( 'settings', 'history', 'rules' ), true ) ) {
+		if ( $screen && ! in_array( $this->screens[ $screen->id ] ?? '', array( 'settings', 'history', 'rules', 'status' ), true ) ) {
 			add_screen_option(
 				'per_page',
 				array(
@@ -262,6 +268,7 @@ final class Screen implements Module {
 						'broken'   => self::page_url( 'broken' ),
 						'history'  => self::page_url( 'history' ),
 						'rules'    => self::page_url( 'rules' ),
+						'status'   => self::page_url( 'status' ),
 						'settings' => self::page_url( 'settings' ),
 					),
 				)

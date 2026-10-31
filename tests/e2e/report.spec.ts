@@ -805,6 +805,7 @@ test.describe( 'Internal links', () => {
 			'Broken links',
 			'History',
 			'Rules',
+			'Status',
 			'Settings',
 		] );
 	} );

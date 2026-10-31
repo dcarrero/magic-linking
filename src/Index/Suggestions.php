@@ -61,6 +61,7 @@ final class Suggestions {
 	 * @param DismissalRepository $dismissals Pares descartados.
 	 * @param Pillars             $pillars    Contenido pilar.
 	 * @param Language            $language   Idioma por entrada (para agrupar las anclas de los enlaces actuales).
+	 * @param EngineTiming|null   $timing     Dónde apuntar el tiempo de cada petición (D-30); null = no se apunta.
 	 */
 	public function __construct(
 		private TableRepository $repository,
@@ -69,7 +70,8 @@ final class Suggestions {
 		private Settings $settings,
 		private DismissalRepository $dismissals,
 		private Pillars $pillars,
-		private Language $language
+		private Language $language,
+		private ?EngineTiming $timing = null
 	) {
 	}
 
@@ -132,6 +134,7 @@ final class Suggestions {
 	 * @phpstan-param list<array{id: int, anchors: list<string>}>|null $links
 	 */
 	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null, ?array $terms = null, ?array $names = null, ?array &$links = null ): array {
+		$started  = hrtime( true );
 		$prepared = $this->prepare_outgoing( $post_id, $options, $content, $title, $terms, $names );
 		if ( null === $prepared ) {
 			return array();
@@ -141,10 +144,81 @@ final class Suggestions {
 		try {
 			$found = $suggester->outgoing( $document );
 			$links = $this->group_links( $document->links, $post_id );
+			$shown = array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
+			$this->record( EngineTiming::OUTGOING, $started, $suggester->timing() );
 
-			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
+			return $shown;
 		} finally {
 			$documents->release();
+		}
+	}
+
+	/**
+	 * Sugerencias salientes de una entrada guardada, de la caché de resultados si la hay ({@see SuggestionCache}). Una
+	 * respuesta de caché se apunta en el tiempo del motor con la marca de caché; una calculada la apunta el propio
+	 * cálculo. Quien llama no tiene que saber cuál fue.
+	 *
+	 * @param int $post_id ID de la entrada.
+	 *
+	 * @return list<Suggestion>
+	 */
+	public function cached_outgoing( int $post_id ): array {
+		return $this->cached( EngineTiming::OUTGOING, 'out', $post_id, fn(): array => $this->outgoing( $post_id ) );
+	}
+
+	/**
+	 * Lo mismo para las entrantes hacia una entrada.
+	 *
+	 * @param int $post_id ID del destino.
+	 *
+	 * @return list<Suggestion>
+	 */
+	public function cached_incoming( int $post_id ): array {
+		return $this->cached( EngineTiming::INCOMING, 'in', $post_id, fn(): array => $this->incoming( $post_id ) );
+	}
+
+	/**
+	 * Pasa por la caché de resultados y apunta el tiempo de las respuestas que salen de ella.
+	 *
+	 * @param string   $direction `outgoing` o `incoming`.
+	 * @param string   $kind      Tipo de cálculo de la caché (`out`, `in`).
+	 * @param int      $post_id   Entrada.
+	 * @param callable $compute   Cálculo si no está guardado.
+	 *
+	 * @phpstan-param callable(): list<Suggestion> $compute
+	 *
+	 * @return list<Suggestion>
+	 */
+	private function cached( string $direction, string $kind, int $post_id, callable $compute ): array {
+		$started = hrtime( true );
+		$hit     = true;
+		$found   = SuggestionCache::remember(
+			$kind,
+			$post_id,
+			static function () use ( $compute, &$hit ): array {
+				$hit = false;
+				return $compute();
+			}
+		);
+		if ( $hit ) {
+			$this->timing?->record_cached( $direction, hrtime( true ) - $started );
+		}
+
+		return $found;
+	}
+
+	/**
+	 * Apunta una petición que llegó al motor; las salidas tempranas (sin cálculo) no se apuntan.
+	 *
+	 * @param string     $direction `outgoing` o `incoming`.
+	 * @param int|float  $started   `hrtime( true )` al empezar (es float en PHP de 32 bits).
+	 * @param array|null $phases    Fases del motor, o null si no calculó nada.
+	 *
+	 * @phpstan-param array{retrieval: int|float, load: int|float, phrases: int|float, scoring: int|float, candidates: int}|null $phases
+	 */
+	private function record( string $direction, int|float $started, ?array $phases ): void {
+		if ( null !== $phases ) {
+			$this->timing?->record( $direction, hrtime( true ) - $started, $phases );
 		}
 	}
 
@@ -328,7 +402,8 @@ final class Suggestions {
 	 * @phpstan-param array<string, mixed> $options
 	 */
 	public function incoming( int $post_id, array $options = array() ): array {
-		$post = get_post( $post_id );
+		$started = hrtime( true );
+		$post    = get_post( $post_id );
 		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || ! $this->analyzes( $post ) || ! $this->ready() ) {
 			return array();
 		}
@@ -339,7 +414,11 @@ final class Suggestions {
 
 		[ $repository, $documents ] = $this->views();
 		try {
-			return $this->without_ignored( $this->suggester( $options, $repository, $documents )->incoming( $post_id ) );
+			$suggester = $this->suggester( $options, $repository, $documents );
+			$found     = $this->without_ignored( $suggester->incoming( $post_id ) );
+			$this->record( EngineTiming::INCOMING, $started, $suggester->timing() );
+
+			return $found;
 		} finally {
 			$documents->release();
 		}

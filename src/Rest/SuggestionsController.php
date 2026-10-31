@@ -481,11 +481,11 @@ final class SuggestionsController implements Module {
 		if ( null !== $content ) {
 			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms, $names, $links );
 		} elseif ( 'publish' === $post->post_status ) {
-			$found = SuggestionCache::remember( 'out', $post_id, fn(): array => $this->suggestions->outgoing( $post_id ) );
+			$found = $this->suggestions->cached_outgoing( $post_id );
 			$links = SuggestionCache::remember( 'links', $post_id, fn(): array => $this->suggestions->current_links( $post_id ) );
 		} else {
 			$found = $this->suggestions->outgoing( $post_id, array(), null, null, null, null, $links );
-		}
+		}//end if
 		$links ??= $this->suggestions->current_links( $post_id, $content, $title );
 
 		// Solo se proponen frases donde el editor puede poner el enlace (docs/06 §2): el motor lee más
@@ -620,7 +620,7 @@ final class SuggestionsController implements Module {
 			return $this->empty( $state, $page, $per_page );
 		}
 
-		$all = SuggestionCache::remember( 'in', $post_id, fn(): array => $this->suggestions->incoming( $post_id ) );
+		$all = $this->suggestions->cached_incoming( $post_id );
 
 		// El motor da la mejor frase de cada origen y se listan todas (07 §3); `can_insert` dice cuáles puede
 		// insertar el usuario. Los permisos solo se miran en la página que se enseña, con sus entradas ya cargadas.

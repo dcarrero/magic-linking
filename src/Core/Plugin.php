@@ -44,6 +44,7 @@ use MagicLinking\Index\Pillars;
 use MagicLinking\Index\PostSource;
 use MagicLinking\Index\ScopedExtractor;
 use MagicLinking\Index\SuggestionCache;
+use MagicLinking\Index\EngineTiming;
 use MagicLinking\Index\Suggestions;
 use MagicLinking\Index\TableDocuments;
 use MagicLinking\Index\TableRepository;
@@ -249,8 +250,10 @@ final class Plugin {
 				$c->get( Settings::class ),
 				$c->get( DismissalRepository::class ),
 				$c->get( Pillars::class ),
-				$c->get( Language::class )
+				$c->get( Language::class ),
+				$c->get( EngineTiming::class )
 			),
+			EngineTiming::class            => static fn(): EngineTiming => new EngineTiming(),
 			Pillars::class                 => static function (): Pillars {
 				global $wpdb;
 				return new Pillars( $wpdb );
@@ -412,7 +415,7 @@ final class Plugin {
 				$c->get( ReportRepository::class ),
 				$c->get( BrokenRepository::class )
 			),
-			JobsController::class          => static fn( Container $c ): JobsController => new JobsController( $c->get( Jobs::class ) ),
+			JobsController::class          => static fn( Container $c ): JobsController => new JobsController( $c->get( Jobs::class ), $c->get( EngineTiming::class ) ),
 			SettingsController::class      => static fn( Container $c ): SettingsController => new SettingsController( $c->get( Settings::class ), $c->get( Jobs::class ), $c->get( Language::class ), $c->get( Capabilities::class ) ),
 			ExportHandler::class           => static fn( Container $c ): ExportHandler => new ExportHandler( $c->get( ReportRepository::class ), $c->get( BrokenRepository::class ), $c->get( Reader::class ) ),
 			CliModule::class               => static fn( Container $c ): CliModule => new CliModule(

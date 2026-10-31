@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MagicLinking\Rest;
 
 use MagicLinking\Core\Module;
+use MagicLinking\Index\EngineTiming;
 use MagicLinking\Jobs\Jobs;
 use WP_Error;
 use WP_REST_Request;
@@ -29,12 +30,21 @@ final class JobsController implements Module {
 	private Jobs $jobs;
 
 	/**
+	 * Tiempo del motor.
+	 *
+	 * @var EngineTiming
+	 */
+	private EngineTiming $timing;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param Jobs $jobs Procesos.
+	 * @param Jobs         $jobs   Procesos.
+	 * @param EngineTiming $timing Tiempo del motor.
 	 */
-	public function __construct( Jobs $jobs ) {
-		$this->jobs = $jobs;
+	public function __construct( Jobs $jobs, EngineTiming $timing ) {
+		$this->jobs   = $jobs;
+		$this->timing = $timing;
 	}
 
 	/**
@@ -54,6 +64,16 @@ final class JobsController implements Module {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_status' ),
+				'permission_callback' => static fn(): bool => current_user_can( 'edit_posts' ),
+			)
+		);
+
+		register_rest_route(
+			ReportController::NAMESPACE,
+			'/engine-timing',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_engine_timing' ),
 				'permission_callback' => static fn(): bool => current_user_can( 'edit_posts' ),
 			)
 		);
@@ -100,6 +120,21 @@ final class JobsController implements Module {
 	 */
 	public function can_manage(): bool {
 		return current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * GET /engine-timing: mediana y p95 del motor de las últimas peticiones, con el presupuesto de `docs/09 §4`.
+	 */
+	public function get_engine_timing(): WP_REST_Response {
+		$summary = $this->timing->summary();
+
+		return new WP_REST_Response(
+			array(
+				'keep'     => EngineTiming::KEEP,
+				'outgoing' => $summary[ EngineTiming::OUTGOING ] + array( 'budget' => EngineTiming::BUDGET_OUTGOING ),
+				'incoming' => $summary[ EngineTiming::INCOMING ] + array( 'budget' => EngineTiming::BUDGET_INCOMING ),
+			)
+		);
 	}
 
 	/**

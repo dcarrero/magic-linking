@@ -49,6 +49,7 @@ import type {
 	SettingsResponse,
 	SettingsValues,
 	SortKey,
+	EngineTimingResponse,
 	StatusResponse,
 	WizardResponse,
 } from './types';
@@ -202,6 +203,11 @@ export const api = {
 		} ),
 	status: ( signal?: AbortSignal ) =>
 		apiFetch< StatusResponse >( { path: path( '/status' ), signal } ),
+	engineTiming: ( signal?: AbortSignal ) =>
+		apiFetch< EngineTimingResponse >( {
+			path: path( '/engine-timing' ),
+			signal,
+		} ),
 	/**
 	 * Lanza el análisis. Sin `force` solo procesa lo nuevo o modificado; con `force`, todo desde cero.
 	 *

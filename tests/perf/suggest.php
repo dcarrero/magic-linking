@@ -6,8 +6,9 @@
  * Hace falta el sitio sintético ya indexado: `wp eval-file tests/perf/seed.php 10000` y `wp magic-linking index`.
  * Imprime p50, p95 y máximo de cada dirección, consultas por petición y memoria (pico total y añadida). Con `strict`
  * (CI) sale con error si el p95 de salientes pasa de 500 ms, el de entrantes de 800 ms o la memoria
- * que añade el cálculo de 32 MB, la capa REST añade más de 20 ms al p95 (ver el comentario del final) o los avisos de
- * ancla repetida y los enlaces actuales (F1-23) añaden más de 20 ms al p95.
+ * que añade el cálculo de 32 MB, la capa REST añade más de 20 ms al p95 (ver el comentario del final), los avisos de
+ * ancla repetida y los enlaces actuales (F1-23) añaden más de 20 ms al p95 o el tiempo que la pestaña Estado (F1-27)
+ * enseña para las últimas 20 peticiones difiere más de un 10 % de lo medido aquí.
  *
  * @package MagicLinking
  */
@@ -16,6 +17,7 @@
 
 use MagicLinking\Core\Plugin;
 use MagicLinking\Core\Schema;
+use MagicLinking\Index\EngineTiming;
 use MagicLinking\Index\Suggestions;
 use MagicLinking\Index\TableRepository;
 
@@ -32,7 +34,8 @@ if ( ! $service->ready() ) {
 }
 
 $docs = Schema::table( $wpdb->prefix, 'docs' );
-$ids  = array_map( 'intval', $wpdb->get_col( "SELECT post_id FROM {$docs} WHERE doc_len > 0" ) );
+// Solo entradas publicadas: las entrantes exigen destino publicado y una salida temprana no se registra (F1-27).
+$ids  = array_map( 'intval', $wpdb->get_col( "SELECT d.post_id FROM {$docs} d JOIN {$wpdb->posts} p ON p.ID = d.post_id WHERE d.doc_len > 0 AND p.post_status = 'publish'" ) );
 printf( "entradas indexadas=%d muestras=%d\n", count( $ids ), $samples );
 
 mt_srand( 20261006 );
@@ -42,6 +45,14 @@ $sample = array_slice( $ids, 0, $samples );
 // Una pasada sin medir para calentar la caché del servidor de base de datos.
 $service->outgoing( $sample[0] );
 $service->incoming( $sample[0] );
+// Las medidas de la pasada de calentamiento no cuentan: el búfer de cada dirección empieza con sus propias peticiones.
+$timing_reset = static function (): void {
+	foreach ( EngineTiming::OPTIONS as $option ) {
+		delete_option( $option );
+	}
+};
+Plugin::container()->get( EngineTiming::class )->flush( true );
+$timing_reset();
 
 $report = static function ( string $name, array $times, array $queries, array $counts ): float {
 	sort( $times );
@@ -60,9 +71,11 @@ $report = static function ( string $name, array $times, array $queries, array $c
 	return $p95;
 };
 
-$results = array();
-$extra   = 0.0;
-$total   = 0.0;
+$timing           = Plugin::container()->get( EngineTiming::class );
+$status_deviation = 0.0;
+$results          = array();
+$extra            = 0.0;
+$total            = 0.0;
 foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 	$times   = array();
 	$queries = array();
@@ -84,6 +97,36 @@ foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 	}
 	sort( $queries );
 	$results[ $direction ] = $report( $direction, $times, $queries, $counts );
+
+	// F1-27: lo que la pestaña Estado enseña (búfer de las últimas 20 peticiones, mismo cálculo de mediana y p95) frente a lo
+	// medido aquí sobre esas mismas 20 peticiones. Debe coincidir en un 10 %.
+	$last      = array_slice( $times, -EngineTiming::KEEP );
+	$shown     = $timing->summary()[ $direction ];
+	if ( count( $last ) !== $shown['count'] ) {
+		fwrite( STDERR, sprintf( "estado %s: se registraron %d peticiones y aquí se midieron %d; no son comparables.\n", $direction, $shown['count'], count( $last ) ) );
+		$status_deviation = 100.0;
+	}
+	$mine      = array( EngineTiming::median( $last ), EngineTiming::p95( $last ) );
+	$deviation = array();
+	foreach ( array( $shown['median'], $shown['p95'] ) as $i => $value ) {
+		$deviation[] = $mine[ $i ] > 0 ? 100 * abs( $value - $mine[ $i ] ) / $mine[ $i ] : 0.0;
+	}
+	printf(
+		"estado %-9s mediana=%6.2f ms (medida %6.2f, %.1f %%)  p95=%6.2f ms (medida %6.2f, %.1f %%)  fases(mediana): recuperación=%.2f carga=%.2f frases=%.2f puntuación=%.2f ms  candidatas=%.1f\n",
+		$direction,
+		$shown['median'],
+		$mine[0],
+		$deviation[0],
+		$shown['p95'],
+		$mine[1],
+		$deviation[1],
+		$shown['retrieval'],
+		$shown['load'],
+		$shown['phrases'],
+		$shown['scoring'],
+		$shown['candidates']
+	);
+	$status_deviation = max( $status_deviation, ...$deviation );
 }
 
 // La capa REST (F1-08): la misma petición de la pantalla, con permisos, presentación de la tarjeta y JSON.
@@ -212,7 +255,7 @@ $added['draft'] = $report( 'avisos borrador', $times, array( 0 ), $cards );
 $peak = $extra;
 printf( "memoria: pico total en WP-CLI=%.1f MB (base incluida), añadida por el cálculo=%.1f MB (límite 32 MB; el total de la petición web no debe pasar de 64 MB)\n", $total, $extra );
 
-if ( $strict && ( $results['outgoing'] > 500 || $results['incoming'] > 800 || $peak > 32 || $rest_over > 20 || max( $added ) > 20 || $rest_total['outbound'] > 500 || $rest_total['inbound'] > 800 ) ) {
+if ( $strict && ( $results['outgoing'] > EngineTiming::BUDGET_OUTGOING || $results['incoming'] > EngineTiming::BUDGET_INCOMING || $peak > 32 || $rest_over > 20 || $status_deviation > 10 || max( $added ) > 20 || $rest_total['outbound'] > EngineTiming::BUDGET_OUTGOING || $rest_total['inbound'] > EngineTiming::BUDGET_INCOMING ) ) {
 	fwrite( STDERR, "Presupuesto de rendimiento superado.\n" );
 	exit( 1 );
 }
