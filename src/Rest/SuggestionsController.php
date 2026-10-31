@@ -330,6 +330,9 @@ final class SuggestionsController implements Module {
 		// contenedores que los bloques de texto admitidos y una sugerencia imposible volvería siempre.
 		$found = $this->insertable( null !== $content ? $content : $post->post_content, $post_id, $found );
 
+		// Sin sugerencias: solo se culpa al filtro Exigir si de verdad es la causa (con él no hay candidatas y sin él sí).
+		$required = array() === $found && $this->suggestions->outgoing_limited( $post_id, $content, $title, $terms, $names ) ? $this->settings->filters_in_mode( Suggester::REQUIRE ) : array();
+
 		$this->presenter->prime( $found );
 
 		return new WP_REST_Response(
@@ -340,8 +343,8 @@ final class SuggestionsController implements Module {
 				'total'    => count( $found ),
 				'items'    => array_map( array( $this->presenter, 'present' ), $found ),
 				'post_id'  => $post_id,
-				// Filtros en modo Exigir (type, category, tag): sin sugerencias, el estado vacío los explica.
-				'required' => $this->settings->filters_in_mode( Suggester::REQUIRE ),
+				// Filtros en modo Exigir (type, category, tag) que son la causa de que no haya sugerencias; si no, vacío.
+				'required' => $required,
 			)
 		);
 	}
@@ -405,8 +408,9 @@ final class SuggestionsController implements Module {
 		$cut = array_slice( $all, ( $page - 1 ) * $per_page, $per_page );
 		$this->presenter->prime( $cut );
 
-		$total = count( $all );
-		$pages = max( 1, (int) ceil( $total / $per_page ) );
+		$total    = count( $all );
+		$pages    = max( 1, (int) ceil( $total / $per_page ) );
+		$required = array() === $all && $this->suggestions->incoming_limited( $post_id ) ? $this->settings->filters_in_mode( Suggester::REQUIRE ) : array();
 
 		$response = new WP_REST_Response(
 			array(
@@ -418,7 +422,7 @@ final class SuggestionsController implements Module {
 				'per_page'    => $per_page,
 				'items'       => array_map( array( $this->presenter, 'present' ), $cut ),
 				'post_id'     => $post_id,
-				'required'    => $this->settings->filters_in_mode( Suggester::REQUIRE ),
+				'required'    => $required,
 			)
 		);
 		$response->header( 'X-WP-Total', (string) $total );

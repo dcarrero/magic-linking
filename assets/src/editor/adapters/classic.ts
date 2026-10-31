@@ -93,6 +93,15 @@ export function classicAdapter(
 				options.terms ?? {}
 			) ) {
 				if ( source.hierarchical ) {
+					// Sin la caja en la página (quitada con remove_meta_box, otra interfaz) no se sabe qué hay elegido: no se
+					// envía nada y el servidor usa lo guardado, en vez de tomar «ninguna» por lo elegido.
+					if (
+						! document.getElementById(
+							`${ source.taxonomy }checklist`
+						)
+					) {
+						continue;
+					}
 					// Caja de categorías: las casillas marcadas (`post_category[]` para `category`).
 					const name =
 						source.taxonomy === 'category'

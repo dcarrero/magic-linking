@@ -120,10 +120,91 @@ final class Suggestions {
 	 * @phpstan-param array<string, mixed>|null $names
 	 */
 	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null, ?array $terms = null, ?array $names = null ): array {
+		$prepared = $this->prepare_outgoing( $post_id, $options, $content, $title, $terms, $names );
+		if ( null === $prepared ) {
+			return array();
+		}
+
+		[ $suggester, $document, $documents ] = $prepared;
+		try {
+			$found = $suggester->outgoing( $document );
+
+			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
+		} finally {
+			$documents->release();
+		}
+	}
+
+	/**
+	 * Si el filtro Exigir es lo que deja sin sugerencias salientes a una entrada (con él no hay candidatas y sin él sí).
+	 * Solo para el estado vacío: se llama cuando el resultado ya salió vacío. Mismos argumentos que {@see self::outgoing()}.
+	 *
+	 * @param int         $post_id ID de la entrada abierta.
+	 * @param string|null $content Contenido del editor.
+	 * @param string|null $title   Título del editor.
+	 * @param array|null  $terms   IDs de categorías y etiquetas del editor.
+	 * @param array|null  $names   Nombres de etiquetas del editor clásico.
+	 *
+	 * @phpstan-param array<string, mixed>|null $terms
+	 * @phpstan-param array<string, mixed>|null $names
+	 */
+	public function outgoing_limited( int $post_id, ?string $content = null, ?string $title = null, ?array $terms = null, ?array $names = null ): bool {
+		if ( array() === $this->settings->filters_in_mode( Suggester::REQUIRE ) ) {
+			return false;
+		}
+		$prepared = $this->prepare_outgoing( $post_id, array(), $content, $title, $terms, $names );
+		if ( null === $prepared ) {
+			return false;
+		}
+
+		[ $suggester, $document, $documents ] = $prepared;
+		try {
+			return $suggester->outgoing_limited( $document );
+		} finally {
+			$documents->release();
+		}
+	}
+
+	/**
+	 * Lo mismo para las entrantes hacia una entrada.
+	 *
+	 * @param int $post_id ID del destino.
+	 */
+	public function incoming_limited( int $post_id ): bool {
+		$post = get_post( $post_id );
+		if ( array() === $this->settings->filters_in_mode( Suggester::REQUIRE ) || ! $post instanceof WP_Post || 'publish' !== $post->post_status || ! $this->analyzes( $post ) || ! $this->ready() ) {
+			return false;
+		}
+
+		[ $repository, $documents ] = $this->views();
+		try {
+			return $this->suggester( array(), $repository, $documents )->incoming_limited( $post_id );
+		} finally {
+			$documents->release();
+		}
+	}
+
+	/**
+	 * Motor, documento y vista de documentos para calcular las salientes de una entrada, o null si no se analiza.
+	 *
+	 * @param int         $post_id ID.
+	 * @param array       $options Opciones del motor.
+	 * @param string|null $content Contenido del editor.
+	 * @param string|null $title   Título del editor.
+	 * @param array|null  $terms   IDs de términos del editor.
+	 * @param array|null  $names   Nombres de etiquetas del editor.
+	 *
+	 * @phpstan-param array<string, mixed> $options
+	 * @phpstan-param array<string, mixed>|null $terms
+	 * @phpstan-param array<string, mixed>|null $names
+	 *
+	 * @return array{0: Suggester, 1: \MagicLinking\Engine\Document, 2: TableDocuments}|null
+	 */
+	private function prepare_outgoing( int $post_id, array $options, ?string $content, ?string $title, ?array $terms, ?array $names ): ?array {
 		$post = get_post( $post_id );
 		// Con el contenido del editor, una entrada nueva (borrador automático) también se analiza: aún no hay nada guardado.
 		if ( ! $post instanceof WP_Post || ! $this->analyzes( $post, null !== $content ) || ! $this->ready() ) {
-			return array();
+			return null;
 		}
 
 		if ( null !== $content ) {
@@ -141,18 +222,13 @@ final class Suggestions {
 
 		// Vistas de este cálculo: con términos solo si hay filtros por taxonomía; el servicio compartido no cambia.
 		[ $repository, $documents ] = $this->views();
-		try {
-			$suggester = $this->suggester( $options, $repository, $documents );
-			$document  = $documents->from_post( $post );
-			if ( null !== $content && ( null !== $terms || null !== $names ) && $documents->taxonomies_enabled() ) {
-				$document = $document->with_taxonomies( Taxonomies::resolve( $post->post_type, $terms ?? array(), $names ?? array() ) + $document->taxonomies );
-			}
-			$found = $suggester->outgoing( $document );
-
-			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
-		} finally {
-			$documents->release();
+		$suggester                  = $this->suggester( $options, $repository, $documents );
+		$document                   = $documents->from_post( $post );
+		if ( null !== $content && ( null !== $terms || null !== $names ) && $documents->taxonomies_enabled() ) {
+			$document = $document->with_taxonomies( Taxonomies::resolve( $post->post_type, $terms ?? array(), $names ?? array() ) + $document->taxonomies );
 		}
+
+		return array( $suggester, $document, $documents );
 	}
 
 	/**
@@ -233,7 +309,8 @@ final class Suggestions {
 		$filters    = $this->active_filters( $this->settings->all() );
 		$taxonomies = isset( $filters['category'] ) || isset( $filters['tag'] );
 
-		return array( $this->repository->with_taxonomies( $taxonomies ), $this->documents->with_taxonomies( $taxonomies ) );
+		// Sin filtros de taxonomía se usan los servicios compartidos tal cual (conservan sus cachés por petición).
+		return $taxonomies ? array( $this->repository->with_taxonomies( true ), $this->documents->with_taxonomies( true ) ) : array( $this->repository, $this->documents );
 	}
 
 	/**

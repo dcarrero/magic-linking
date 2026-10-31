@@ -17,9 +17,11 @@ const options = {
 describe( 'classicAdapter.getTerms', () => {
 	it( 'lee las categorías marcadas y las etiquetas escritas en la caja, sin guardar', () => {
 		document.body.innerHTML = `
-			<input type="checkbox" name="post_category[]" value="4" checked>
-			<input type="checkbox" name="post_category[]" value="7">
-			<input type="checkbox" name="post_category[]" value="9" checked>
+			<ul id="categorychecklist">
+			<li><input type="checkbox" name="post_category[]" value="4" checked></li>
+			<li><input type="checkbox" name="post_category[]" value="7"></li>
+			<li><input type="checkbox" name="post_category[]" value="9" checked></li>
+			</ul>
 			<textarea name="tax_input[post_tag]">sol, aire ,</textarea>`;
 		expect( classicAdapter( 5, options ).getTerms() ).toEqual( {
 			ids: { category: [ 4, 9 ] },
@@ -33,6 +35,19 @@ describe( 'classicAdapter.getTerms', () => {
 		expect( classicAdapter( 5, options ).getTerms()?.names ).toEqual( {
 			post_tag: [ '2026', '5' ],
 		} );
+		expect( classicAdapter( 5, options ).getTerms()?.ids ).toEqual( {} );
+	} );
+
+	it( 'sin la caja de categorías no envía categorías: mandan las guardadas', () => {
+		document.body.innerHTML =
+			'<textarea name="tax_input[post_tag]">sol</textarea>';
+		expect( classicAdapter( 5, options ).getTerms()?.ids ).toEqual( {} );
+		document.body.innerHTML = '';
+		expect( classicAdapter( 5, options ).getTerms() ).toBeUndefined();
+	} );
+
+	it( 'una caja de categorías sin nada marcado sí envía una lista vacía', () => {
+		document.body.innerHTML = '<ul id="categorychecklist"></ul>';
 		expect( classicAdapter( 5, options ).getTerms()?.ids ).toEqual( {
 			category: [],
 		} );

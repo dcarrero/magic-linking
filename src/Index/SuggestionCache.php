@@ -39,6 +39,11 @@ final class SuggestionCache implements Module {
 	public const TTL = 600;
 
 	/**
+	 * Grupo de la caché de objetos que solo vive lo que dura la petición (nunca persistente).
+	 */
+	private const RUNTIME_GROUP = 'magiclinking_runtime';
+
+	/**
 	 * Engancha lo que invalida la caché.
 	 *
 	 * Solo cuenta lo que puede cambiar un resultado: las entradas de un tipo que se analiza, sin revisiones,
@@ -51,6 +56,8 @@ final class SuggestionCache implements Module {
 		add_action( 'save_post', array( $this, 'on_save' ), 10, 2 );
 		add_action( 'deleted_post', array( $this, 'on_save' ), 10, 2 );
 		add_action( 'transition_post_status', array( $this, 'on_transition' ), 10, 3 );
+		wp_cache_add_non_persistent_groups( self::RUNTIME_GROUP );
+		Taxonomies::register();
 		// Categorías y etiquetas (filtros de taxonomía, docs/04 §4.3): solo cuentan si hay alguno activo.
 		// Renombrar o reordenar un término no cambia su `term_taxonomy_id`, que es lo que comparan los filtros.
 		add_action( 'set_object_terms', array( $this, 'on_set_terms' ), 10, 6 );
@@ -58,6 +65,7 @@ final class SuggestionCache implements Module {
 		add_action( 'delete_term', array( $this, 'on_delete_term' ), 10, 3 );
 		foreach ( array( 'add_option_', 'update_option_', 'delete_option_' ) as $prefix ) {
 			add_action( $prefix . Installer::SETTINGS_OPTION, array( self::class, 'bump' ) );
+			add_action( $prefix . Installer::SETTINGS_OPTION, array( self::class, 'forget_filters' ) );
 		}
 	}
 
@@ -94,6 +102,9 @@ final class SuggestionCache implements Module {
 	 */
 	public function on_terms( $object_id, $tt_ids = array(), $taxonomy = '' ): void {
 		unset( $tt_ids );
+		if ( ! self::taxonomy_filters_active() ) {
+			return;
+		}
 		$post = get_post( (int) $object_id );
 		if ( $post instanceof WP_Post && 'publish' === $post->post_status && self::relevant( $post ) && self::taxonomy_used( $post->post_type, (string) $taxonomy ) ) {
 			self::bump();
@@ -109,6 +120,9 @@ final class SuggestionCache implements Module {
 	 */
 	public function on_delete_term( $term, $tt_id, $taxonomy ): void {
 		unset( $term, $tt_id );
+		if ( ! self::taxonomy_filters_active() ) {
+			return;
+		}
 		foreach ( ( new Settings() )->post_types() as $type ) {
 			if ( self::taxonomy_used( $type, (string) $taxonomy ) ) {
 				self::bump();
@@ -124,7 +138,7 @@ final class SuggestionCache implements Module {
 	 * @param string $taxonomy  Taxonomía.
 	 */
 	private static function taxonomy_used( string $post_type, string $taxonomy ): bool {
-		$filters = ( new Settings() )->filters();
+		$filters = self::filters();
 		foreach ( array(
 			'category' => 'category',
 			'post_tag' => 'tag',
@@ -135,6 +149,40 @@ final class SuggestionCache implements Module {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Si algún filtro de categoría o etiqueta está en modo Considerar o Exigir (salida rápida de los hooks de términos).
+	 */
+	private static function taxonomy_filters_active(): bool {
+		$filters = self::filters();
+
+		return Suggester::IGNORE !== $filters['category'] || Suggester::IGNORE !== $filters['tag'];
+	}
+
+	/**
+	 * Los filtros de los ajustes, leídos una vez por petición: los hooks de términos se disparan muchas veces y cada
+	 * lectura sanea todos los ajustes. Se olvidan al cambiar los ajustes.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function filters(): array {
+		$cached = wp_cache_get( 'filters', self::RUNTIME_GROUP );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$filters = ( new Settings() )->filters();
+		wp_cache_set( 'filters', $filters, self::RUNTIME_GROUP );
+
+		return $filters;
+	}
+
+	/**
+	 * Olvida los filtros recordados (cambian los ajustes).
+	 */
+	public static function forget_filters(): void {
+		wp_cache_delete( 'filters', self::RUNTIME_GROUP );
 	}
 
 	/**

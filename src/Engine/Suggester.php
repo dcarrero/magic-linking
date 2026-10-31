@@ -240,6 +240,70 @@ final class Suggester {
 	}
 
 	/**
+	 * Si el filtro Exigir es la causa de que una entrada no tenga sugerencias salientes: con él no se recupera ninguna
+	 * candidata y sin él sí. Solo se llama cuando el resultado ya salió vacío (dos recuperaciones de una candidata,
+	 * sin frases ni puntuación); si no hay filtros Exigir, responde sin consultar nada.
+	 *
+	 * @param Document $source Entrada abierta.
+	 */
+	public function outgoing_limited( Document $source ): bool {
+		if ( ! in_array( self::REQUIRE, $this->filters, true ) ) {
+			return false;
+		}
+		$needs = $this->requirement( $source->type, $source->taxonomies );
+		if ( null === $needs ) {
+			return true;
+		}
+
+		try {
+			$analyzer = Analyzer::for_language( $source->lang );
+			$analyzed = $analyzer->analyze( $source, true );
+			$stats    = $this->index instanceof TermStats ? $this->index->stats_for( $source->lang, $analyzed->terms(), true )[0] : $this->index->stats( $source->lang );
+			$weights  = $this->indexer->weigh( $analyzed, $stats );
+			$exclude  = array_values( array_unique( array_merge( array( $source->id ), $source->linked(), $this->never ) ) );
+
+			return array() === $this->retriever->outgoing( $weights, $source->lang, $exclude, 1, $needs )
+				&& array() !== $this->retriever->outgoing( $weights, $source->lang, $exclude, 1 );
+		} finally {
+			if ( $this->index instanceof Preloads ) {
+				$this->index->release();
+			}
+		}
+	}
+
+	/**
+	 * Lo mismo para las entrantes hacia un destino: con el filtro no sale ningún origen y sin él sí.
+	 *
+	 * @param int $target ID del destino.
+	 */
+	public function incoming_limited( int $target ): bool {
+		if ( ! in_array( self::REQUIRE, $this->filters, true ) ) {
+			return false;
+		}
+		$meta = $this->index->meta( $target );
+		if ( null === $meta ) {
+			return false;
+		}
+		$needs = $this->requirement( $meta->type, $meta->taxonomies );
+		if ( null === $needs ) {
+			return true;
+		}
+
+		try {
+			$analyzer = Analyzer::for_language( $meta->lang );
+			$phrases  = $this->finder->target_phrases( $meta, $this->index->terms( $target ), $analyzer );
+			$exclude  = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array(), $this->excluded_origins );
+
+			return array() === $this->retriever->incoming( $meta, $phrases, $exclude, $needs )
+				&& array() !== $this->retriever->incoming( $meta, $phrases, $exclude );
+		} finally {
+			if ( $this->index instanceof Preloads ) {
+				$this->index->release();
+			}
+		}
+	}
+
+	/**
 	 * Avisa al almacén de las entradas que va a consultar (antes de filtrarlas y puntuarlas, para que ninguna consulta sea por entrada).
 	 *
 	 * @param int[] $ids IDs.

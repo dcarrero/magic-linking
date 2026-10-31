@@ -588,6 +588,122 @@ final class PillarFiltersTest extends GraphTestCase {
 		$this->assertNotSame( array(), $repo->matching( 'es', $cases[3] ) );
 	}
 
+	public function test_a_missing_editor_field_means_the_saved_terms_are_used(): void {
+		$this->filters( array( 'category' => 'require' ) );
+		$content = $this->p( 'Hoy hablamos de la aerotermia en casa.' );
+		$saved   = self::factory()->post->create(
+			array(
+				'post_title'    => 'Con categoría guardada',
+				'post_content'  => $content,
+				'post_category' => array( $this->category( 'energia' ) ),
+			)
+		);
+
+		$no_field = $this->service()->outgoing( $saved, array(), $content, 'Con categoría guardada', array(), array() );
+		$this->assertContains( $this->same, self::targets( $no_field ), 'Sin campo en el editor, mandan las categorías guardadas.' );
+		$empty_box = $this->service()->outgoing( $saved, array(), $content, 'Con categoría guardada', array( 'category' => array() ) );
+		$this->assertSame( array(), $empty_box, 'Una caja vacía sí es «ninguna categoría elegida».' );
+	}
+
+	public function test_the_empty_state_blames_the_filter_only_when_it_is_the_cause(): void {
+		$this->filters( array( 'category' => 'require' ) );
+		$lonely    = self::factory()->post->create(
+			array(
+				'post_title'    => 'Zzz qqq',
+				'post_content'  => $this->p( 'Palabras sin nada que ver con el resto del sitio: zzzqq xxwww yyvvv.' ),
+				'post_category' => array( $this->category( 'energia' ) ),
+			)
+		);
+		$other_cat = self::factory()->post->create(
+			array(
+				'post_title'    => 'Origen de otra categoría',
+				'post_content'  => $this->p( 'Hoy hablamos de la aerotermia en casa.' ),
+				'post_category' => array( $this->category( 'solo-aqui' ) ),
+			)
+		);
+		$build     = static function (): void {
+			$jobs = Plugin::container()->get( Jobs::class );
+			$job  = $jobs->start_index( 0, true, true, true, true );
+			$jobs->run_to_completion( $job['id'] );
+		};
+		$build();
+
+		$data = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $lonely ) )->get_data();
+		$this->assertSame( 0, $data['total'] );
+		$this->assertSame( array(), $data['required'], 'Sin nada que enlazar con o sin filtro, el filtro no es la causa.' );
+
+		$data = $this->request( 'GET', '/suggestions/outbound', array( 'post_id' => $other_cat ) )->get_data();
+		$this->assertSame( 0, $data['total'] );
+		$this->assertSame( array( 'category' ), $data['required'], 'Sin el filtro habría candidatas: el filtro es la causa.' );
+
+		$data = $this->request( 'GET', '/suggestions/inbound', array( 'post_id' => $lonely ) )->get_data();
+		$this->assertSame( array(), $data['required'] );
+		$data = $this->request( 'GET', '/suggestions/inbound', array( 'post_id' => $this->same ) )->get_data();
+		$this->assertGreaterThan( 0, $data['total'] );
+		$this->assertSame( array(), $data['required'], 'Con resultados no se culpa a nadie.' );
+	}
+
+	public function test_without_taxonomy_filters_the_shared_services_are_reused(): void {
+		$service = $this->service();
+		$views   = new \ReflectionMethod( $service, 'views' );
+		$views->setAccessible( true );
+
+		[ $repo, $docs ] = $views->invoke( $service );
+		$this->assertSame( Plugin::container()->get( \MagicLinking\Index\TableRepository::class ), $repo );
+		$this->assertSame( Plugin::container()->get( \MagicLinking\Index\TableDocuments::class ), $docs );
+
+		$this->filters( array( 'type' => 'require' ) );
+		[ $repo ] = $views->invoke( $service );
+		$this->assertSame( Plugin::container()->get( \MagicLinking\Index\TableRepository::class ), $repo, 'El tipo no necesita términos.' );
+
+		$this->filters( array( 'category' => 'consider' ) );
+		[ $repo, $docs ] = $views->invoke( $service );
+		$this->assertNotSame( Plugin::container()->get( \MagicLinking\Index\TableRepository::class ), $repo );
+		$this->assertNotSame( Plugin::container()->get( \MagicLinking\Index\TableDocuments::class ), $docs );
+	}
+
+	public function test_term_hooks_do_not_read_the_settings_when_every_filter_is_ignored(): void {
+		$this->filters( array( 'category' => 'ignore' ) );
+		$reads = 0;
+		add_filter(
+			'pre_option_magiclinking_settings',
+			static function ( $pre ) use ( &$reads ) {
+				++$reads;
+				return $pre;
+			}
+		);
+		$posts = array( $this->same, $this->other, $this->page, $this->stray, $this->source );
+		foreach ( $posts as $i => $id ) {
+			wp_set_post_categories( $id, array( $this->category( 0 === $i % 2 ? 'bricolaje' : 'energia' ) ) );
+		}
+		$this->assertLessThanOrEqual( 1, $reads, 'Los ajustes se leen una vez por petición, no en cada hook de términos.' );
+
+		$this->filters( array( 'category' => 'consider' ) );
+		$epoch = wp_cache_get_last_changed( SuggestionCache::GROUP );
+		wp_set_post_categories( $this->same, array( $this->category( 'cocina' ) ) );
+		$this->assertNotSame( $epoch, wp_cache_get_last_changed( SuggestionCache::GROUP ), 'Al cambiar los ajustes se olvida lo recordado.' );
+	}
+
+	public function test_primary_taxonomy_is_not_remembered_as_null_and_follows_registrations(): void {
+		register_post_type( 'libro_pf', array( 'public' => true ) );
+		$this->assertNull( \MagicLinking\Index\Taxonomies::primary( 'libro_pf', 'category' ) );
+
+		register_taxonomy(
+			'genero_pf',
+			'libro_pf',
+			array(
+				'public'       => true,
+				'show_ui'      => true,
+				'hierarchical' => true,
+			)
+		);
+		$this->assertSame( 'genero_pf', \MagicLinking\Index\Taxonomies::primary( 'libro_pf', 'category' ), 'Registrada después: ya no es null.' );
+
+		unregister_taxonomy( 'genero_pf' );
+		$this->assertNull( \MagicLinking\Index\Taxonomies::primary( 'libro_pf', 'category' ), 'Quitada: el memo se olvida.' );
+		unregister_post_type( 'libro_pf' );
+	}
+
 	public function test_require_type_and_tag(): void {
 		$this->filters( array( 'type' => 'require' ) );
 		$this->assertNotContains( $this->page, self::targets( $this->service()->outgoing( $this->source ) ), 'Una entrada no enlaza a una página con Exigir tipo.' );

@@ -22,6 +22,13 @@ namespace MagicLinking\Index;
 final class Taxonomies {
 
 	/**
+	 * Taxonomía principal ya encontrada por (tipo, taxonomía lógica), por petición.
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $memo = array();
+
+	/**
 	 * Taxonomías técnicas de los plugins de idiomas y de formato: no son temas.
 	 */
 	private const SKIP = array( 'post_format', 'language', 'term_language', 'post_translations', 'term_translations' );
@@ -33,16 +40,33 @@ final class Taxonomies {
 	 * @param string $logical   `category` (jerárquica) o `post_tag` (no jerárquica).
 	 */
 	public static function primary( string $post_type, string $logical ): ?string {
-		// Memo por petición: se llama dos veces por entrada y por metadato.
-		static $memo = array();
-		$key         = $post_type . "\0" . $logical;
-		if ( array_key_exists( $key, $memo ) ) {
-			return $memo[ $key ];
+		$key = $post_type . "\0" . $logical;
+		if ( isset( self::$memo[ $key ] ) ) {
+			return self::$memo[ $key ];
 		}
 
-		$memo[ $key ] = self::find_primary( $post_type, $logical );
+		// Un null no se recuerda: la taxonomía de un tipo puede registrarse más tarde.
+		$found = self::find_primary( $post_type, $logical );
+		if ( null !== $found ) {
+			self::$memo[ $key ] = $found;
+		}
 
-		return $memo[ $key ];
+		return $found;
+	}
+
+	/**
+	 * Engancha el olvido del memo cuando se registra o se quita una taxonomía.
+	 */
+	public static function register(): void {
+		add_action( 'registered_taxonomy', array( self::class, 'forget' ) );
+		add_action( 'unregistered_taxonomy', array( self::class, 'forget' ) );
+	}
+
+	/**
+	 * Olvida las taxonomías principales recordadas.
+	 */
+	public static function forget(): void {
+		self::$memo = array();
 	}
 
 	/**
