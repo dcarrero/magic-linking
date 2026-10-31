@@ -9,7 +9,7 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 
 *Enlazado interno para WordPress que funciona gratis de verdad, con la IA que ya tiene tu WordPress y sin vender créditos.*
 
-> **Status: version 0.23.1 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
+> **Status: version 0.24.0 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
 
 ## 🚀 Features
 
@@ -116,7 +116,7 @@ Legend: ✅ done · 🔜 planned. No dates and no prices; the order can change.
 - ✅ Remove or change broken links one by one
 - ✅ Optional AI through the WordPress AI client (**Settings → Connectors**): *Improve with AI* reorders the suggestions, flags the ones it does not recommend and may propose a better anchor, with cost estimate and a daily cap you set
 - 🔜 Suggestions by meaning (embeddings) when WordPress 7.2 provides them
-- 🔜 Pillar content (own flag, Yoast or Rank Math) and Ignore / Consider / Require filters by post type, category and tag
+- ✅ Pillar content (own flag, or Yoast or Rank Math while active) and Ignore / Consider / Require filters by post type, category and tag
 - 🔜 Your own target phrases per entry
 
 ### Pro (later)
@@ -181,6 +181,10 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 [GPL-2.0-or-later](LICENSE).
 
 ## 📝 Changelog
+
+### 0.24.0
+- Pillar content and filters (F1-25, D-67): own *Pillar content* mark in the panel, plus Yoast SEO cornerstone and Rank Math pillar marks while those plugins are active (+0.05, never past the threshold on its own); Ignore/Consider/Require by content type, category and tag in Settings > Suggestions, with Require applied in retrieval before the candidate limit (SQL, shared `Engine\Requirement` comparator, allowed set on the semantic path); unsaved editor terms are used; the empty state blames the filter only when it is the cause.
+- Report, Maintenance and AI settings dates use History's `formatDate()` (F1-42): page language, one formatter per locale, invalid locale or date no longer throws.
 
 ### 0.23.1
 - Shorter `readme.txt` description: WordPress.org appends the unknown sections (support, external services, privacy, third-party libraries) to it and trimmed the result past 2,500 words. No code changes.
