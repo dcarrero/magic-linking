@@ -43,6 +43,18 @@ test.describe( 'Exclude from the analysis', () => {
 		seedExclude();
 	} );
 
+	// Las entradas de esta pasada hablan de bombas de calor, como las de otras pruebas: no se dejan atrás.
+	test.afterAll( () => {
+		wp(
+			'eval',
+			`
+			global $wpdb;
+			foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'ex-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
+			foreach ( array( 'docs', 'links', 'jobs' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
+			`
+		);
+	} );
+
 	test( 'exclude from a row with the keyboard, see it in the Excluded filter and include it again', async ( {
 		page,
 	} ) => {
