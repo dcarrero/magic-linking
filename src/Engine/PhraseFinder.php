@@ -91,11 +91,14 @@ final class PhraseFinder {
 			if ( '' === $key ) {
 				return;
 			}
-			// Gana la de más calidad; con la misma, la que admite hueco (la pidió el usuario).
-			$quality = Scorer::ANCHOR_QUALITY[ $kind ];
-			$kept    = isset( $phrases[ $key ] ) ? Scorer::ANCHOR_QUALITY[ $phrases[ $key ]->kind ] : -1.0;
-			if ( $quality > $kept || ( $quality === $kept && $gap && ! $phrases[ $key ]->gap ) ) {
-				$phrases[ $key ] = new Phrase( array_values( $keys ), $kind, $gap );
+			// Gana la de más calidad; con la misma solo sube el hueco (la pidió el usuario) y la frase conserva su tipo.
+			$existing = $phrases[ $key ] ?? null;
+			$quality  = Scorer::ANCHOR_QUALITY[ $kind ];
+			$kept     = null === $existing ? -1.0 : Scorer::ANCHOR_QUALITY[ $existing->kind ];
+			if ( $quality > $kept ) {
+				$phrases[ $key ] = new Phrase( array_values( $keys ), $kind, $gap || ( null !== $existing && $existing->gap ) );
+			} elseif ( $quality === $kept && $gap && ! $existing->gap ) {
+				$phrases[ $key ] = new Phrase( $existing->keys, $existing->kind, true );
 			}
 		};
 

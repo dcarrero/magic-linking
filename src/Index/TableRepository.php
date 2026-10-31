@@ -803,6 +803,8 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 
 		$date = strtotime( $post->post_modified_gmt . ' UTC' );
 
+		$mine = TargetPhrases::indexed( $id );
+
 		return new DocMeta(
 			$id,
 			(string) $row['post_type'],
@@ -813,9 +815,9 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			(int) $row['word_count'],
 			(int) $row['doc_len'],
 			(int) $row['outbound'],
-			Fingerprint::focus( $id ),
+			Fingerprint::focus( $id, $mine['texts'] ),
 			$this->with_taxonomies ? Taxonomies::of( $id, (string) $row['post_type'] ) : array(),
-			Fingerprint::gapped( $id )
+			$mine['gapped']
 		);
 	}
 

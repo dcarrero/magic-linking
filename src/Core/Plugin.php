@@ -256,7 +256,7 @@ final class Plugin {
 				return new Pillars( $wpdb );
 			},
 			PillarController::class        => static fn( Container $c ): PillarController => new PillarController( $c->get( Pillars::class ), $c->get( Settings::class ) ),
-			TargetPhrasesController::class => static fn( Container $c ): TargetPhrasesController => new TargetPhrasesController( $c->get( Settings::class ) ),
+			TargetPhrasesController::class => static fn( Container $c ): TargetPhrasesController => new TargetPhrasesController( $c->get( Settings::class ), $c->get( Language::class ) ),
 			ExclusionController::class     => static fn( Container $c ): ExclusionController => new ExclusionController( $c->get( Settings::class ) ),
 			SuggestionCache::class         => static fn(): SuggestionCache => new SuggestionCache(),
 			SuggestionPresenter::class     => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ), $c->get( AnchorNotes::class ) ),

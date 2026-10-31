@@ -197,6 +197,8 @@ export interface TargetPhrase {
 export interface TargetPhrasesState {
 	post_id: number;
 	phrases: TargetPhrase[];
+	/** Textos que el servidor ha quitado por repetidos al guardar. */
+	removed: string[];
 	limits: { phrases: number; variants: number; words: number; chars: number };
 }
 

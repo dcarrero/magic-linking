@@ -134,6 +134,8 @@ final class PostSource implements DocumentSource {
 		$title   = PostTitle::of( $post );
 		$date    = strtotime( $post->post_modified_gmt . ' UTC' );
 
+		$mine = TargetPhrases::indexed( $post->ID );
+
 		return new Document(
 			$post->ID,
 			$post->post_type,
@@ -144,9 +146,9 @@ final class PostSource implements DocumentSource {
 			$content->headings,
 			$content->paragraphs,
 			array(),
-			Fingerprint::focus( $post->ID ),
+			Fingerprint::focus( $post->ID, $mine['texts'] ),
 			$this->with_taxonomies ? Taxonomies::of( $post->ID, $post->post_type ) : array(),
-			Fingerprint::gapped( $post->ID )
+			$mine['gapped']
 		);
 	}
 

@@ -158,7 +158,7 @@ final class TargetPhrasesTest extends GraphTestCase {
 				),
 				array(
 					'phrase'   => '   ',
-					'variants' => array( 'huérfana' ),
+					'variants' => array( 'huérfana', 'otra' ),
 					'gap'      => false,
 				),
 				array(
@@ -177,11 +177,119 @@ final class TargetPhrasesTest extends GraphTestCase {
 					'variants' => array( 'obra de cocina' ),
 					'gap'      => true,
 				),
+				array(
+					'phrase'   => 'huérfana',
+					'variants' => array( 'otra' ),
+					'gap'      => false,
+				),
 			),
-			$data['phrases']
+			$data['phrases'],
+			'Una frase vacía con variantes promueve la primera variante a frase.'
 		);
+		$this->assertEqualsCanonicalizing( array( 'REFORMA DE COCINA', 'obra de cocina' ), $data['removed'], 'Lo repetido se devuelve para avisar al usuario.' );
 		$this->assertSame( $data['phrases'], $this->request( 'GET', '/target-phrases/' . $this->target )->get_data()['phrases'] );
-		$this->assertSame( array( 'reforma de cocina', 'obra de cocina' ), Fingerprint::focus( $this->target ) );
+		$this->assertSame( array(), $this->request( 'GET', '/target-phrases/' . $this->target )->get_data()['removed'] );
+		$this->assertSame( array( 'reforma de cocina', 'obra de cocina', 'huérfana', 'otra' ), Fingerprint::focus( $this->target ) );
+	}
+
+	public function test_a_phrase_equal_to_an_earlier_variant_loses_only_that_text(): void {
+		$data = $this->save(
+			array(
+				array(
+					'phrase'   => 'reforma de cocina',
+					'variants' => array( 'obra de cocina' ),
+					'gap'      => false,
+				),
+				array(
+					'phrase'   => 'Obra de cocina',
+					'variants' => array( 'cocinas a medida', 'cocina a medida' ),
+					'gap'      => true,
+				),
+			)
+		)->get_data();
+
+		$this->assertSame(
+			array(
+				array(
+					'phrase'   => 'reforma de cocina',
+					'variants' => array( 'obra de cocina' ),
+					'gap'      => false,
+				),
+				array(
+					'phrase'   => 'cocinas a medida',
+					'variants' => array( 'cocina a medida' ),
+					'gap'      => true,
+				),
+			),
+			$data['phrases'],
+			'Se conservan sus otras variantes y su hueco.'
+		);
+		$this->assertSame( array( 'Obra de cocina' ), $data['removed'] );
+	}
+
+	public function test_variant_limit_counts_cleaned_variants_not_blank_lines_or_repeats(): void {
+		$variants = array( 'uno', 'dos', '', '  ', 'dos', 'tres', 'cuatro', 'cinco', 'Uno' );
+		$ok       = $this->save(
+			array(
+				array(
+					'phrase'   => 'principal',
+					'variants' => $variants,
+					'gap'      => false,
+				),
+			)
+		);
+		$this->assertSame( 200, $ok->get_status() );
+		$this->assertCount( 5, $ok->get_data()['phrases'][0]['variants'] );
+
+		$too_many = $this->save(
+			array(
+				array(
+					'phrase'   => 'principal',
+					'variants' => array( 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis' ),
+					'gap'      => false,
+				),
+			)
+		);
+		$this->assertSame( 400, $too_many->get_status() );
+	}
+
+	public function test_length_limits_have_their_own_messages_and_count_words_like_the_engine(): void {
+		$chars = $this->save(
+			array(
+				array(
+					'phrase'   => str_repeat( 'a', TargetPhrases::MAX_CHARS + 1 ),
+					'variants' => array(),
+					'gap'      => false,
+				),
+			)
+		);
+		$this->assertSame( 400, $chars->get_status() );
+		$this->assertStringContainsString( 'characters', $chars->get_data()['message'] );
+
+		// Sin espacios, pero nueve palabras para el motor: no podría encajar nunca en un ancla.
+		$slashes = $this->save(
+			array(
+				array(
+					'phrase'   => 'una/dos/tres/cuatro/cinco/seis/siete/ocho/nueve',
+					'variants' => array(),
+					'gap'      => false,
+				),
+			)
+		);
+		$this->assertSame( 400, $slashes->get_status() );
+		$this->assertStringContainsString( 'words', $slashes->get_data()['message'] );
+
+		// Una palabra con guiones es una sola palabra, también para el motor.
+		$hyphens = $this->save(
+			array(
+				array(
+					'phrase'   => 'el state-of-the-art de la cocina moderna con encimera',
+					'variants' => array(),
+					'gap'      => false,
+				),
+			)
+		);
+		$this->assertSame( 200, $hyphens->get_status() );
 	}
 
 	public function test_clearing_the_list_deletes_the_meta(): void {
@@ -292,5 +400,42 @@ final class TargetPhrasesTest extends GraphTestCase {
 			),
 			TargetPhrases::get( $this->target )
 		);
+	}
+
+	public function test_building_a_candidate_reads_the_phrases_once(): void {
+		$this->save(
+			array(
+				array(
+					'phrase'   => 'reforma de cocina',
+					'variants' => array( 'obra de cocina' ),
+					'gap'      => true,
+				),
+			)
+		);
+
+		$reads = 0;
+		$count = static function ( $value, $object_id, $meta_key ) use ( &$reads ) {
+			if ( TargetPhrases::KEY === $meta_key ) {
+				++$reads;
+			}
+			return $value;
+		};
+		add_filter( 'get_post_metadata', $count, 10, 3 );
+		$meta = ( new \ReflectionMethod( \MagicLinking\Index\TableRepository::class, 'build_meta' ) );
+		$repo = Plugin::container()->get( \MagicLinking\Index\TableRepository::class );
+		$meta->invoke(
+			$repo,
+			$this->target,
+			array(
+				'post_type'  => 'post',
+				'lang'       => 'es',
+				'word_count' => 10,
+				'doc_len'    => 5,
+				'outbound'   => 0,
+			)
+		);
+		remove_filter( 'get_post_metadata', $count, 10 );
+
+		$this->assertSame( 1, $reads, 'Textos y hueco salen de una sola lectura.' );
 	}
 }

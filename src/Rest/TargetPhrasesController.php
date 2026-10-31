@@ -11,6 +11,8 @@ namespace MagicLinking\Rest;
 
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\Analyzer;
+use MagicLinking\I18n\Language;
 use MagicLinking\Index\TargetPhrases;
 use WP_Error;
 use WP_REST_Request;
@@ -30,8 +32,9 @@ final class TargetPhrasesController implements Module {
 	 * Constructor.
 	 *
 	 * @param Settings $settings Ajustes (tipos que se analizan).
+	 * @param Language $language Idioma de la entrada (cuenta las palabras como el motor).
 	 */
-	public function __construct( private Settings $settings ) {
+	public function __construct( private Settings $settings, private Language $language ) {
 	}
 
 	/**
@@ -70,36 +73,41 @@ final class TargetPhrasesController implements Module {
 	}
 
 	/**
-	 * Comprueba la lista: máximos de frases, variantes y palabras. Se llama desde la ruta y no desde el argumento porque
-	 * el núcleo sustituye el mensaje de un `validate_callback` por «Invalid parameter(s)» y aquí el mensaje sale al usuario.
+	 * Comprueba la lista ya limpia (sin vacíos ni repetidos): máximos de frases, variantes, caracteres y palabras. Se
+	 * llama desde la ruta y no desde el argumento porque el núcleo sustituye el mensaje de un `validate_callback` por
+	 * «Invalid parameter(s)» y aquí el mensaje sale al usuario. Las palabras se cuentan como las cuenta el motor, en el
+	 * idioma de la entrada.
 	 *
 	 * @param mixed $phrases Lista enviada.
+	 * @param int   $post_id Entrada.
 	 *
 	 * @return true|WP_Error
 	 */
-	public function validate( mixed $phrases ) {
+	public function validate( mixed $phrases, int $post_id ) {
 		if ( ! is_array( $phrases ) ) {
 			return new WP_Error( 'rest_invalid_param', __( 'The phrases must be a list.', 'magic-linking' ), array( 'status' => 400 ) );
 		}
-		if ( count( $phrases ) > TargetPhrases::MAX_PHRASES ) {
+
+		$list = TargetPhrases::clean( $phrases, false )['phrases'];
+		if ( count( $list ) > TargetPhrases::MAX_PHRASES ) {
 			/* translators: %d: maximum number of phrases. */
 			return new WP_Error( 'rest_invalid_param', sprintf( _n( 'You can add up to %d phrase.', 'You can add up to %d phrases.', TargetPhrases::MAX_PHRASES, 'magic-linking' ), TargetPhrases::MAX_PHRASES ), array( 'status' => 400 ) );
 		}
 
-		foreach ( $phrases as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				return new WP_Error( 'rest_invalid_param', __( 'Each phrase needs its text.', 'magic-linking' ), array( 'status' => 400 ) );
-			}
-			$variants = is_array( $entry['variants'] ?? null ) ? $entry['variants'] : array();
-			if ( count( $variants ) > TargetPhrases::MAX_VARIANTS ) {
+		$analyzer = Analyzer::for_language( $this->language->for_post( $post_id ) );
+		foreach ( $list as $entry ) {
+			if ( count( $entry['variants'] ) > TargetPhrases::MAX_VARIANTS ) {
 				/* translators: %d: maximum number of variants per phrase. */
 				return new WP_Error( 'rest_invalid_param', sprintf( _n( 'Each phrase can have up to %d variant.', 'Each phrase can have up to %d variants.', TargetPhrases::MAX_VARIANTS, 'magic-linking' ), TargetPhrases::MAX_VARIANTS ), array( 'status' => 400 ) );
 			}
-			foreach ( array_merge( array( $entry['phrase'] ?? '' ), $variants ) as $text ) {
-				$text = TargetPhrases::tidy( $text );
-				if ( TargetPhrases::words( $text ) > TargetPhrases::MAX_WORDS || mb_strlen( $text ) > TargetPhrases::MAX_CHARS ) {
+			foreach ( array_merge( array( $entry['phrase'] ), $entry['variants'] ) as $text ) {
+				if ( mb_strlen( $text ) > TargetPhrases::MAX_CHARS ) {
+					/* translators: 1: the start of the phrase, 2: maximum number of characters. */
+					return new WP_Error( 'rest_invalid_param', sprintf( __( '“%1$s…” is too long: a phrase can have up to %2$d characters.', 'magic-linking' ), mb_substr( $text, 0, 40 ), TargetPhrases::MAX_CHARS ), array( 'status' => 400 ) );
+				}
+				if ( TargetPhrases::words( $text, $analyzer ) > TargetPhrases::MAX_WORDS ) {
 					/* translators: 1: the phrase, 2: maximum number of words. */
-					return new WP_Error( 'rest_invalid_param', sprintf( __( '“%1$s” is too long: a phrase can have up to %2$d words.', 'magic-linking' ), mb_substr( $text, 0, 60 ), TargetPhrases::MAX_WORDS ), array( 'status' => 400 ) );
+					return new WP_Error( 'rest_invalid_param', sprintf( __( '“%1$s” is too long: a phrase can have up to %2$d words.', 'magic-linking' ), $text, TargetPhrases::MAX_WORDS ), array( 'status' => 400 ) );
 				}
 			}
 		}
@@ -117,7 +125,7 @@ final class TargetPhrasesController implements Module {
 	public function get_phrases( WP_REST_Request $request ) {
 		$post = AnalyzedEntry::find( $this->settings, (int) $request['post_id'] );
 
-		return $post instanceof WP_Error ? $post : new WP_REST_Response( $this->state( $post->ID, TargetPhrases::get( $post->ID ) ) );
+		return $post instanceof WP_Error ? $post : new WP_REST_Response( $this->state( $post->ID, TargetPhrases::get( $post->ID ), array() ) );
 	}
 
 	/**
@@ -133,12 +141,14 @@ final class TargetPhrasesController implements Module {
 			return $post;
 		}
 
-		$valid = $this->validate( $request['phrases'] );
+		$valid = $this->validate( $request['phrases'], $post->ID );
 		if ( $valid instanceof WP_Error ) {
 			return $valid;
 		}
 
-		return new WP_REST_Response( $this->state( $post->ID, TargetPhrases::set( $post->ID, (array) $request['phrases'] ) ) );
+		$saved = TargetPhrases::set( $post->ID, (array) $request['phrases'] );
+
+		return new WP_REST_Response( $this->state( $post->ID, $saved['phrases'], $saved['removed'] ) );
 	}
 
 	/**
@@ -146,14 +156,17 @@ final class TargetPhrasesController implements Module {
 	 *
 	 * @param int   $post_id ID.
 	 * @param array $phrases Lista limpia.
+	 * @param array $removed Textos que se han quitado por repetidos.
 	 *
 	 * @phpstan-param list<array{phrase: string, variants: list<string>, gap: bool}> $phrases
+	 * @phpstan-param list<string> $removed
 	 * @return array<string, mixed>
 	 */
-	private function state( int $post_id, array $phrases ): array {
+	private function state( int $post_id, array $phrases, array $removed ): array {
 		return array(
 			'post_id' => $post_id,
 			'phrases' => $phrases,
+			'removed' => $removed,
 			'limits'  => array(
 				'phrases'  => TargetPhrases::MAX_PHRASES,
 				'variants' => TargetPhrases::MAX_VARIANTS,

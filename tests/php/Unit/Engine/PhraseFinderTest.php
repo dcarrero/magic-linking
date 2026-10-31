@@ -356,4 +356,13 @@ final class PhraseFinderTest extends TestCase {
 		$this->assertCount( 1, $phrases );
 		$this->assertTrue( $phrases[0]->gap );
 	}
+
+	public function test_a_gap_on_a_phrase_that_is_also_the_title_keeps_the_title_kind(): void {
+		$meta    = new DocMeta( 9, 'post', 'es', 'Reforma de cocina', 'destino', 0, 100, 50, 0, array( 'reforma de cocina' ), array(), array( 'reforma de cocina' ) );
+		$phrases = array_values( array_filter( $this->finder->target_phrases( $meta, array(), $this->analyzer ), static fn( Phrase $p ): bool => 'reform de cocin' === $p->key() ) );
+
+		$this->assertCount( 1, $phrases );
+		$this->assertSame( Phrase::TITLE, $phrases[0]->kind );
+		$this->assertTrue( $phrases[0]->gap );
+	}
 }

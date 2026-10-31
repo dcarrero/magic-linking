@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Index;
 
+use MagicLinking\Engine\Analyzer;
 use MagicLinking\Engine\PhraseFinder;
 
 /**
@@ -19,7 +20,7 @@ use MagicLinking\Engine\PhraseFinder;
  * automáticamente, regla 8; se borra al vaciar la lista). Cada frase y cada variante entran en el índice como la
  * palabra clave foco ({@see Fingerprint::focus()}), de modo que cambiar la lista cambia la huella y se reindexa la entrada
  * ({@see \MagicLinking\Jobs\Jobs::on_exclusion_meta()}); el hueco no entra en el índice, solo en el buscador de
- * anclas ({@see Fingerprint::gapped()}).
+ * anclas ({@see TargetPhrases::indexed()}).
  */
 final class TargetPhrases {
 
@@ -61,68 +62,70 @@ final class TargetPhrases {
 			return array();
 		}
 		$decoded = json_decode( $raw, true );
+		if ( ! is_array( $decoded ) ) {
+			return array();
+		}
 
-		return is_array( $decoded ) ? self::clean( $decoded ) : array();
+		// Lo guardado ya salió de clean(): aquí solo se descarta lo que no tenga la forma (una meta editada a mano).
+		$list = array();
+		foreach ( $decoded as $entry ) {
+			if ( is_array( $entry ) && is_string( $entry['phrase'] ?? null ) && '' !== $entry['phrase'] ) {
+				$list[] = array(
+					'phrase'   => $entry['phrase'],
+					'variants' => array_values( array_filter( is_array( $entry['variants'] ?? null ) ? $entry['variants'] : array(), 'is_string' ) ),
+					'gap'      => true === ( $entry['gap'] ?? false ),
+				);
+			}
+		}
+
+		return $list;
 	}
 
 	/**
-	 * Guarda las frases (limpias) y devuelve lo guardado. Una lista vacía borra la meta.
+	 * Guarda las frases (limpias) y devuelve lo guardado y lo que se ha quitado por repetido. Una lista vacía borra la meta.
 	 *
 	 * @param int   $post_id ID.
 	 * @param array $phrases Lista de `phrase`, `variants` y `gap`.
 	 *
 	 * @phpstan-param array<mixed> $phrases
-	 * @return list<array{phrase: string, variants: list<string>, gap: bool}>
+	 * @return array{phrases: list<array{phrase: string, variants: list<string>, gap: bool}>, removed: list<string>}
 	 */
 	public static function set( int $post_id, array $phrases ): array {
-		$clean = self::clean( $phrases );
-		if ( array() === $clean ) {
+		$report = self::clean( $phrases );
+		if ( array() === $report['phrases'] ) {
 			delete_post_meta( $post_id, self::KEY );
 		} else {
-			update_post_meta( $post_id, self::KEY, wp_slash( (string) wp_json_encode( $clean ) ) );
+			update_post_meta( $post_id, self::KEY, wp_slash( (string) wp_json_encode( $report['phrases'] ) ) );
 		}
 
-		return $clean;
+		return $report;
 	}
 
 	/**
-	 * Todos los textos (frases y variantes) de una entrada: lo que se indexa como frase objetivo.
+	 * Lo que va al índice de una entrada, con una sola lectura de la meta: todos los textos (frases y variantes) y los
+	 * que admiten una palabra en medio.
 	 *
 	 * @param int $post_id ID.
 	 *
-	 * @return list<string>
+	 * @return array{texts: list<string>, gapped: list<string>}
 	 */
-	public static function texts( int $post_id ): array {
-		$texts = array();
+	public static function indexed( int $post_id ): array {
+		$texts  = array();
+		$gapped = array();
 		foreach ( self::get( $post_id ) as $entry ) {
-			$texts[] = $entry['phrase'];
-			foreach ( $entry['variants'] as $variant ) {
-				$texts[] = $variant;
-			}
-		}
-
-		return $texts;
-	}
-
-	/**
-	 * Los textos de las frases que admiten una palabra en medio (con sus variantes).
-	 *
-	 * @param int $post_id ID.
-	 *
-	 * @return list<string>
-	 */
-	public static function gapped( int $post_id ): array {
-		$texts = array();
-		foreach ( self::get( $post_id ) as $entry ) {
-			if ( $entry['gap'] ) {
-				$texts[] = $entry['phrase'];
-				foreach ( $entry['variants'] as $variant ) {
-					$texts[] = $variant;
+			$all = array_merge( array( $entry['phrase'] ), $entry['variants'] );
+			foreach ( $all as $text ) {
+				$texts[] = $text;
+				if ( $entry['gap'] ) {
+					$gapped[] = $text;
 				}
 			}
 		}
 
-		return $texts;
+		return array(
+			'texts'  => $texts,
+			'gapped' => $gapped,
+		);
 	}
 
 	/**
@@ -139,56 +142,71 @@ final class TargetPhrases {
 	}
 
 	/**
-	 * Palabras de un texto (separadas por espacios).
+	 * Palabras de un texto contadas como las cuenta el motor (una por clave de raíz): lo que se valida es lo que luego
+	 * puede encajar en un ancla.
 	 *
-	 * @param string $text Texto ya limpio.
+	 * @param string   $text     Texto ya limpio.
+	 * @param Analyzer $analyzer Analizador del idioma de la entrada.
 	 */
-	public static function words( string $text ): int {
-		return '' === $text ? 0 : count( explode( ' ', $text ) );
+	public static function words( string $text, Analyzer $analyzer ): int {
+		return count( $analyzer->keys( $analyzer->tokenizer()->tokenize( $text ) ) );
 	}
 
 	/**
-	 * Limpia una lista: quita lo vacío y lo repetido (sin mirar mayúsculas; la primera aparición manda), conserva
-	 * el orden y respeta los máximos.
+	 * Limpia una lista: quita lo vacío y lo repetido (sin mirar mayúsculas; la primera aparición manda), conserva el
+	 * orden y, con `$capped`, respeta los máximos. Un texto repetido se quita solo a sí mismo: la frase conserva sus
+	 * otras variantes y su hueco. Si la frase está vacía o repetida, la primera variante que quede pasa a ser la frase;
+	 * sin variantes, la entrada desaparece. Lo repetido se devuelve en `removed` para avisar al usuario.
 	 *
 	 * @param array $phrases Lista de `phrase`, `variants` y `gap`.
+	 * @param bool  $capped  Aplicar los máximos de frases y de variantes (la ruta los valida antes y los rechaza).
 	 *
 	 * @phpstan-param array<mixed> $phrases
-	 * @return list<array{phrase: string, variants: list<string>, gap: bool}>
+	 * @return array{phrases: list<array{phrase: string, variants: list<string>, gap: bool}>, removed: list<string>}
 	 */
-	public static function clean( array $phrases ): array {
-		$seen  = array();
-		$clean = array();
+	public static function clean( array $phrases, bool $capped = true ): array {
+		$seen    = array();
+		$clean   = array();
+		$removed = array();
 
 		foreach ( $phrases as $entry ) {
-			if ( ! is_array( $entry ) || count( $clean ) >= self::MAX_PHRASES ) {
+			if ( ! is_array( $entry ) ) {
 				continue;
 			}
-			$phrase = self::tidy( $entry['phrase'] ?? '' );
-			$key    = mb_strtolower( $phrase );
-			if ( '' === $phrase || isset( $seen[ $key ] ) ) {
-				continue;
-			}
-			$seen[ $key ] = true;
-
-			$variants = array();
-			foreach ( is_array( $entry['variants'] ?? null ) ? $entry['variants'] : array() as $variant ) {
-				$variant = self::tidy( $variant );
-				$low     = mb_strtolower( $variant );
-				if ( '' === $variant || isset( $seen[ $low ] ) || count( $variants ) >= self::MAX_VARIANTS ) {
+			// Frase y variantes en una sola lista; la primera que queda es la frase.
+			$texts = array_merge( array( $entry['phrase'] ?? '' ), is_array( $entry['variants'] ?? null ) ? $entry['variants'] : array() );
+			$kept  = array();
+			foreach ( $texts as $text ) {
+				$text = self::tidy( $text );
+				if ( '' === $text ) {
+					continue;
+				}
+				$low = mb_strtolower( $text );
+				if ( isset( $seen[ $low ] ) ) {
+					$removed[ $low ] = $text;
 					continue;
 				}
 				$seen[ $low ] = true;
-				$variants[]   = $variant;
+				$kept[]       = $text;
+			}
+			if ( array() === $kept ) {
+				continue;
 			}
 
+			$phrase = array_shift( $kept );
+			if ( $capped ) {
+				$kept = array_slice( $kept, 0, self::MAX_VARIANTS );
+			}
 			$clean[] = array(
 				'phrase'   => $phrase,
-				'variants' => $variants,
+				'variants' => $kept,
 				'gap'      => filter_var( $entry['gap'] ?? false, FILTER_VALIDATE_BOOLEAN ),
 			);
 		}//end foreach
 
-		return $clean;
+		return array(
+			'phrases' => $capped ? array_slice( $clean, 0, self::MAX_PHRASES ) : $clean,
+			'removed' => array_values( $removed ),
+		);
 	}
 }

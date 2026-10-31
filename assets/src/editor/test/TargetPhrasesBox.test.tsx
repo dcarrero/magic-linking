@@ -49,14 +49,17 @@ jest.mock( '@wordpress/components', () => {
 		TextControl: ( {
 			label,
 			value,
+			disabled,
 			onChange,
 		}: {
 			label: string;
+			disabled?: boolean;
 			value: string;
 			onChange: ( v: string ) => void;
 		} ) => (
 			<input
 				aria-label={ label }
+				disabled={ disabled }
 				value={ value }
 				onChange={ ( e ) => onChange( e.target.value ) }
 			/>
@@ -64,14 +67,17 @@ jest.mock( '@wordpress/components', () => {
 		TextareaControl: ( {
 			label,
 			value,
+			disabled,
 			onChange,
 		}: {
 			label: string;
+			disabled?: boolean;
 			value: string;
 			onChange: ( v: string ) => void;
 		} ) => (
 			<textarea
 				aria-label={ label }
+				disabled={ disabled }
 				value={ value }
 				onChange={ ( e ) => onChange( e.target.value ) }
 			/>
@@ -79,14 +85,17 @@ jest.mock( '@wordpress/components', () => {
 		CheckboxControl: ( {
 			label,
 			checked,
+			disabled,
 			onChange,
 		}: {
 			label: string;
+			disabled?: boolean;
 			checked: boolean;
 			onChange: ( v: boolean ) => void;
 		} ) => (
 			<input
 				aria-label={ label }
+				disabled={ disabled }
 				type="checkbox"
 				checked={ checked }
 				onChange={ ( e ) => onChange( e.target.checked ) }
@@ -102,7 +111,12 @@ jest.mock( '@wordpress/components', () => {
 const LIMITS = { phrases: 2, variants: 5, words: 8, chars: 120 };
 const state = (
 	phrases: TargetPhrasesState[ 'phrases' ] = []
-): TargetPhrasesState => ( { post_id: 5, phrases, limits: LIMITS } );
+): TargetPhrasesState => ( {
+	post_id: 5,
+	phrases,
+	removed: [],
+	limits: LIMITS,
+} );
 
 async function mount(): Promise< HTMLElement > {
 	const host = document.createElement( 'div' );
@@ -250,5 +264,79 @@ describe( 'TargetPhrasesBox', () => {
 			( host.querySelector( 'input:not([type])' ) as HTMLInputElement )
 				.value
 		).toBe( 'ab' );
+	} );
+
+	it( 'limpia las variantes antes de enviarlas: sin líneas vacías ni repetidas', async () => {
+		mockGet.mockResolvedValue( state() );
+		mockSet.mockResolvedValue( state() );
+		const host = await mount();
+		await act( async () => {
+			button( host, 'Target phrases' ).click();
+		} );
+		await act( async () => {
+			button( host, 'Add phrase' ).click();
+		} );
+		await type(
+			host.querySelector( 'input:not([type])' ) as HTMLInputElement,
+			'principal'
+		);
+		await type(
+			host.querySelector( 'textarea' ) as HTMLTextAreaElement,
+			'uno\n\n  dos  \nUNO\n   \ntres'
+		);
+		await act( async () => {
+			button( host, 'Save phrases' ).click();
+		} );
+		expect( mockSet ).toHaveBeenCalledWith( 5, [
+			{
+				phrase: 'principal',
+				variants: [ 'uno', 'dos', 'tres' ],
+				gap: false,
+			},
+		] );
+	} );
+
+	it( 'mientras se guarda no se puede editar, y después avisa de lo que el servidor quitó', async () => {
+		mockGet.mockResolvedValue(
+			state( [ { phrase: 'a', variants: [], gap: false } ] )
+		);
+		let finish: ( value: TargetPhrasesState ) => void = () => undefined;
+		mockSet.mockReturnValue(
+			new Promise< TargetPhrasesState >( ( resolve ) => {
+				finish = resolve;
+			} )
+		);
+		const host = await mount();
+		await act( async () => {
+			button( host, 'Target phrases' ).click();
+		} );
+		await type(
+			host.querySelector( 'input:not([type])' ) as HTMLInputElement,
+			'ab'
+		);
+		await act( async () => {
+			button( host, 'Save phrases' ).click();
+		} );
+
+		for ( const field of Array.from(
+			host.querySelectorAll( 'input, textarea' )
+		) ) {
+			expect( ( field as HTMLInputElement ).disabled ).toBe( true );
+		}
+		expect( button( host, 'Remove phrase 1' ).disabled ).toBe( true );
+
+		await act( async () => {
+			finish( {
+				...state( [ { phrase: 'ab', variants: [], gap: false } ] ),
+				removed: [ 'Obra' ],
+			} );
+		} );
+		expect(
+			host.querySelector( '[role="status"]' )?.textContent
+		).toContain( 'Not kept because they were repeated: “Obra”.' );
+		expect(
+			( host.querySelector( 'input:not([type])' ) as HTMLInputElement )
+				.disabled
+		).toBe( false );
 	} );
 } );

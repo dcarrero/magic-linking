@@ -31,11 +31,13 @@ final class Fingerprint {
 	 * Frases objetivo de una entrada: la palabra clave foco de Rank Math o de Yoast, si existe, y las frases (y variantes)
 	 * que escribe el usuario en el panel ({@see TargetPhrases}).
 	 *
-	 * @param int $post_id ID.
+	 * @param int        $post_id ID.
+	 * @param array|null $user    Textos del usuario ya leídos ({@see TargetPhrases::indexed()}); null para leerlos.
 	 *
+	 * @phpstan-param list<string>|null $user
 	 * @return list<string>
 	 */
-	public static function focus( int $post_id ): array {
+	public static function focus( int $post_id, ?array $user = null ): array {
 		$phrases = array();
 
 		foreach ( array( 'rank_math_focus_keyword', '_yoast_wpseo_focuskw' ) as $key ) {
@@ -51,21 +53,10 @@ final class Fingerprint {
 			}
 		}
 
-		foreach ( TargetPhrases::texts( $post_id ) as $phrase ) {
+		foreach ( $user ?? TargetPhrases::indexed( $post_id )['texts'] as $phrase ) {
 			$phrases[ $phrase ] = true;
 		}
 
 		return array_map( 'strval', array_keys( $phrases ) );
-	}
-
-	/**
-	 * Las frases objetivo del usuario que admiten una palabra en medio (docs/04 §4.2).
-	 *
-	 * @param int $post_id ID.
-	 *
-	 * @return list<string>
-	 */
-	public static function gapped( int $post_id ): array {
-		return TargetPhrases::gapped( $post_id );
 	}
 }

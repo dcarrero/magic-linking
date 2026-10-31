@@ -27,9 +27,28 @@ const toDraft = ( entry: TargetPhrase ): Draft => ( {
 	gap: entry.gap,
 } );
 
+/**
+ * Variantes limpias, como las limpia el servidor: sin espacios sobrantes, sin líneas vacías y sin repetir.
+ *
+ * @param text Una variante por línea.
+ */
+const cleanVariants = ( text: string ): string[] => {
+	const seen = new Set< string >();
+	const out: string[] = [];
+	for ( const line of text.split( '\n' ) ) {
+		const variant = line.replace( /\s+/g, ' ' ).trim();
+		const key = variant.toLowerCase();
+		if ( variant !== '' && ! seen.has( key ) ) {
+			seen.add( key );
+			out.push( variant );
+		}
+	}
+	return out;
+};
+
 const toPhrase = ( draft: Draft ): TargetPhrase => ( {
 	phrase: draft.phrase,
-	variants: draft.variants.split( '\n' ),
+	variants: cleanVariants( draft.variants ),
 	gap: draft.gap,
 } );
 
@@ -143,8 +162,22 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 					),
 					result.phrases.length
 				);
-				setStatus( message );
-				speak( message, 'polite' );
+				const dropped =
+					result.removed.length > 0
+						? ' ' +
+						  sprintf(
+								/* translators: %s: list of repeated phrases the server did not keep. */
+								__(
+									'Not kept because they were repeated: %s.',
+									'magic-linking'
+								),
+								result.removed
+									.map( ( text ) => `“${ text }”` )
+									.join( ', ' )
+						  )
+						: '';
+				setStatus( message + dropped );
+				speak( message + dropped, 'polite' );
 			} )
 			.catch( ( e: unknown ) => {
 				setError(
@@ -199,6 +232,7 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 											'magic-linking'
 										) }
 										value={ draft.phrase }
+										disabled={ saving }
 										maxLength={ limits.chars }
 										onChange={ ( value: string ) =>
 											update( draft.key, {
@@ -213,6 +247,7 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 											'magic-linking'
 										) }
 										value={ draft.variants }
+										disabled={ saving }
 										rows={ 2 }
 										onChange={ ( value: string ) =>
 											update( draft.key, {
@@ -231,6 +266,7 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 											'magic-linking'
 										) }
 										checked={ draft.gap }
+										disabled={ saving }
 										onChange={ ( value: boolean ) =>
 											update( draft.key, { gap: value } )
 										}
@@ -238,6 +274,7 @@ export function TargetPhrasesBox( { postId }: { postId: number } ) {
 									<Button
 										variant="tertiary"
 										isDestructive
+										disabled={ saving }
 										onClick={ () => remove( draft.key ) }
 									>
 										{ sprintf(
