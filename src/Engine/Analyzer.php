@@ -381,13 +381,6 @@ final class Analyzer {
 	private array $cache = array();
 
 	/**
-	 * Si una clave es de una palabra de contenido ({@see self::is_content()}), por clave.
-	 *
-	 * @var array<string, bool>
-	 */
-	private array $content = array();
-
-	/**
 	 * NUMERIC_WORDS como conjunto.
 	 *
 	 * @var array<string, int>
@@ -455,14 +448,12 @@ final class Analyzer {
 		if ( $token->is_stopword ) {
 			return false;
 		}
-		// Depende solo de la clave y se pregunta por cada palabra de cada texto: se recuerda por clave.
-		$content = $this->content[ $token->key ] ?? null;
-		if ( null === $content ) {
-			$content = 1 !== preg_match( '/^[\p{N}.,]+$/u', $token->key ) && ! isset( $this->numeric[ $token->key ] );
-			Memo::put( $this->content, $token->key, $content, self::CACHE_SIZE );
-		}
+		// Una clave que empieza por letra ASCII no puede ser solo cifras y signos: la expresión regular se ahorra en casi todas.
+		$key     = $token->key;
+		$first   = '' === $key ? 0 : ord( $key[0] );
+		$numeric = ! ( $first >= 97 && $first <= 122 ) && ! ( $first >= 65 && $first <= 90 ) && 1 === preg_match( '/^[\p{N}.,]+$/u', $key );
 
-		return $content;
+		return ! $numeric && ! isset( $this->numeric[ $key ] );
 	}
 
 	/**
@@ -719,40 +710,7 @@ final class Analyzer {
 	 *                            (para buscar anclas; el indexado no las necesita).
 	 */
 	public function analyze( Document $document, bool $sentences = false ): AnalyzedDocument {
-		$counts   = array(
-			self::TITLE   => array(),
-			self::HEADING => array(),
-			self::BODY    => array(),
-			self::FOCUS   => array(),
-		);
-		$length   = 0;
-		$words    = 0;
-		$list     = array();
-		$surfaces = array();
-
-		$fields = array( array( self::TITLE, array( $document->title ) ), array( self::HEADING, $document->headings ), array( self::FOCUS, $document->focus ) );
-		foreach ( $fields as [ $field, $texts ] ) {
-			foreach ( $texts as $text ) {
-				foreach ( $this->tokenizer->sentences( $text ) as $sentence ) {
-					$tokens  = $this->tokenizer->tokenize( $sentence );
-					$length += $this->count( $tokens, $this->keys( $tokens ), $counts[ $field ], $surfaces, $sentences );
-				}
-			}
-		}
-
-		foreach ( $document->paragraphs as $p => $paragraph ) {
-			$cursor = 0;
-			foreach ( $this->tokenizer->sentences( $paragraph->text ) as $sentence ) {
-				$tokens  = $this->tokenizer->tokenize( $sentence );
-				$keys    = $this->keys( $tokens );
-				$words  += count( $tokens );
-				$length += $this->count( $tokens, $keys, $counts[ self::BODY ], $surfaces, $sentences );
-
-				if ( $sentences && array() !== $tokens ) {
-					$list[] = new Sentence( $sentence, $p, $tokens, $keys, $this->sentence_has_link( $paragraph, $sentence, $cursor ) );
-				}
-			}
-		}
+		[ $counts, $length, $words, $list, $surfaces ] = $this->scan( $document, $sentences );
 
 		return new AnalyzedDocument( $document, $counts, $length, $words, $list, self::shown( $surfaces ) );
 	}
@@ -769,21 +727,45 @@ final class Analyzer {
 	 * @phpstan-param array<string, mixed> $wanted
 	 */
 	public function analyze_for_anchors( Document $document, array $wanted ): AnchorSource {
+		[ , , $words, $list, $surfaces ] = $this->scan( $document, true, $wanted );
+
+		return new AnchorSource( $document, $words, $list, self::shown( $surfaces ) );
+	}
+
+	/**
+	 * Recorre el documento: lo único que cambia entre el análisis completo y el de un origen de entrantes es qué se anota de
+	 * cada frase ({@see self::count()}).
+	 *
+	 * @param Document   $document  Documento.
+	 * @param bool       $sentences Si se guardan las frases y las formas para mostrar.
+	 * @param array|null $wanted    Solo las formas de estos términos, sin contar ninguno (null: análisis completo).
+	 * @return array{0: array<int, array<string, int>>, 1: int, 2: int, 3: list<Sentence>, 4: array<string, array<string, int>>} Recuentos por campo, longitud, palabras del cuerpo, frases y formas.
+	 *
+	 * @phpstan-param array<string, mixed>|null $wanted
+	 */
+	private function scan( Document $document, bool $sentences, ?array $wanted = null ): array {
+		$counts   = array(
+			self::TITLE   => array(),
+			self::HEADING => array(),
+			self::BODY    => array(),
+			self::FOCUS   => array(),
+		);
+		$length   = 0;
 		$words    = 0;
 		$list     = array();
 		$surfaces = array();
 		// Un término pedido solo puede empezar en una palabra que sea la primera de alguno de ellos.
 		$starts = array();
-		foreach ( array_keys( $wanted ) as $term ) {
+		foreach ( array_keys( $wanted ?? array() ) as $term ) {
 			$starts[ explode( ' ', (string) $term, 2 )[0] ] = true;
 		}
 
-		$fields = array( array( $document->title ), $document->headings, $document->focus );
-		foreach ( $fields as $texts ) {
+		$fields = array( array( self::TITLE, array( $document->title ) ), array( self::HEADING, $document->headings ), array( self::FOCUS, $document->focus ) );
+		foreach ( $fields as [ $field, $texts ] ) {
 			foreach ( $texts as $text ) {
 				foreach ( $this->tokenizer->sentences( $text ) as $sentence ) {
-					$tokens = $this->tokenizer->tokenize( $sentence );
-					$this->count_wanted( $tokens, $this->keys( $tokens ), $wanted, $starts, $surfaces );
+					$tokens  = $this->tokenizer->tokenize( $sentence );
+					$length += $this->count( $tokens, $this->keys( $tokens ), $counts[ $field ], $surfaces, $sentences, $wanted, $starts );
 				}
 			}
 		}
@@ -791,18 +773,18 @@ final class Analyzer {
 		foreach ( $document->paragraphs as $p => $paragraph ) {
 			$cursor = 0;
 			foreach ( $this->tokenizer->sentences( $paragraph->text ) as $sentence ) {
-				$tokens = $this->tokenizer->tokenize( $sentence );
-				$keys   = $this->keys( $tokens );
-				$words += count( $tokens );
-				$this->count_wanted( $tokens, $keys, $wanted, $starts, $surfaces );
+				$tokens  = $this->tokenizer->tokenize( $sentence );
+				$keys    = $this->keys( $tokens );
+				$words  += count( $tokens );
+				$length += $this->count( $tokens, $keys, $counts[ self::BODY ], $surfaces, $sentences, $wanted, $starts );
 
-				if ( array() !== $tokens ) {
+				if ( $sentences && array() !== $tokens ) {
 					$list[] = new Sentence( $sentence, $p, $tokens, $keys, $this->sentence_has_link( $paragraph, $sentence, $cursor ) );
 				}
 			}
 		}
 
-		return new AnchorSource( $document, $words, $list, self::shown( $surfaces ) );
+		return array( $counts, $length, $words, $list, $surfaces );
 	}
 
 	/**
@@ -824,74 +806,36 @@ final class Analyzer {
 	}
 
 	/**
-	 * Formas para mostrar de unos términos concretos en una frase: lo mismo que {@see self::count()} con las formas,
-	 * pero sin contar los términos y sin recorrer los n-gramas que no pueden ser uno de los pedidos.
-	 *
-	 * @param Token[]             $tokens   Tokens de la frase.
-	 * @param string[]            $keys     Claves de raíz de los tokens.
-	 * @param array               $wanted   Términos pedidos (como claves).
-	 * @param array<string, true> $starts   Primera palabra de cada término pedido.
-	 * @param array               $surfaces Acumulador término → forma → frecuencia.
-	 *
-	 * @phpstan-param list<Token> $tokens
-	 * @phpstan-param list<string> $keys
-	 * @phpstan-param array<string, mixed> $wanted
-	 * @phpstan-param array<string, array<string, int>> $surfaces
-	 */
-	private function count_wanted( array $tokens, array $keys, array $wanted, array $starts, array &$surfaces ): void {
-		$total = count( $tokens );
-		for ( $i = 0; $i < $total; $i++ ) {
-			if ( $tokens[ $i ]->is_stopword || ! isset( $starts[ $keys[ $i ] ] ) ) {
-				continue;
-			}
-			$term   = '';
-			$normal = '';
-			$has    = false;
-			for ( $size = 1; $size <= $this->max && $i + $size <= $total; $size++ ) {
-				$last = $tokens[ $i + $size - 1 ];
-				if ( $size > 1 && $last->break_before ) {
-					break;
-				}
-				$term   .= ( 1 === $size ? '' : ' ' ) . $keys[ $i + $size - 1 ];
-				$normal .= ( 1 === $size ? '' : ' ' ) . $last->normal;
-				$has     = $has || $this->is_content( $last );
-				if ( $last->is_stopword || ! $has ) {
-					continue;
-				}
-				if ( isset( $wanted[ $term ] ) ) {
-					$surfaces[ $term ][ $normal ] = ( $surfaces[ $term ][ $normal ] ?? 0 ) + 1;
-				}
-			}
-		}//end for
-	}
-
-	/**
 	 * Cuenta los n-gramas de una frase.
 	 *
-	 * @param Token[]  $tokens   Tokens de la frase.
-	 * @param string[] $keys     Claves de raíz de los tokens.
-	 * @param array    $counts   Acumulador término → frecuencia.
-	 * @param array    $surfaces Acumulador término → forma → frecuencia.
-	 * @param bool     $shown    Si se acumulan las formas.
+	 * @param Token[]    $tokens   Tokens de la frase.
+	 * @param string[]   $keys     Claves de raíz de los tokens.
+	 * @param array      $counts   Acumulador término → frecuencia.
+	 * @param array      $surfaces Acumulador término → forma → frecuencia.
+	 * @param bool       $shown    Si se acumulan las formas.
+	 * @param array|null $wanted Solo las formas de estos términos, sin contar ninguno (análisis de un origen de entrantes).
+	 * @param array      $starts   Con `$wanted`: primera palabra de cada término pedido; los n-gramas que no empiezan por una no se recorren.
 	 * @return int Palabras no vacías de la frase.
 	 *
 	 * @phpstan-param list<Token> $tokens
 	 * @phpstan-param list<string> $keys
 	 * @phpstan-param array<string, int> $counts
 	 * @phpstan-param array<string, array<string, int>> $surfaces
+	 * @phpstan-param array<string, mixed>|null $wanted
+	 * @phpstan-param array<string, true> $starts
 	 */
-	private function count( array $tokens, array $keys, array &$counts, array &$surfaces, bool $shown ): int {
+	private function count( array $tokens, array $keys, array &$counts, array &$surfaces, bool $shown, ?array $wanted = null, array $starts = array() ): int {
 		$total   = count( $tokens );
 		$words   = 0;
 		$content = array();
-		foreach ( $tokens as $n => $token ) {
-			$content[ $n ] = $this->is_content( $token );
-		}
 		for ( $i = 0; $i < $total; $i++ ) {
 			if ( $tokens[ $i ]->is_stopword ) {
 				continue;
 			}
 			++$words;
+			if ( null !== $wanted && ! isset( $starts[ $keys[ $i ] ] ) ) {
+				continue;
+			}
 			$term   = '';
 			$normal = '';
 			$has    = false;
@@ -902,16 +846,20 @@ final class Analyzer {
 				}
 				$term   .= ( 1 === $size ? '' : ' ' ) . $keys[ $i + $size - 1 ];
 				$normal .= ( 1 === $size ? '' : ' ' ) . $last->normal;
-				$has     = $has || $content[ $i + $size - 1 ];
+				$has     = $has || ( $content[ $i + $size - 1 ] ??= $this->is_content( $last ) );
 				// Sin palabra de contenido («1 GW», «2025») no es un término.
 				if ( $last->is_stopword || ! $has ) {
 					continue;
 				}
-				$counts[ $term ] = ( $counts[ $term ] ?? 0 ) + 1;
+				if ( null === $wanted ) {
+					$counts[ $term ] = ( $counts[ $term ] ?? 0 ) + 1;
+				} elseif ( ! isset( $wanted[ $term ] ) ) {
+					continue;
+				}
 				if ( $shown ) {
 					$surfaces[ $term ][ $normal ] = ( $surfaces[ $term ][ $normal ] ?? 0 ) + 1;
 				}
-			}
+			}//end for
 		}//end for
 		return $words;
 	}

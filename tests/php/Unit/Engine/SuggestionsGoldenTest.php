@@ -20,7 +20,7 @@ use MagicLinking\Engine\Suggestion;
 use PHPUnit\Framework\TestCase;
 
 /**
- * 24 entradas de tres temas en castellano y una en inglés, con párrafos largos, enlaces ya puestos, páginas
+ * 24 entradas de tres temas en castellano y una en inglés, con párrafos largos, encabezados, frases foco, enlaces ya puestos, páginas
  * y entradas pilar; se calculan todas las salientes y todas las entrantes con varias combinaciones de opciones
  * y se comparan, línea a línea, con las guardadas en `golden/suggestions.json`.
  *
@@ -94,8 +94,10 @@ final class SuggestionsGoldenTest extends TestCase {
 				}
 				$paras[] = ucfirst( implode( ' ', $words ) ) . '.';
 			}
-			$type = 0 === $id % 7 ? 'page' : 'post';
-			$source->add( $id, $title, $paras, $lang, $type, '', self::NOW - 86400 * ( 1 + $this->next( 900 ) ) );
+			$type     = 0 === $id % 7 ? 'page' : 'post';
+			$headings = 0 === $id % 3 ? array( ucfirst( $this->pick( $phrases ) ) . ' en ' . $this->pick( self::FILLER ), 'Sobre ' . $this->pick( $phrases ) ) : array();
+			$focus    = 0 === $id % 4 ? array( $this->pick( $phrases ) ) : array();
+			$source->add( $id, $title, $paras, $lang, $type, '', self::NOW - 86400 * ( 1 + $this->next( 900 ) ), $headings, array(), $focus );
 		}
 
 		$indexer = new Indexer();

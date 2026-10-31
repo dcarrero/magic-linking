@@ -290,9 +290,10 @@ final class Suggester {
 		}
 
 		try {
-			$analyzer = Analyzer::for_language( $meta->lang );
-			$phrases  = $this->finder->target_phrases( $meta, $this->index->terms( $target ), $analyzer );
-			$exclude  = array_merge( array( $target ), $this->existing ? $this->index->linking_to( $target ) : array(), $this->excluded_origins );
+			$linking = $this->index->linking_to( $target );
+			$context = $this->target_context( $target, Analyzer::for_language( $meta->lang ), $meta, count( $linking ) );
+			$phrases = $context['phrases'];
+			$exclude = array_merge( array( $target ), $this->existing ? $linking : array(), $this->excluded_origins );
 
 			return array() === $this->retriever->incoming( $meta, $phrases, $exclude, $needs )
 				&& array() !== $this->retriever->incoming( $meta, $phrases, $exclude );
@@ -439,19 +440,16 @@ final class Suggester {
 		if ( null === $meta || in_array( $target, $this->never, true ) ) {
 			return array();
 		}
-		$analyzer = Analyzer::for_language( $meta->lang );
-		$linking  = $this->index->linking_to( $target );
-		$context  = $this->target_context( $target, $analyzer, $meta, count( $linking ) );
-		if ( null === $context ) {
-			return array();
-		}
-		$phrases = $context['phrases'];
-		$exclude = array_merge( array( $target ), $this->existing ? $linking : array(), $this->excluded_origins );
-		$needs   = in_array( self::REQUIRE, $this->filters, true ) ? $this->requirement( $meta->type, $meta->taxonomies ) : array();
+		$needs = in_array( self::REQUIRE, $this->filters, true ) ? $this->requirement( $meta->type, $meta->taxonomies ) : array();
 		if ( null === $needs ) {
 			return array();
 		}
-		$origins = $this->retriever->incoming( $meta, $phrases, $exclude, $needs );
+		$analyzer = Analyzer::for_language( $meta->lang );
+		$linking  = $this->index->linking_to( $target );
+		$context  = $this->target_context( $target, $analyzer, $meta, count( $linking ) );
+		$phrases  = $context['phrases'];
+		$exclude  = array_merge( array( $target ), $this->existing ? $linking : array(), $this->excluded_origins );
+		$origins  = $this->retriever->incoming( $meta, $phrases, $exclude, $needs );
 		if ( $this->index instanceof Preloads ) {
 			$this->index->preload( array_merge( array( $target ), $origins ) );
 		}
@@ -500,17 +498,13 @@ final class Suggester {
 	 * Lo de un destino que no depende del origen: su ficha, sus términos principales, sus frases objetivo y las palabras
 	 * con que se puede ampliar un ancla. Las salientes lo piden una vez por candidata; las entrantes, una para todos los orígenes.
 	 *
-	 * @param int          $target   ID del destino.
-	 * @param Analyzer     $analyzer Analizador del idioma.
-	 * @param DocMeta|null $meta    Su ficha, si quien llama ya la tiene.
-	 * @param int|null     $inbound Enlaces que ya recibe, si quien llama ya los tiene contados.
-	 * @return array{meta: DocMeta, terms: array<string, float>, phrases: list<Phrase>, expansions: array<string, true>, inbound: int, age: int, unlike: bool, pillar: bool, penalty: bool}|null Null si el destino no está indexado.
+	 * @param int      $target   ID del destino.
+	 * @param Analyzer $analyzer Analizador del idioma.
+	 * @param DocMeta  $meta    Su ficha.
+	 * @param int|null $inbound Enlaces que ya recibe, si quien llama ya los tiene contados.
+	 * @return array{meta: DocMeta, terms: array<string, float>, phrases: list<Phrase>, expansions: array<string, true>, inbound: int, age: int, unlike: bool, pillar: bool, penalty: bool}
 	 */
-	private function target_context( int $target, Analyzer $analyzer, ?DocMeta $meta = null, ?int $inbound = null ): ?array {
-		$meta ??= $this->index->meta( $target );
-		if ( null === $meta ) {
-			return null;
-		}
+	private function target_context( int $target, Analyzer $analyzer, DocMeta $meta, ?int $inbound = null ): array {
 		$terms = $this->index->terms( $target );
 
 		return array(
@@ -544,9 +538,12 @@ final class Suggester {
 	 * @phpstan-param array{meta: DocMeta, terms: array<string, float>, phrases: list<Phrase>, expansions: array<string, true>, inbound: int, age: int, unlike: bool, pillar: bool, penalty: bool}|null $context
 	 */
 	private function best( AnchorText $source, int $target, float $relevance, array $weights, Analyzer $analyzer, array $blocked, ?float $semantic = null, ?int $links = null, ?array $context = null ): ?array {
-		$context ??= $this->target_context( $target, $analyzer );
 		if ( null === $context ) {
-			return null;
+			$meta = $this->index->meta( $target );
+			if ( null === $meta ) {
+				return null;
+			}
+			$context = $this->target_context( $target, $analyzer, $meta );
 		}
 		$matches = $this->finder->find( $source, $context['phrases'], $analyzer, $context['expansions'], $blocked, $target, $context['terms'] );
 		if ( array() === $matches ) {

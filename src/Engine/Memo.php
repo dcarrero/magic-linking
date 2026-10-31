@@ -15,7 +15,8 @@ namespace MagicLinking\Engine;
 final class Memo {
 
 	/**
-	 * Guarda un valor; al llegar al tope la memoria se vacía entera (más barato que llevar un orden de uso).
+	 * Guarda un valor; al llegar al tope se descarta la mitad más antigua (en orden de inserción), así las palabras que siguen
+	 * apareciendo se vuelven a guardar enseguida y el tamaño nunca pasa del tope.
 	 *
 	 * @param array      $map   Memoria (por referencia).
 	 * @param string|int $key   Clave.
@@ -26,7 +27,7 @@ final class Memo {
 	 */
 	public static function put( array &$map, string|int $key, mixed $value, int $limit ): void {
 		if ( count( $map ) >= $limit ) {
-			$map = array();
+			$map = array_slice( $map, intdiv( $limit, 2 ), null, true );
 		}
 		$map[ $key ] = $value;
 	}

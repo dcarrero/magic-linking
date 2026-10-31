@@ -219,7 +219,7 @@ final class Tokenizer {
 	/**
 	 * Forma normalizada, clave y condición de palabra vacía de cada palabra ya vista: `normalize()` y el plegado de
 	 * diacríticos son funciones puras del texto y un texto largo repite casi todas sus palabras, así que se calculan una vez
-	 * por palabra distinta y no una por aparición (F1-32). Acotado: al llegar al tope se vacía.
+	 * por palabra distinta y no una por aparición (F1-32). Acotado: al llegar al tope se descarta la mitad más antigua ({@see Memo}).
 	 *
 	 * @var array<string, array{0: string, 1: string, 2: bool}>
 	 */
@@ -228,7 +228,7 @@ final class Tokenizer {
 	/**
 	 * Palabras distintas que recuerda {@see self::$forms}.
 	 */
-	private const FORMS_CACHE_SIZE = 20000;
+	private const FORMS_CACHE_SIZE = 5000;
 
 	/**
 	 * Crea un tokenizador para un idioma.
