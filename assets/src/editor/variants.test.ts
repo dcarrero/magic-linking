@@ -188,6 +188,54 @@ describe( 'applyChoice', () => {
 		expect( chosen.alternatives ).toBe( item.alternatives );
 	} );
 
+	it( 'shows the notes of the alternative sentence anchor, not those of the main one', () => {
+		const note = { code: 'overused', text: 'Used in 6 entries.' };
+		const withNotes = suggestion( 9, { ...main, anchor_notes: [] }, [
+			{
+				...alt( S2, 'bomba de calor bien dimensionada' ),
+				anchor_notes: [ note ],
+			},
+		] );
+		const chosen = applyChoice( withNotes, {
+			option: 1,
+			seq: 1,
+			sig: signature( withNotes ),
+		} );
+		expect( chosen.anchor_notes ).toEqual( [ note ] );
+	} );
+
+	it( 'keeps the notes the server gave when it checked the adjusted anchor', () => {
+		const note = { code: 'cannibalization', text: 'Links elsewhere.' };
+		const withNotes = suggestion( 9, { ...main, anchor_notes: [] }, [] );
+		const chosen = applyChoice( withNotes, {
+			option: 0,
+			seq: 1,
+			sig: signature( withNotes ),
+			span: {
+				start: S1.indexOf( 'bomba' ),
+				end: S1.indexOf( 'ahorra' ) - 1,
+			},
+			notes: [ note ],
+		} );
+		expect( chosen.anchor_notes ).toEqual( [ note ] );
+	} );
+
+	it( 'does not know the notes of an anchor the user adjusted, so the card asks the server', () => {
+		const withNotes = suggestion(
+			9,
+			{ ...main, anchor_notes: [ { code: 'overused', text: 'x' } ] },
+			[]
+		);
+		const start = S1.indexOf( 'bomba' );
+		const chosen = applyChoice( withNotes, {
+			option: 0,
+			seq: 1,
+			sig: signature( withNotes ),
+			span: { start, end: S1.indexOf( 'aerotérmica' ) + 11 },
+		} );
+		expect( chosen.anchor_notes ).toBeNull();
+	} );
+
 	it( 'adjusts the anchor inside the chosen sentence and tells the server', () => {
 		const start = S2.indexOf( 'bomba' );
 		const end = S2.indexOf( 'dimensionada' ) + 'dimensionada'.length;

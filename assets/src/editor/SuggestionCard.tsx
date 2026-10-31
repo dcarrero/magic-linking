@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState } from '@wordpress/element';
 import { Button } from '@wordpress/components';
 import { __, _x, sprintf } from '@wordpress/i18n';
+import { api } from '../api';
 import type {
+	AnchorNote,
 	RerankImproved,
 	Suggestion,
 	SuggestionAlternative,
@@ -41,7 +43,10 @@ export interface CardVariants {
 	selected: number;
 	onSelect: ( option: number ) => void;
 	/** El usuario confirmó otro tramo de la frase como ancla (índices UTF-16). */
-	onAdjust: ( span: { start: number; end: number } ) => void;
+	onAdjust: (
+		span: { start: number; end: number },
+		notes?: AnchorNote[]
+	) => void;
 	/** Anclas que otras tarjetas de la lista llevan a otros destinos (solo salientes). */
 	taken?: { anchor: string; target_id: number }[];
 }
@@ -70,6 +75,53 @@ interface Props {
 	ai?: AiMark;
 	/** Acepta el ancla mejor que propone la IA. */
 	onUseAnchor?: ( improved: RerankImproved ) => void;
+}
+
+/**
+ * Avisos de ancla repetida de lo que se enseña (docs/07 §3.3). Los de la frase del servidor vienen con ella; si el ancla
+ * es otra (ajustada a mano o cambiada por la IA) el servidor aún no los ha dado (`null`) y se piden aquí, con la misma
+ * regla que usa para comprobar el ancla. Si no se pueden leer, la tarjeta sigue sin avisos: informan, no bloquean.
+ *
+ * @param suggestion Sugerencia que se enseña.
+ */
+function useAnchorNotes( suggestion: Suggestion ): AnchorNote[] {
+	const known = suggestion.anchor_notes;
+	const key = `${ suggestion.source.id }|${ suggestion.target.id }|${ suggestion.sentence }|${ suggestion.offset }|${ suggestion.anchor }`;
+	const [ asked, setAsked ] = useState< {
+		key: string;
+		notes: AnchorNote[];
+	} | null >( null );
+	const needed = known === null && suggestion.can_insert;
+
+	useEffect( () => {
+		if ( ! needed ) {
+			return undefined;
+		}
+		const controller = new AbortController();
+		api.checkAnchor(
+			suggestion.source.id,
+			suggestion.sentence,
+			suggestion.offset,
+			suggestion.anchor,
+			suggestion.target.id,
+			[],
+			controller.signal
+		)
+			.then( ( reply ) => {
+				if ( ! controller.signal.aborted ) {
+					setAsked( { key, notes: reply.notes ?? [] } );
+				}
+			} )
+			.catch( () => undefined );
+		return () => controller.abort();
+		// La clave resume todo lo que se envía.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ needed, key ] );
+
+	if ( known ) {
+		return known;
+	}
+	return asked?.key === key ? asked.notes : [];
 }
 
 /**
@@ -115,6 +167,7 @@ export function SuggestionCard( {
 	const previousKind = useRef< CardStatus[ 'kind' ] | undefined >(
 		status?.kind
 	);
+	const notes = useAnchorNotes( suggestion );
 	const [ undoing, setUndoing ] = useState( false );
 	const [ adjusting, setAdjusting ] = useState( false );
 	const [ moreOpen, setMoreOpen ] = useState( false );
@@ -341,8 +394,8 @@ export function SuggestionCard( {
 					sentence={ suggestion.sentence }
 					start={ suggestion.anchor_start }
 					end={ suggestion.anchor_end }
-					onApply={ ( span ) => {
-						variants.onAdjust( span );
+					onApply={ ( span, checked ) => {
+						variants.onAdjust( span, checked );
 						refocus.current = true;
 						setAdjusting( false );
 					} }
@@ -431,6 +484,22 @@ export function SuggestionCard( {
 				<p className="magiclinking-card__reasons">
 					{ reasons.join( ' · ' ) }
 				</p>
+			) }
+			{ notes.length > 0 && ! status && ! adjusting && (
+				<ul
+					className="magiclinking-card__notes"
+					aria-label={ __( 'Anchor notices', 'magic-linking' ) }
+				>
+					{ notes.map( ( note ) => (
+						<li
+							key={ note.code }
+							className={ `magiclinking-card__note-item is-${ note.code }` }
+						>
+							<span aria-hidden="true">⚠ </span>
+							{ note.text }
+						</li>
+					) ) }
+				</ul>
 			) }
 			{ /* Con estado propio (enlazando, error, descartando) cambiar el ancla cambiaría la clave y lo perdería. */ }
 			{ ai && direction === 'outbound' && ! status && (

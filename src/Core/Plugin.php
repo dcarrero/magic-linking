@@ -23,6 +23,7 @@ use MagicLinking\Content\Destination;
 use MagicLinking\Content\Inserter;
 use MagicLinking\Content\PostWriter;
 use MagicLinking\Content\Repairer;
+use MagicLinking\Graph\AnchorUsage;
 use MagicLinking\Graph\BrokenRepository;
 use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\GraphRepository;
@@ -66,6 +67,7 @@ use MagicLinking\Rest\PillarController;
 use MagicLinking\Rest\ReportController;
 use MagicLinking\Rest\RulesController;
 use MagicLinking\Rest\SettingsController;
+use MagicLinking\Rest\AnchorNotes;
 use MagicLinking\Rest\SuggestionPresenter;
 use MagicLinking\Rest\SuggestionsController;
 
@@ -244,7 +246,8 @@ final class Plugin {
 				$c->get( TableDocuments::class ),
 				$c->get( Settings::class ),
 				$c->get( DismissalRepository::class ),
-				$c->get( Pillars::class )
+				$c->get( Pillars::class ),
+				$c->get( Language::class )
 			),
 			Pillars::class                 => static function (): Pillars {
 				global $wpdb;
@@ -253,7 +256,12 @@ final class Plugin {
 			PillarController::class        => static fn( Container $c ): PillarController => new PillarController( $c->get( Pillars::class ), $c->get( Settings::class ) ),
 			ExclusionController::class     => static fn( Container $c ): ExclusionController => new ExclusionController( $c->get( Settings::class ) ),
 			SuggestionCache::class         => static fn(): SuggestionCache => new SuggestionCache(),
-			SuggestionPresenter::class     => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ) ),
+			SuggestionPresenter::class     => static fn( Container $c ): SuggestionPresenter => new SuggestionPresenter( $c->get( Language::class ), $c->get( AnchorNotes::class ) ),
+			AnchorUsage::class             => static function (): AnchorUsage {
+				global $wpdb;
+				return new AnchorUsage( $wpdb );
+			},
+			AnchorNotes::class             => static fn( Container $c ): AnchorNotes => new AnchorNotes( $c->get( AnchorUsage::class ), $c->get( Language::class ), $c->get( Settings::class ) ),
 			SuggestionsController::class   => static fn( Container $c ): SuggestionsController => new SuggestionsController(
 				$c->get( Suggestions::class ),
 				$c->get( Inserter::class ),
@@ -262,7 +270,8 @@ final class Plugin {
 				$c->get( SuggestionPresenter::class ),
 				$c->get( Destination::class ),
 				$c->get( Language::class ),
-				$c->get( GraphRepository::class )
+				$c->get( GraphRepository::class ),
+				$c->get( AnchorNotes::class )
 			),
 			RuleRepository::class          => static function (): RuleRepository {
 				global $wpdb;
@@ -375,7 +384,8 @@ final class Plugin {
 				$c->get( Capabilities::class ),
 				$c->get( Client::class ),
 				$c->get( Budget::class ),
-				$c->get( JobRepository::class )
+				$c->get( JobRepository::class ),
+				$c->get( AnchorNotes::class )
 			),
 			JobRepository::class           => static function (): JobRepository {
 				global $wpdb;

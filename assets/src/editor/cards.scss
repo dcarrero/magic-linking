@@ -142,6 +142,19 @@
 	font-size: 12px;
 }
 
+.magiclinking-card__notes {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.magiclinking-card__note-item {
+	// Marrón oscuro con contraste AA sobre el fondo de la tarjeta; el aviso lleva icono y texto, no solo color.
+	color: #7a4b00;
+	font-size: 12px;
+	margin: 4px 0 0;
+}
+
 .magiclinking-card__actions {
 	align-items: center;
 	display: flex;

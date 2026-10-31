@@ -53,13 +53,15 @@ final class AiController implements Module {
 	 * @param Client        $client       Cliente de IA.
 	 * @param Budget        $budget       Tope diario.
 	 * @param JobRepository $jobs        Registro del gasto.
+	 * @param AnchorNotes   $notes       Avisos de ancla repetida de las anclas que propone la IA.
 	 */
 	public function __construct(
 		private Reranker $reranker,
 		private Capabilities $capabilities,
 		private Client $client,
 		private Budget $budget,
-		private JobRepository $jobs
+		private JobRepository $jobs,
+		private AnchorNotes $notes
 	) {
 	}
 
@@ -252,9 +254,41 @@ final class AiController implements Module {
 			);
 		if ( ! $result['ok'] ) {
 			$result['message'] = self::failure_message( (string) $result['reason'], (int) ( $result['needs'] ?? 0 ) );
+		} else {
+			$result = $this->with_anchor_notes( $post_id, $result );
 		}
 
 		return new WP_REST_Response( $result );
+	}
+
+	/**
+	 * Añade a cada ancla mejor que propone la IA sus avisos de ancla repetida (docs/07 §3.3), medidos todos de una vez:
+	 * así la tarjeta no tiene que preguntarlos uno a uno cuando el usuario acepta el ancla.
+	 *
+	 * @param int                  $post_id Entrada abierta (el origen).
+	 * @param array<string, mixed> $result  Resultado del reordenado.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function with_anchor_notes( int $post_id, array $result ): array {
+		$pairs = array();
+		foreach ( (array) ( $result['items'] ?? array() ) as $row ) {
+			if ( is_array( $row ) && is_array( $row['improved'] ?? null ) && (int) $row['target_id'] > 0 ) {
+				$pairs[] = array( (string) $row['improved']['anchor'], (int) $row['target_id'], $post_id );
+			}
+		}
+		if ( array() === $pairs ) {
+			return $result;
+		}
+
+		$this->notes->prime( $pairs );
+		foreach ( $result['items'] as $n => $row ) {
+			if ( is_array( $row ) && is_array( $row['improved'] ?? null ) && (int) $row['target_id'] > 0 ) {
+				$result['items'][ $n ]['improved']['anchor_notes'] = $this->notes->for_anchor( (string) $row['improved']['anchor'], (int) $row['target_id'], $post_id );
+			}
+		}
+
+		return $result;
 	}
 
 	/**

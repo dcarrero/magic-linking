@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
 import { __, sprintf } from '@wordpress/i18n';
-import type { Suggestion } from '../types';
+import type { AnchorNote, Suggestion } from '../types';
 import { suggestionKey } from './keys';
 import {
 	applyChoice,
@@ -34,7 +34,8 @@ export interface Variants {
 	/** Fija el tramo de la frase elegida que va enlazado (índices UTF-16). */
 	adjust: (
 		original: Suggestion,
-		span: { start: number; end: number }
+		span: { start: number; end: number },
+		notes?: AnchorNote[]
 	) => void;
 	/** Quita todas las elecciones (al volver a pedir la lista). */
 	reset: () => void;
@@ -166,7 +167,11 @@ export function useVariants(
 	);
 
 	const adjust = useCallback(
-		( original: Suggestion, span: { start: number; end: number } ) => {
+		(
+			original: Suggestion,
+			span: { start: number; end: number },
+			notes?: AnchorNote[]
+		) => {
 			const key = suggestionKey( original );
 			const current: Choice | undefined = choicesRef.current[ key ];
 			const next: Choices = {
@@ -176,6 +181,7 @@ export function useVariants(
 					seq: ++seq.current,
 					sig: signature( original ),
 					span,
+					notes,
 				},
 			};
 			commit( next );

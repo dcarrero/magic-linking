@@ -77,6 +77,74 @@ final class LinkResolver {
 	}
 
 	/**
+	 * Resuelve de golpe, con una sola consulta, las URL que son exactamente la dirección de una entrada publicada, que es
+	 * lo habitual en un contenido. Las demás (otro tipo de ruta, un destino que no está publicado, una dirección que cambió)
+	 * se resuelven una a una como siempre al llamar a {@see self::resolve()}. Si algún plugin decide el destino con el
+	 * filtro `magiclinking_resolve_link`, no se adelanta nada.
+	 *
+	 * @param array $urls URL internas absolutas.
+	 *
+	 * @phpstan-param list<string> $urls
+	 */
+	public function prime( array $urls ): void {
+		if ( has_filter( 'magiclinking_resolve_link' ) ) {
+			return;
+		}
+
+		$wanted = array();
+		foreach ( array_unique( $urls ) as $url ) {
+			if ( isset( $this->cache[ $url ] ) || '' !== (string) wp_parse_url( $url, PHP_URL_QUERY ) ) {
+				continue;
+			}
+			$segments = array_values( array_filter( explode( '/', $this->relative_path( $url ) ), static fn( string $segment ): bool => '' !== $segment ) );
+			$slug     = array() === $segments ? '' : sanitize_title( rawurldecode( (string) end( $segments ) ) );
+			if ( '' !== $slug ) {
+				$wanted[ $url ] = $slug;
+			}
+		}
+		if ( array() === $wanted ) {
+			return;
+		}
+
+		$wpdb  = $this->wpdb;
+		$slugs = array_values( array_unique( $wanted ) );
+		$in    = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
+		$ids   = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Consulta de análisis puntual.
+			$wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_name IN ({$in}) AND post_status = 'publish' AND post_type NOT IN ('revision', 'nav_menu_item', 'attachment')", $slugs ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Nombre de tabla del núcleo y marcadores generados.
+		);
+		if ( array() === $ids ) {
+			return;
+		}
+		_prime_post_caches( array_map( 'intval', $ids ), false, false );
+
+		$by_address = array();
+		foreach ( $ids as $id ) {
+			$address = get_permalink( (int) $id );
+			if ( is_string( $address ) ) {
+				$by_address[ self::address( $address ) ][] = (int) $id;
+			}
+		}
+		foreach ( $wanted as $url => $slug ) {
+			// Solo si la dirección coincide con la de una sola entrada: si hay duda, lo decide el resolutor de siempre.
+			$found = $by_address[ self::address( $url ) ] ?? array();
+			if ( 1 === count( $found ) ) {
+				$this->cache[ $url ] = new Resolution( $found[0] );
+			}
+		}
+	}
+
+	/**
+	 * Forma comparable de una dirección: sin fragmento ni barra final, con el servidor en minúsculas.
+	 *
+	 * @param string $url URL.
+	 */
+	private static function address( string $url ): string {
+		$parts = wp_parse_url( $url );
+
+		return strtolower( (string) ( $parts['scheme'] ?? '' ) ) . '://' . strtolower( (string) ( $parts['host'] ?? '' ) ) . ( isset( $parts['port'] ) ? ':' . $parts['port'] : '' ) . rtrim( rawurldecode( (string) ( $parts['path'] ?? '' ) ), '/' );
+	}
+
+	/**
 	 * Resuelve una URL interna absoluta.
 	 *
 	 * @param string $url URL absoluta y normalizada (LinkParser).

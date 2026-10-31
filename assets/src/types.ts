@@ -470,11 +470,20 @@ export interface AnchorIssue {
 	message: string;
 }
 
+/** Aviso de ancla repetida (docs/07 §3.3): `cannibalization` (ya lleva a otro destino) u `overused` (demasiadas veces al mismo). */
+export interface AnchorNote {
+	code: string;
+	/** Texto en el idioma del usuario. */
+	text: string;
+}
+
 /** Respuesta de `POST /suggestions/anchor` (docs/07 §3.2). */
 export interface AnchorCheckResponse {
 	valid: boolean;
 	errors: AnchorIssue[];
 	warnings: AnchorIssue[];
+	/** Avisos de ancla repetida; vacío si no hay o si no se mandó destino. */
+	notes?: AnchorNote[];
 }
 
 export interface SuggestionReason {
@@ -496,6 +505,11 @@ export interface SuggestionAlternative {
 	score: number;
 	/** Solo si el usuario puede editar el origen (`can_insert` de la sugerencia). */
 	insert?: InsertLink;
+	/**
+	 * Avisos de ancla repetida de esta ancla. `null` = se cambió el ancla en el cliente y el servidor aún no los ha
+	 * dado: la tarjeta los pide (`POST /suggestions/anchor`).
+	 */
+	anchor_notes?: AnchorNote[] | null;
 }
 
 export interface Suggestion extends SuggestionAlternative {
@@ -517,6 +531,22 @@ export type SuggestionState =
 	| 'excluded'
 	| 'not_published';
 
+/** Destino al que la entrada ya enlaza, para el bloque «Enlaces actuales» (docs/07 §3.3). */
+export interface CurrentLink {
+	id: number;
+	title?: string;
+	url?: string;
+	type_label?: string;
+	edit_url?: string | null;
+	/** Textos de ancla con los que ya enlaza, sin repetir. */
+	anchors: string[];
+	/** El usuario no puede leer el destino: no se manda su título ni su dirección. */
+	restricted?: boolean;
+	/** Estado del destino si no está publicado (borrador, programada, privada), con su nombre. */
+	status?: string;
+	status_label?: string;
+}
+
 export interface OutboundResponse {
 	/** El índice léxico está construido; si no, `items` va vacío. */
 	ready: boolean;
@@ -528,6 +558,8 @@ export interface OutboundResponse {
 	post_id?: number;
 	/** Filtros en modo Exigir; sin sugerencias, el estado vacío los explica. */
 	required?: FilterName[];
+	/** A quién enlaza ya la entrada (lo que hay en el editor, guardado o no). */
+	current_links?: CurrentLink[];
 }
 
 export interface InboundResponse extends Paged {
@@ -665,6 +697,8 @@ export interface RerankImproved {
 	after: string;
 	anchor_start: number;
 	anchor_end: number;
+	/** Avisos de ancla repetida de esta ancla (docs/07 §3.3), medidos por el servidor con la respuesta. */
+	anchor_notes?: AnchorNote[];
 }
 
 export interface RerankResult {

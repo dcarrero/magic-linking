@@ -8,6 +8,8 @@ import type { Suggestion } from '../types';
 import type { ApplyFailure, EditorAdapter } from './adapters/types';
 import type { EditorBoot } from './boot';
 import { suggestionKey } from './keys';
+import { CurrentLinks } from './CurrentLinks';
+import { outboundSignature, useCurrentLinks } from './useCurrentLinks';
 import { Pager } from './Pager';
 import { PillarBox } from './PillarBox';
 import { SuggestionCard, type CardVariants } from './SuggestionCard';
@@ -109,8 +111,8 @@ function cardVariants(
 				'polite'
 			);
 		},
-		onAdjust: ( span ) => {
-			variants.adjust( original, span );
+		onAdjust: ( span, notes ) => {
+			variants.adjust( original, span, notes );
 			speak(
 				sprintf(
 					/* translators: %s: anchor text. */
@@ -222,6 +224,13 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 	const linkInbound = ( suggestion: Suggestion ) =>
 		link( suggestion, 'inbound' );
 
+	// Los enlaces de la entrada: los del servidor, que se piden otra vez al enlazar o deshacer desde el panel.
+	const currentLinks = useCurrentLinks(
+		adapter,
+		outbound.data?.current_links,
+		outboundSignature( statuses, adapter.postId )
+	);
+
 	const outboundCount = state.visibleOutbound.length;
 	const inboundTotal = state.inboundCount;
 
@@ -275,6 +284,9 @@ export function Panel( { adapter, boot, state, announce = true }: Props ) {
 							) }
 							{ outbound.loading && ! outbound.data && (
 								<Loading />
+							) }
+							{ outbound.data && (
+								<CurrentLinks links={ currentLinks } />
 							) }
 							{ outbound.data &&
 								( outbound.data.items.length === 0 ? (

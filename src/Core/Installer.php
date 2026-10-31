@@ -37,6 +37,11 @@ final class Installer implements Module {
 	public const AI_COLUMNS_SCHEMA = 6;
 
 	/**
+	 * Acción de Action Scheduler que añade el índice por ancla a `links` en una actualización (esquema 7).
+	 */
+	public const HOOK_ANCHOR_INDEX = 'magiclinking_add_anchor_index';
+
+	/**
 	 * Transitorio (sin autoload) que frena los reintentos de una migración que falló.
 	 */
 	public const RETRY_TRANSIENT = 'magiclinking_schema_retry';
@@ -135,6 +140,7 @@ final class Installer implements Module {
 	 */
 	public function register(): void {
 		add_action( 'admin_init', array( $this, 'on_admin_init' ) );
+		add_action( self::HOOK_ANCHOR_INDEX, array( $this, 'add_anchor_index' ) );
 	}
 
 	/**
@@ -219,7 +225,10 @@ final class Installer implements Module {
 	 * @param int $from Versión instalada.
 	 */
 	public function upgrade( int $from ): bool {
-		$this->create_tables();
+		// En un sitio con datos el índice por ancla de `links` no se crea en esta petición (en una tabla grande puede tardar
+		// mucho): dbDelta no lo ve y se añade en segundo plano. Las consultas funcionan sin él mientras tanto.
+		$with_index = 0 === $from || $this->has_anchor_index();
+		$this->create_tables( $with_index );
 
 		if ( array() !== $this->missing_tables() ) {
 			return false;
@@ -247,6 +256,9 @@ final class Installer implements Module {
 		// Una actualización (no una instalación nueva) puede dejar el índice léxico sin construir.
 		if ( $from > 0 ) {
 			self::request_reconcile();
+			if ( ! $with_index ) {
+				self::request_anchor_index();
+			}
 		}
 
 		return true;
@@ -255,14 +267,61 @@ final class Installer implements Module {
 	/**
 	 * Crea las tablas que falten y añade columnas e índices nuevos.
 	 *
+	 * @param bool $anchor_index Incluir el índice por ancla de `links`.
+	 *
 	 * @return array<string, string> Cambios aplicados, según dbDelta(); vacío si no había nada que hacer.
 	 */
-	public function create_tables(): array {
+	public function create_tables( bool $anchor_index = true ): array {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$statements = Schema::create_statements( $this->wpdb->prefix, $this->wpdb->get_charset_collate() );
+		$statements = Schema::create_statements( $this->wpdb->prefix, $this->wpdb->get_charset_collate(), $anchor_index );
 
 		return dbDelta( array_values( $statements ) );
+	}
+
+	/**
+	 * Si la tabla de enlaces ya tiene el índice por ancla (esquema 7).
+	 *
+	 * @phpstan-impure
+	 */
+	public function has_anchor_index(): bool {
+		$wpdb     = $this->wpdb;
+		$table    = Schema::table( $wpdb->prefix, 'links' );
+		$previous = $wpdb->suppress_errors( true );
+		$found    = $wpdb->get_var( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table, 'anchor' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Comprobación del esquema.
+		$wpdb->suppress_errors( $previous );
+
+		return null !== $found;
+	}
+
+	/**
+	 * Pide en segundo plano (Action Scheduler) que se añada el índice por ancla. No bloquea la petición ni duplica la
+	 * acción pendiente.
+	 */
+	public static function request_anchor_index(): void {
+		if ( ! function_exists( 'as_enqueue_async_action' ) || ! did_action( 'init' ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( self::HOOK_ANCHOR_INDEX, array(), self::ACTION_GROUP, true );
+	}
+
+	/**
+	 * Acción de Action Scheduler: añade a `links` el índice por ancla. Idempotente (no hace nada si ya existe) y
+	 * reanudable: si falla, se vuelve a intentar dentro de una hora.
+	 */
+	public function add_anchor_index(): void {
+		if ( $this->has_anchor_index() ) {
+			return;
+		}
+
+		$wpdb  = $this->wpdb;
+		$table = esc_sql( Schema::table( $wpdb->prefix, 'links' ) );
+		$done  = $wpdb->query( "ALTER TABLE `{$table}` ADD INDEX anchor (anchor(40))" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Nombre de tabla desde constantes; no admite marcadores.
+
+		if ( false === $done && ! $this->has_anchor_index() && function_exists( 'as_schedule_single_action' ) ) {
+			as_schedule_single_action( time() + HOUR_IN_SECONDS, self::HOOK_ANCHOR_INDEX, array(), self::ACTION_GROUP, true );
+		}
 	}
 
 	/**

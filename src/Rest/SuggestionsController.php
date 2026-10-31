@@ -87,6 +87,7 @@ final class SuggestionsController implements Module {
 	 * @param Destination         $destination Comprobación del destino.
 	 * @param Language            $language    Idioma por entrada (para comprobar un ancla ajustada).
 	 * @param GraphRepository     $graph       Grafo de enlaces (para la unicidad de las anclas ajustadas).
+	 * @param AnchorNotes         $notes       Avisos de ancla repetida (para la comprobación de un ancla ajustada).
 	 */
 	public function __construct(
 		private Suggestions $suggestions,
@@ -96,7 +97,8 @@ final class SuggestionsController implements Module {
 		private SuggestionPresenter $presenter,
 		private Destination $destination,
 		private Language $language,
-		private GraphRepository $graph
+		private GraphRepository $graph,
+		private AnchorNotes $notes
 	) {
 	}
 
@@ -171,6 +173,24 @@ final class SuggestionsController implements Module {
 							'additionalProperties' => false,
 						),
 					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/suggestions/current-links',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'post_current_links' ),
+				'permission_callback' => array( $this, 'can_edit_post' ),
+				'args'                => array(
+					'post_id' => $post_id,
+					'content' => array(
+						'type'     => 'string',
+						'required' => true,
+					),
+					'title'   => array( 'type' => 'string' ),
 				),
 			)
 		);
@@ -357,13 +377,43 @@ final class SuggestionsController implements Module {
 		$taken = $request->has_param( 'taken' ) && is_array( $request['taken'] ) ? $request['taken'] : array();
 		$check = $this->check_anchor( $post_id, (string) $request['sentence'], (int) $request['offset'], (string) $request['anchor'], (int) $request['target_id'], $taken );
 
+		$notes = array();
+		if ( $check->valid() && (int) $request['target_id'] > 0 ) {
+			$this->notes->prime( array( array( (string) $request['anchor'], (int) $request['target_id'], $post_id ) ) );
+			$notes = $this->notes->for_anchor( (string) $request['anchor'], (int) $request['target_id'], $post_id );
+		}
+
 		return new WP_REST_Response(
 			array(
 				'valid'    => $check->valid(),
 				'errors'   => AnchorMessages::describe( $check->errors ),
 				'warnings' => AnchorMessages::describe( $check->warnings ),
+				// Avisos de ancla repetida (docs/07 §3.3): solo con un ancla válida y un destino con el que compararla.
+				'notes'    => $notes,
 			)
 		);
+	}
+
+	/**
+	 * POST /suggestions/current-links: a quién enlaza ya la entrada con lo que hay ahora en el editor, sin calcular
+	 * sugerencias. El panel lo pide tras enlazar o deshacer para que el bloque «Enlaces actuales» sea siempre el real.
+	 *
+	 * @param WP_REST_Request $request Petición.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function post_current_links( WP_REST_Request $request ) {
+		$post_id = (int) $request['post_id'];
+		if ( ! get_post( $post_id ) instanceof WP_Post ) {
+			return $this->not_found();
+		}
+		$content = (string) $request['content'];
+		if ( strlen( $content ) > self::MAX_DRAFT ) {
+			return new WP_Error( 'magiclinking_too_large', __( 'The content is too long to analyze.', 'magic-linking' ), array( 'status' => 413 ) );
+		}
+		$title = $request->has_param( 'title' ) ? wp_strip_all_tags( (string) $request['title'] ) : null;
+
+		return new WP_REST_Response( array( 'current_links' => $this->presenter->current_links( $this->suggestions->current_links( $post_id, $content, $title ) ) ) );
 	}
 
 	/**
@@ -425,13 +475,18 @@ final class SuggestionsController implements Module {
 		}
 
 		// Solo se guardan las de una entrada publicada: la de un borrador cambia con cada guardado y no invalida nada.
+		// Los enlaces actuales salen del mismo documento que analiza el motor; si las sugerencias vienen de la caché, se
+		// guardan también (misma clave de renovación) y, sin caché, se leen del grafo.
+		$links = null;
 		if ( null !== $content ) {
-			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms, $names );
+			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms, $names, $links );
 		} elseif ( 'publish' === $post->post_status ) {
 			$found = SuggestionCache::remember( 'out', $post_id, fn(): array => $this->suggestions->outgoing( $post_id ) );
+			$links = SuggestionCache::remember( 'links', $post_id, fn(): array => $this->suggestions->current_links( $post_id ) );
 		} else {
-			$found = $this->suggestions->outgoing( $post_id );
+			$found = $this->suggestions->outgoing( $post_id, array(), null, null, null, null, $links );
 		}
+		$links ??= $this->suggestions->current_links( $post_id, $content, $title );
 
 		// Solo se proponen frases donde el editor puede poner el enlace (docs/06 §2): el motor lee más
 		// contenedores que los bloques de texto admitidos y una sugerencia imposible volvería siempre.
@@ -446,14 +501,16 @@ final class SuggestionsController implements Module {
 
 		return new WP_REST_Response(
 			array(
-				'ready'    => true,
-				'state'    => 'ok',
-				'draft'    => null !== $content,
-				'total'    => count( $found ),
-				'items'    => array_map( array( $this->presenter, 'present' ), $found ),
-				'post_id'  => $post_id,
+				'ready'         => true,
+				'state'         => 'ok',
+				'draft'         => null !== $content,
+				'total'         => count( $found ),
+				'items'         => array_map( array( $this->presenter, 'present' ), $found ),
+				'post_id'       => $post_id,
 				// Filtros en modo Exigir (type, category, tag) que son la causa de que no haya sugerencias; si no, vacío.
-				'required' => $required,
+				'required'      => $required,
+				// A quién enlaza ya la entrada, para el bloque «Enlaces actuales» (docs/07 §3.3).
+				'current_links' => $this->presenter->current_links( $links ),
 			)
 		);
 	}

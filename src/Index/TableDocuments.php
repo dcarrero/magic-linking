@@ -113,22 +113,49 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	public function from_post( WP_Post $post ): Document {
 		$html     = PostSource::html_of( $post );
 		$document = $this->posts->from_post( $post, $html );
-		$links    = array();
+
+		$links = $this->links_in( $post, $html );
+
+		return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+	}
+
+	/**
+	 * Enlaces internos del contenido de una entrada, en orden: el destino (null si está roto o no es una entrada) y el
+	 * ancla. Si la entrada se trajo por adelantado ({@see self::prefetch()}) y su huella es la del contenido de ahora,
+	 * salen del grafo; si no (contenido sin guardar), del propio HTML y se resuelven en vivo, todas las URL juntas
+	 * ({@see LinkResolver::prime()}): lo que el grafo resolvió al guardar puede estar viejo (un destino que se publicó,
+	 * se despublicó o se borró). Un enlace a la propia entrada no cuenta.
+	 *
+	 * @param WP_Post     $post Entrada, con el contenido que se quiere leer.
+	 * @param string|null $html HTML ya preparado (con el filtro `magiclinking_post_html`); null = prepararlo aquí.
+	 *
+	 * @return list<Link>
+	 */
+	public function links_in( WP_Post $post, ?string $html = null ): array {
+		$html ??= PostSource::html_of( $post );
+		$links = array();
 
 		$stored = $this->stored[ $post->ID ] ?? null;
 		if ( null !== $stored && '' !== $stored['hash'] && Fingerprint::of( $post, $html ) === $stored['hash'] ) {
 			foreach ( $stored['links'] as list( $target, $anchor ) ) {
-				$links[] = new Link( $target, $anchor );
+				// Un enlace a la propia entrada no cuenta, venga del grafo o del HTML.
+				if ( $target !== $post->ID ) {
+					$links[] = new Link( $target, $anchor );
+				}
 			}
 
-			return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+			return $links;
 		}
 
+		$parsed = array();
 		foreach ( $this->parser()->parse( $html ) as $link ) {
-			if ( ! $link->internal ) {
-				continue;
+			if ( $link->internal ) {
+				$parsed[] = $link;
 			}
+		}
+		$this->resolver->prime( array_map( static fn( $link ): string => $link->url, $parsed ) );
 
+		foreach ( $parsed as $link ) {
 			$resolution = $this->resolver->resolve( $link->url );
 
 			// Un enlace a la propia entrada no cuenta.
@@ -139,7 +166,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 			$links[] = new Link( BrokenReason::NONE === $resolution->broken ? $resolution->target_id : null, $link->anchor );
 		}
 
-		return new Document( $document->id, $document->type, $document->lang, $document->title, $document->slug, $document->date, $document->headings, $document->paragraphs, $links, $document->focus, $document->taxonomies );
+		return $links;
 	}
 
 	/**

@@ -10,7 +10,7 @@ import { Button } from '@wordpress/components';
 import { speak } from '@wordpress/a11y';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
-import type { AnchorCheckResponse } from '../types';
+import type { AnchorCheckResponse, AnchorNote } from '../types';
 import { byteLength, spanForWords, wordRange, wordsOf } from './variants';
 
 /** Lo que se sabe del tramo elegido: se está comprobando, ya se comprobó o la comprobación falló. */
@@ -31,7 +31,10 @@ interface Props {
 	/** Tramo actual del ancla (índices UTF-16 de la frase). */
 	start: number;
 	end: number;
-	onApply: ( span: { start: number; end: number } ) => void;
+	onApply: (
+		span: { start: number; end: number },
+		notes?: AnchorNote[]
+	) => void;
 	onCancel: () => void;
 }
 
@@ -212,7 +215,7 @@ export function AnchorAdjuster( {
 			confirming.current = null;
 			setCheck( { state: 'done', result: answer } );
 			if ( answer.valid ) {
-				onApply( range );
+				onApply( range, answer.notes );
 			} else {
 				speak( answer.errors[ 0 ]?.message ?? '', 'assertive' );
 			}
