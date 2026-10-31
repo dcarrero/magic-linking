@@ -1,3 +1,4 @@
+import { dateI18n, getSettings } from '@wordpress/date';
 import { __, _n, _x, sprintf } from '@wordpress/i18n';
 import type { ChangeKind, HistoryOrigin } from '../types';
 
@@ -11,75 +12,88 @@ export function parseServerDate( value: string ): Date {
 	return new Date( /(Z|[+-]\d\d:?\d\d)$/.test( iso ) ? iso : iso + 'Z' );
 }
 
-const formatters = new Map< string, Intl.DateTimeFormat >();
+/** Lo que se muestra cuando no hay fecha (vacía, cero de MySQL o ilegible). */
+const NO_DATE = '—';
 
 /**
- * Idioma de la página como etiqueta BCP 47 válida; los locales de WordPress que no lo son
- * (p. ej. `pt-PT-ao90`) caen al idioma del navegador en vez de lanzar.
+ * Fecha del servidor, o `null` si no es una fecha real: vacía, ilegible o la cero de MySQL
+ * (`0000-00-00 00:00:00`, que no existe antes de 1970).
+ * @param value Fecha del servidor.
  */
-function pageLocale(): string | undefined {
-	const lang = document.documentElement.lang;
-	if ( ! lang ) {
-		return undefined;
-	}
-	try {
-		return Intl.getCanonicalLocales( lang )[ 0 ];
-	} catch {
-		return undefined;
-	}
-}
-
-/**
- * Formateador de fechas cacheado por idioma y estilo (se llama una vez por fila en cada render).
- * @param style           Estilos de fecha y hora.
- * @param style.dateStyle
- * @param style.timeStyle
- */
-function formatter( style: {
-	dateStyle: 'medium' | 'full';
-	timeStyle: 'short' | 'medium';
-} ): Intl.DateTimeFormat {
-	const locale = pageLocale();
-	const key = `${ locale ?? '' }|${ style.dateStyle }|${ style.timeStyle }`;
-	let cached = formatters.get( key );
-	if ( ! cached ) {
-		cached = new Intl.DateTimeFormat( locale, style );
-		formatters.set( key, cached );
-	}
-	return cached;
-}
-
-/**
- * Da formato a una fecha del servidor; si no es válida devuelve el texto tal cual.
- * @param value           Fecha del servidor.
- * @param style           Estilos de fecha y hora.
- * @param style.dateStyle
- * @param style.timeStyle
- */
-function format(
-	value: string,
-	style: Parameters< typeof formatter >[ 0 ]
-): string {
+function validServerDate( value: string ): Date | null {
 	const date = parseServerDate( value );
-	return Number.isNaN( date.getTime() )
-		? value
-		: formatter( style ).format( date );
+	return Number.isNaN( date.getTime() ) || date.getTime() <= 0 ? null : date;
 }
 
 /**
- * Fecha y hora en el idioma del usuario, con el formato de la pantalla.
- * @param value Fecha RFC 3339 del servidor.
+ * Valor del atributo `dateTime` de un `<time>`: el instante en ISO 8601, o nada si la fecha no es real.
+ * @param value Fecha del servidor.
+ */
+export function dateTimeAttr( value: string ): string | undefined {
+	return validServerDate( value )?.toISOString();
+}
+
+/**
+ * Fecha y hora con la zona horaria y los formatos del sitio (Ajustes → Generales), no los del navegador, para que
+ * coincida con wp-admin, WP-CLI y el CSV. `wp.date` recibe esos ajustes del núcleo.
+ * @param value    Fecha del servidor.
+ * @param withSecs Con segundos y zona (para el atributo `title`).
+ */
+function format( value: string, withSecs: boolean ): string {
+	const date = validServerDate( value );
+	if ( ! date ) {
+		return NO_DATE;
+	}
+	const { date: dateFormat, time } = getSettings().formats;
+	const pattern = withSecs
+		? `${ dateFormat } ${
+				/i/.test( time ) ? time.replace( 'i', 'i:s' ) : time + ':s'
+		  } T`
+		: `${ dateFormat } ${ time }`;
+	return dateI18n( pattern, date );
+}
+
+/**
+ * Fecha y hora en la zona y el formato del sitio.
+ * @param value Fecha GMT del servidor.
  */
 export function formatDate( value: string ): string {
-	return format( value, { dateStyle: 'medium', timeStyle: 'short' } );
+	return format( value, false );
 }
 
 /**
- * Fecha y hora completas (con segundos), para el atributo `title`.
- * @param value Fecha RFC 3339 del servidor.
+ * Fecha y hora completas (con segundos y zona), para el atributo `title`.
+ * @param value Fecha GMT del servidor.
  */
 export function formatFullDate( value: string ): string {
-	return format( value, { dateStyle: 'full', timeStyle: 'medium' } );
+	return format( value, true );
+}
+
+/**
+ * Duración legible entre dos fechas.
+ * @param from Inicio.
+ * @param to   Fin.
+ */
+export function formatDuration( from: string, to: string ): string {
+	const start = parseServerDate( from ).getTime();
+	const end = parseServerDate( to ).getTime();
+	if ( Number.isNaN( start ) || Number.isNaN( end ) || start <= 0 ) {
+		return '—';
+	}
+	const seconds = Math.max( 0, Math.round( ( end - start ) / 1000 ) );
+	if ( seconds < 60 ) {
+		return sprintf(
+			/* translators: %s: number of seconds. */
+			__( '%s s', 'magic-linking' ),
+			String( seconds )
+		);
+	}
+	return sprintf(
+		/* translators: 1: minutes, 2: seconds. */
+		__( '%1$s min %2$s s', 'magic-linking' ),
+		String( Math.floor( seconds / 60 ) ),
+		String( seconds % 60 )
+	);
 }
 
 /**

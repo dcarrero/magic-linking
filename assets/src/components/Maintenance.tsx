@@ -1,10 +1,10 @@
 import { Button, Modal, Notice } from '@wordpress/components';
 import { useState } from '@wordpress/element';
 import { speak } from '@wordpress/a11y';
-import { __, sprintf } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 import { api, errorMessage } from '../api';
 import type { StatusResponse } from '../types';
-import { formatDate, parseServerDate } from './historyFormat';
+import { formatDate, formatDuration } from './historyFormat';
 import { SettingsSection, settingsSections } from './SettingsSection';
 
 interface Props {
@@ -13,35 +13,6 @@ interface Props {
 	control: MaintenanceControl;
 	/** Reabre el asistente de arranque. */
 	onOpenWizard: () => void;
-}
-
-/**
- * Duración legible entre dos fechas.
- * @param from Inicio.
- * @param to   Fin.
- */
-export function formatDuration( from: string, to: string ): string {
-	const seconds = Math.max(
-		0,
-		Math.round(
-			( parseServerDate( to ).getTime() -
-				parseServerDate( from ).getTime() ) /
-				1000
-		)
-	);
-	if ( seconds < 60 ) {
-		return sprintf(
-			/* translators: %s: number of seconds. */
-			__( '%s s', 'magic-linking' ),
-			String( seconds )
-		);
-	}
-	return sprintf(
-		/* translators: 1: minutes, 2: seconds. */
-		__( '%1$s min %2$s s', 'magic-linking' ),
-		String( Math.floor( seconds / 60 ) ),
-		String( seconds % 60 )
-	);
 }
 
 /**
