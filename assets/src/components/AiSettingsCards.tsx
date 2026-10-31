@@ -473,15 +473,6 @@ function costCell( row: { local: boolean; cost: number | null } ): string {
 }
 
 /**
- * Fecha y hora de una marca del servidor, en la zona y el formato del sitio; «—» si no es una fecha real.
- *
- * @param iso Fecha del servidor.
- */
-function whenText( iso: string ): string {
-	return formatDate( iso );
-}
-
-/**
  * Última llamada fallida con el código y el mensaje técnico saneado por el servidor (sin claves ni texto de las
  * entradas), para que el administrador pueda ver por qué «la IA no respondió».
  *
@@ -496,7 +487,7 @@ export function LastFailure( { failure }: { failure: AiLastFailure } ) {
 				{ sprintf(
 					/* translators: 1: date and time, 2: model name (may be empty), 3: error code. */
 					__( '%1$s · %2$s · code: %3$s', 'magic-linking' ),
-					whenText( failure.at ),
+					formatDate( failure.at ),
 					failure.model === ''
 						? __( 'unknown model', 'magic-linking' )
 						: failure.model,

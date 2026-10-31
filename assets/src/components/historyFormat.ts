@@ -42,33 +42,75 @@ function codes( pattern: string ): string {
 }
 
 /**
- * Si el formato ya muestra la zona (`T`, `e`, `O`, `P`).
+ * Si el formato ya muestra la zona (`T`, `e`, `O`, `P`, `Z`, `c`, `r`).
  * @param pattern Formato.
  */
 function hasZone( pattern: string ): boolean {
-	return /[TeOP]/.test( codes( pattern ) );
+	return /[TeOPZcr]/.test( codes( pattern ) );
 }
 
 /**
- * Formato de hora con segundos: si ya los tiene no cambia; si no, los añade tras los minutos (`i`) o al final.
+ * Quita una barra final suelta, que escaparía lo que se pegue detrás.
+ * @param pattern Formato.
+ */
+function closed( pattern: string ): string {
+	return /(?:^|[^\\])(?:\\\\)*\\$/.test( pattern )
+		? pattern.slice( 0, -1 )
+		: pattern;
+}
+
+/**
+ * Formato de hora con segundos: si ya los tiene o no tiene minutos (`i`), no cambia; si no, los añade tras ellos.
  * @param time Formato de hora.
  */
 function withSeconds( time: string ): string {
 	if ( /[sU]/.test( codes( time ) ) ) {
 		return time;
 	}
-	let index = -1;
 	for ( let i = 0; i < time.length; i++ ) {
 		if ( time[ i ] === '\\' ) {
 			i++;
 		} else if ( time[ i ] === 'i' ) {
-			index = i;
-			break;
+			return time.slice( 0, i + 1 ) + ':s' + time.slice( i + 1 );
 		}
 	}
-	return index < 0
-		? time + ':s'
-		: time.slice( 0, index + 1 ) + ':s' + time.slice( index + 1 );
+	return time;
+}
+
+export interface SitePatterns {
+	key: string;
+	short: string;
+	full: string;
+}
+
+let cachedPatterns: SitePatterns | null = null;
+
+/**
+ * Formatos de fecha del sitio: el corto y el completo (con segundos y zona). Se construyen una vez por ajustes,
+ * porque se piden por cada fila de las tablas.
+ */
+export function sitePatterns(): SitePatterns {
+	const { formats, timezone } = getSettings();
+	const key = [
+		formats.date,
+		formats.time,
+		timezone.string ? 'T' : 'P',
+	].join( '\u0000' );
+	if ( cachedPatterns?.key === key ) {
+		return cachedPatterns;
+	}
+	const dateFormat = closed( formats.date );
+	const time = closed( formats.time );
+	const join = ( t: string ) => ( dateFormat ? `${ dateFormat } ${ t }` : t );
+	// Con desfase manual («UTC+2») no hay abreviatura: se muestra el desfase, no «UTC».
+	const zone = timezone.string ? ' T' : ' P';
+	const fullTime = withSeconds( time );
+	cachedPatterns = {
+		key,
+		short: join( time ),
+		full: join( fullTime ) + ( hasZone( dateFormat + time ) ? '' : zone ),
+	};
+	return cachedPatterns;
 }
 
 /**
@@ -77,18 +119,13 @@ function withSeconds( time: string ): string {
  * @param value    Fecha del servidor.
  * @param withSecs Con segundos y zona (para el atributo `title`).
  */
-function format( value: string, withSecs: boolean ): string {
+function format( value: string, withSecs: boolean ): string | undefined {
 	const date = validServerDate( value );
 	if ( ! date ) {
-		return NO_DATE;
+		return undefined;
 	}
-	const { date: dateFormat, time } = getSettings().formats;
-	const pattern = withSecs
-		? `${ dateFormat } ${ withSeconds( time ) }${
-				hasZone( dateFormat + time ) ? '' : ' T'
-		  }`
-		: `${ dateFormat } ${ time }`;
-	return dateI18n( pattern, date );
+	const patterns = sitePatterns();
+	return dateI18n( withSecs ? patterns.full : patterns.short, date );
 }
 
 /**
@@ -96,14 +133,15 @@ function format( value: string, withSecs: boolean ): string {
  * @param value Fecha GMT del servidor.
  */
 export function formatDate( value: string ): string {
-	return format( value, false );
+	return format( value, false ) ?? NO_DATE;
 }
 
 /**
- * Fecha y hora completas (con segundos y zona), para el atributo `title`.
+ * Fecha y hora completas (con segundos y zona), para el atributo `title`; `undefined` si no hay fecha real, para
+ * omitir el atributo.
  * @param value Fecha GMT del servidor.
  */
-export function formatFullDate( value: string ): string {
+export function formatFullDate( value: string ): string | undefined {
 	return format( value, true );
 }
 

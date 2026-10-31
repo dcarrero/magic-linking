@@ -9,6 +9,7 @@ import {
 	formatFullDate,
 	originKey,
 	parseServerDate,
+	sitePatterns,
 	sourceLabel,
 } from './historyFormat';
 
@@ -194,11 +195,62 @@ describe( 'formatDate', () => {
 		);
 	} );
 
+	it( 'uses the manual offset, not UTC, when the site has no named zone', () => {
+		setSettings( {
+			...getSettings(),
+			formats: { ...getSettings().formats, date: 'Y-m-d', time: 'H:i' },
+			timezone: {
+				offset: 2,
+				offsetFormatted: '+2',
+				string: '',
+				abbr: '',
+			},
+		} );
+		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
+			'2026-10-31 00:30:45 +02:00'
+		);
+	} );
+
+	it( 'does not add the zone when the format already shows it (Z, c, r)', () => {
+		for ( const time of [ 'H:i Z', 'H:i c', 'H:i r' ] ) {
+			siteSettings( 'Europe/Madrid', 'Y-m-d', time );
+			expect( formatFullDate( '2026-10-30T22:30:45' ) ).not.toMatch(
+				/CET$/
+			);
+		}
+	} );
+
+	it( 'adds no seconds when the time has no minutes', () => {
+		siteSettings( 'Europe/Madrid', 'Y-m-d', 'g a' );
+		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
+			'2026-10-30 11 pm CET'
+		);
+		siteSettings( 'Europe/Madrid', 'Y-m-d', 'G\\h' );
+		expect( formatFullDate( '2026-10-30T22:30:45' ) ).toBe(
+			'2026-10-30 23h CET'
+		);
+	} );
+
+	it( 'joins date and time safely when date_format is empty or ends in a backslash', () => {
+		siteSettings( 'Europe/Madrid', '', 'H:i' );
+		expect( formatDate( '2026-10-30T22:30:45' ) ).toBe( '23:30' );
+		siteSettings( 'Europe/Madrid', 'Y\\', 'H:i' );
+		expect( formatDate( '2026-10-30T22:30:45' ) ).toBe( '2026 23:30' );
+	} );
+
+	it( 'builds the patterns once per settings', () => {
+		siteSettings( 'Europe/Madrid', 'Y-m-d', 'H:i' );
+		expect( sitePatterns() ).toBe( sitePatterns() );
+		const before = sitePatterns();
+		siteSettings( 'Europe/Madrid', 'd/m/Y', 'H:i' );
+		expect( sitePatterns() ).not.toBe( before );
+	} );
+
 	it( 'shows a dash for an empty, invalid or zero date', () => {
 		expect( formatDate( '' ) ).toBe( '—' );
 		expect( formatDate( '0000-00-00 00:00:00' ) ).toBe( '—' );
 		expect( formatDate( '-0001-11-30T00:00:00' ) ).toBe( '—' );
-		expect( formatFullDate( '0000-00-00 00:00:00' ) ).toBe( '—' );
+		expect( formatFullDate( '0000-00-00 00:00:00' ) ).toBeUndefined();
 	} );
 } );
 
