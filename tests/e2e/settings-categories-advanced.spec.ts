@@ -182,4 +182,34 @@ test.describe("Settings: categories left out and advanced", () => {
 				.getByText("Settings saved.", { exact: true }),
 		).toBeVisible();
 	});
+
+	test("with many categories a filter narrows the list and keeps the ticked ones", async ({
+		page,
+	}) => {
+		wp(
+			"eval",
+			`for ( $i = 1; $i <= 60; $i++ ) { if ( ! term_exists( "Masiva $i", 'category' ) ) { wp_insert_term( "Masiva $i", 'category' ); } }`,
+		);
+		await login(page);
+		await page.goto(`${SCREEN_SETTINGS}#tab=general`);
+		const card = page.locator("#magiclinking-s-excluded-categories");
+		const filter = card.getByLabel("Filter Categories by name");
+		await expect(filter).toBeVisible();
+		await card.getByRole("checkbox", { name: "Privada cat" }).check();
+		await filter.fill("Masiva 5");
+		await expect(
+			card.getByRole("checkbox", { name: "Masiva 5", exact: true }),
+		).toBeVisible();
+		await expect(
+			card.getByRole("checkbox", { name: "Masiva 6", exact: true }),
+		).toHaveCount(0);
+		await expect(
+			card.getByRole("checkbox", { name: "Privada cat" }),
+		).toBeChecked();
+		expect((await axe(page, ".magiclinking-wrap")).violations).toEqual([]);
+		wp(
+			"eval",
+			`foreach ( get_terms( array( 'taxonomy' => 'category', 'name__like' => 'Masiva', 'hide_empty' => false ) ) as $t ) { wp_delete_term( $t->term_id, 'category' ); }`,
+		);
+	});
 });

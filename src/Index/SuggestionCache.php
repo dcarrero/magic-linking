@@ -171,13 +171,13 @@ final class SuggestionCache implements Module {
 	}
 
 	/**
-	 * Lo que los hooks de términos necesitan de los ajustes (los filtros por taxonomía y las categorías excluidas,
-	 * F1-16), con una sola lectura por petición.
+	 * Lo que los hooks de términos y el indexado necesitan de los ajustes (los filtros por taxonomía, las categorías
+	 * excluidas y K, F1-16), con una sola lectura por petición.
 	 *
-	 * @return array{filters: array<string, string>, excluded_categories: list<int>}
+	 * @return array{filters: array<string, string>, excluded_categories: list<int>, k_terms: int}
 	 */
 	public static function site_settings(): array {
-		$cached = wp_cache_get( 'filters', self::RUNTIME_GROUP );
+		$cached = wp_cache_get( 'site_settings', self::RUNTIME_GROUP );
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
@@ -186,17 +186,19 @@ final class SuggestionCache implements Module {
 		$read = array(
 			'filters'             => $all['filters'],
 			'excluded_categories' => $all['excluded_categories'],
+			'k_terms'             => $all['k_terms'],
 		);
-		wp_cache_set( 'filters', $read, self::RUNTIME_GROUP );
+		wp_cache_set( 'site_settings', $read, self::RUNTIME_GROUP );
 
 		return $read;
 	}
 
 	/**
-	 * Olvida los filtros recordados (cambian los ajustes).
+	 * Olvida los ajustes recordados (cambian los ajustes).
 	 */
 	public static function forget_filters(): void {
-		wp_cache_delete( 'filters', self::RUNTIME_GROUP );
+		wp_cache_delete( 'site_settings', self::RUNTIME_GROUP );
+		Exclusions::forget();
 	}
 
 	/**

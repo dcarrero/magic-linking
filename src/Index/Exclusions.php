@@ -26,6 +26,13 @@ final class Exclusions {
 	public const KEY = '_magiclinking_excluded';
 
 	/**
+	 * Taxonomía de cada conjunto de categorías excluidas (clave: sus ids unidos por comas), por petición.
+	 *
+	 * @var array<string, list<string>>
+	 */
+	private static array $taxonomies = array();
+
+	/**
 	 * Si la entrada está excluida del análisis.
 	 *
 	 * @param int $post_id ID.
@@ -86,6 +93,18 @@ final class Exclusions {
 	}
 
 	/**
+	 * Si alguno de los `term_taxonomy_id` dados es una categoría excluida (p. ej. las que el editor tiene elegidas
+	 * ahora, sin guardar).
+	 *
+	 * @param array $tt_ids `term_taxonomy_id`.
+	 *
+	 * @phpstan-param list<int|string> $tt_ids
+	 */
+	public static function any_excluded( array $tt_ids ): bool {
+		return array() !== array_intersect( array_map( 'intval', $tt_ids ), self::excluded_terms() );
+	}
+
+	/**
 	 * Si hay categorías excluidas: quien carga entradas en lote tiene que cargar también sus términos
 	 * (`_prime_post_caches( $ids, true, … )`) para que la elegibilidad no haga una consulta por entrada.
 	 */
@@ -94,7 +113,7 @@ final class Exclusions {
 	}
 
 	/**
-	 * Taxonomías de unos `term_taxonomy_id` (una vez por petición y conjunto; los términos están en la caché de objetos).
+	 * Taxonomías de las categorías excluidas: se buscan una vez por conjunto y petición, no por entrada.
 	 *
 	 * @param array $tt_ids `term_taxonomy_id`.
 	 *
@@ -103,6 +122,11 @@ final class Exclusions {
 	 * @return list<string>
 	 */
 	private static function taxonomies_of( array $tt_ids ): array {
+		$key = implode( ',', $tt_ids );
+		if ( isset( self::$taxonomies[ $key ] ) ) {
+			return self::$taxonomies[ $key ];
+		}
+
 		$names = array();
 		foreach ( $tt_ids as $tt_id ) {
 			$term = get_term_by( 'term_taxonomy_id', $tt_id );
@@ -110,8 +134,16 @@ final class Exclusions {
 				$names[ $term->taxonomy ] = true;
 			}
 		}
+		self::$taxonomies[ $key ] = array_map( 'strval', array_keys( $names ) );
 
-		return array_map( 'strval', array_keys( $names ) );
+		return self::$taxonomies[ $key ];
+	}
+
+	/**
+	 * Olvida las taxonomías recordadas (cambian los ajustes o los términos).
+	 */
+	public static function forget(): void {
+		self::$taxonomies = array();
 	}
 
 	/**

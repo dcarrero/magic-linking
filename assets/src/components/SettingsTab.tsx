@@ -18,6 +18,7 @@ import type {
 	SettingsValues,
 	StatusResponse,
 } from '../types';
+import { CategoryList } from './CategoryList';
 import { AiSettingsCards } from './AiSettingsCards';
 import { Maintenance, useMaintenance } from './Maintenance';
 import { SettingsSection, settingsSections } from './SettingsSection';
@@ -907,41 +908,12 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 								</p>
 							) : (
 								data.category_groups.map( ( group ) => (
-									<fieldset
+									<CategoryList
 										key={ group.taxonomy }
-										className="magiclinking-categories"
-									>
-										<legend>{ group.label }</legend>
-										<div className="magiclinking-categories__list">
-											{ group.terms.map( ( term ) => (
-												<div
-													key={ term.id }
-													className="magiclinking-categories__item"
-													style={ {
-														paddingInlineStart: `${
-															term.depth * 1.25
-														}rem`,
-													} }
-												>
-													<CheckboxControl
-														__nextHasNoMarginBottom
-														label={ term.name }
-														checked={ values.excluded_categories.includes(
-															term.id
-														) }
-														onChange={ (
-															checked
-														) =>
-															toggleCategory(
-																term.id,
-																checked
-															)
-														}
-													/>
-												</div>
-											) ) }
-										</div>
-									</fieldset>
+										group={ group }
+										selected={ values.excluded_categories }
+										onToggle={ toggleCategory }
+									/>
 								) )
 							) }
 							<p className="description">

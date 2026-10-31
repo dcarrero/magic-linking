@@ -82,7 +82,7 @@ final class LexicalIndexer {
 	/**
 	 * Cálculo de pesos.
 	 *
-	 * @var Indexer
+	 * @var Indexer|\Closure
 	 */
 	private Indexer|\Closure $engine;
 

@@ -61,7 +61,7 @@ final class Settings {
 		// Avanzado (docs/07 §8): términos que se guardan por entrada (docs/04 §3) y umbral de puntuación en tanto por
 		// ciento (docs/04 §6); los valores por defecto son los congelados del motor (D-35).
 		'k_terms'                      => Indexer::DEFAULTS['k'],
-		'score_threshold'              => 35,
+		'score_threshold'              => Scorer::THRESHOLD_PERCENT,
 		'ai_daily_token_limit'         => Budget::DEFAULT_LIMIT,
 		'ai_model'                     => '',
 	);
@@ -268,7 +268,8 @@ final class Settings {
 
 		// Solo valen los términos de la taxonomía jerárquica principal de un tipo analizado: se comprueba una vez, al
 		// guardar, y no en cada lectura.
-		if ( $settings['excluded_categories'] !== $before['excluded_categories'] ) {
+		// También si cambian los tipos: las categorías de un tipo que ya no se analiza dejan de valer.
+		if ( $settings['excluded_categories'] !== $before['excluded_categories'] || $settings['post_types'] !== $before['post_types'] ) {
 			$settings['excluded_categories'] = Taxonomies::filter_category_terms( $settings['excluded_categories'], $settings['post_types'] );
 		}
 
@@ -349,7 +350,11 @@ final class Settings {
 			}
 		}
 
-		return array_slice( array_keys( $ids ), 0, $limit );
+		// Ordenados: el mismo conjunto marcado en otro orden no es un cambio (no relanza el análisis).
+		$ids = array_keys( $ids );
+		sort( $ids );
+
+		return array_slice( $ids, 0, $limit );
 	}
 
 	/**

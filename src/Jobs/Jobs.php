@@ -91,6 +91,12 @@ final class Jobs implements Module {
 	public const MEMORY_MARGIN = 8 * MB_IN_BYTES;
 
 	/**
+	 * Hasta cuántas entradas con la categoría excluida cambiada se reindexan en la propia petición; si son más (borrar
+	 * o editar en bloque una categoría), van a Action Scheduler.
+	 */
+	public const CATEGORY_INLINE_LIMIT = 20;
+
+	/**
 	 * Por encima de este número de entradas indexadas, guardar una entrada encola el trabajo.
 	 */
 	public const INLINE_LIMIT = 500;
@@ -122,6 +128,13 @@ final class Jobs implements Module {
 	 * @var LexicalIndexer
 	 */
 	private LexicalIndexer $lexical;
+
+	/**
+	 * Entradas cuya categoría excluida ha cambiado en esta petición y aún no se han reevaluado (ID => true).
+	 *
+	 * @var array<int, true>
+	 */
+	private array $pending_terms = array();
 
 	/**
 	 * Entradas que se están borrando en esta petición.
@@ -164,6 +177,7 @@ final class Jobs implements Module {
 		// Entrar en una categoría excluida en Ajustes (o salir de ella) saca la entrada del índice o la mete (F1-16).
 		add_action( 'set_object_terms', array( $this, 'on_terms_set' ), 10, 6 );
 		add_action( 'deleted_term_relationships', array( $this, 'on_terms_removed' ), 10, 3 );
+		add_action( 'shutdown', array( $this, 'flush_category_changes' ), 5 );
 	}
 
 	/**
@@ -250,7 +264,10 @@ final class Jobs implements Module {
 	}
 
 	/**
-	 * Reevalúa una entrada cuya pertenencia a una categoría excluida ha cambiado, igual que un cambio de su marca.
+	 * Apunta una entrada cuya pertenencia a una categoría excluida ha cambiado. No se reindexa en el momento: un mismo
+	 * cambio dispara varios hooks (asignar y quitar términos) y el borrado o la edición en bloque de una categoría
+	 * toca miles de entradas. Se juntan sin repetir y se tratan una vez al final de la petición
+	 * ({@see self::flush_category_changes()}).
 	 *
 	 * @param int $post_id Entrada.
 	 */
@@ -266,13 +283,37 @@ final class Jobs implements Module {
 
 		// La caché de términos de la entrada puede no estar limpia todavía: la elegibilidad se lee de ella.
 		clean_object_term_cache( $post_id, $type );
+		$this->pending_terms[ $post_id ] = true;
+	}
+
+	/**
+	 * Reevalúa las entradas apuntadas por {@see self::category_changed()}, cada una una vez. Hasta
+	 * {@see self::CATEGORY_INLINE_LIMIT} se reindexan ahora (un guardado normal es una sola entrada); si son más, se
+	 * pasan a Action Scheduler en lotes (regla 10). Se llama al terminar la petición (`shutdown`).
+	 */
+	public function flush_category_changes(): void {
+		if ( array() === $this->pending_terms ) {
+			return;
+		}
+
+		$ids                 = array_map( 'intval', array_keys( $this->pending_terms ) );
+		$this->pending_terms = array();
 		SuggestionCache::bump();
 
-		try {
-			$this->reindex_now( $post_id );
-		} catch ( Throwable $e ) {
-			unset( $e );
-			as_enqueue_async_action( self::HOOK_POSTS, array( array( $post_id ), false ), Installer::ACTION_GROUP, true );
+		if ( count( $ids ) > self::CATEGORY_INLINE_LIMIT ) {
+			foreach ( array_chunk( $ids, 25 ) as $chunk ) {
+				as_enqueue_async_action( self::HOOK_POSTS, array( $chunk, false ), Installer::ACTION_GROUP );
+			}
+			return;
+		}
+
+		foreach ( $ids as $post_id ) {
+			try {
+				$this->reindex_now( $post_id );
+			} catch ( Throwable $e ) {
+				unset( $e );
+				as_enqueue_async_action( self::HOOK_POSTS, array( array( $post_id ), false ), Installer::ACTION_GROUP, true );
+			}
 		}
 	}
 

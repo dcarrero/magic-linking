@@ -235,7 +235,12 @@ final class Plugin {
 				$c->get( PostSource::class ),
 				$c->get( JobRepository::class ),
 				// K términos por entrada (Ajustes → Avanzado): cambiarlo reconstruye el índice.
-				static fn(): Indexer => new Indexer( array( 'k' => $c->get( Settings::class )->k_terms() ) )
+				static function (): Indexer {
+					// K sale de los ajustes ya leídos de la petición; un Indexer por valor de K, no por documento.
+					static $made = array();
+					$k = SuggestionCache::site_settings()['k_terms'];
+					return $made[ $k ] ??= new Indexer( array( 'k' => $k ) );
+				}
 			),
 			TableDocuments::class          => static function ( Container $c ): TableDocuments {
 				global $wpdb;

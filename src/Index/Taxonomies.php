@@ -31,6 +31,12 @@ final class Taxonomies {
 	private static array $memo = array();
 
 	/**
+	 * Categorías que se listan como máximo por taxonomía en Ajustes (más las ya excluidas). Pasado el tope no hay
+	 * lista manejable: la pantalla ofrece un filtro por nombre y solo pinta unas cuantas a la vez.
+	 */
+	public const LISTED_MAX = 5000;
+
+	/**
 	 * Taxonomías técnicas de los plugins de idiomas y de formato: no son temas.
 	 */
 	private const SKIP = array( 'post_format', 'language', 'term_language', 'post_translations', 'term_translations' );
@@ -242,12 +248,13 @@ final class Taxonomies {
 	 * Categorías entre las que elegir las que se excluyen del análisis (Ajustes), por taxonomía y en orden de jerarquía.
 	 *
 	 * @param array $post_types Tipos analizados.
+	 * @param int   $max        Máximo de categorías por taxonomía, además de las ya excluidas.
 	 *
 	 * @phpstan-param list<string> $post_types
 	 *
 	 * @return list<array{taxonomy: string, label: string, terms: list<array{id: int, name: string, depth: int}>}>
 	 */
-	public static function category_groups( array $post_types ): array {
+	public static function category_groups( array $post_types, int $max = self::LISTED_MAX ): array {
 		$groups = array();
 		foreach ( self::category_taxonomies( $post_types ) as $name ) {
 			$taxonomy = get_taxonomy( $name );
@@ -256,11 +263,25 @@ final class Taxonomies {
 					'taxonomy'   => $name,
 					'hide_empty' => false,
 					'orderby'    => 'name',
-					'number'     => Settings::MAX_EXCLUDED_CATEGORIES,
+					'number'     => $max,
 				)
 			);
 			if ( ! $taxonomy || ! is_array( $terms ) ) {
 				continue;
+			}
+
+			// Las ya excluidas se listan siempre, aunque el sitio pase del tope: si no, quedarían sin control.
+			$listed  = array_map( static fn( $term ): int => (int) $term->term_taxonomy_id, $terms );
+			$missing = array_values( array_diff( Exclusions::excluded_terms(), $listed ) );
+			if ( array() !== $missing ) {
+				$extra = get_terms(
+					array(
+						'taxonomy'         => $name,
+						'hide_empty'       => false,
+						'term_taxonomy_id' => $missing,
+					)
+				);
+				$terms = array_merge( $terms, is_array( $extra ) ? $extra : array() );
 			}
 
 			$by_parent = array();
