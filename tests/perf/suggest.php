@@ -34,7 +34,8 @@ if ( ! $service->ready() ) {
 }
 
 $docs = Schema::table( $wpdb->prefix, 'docs' );
-$ids  = array_map( 'intval', $wpdb->get_col( "SELECT post_id FROM {$docs} WHERE doc_len > 0" ) );
+// Solo entradas publicadas: las entrantes exigen destino publicado y una salida temprana no se registra (F1-27).
+$ids  = array_map( 'intval', $wpdb->get_col( "SELECT d.post_id FROM {$docs} d JOIN {$wpdb->posts} p ON p.ID = d.post_id WHERE d.doc_len > 0 AND p.post_status = 'publish'" ) );
 printf( "entradas indexadas=%d muestras=%d\n", count( $ids ), $samples );
 
 mt_srand( 20261006 );
@@ -101,6 +102,10 @@ foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 	// medido aquí sobre esas mismas 20 peticiones. Debe coincidir en un 10 %.
 	$last      = array_slice( $times, -EngineTiming::KEEP );
 	$shown     = $timing->summary()[ $direction ];
+	if ( count( $last ) !== $shown['count'] ) {
+		fwrite( STDERR, sprintf( "estado %s: se registraron %d peticiones y aquí se midieron %d; no son comparables.\n", $direction, $shown['count'], count( $last ) ) );
+		$status_deviation = 100.0;
+	}
 	$mine      = array( EngineTiming::median( $last ), EngineTiming::p95( $last ) );
 	$deviation = array();
 	foreach ( array( $shown['median'], $shown['p95'] ) as $i => $value ) {

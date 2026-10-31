@@ -13,15 +13,19 @@ namespace MagicLinking\Index;
  * Apunta cuánto tarda el motor en las peticiones de sugerencias y lo resume para la pestaña *Estado*
  * (`docs/07 §8`, `docs/04 §12`).
  *
- * **Coste en la petición:** solo lecturas de `hrtime()` en el motor y un `array_push` en memoria (recortado a
+ * **Coste en la petición:** lecturas de `hrtime()` en el motor y un `array_push` en memoria (recortado a
  * {@see self::KEEP} por dirección). La escritura va en `shutdown`, con la respuesta ya enviada si el servidor lo
- * permite, y es una por dirección y petición aunque haya muchas medidas.
+ * permite, y es una por dirección y petición aunque haya muchas medidas. Cada escritura lee antes la opción de esa
+ * dirección (un `SELECT` por clave primaria) para respetar el intervalo y añadir a lo guardado; se acepta ese coste.
  *
  * **Dónde se guarda:** una opción por dirección ({@see self::OPTIONS}) con `autoload` desactivado, no un transitorio:
  * sin caché de objetos persistente un transitorio es una fila de `wp_options` con autoload y se cargaría en cada
  * petición del sitio (regla 8). Dos opciones, no una, para que una saliente y una entrante que terminan a la vez no se
  * pisen al leer-modificar-escribir. Cada una guarda las últimas {@see self::KEEP} peticiones **registradas** y la hora
  * de la última escritura.
+ *
+ * **Concurrencia:** si dos peticiones de la misma dirección escriben a la vez, la última gana y puede perderse alguna
+ * fila. Es diagnóstico, no datos del usuario: no hay bloqueo ni más mecanismos.
  *
  * **Muestreo:** mientras se teclea en el editor llega una petición de borrador por pausa; escribir cada una sería una
  * escritura en la base de datos por pulsación. En `shutdown` se escribe como mucho una vez cada
@@ -77,13 +81,13 @@ final class EngineTiming {
 	/**
 	 * Apunta una petición calculada por el motor.
 	 *
-	 * @param string $direction `outgoing` o `incoming`.
-	 * @param int    $total_ns  Duración total en nanosegundos.
-	 * @param array  $phases    Fases del motor ({@see \MagicLinking\Engine\Suggester::timing()}), en nanosegundos.
+	 * @param string    $direction `outgoing` o `incoming`.
+	 * @param int|float $total_ns Duración total en nanosegundos (`hrtime()` es float en PHP de 32 bits).
+	 * @param array     $phases    Fases del motor ({@see \MagicLinking\Engine\Suggester::timing()}), en nanosegundos.
 	 *
-	 * @phpstan-param array{retrieval: int, load: int, phrases: int, scoring: int, candidates: int} $phases
+	 * @phpstan-param array{retrieval: int|float, load: int|float, phrases: int|float, scoring: int|float, candidates: int} $phases
 	 */
-	public function record( string $direction, int $total_ns, array $phases ): void {
+	public function record( string $direction, int|float $total_ns, array $phases ): void {
 		$this->push(
 			$direction,
 			array( self::ms( $total_ns ), self::ms( $phases['retrieval'] ), self::ms( $phases['load'] ), self::ms( $phases['phrases'] ), self::ms( $phases['scoring'] ), $phases['candidates'], 0 )
@@ -93,10 +97,10 @@ final class EngineTiming {
 	/**
 	 * Apunta una respuesta servida desde la caché de resultados: sin fases ni candidatas.
 	 *
-	 * @param string $direction `outgoing` o `incoming`.
-	 * @param int    $total_ns  Lo que tardó en servirse, en nanosegundos.
+	 * @param string    $direction `outgoing` o `incoming`.
+	 * @param int|float $total_ns Lo que tardó en servirse, en nanosegundos.
 	 */
-	public function record_cached( string $direction, int $total_ns ): void {
+	public function record_cached( string $direction, int|float $total_ns ): void {
 		$this->push( $direction, array( self::ms( $total_ns ), 0.0, 0.0, 0.0, 0.0, 0, 1 ) );
 	}
 
@@ -205,9 +209,9 @@ final class EngineTiming {
 	/**
 	 * Nanosegundos a milisegundos con dos decimales (una fase de un sitio pequeño dura menos de 0,05 ms).
 	 *
-	 * @param int $ns Nanosegundos.
+	 * @param int|float $ns Nanosegundos.
 	 */
-	private static function ms( int $ns ): float {
+	private static function ms( int|float $ns ): float {
 		return round( $ns / 1000000, 2 );
 	}
 

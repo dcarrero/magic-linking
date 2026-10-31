@@ -29,7 +29,7 @@ jest.mock( '@wordpress/components', () => ( {
 	),
 } ) );
 jest.mock( '../api', () => ( {
-	api: { engineTiming: jest.fn() },
+	api: { engineTiming: jest.fn(), status: jest.fn() },
 	errorMessage: ( _e: unknown, fallback: string ) => fallback,
 } ) );
 
@@ -37,7 +37,10 @@ jest.mock( '../api', () => ( {
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
  ).IS_REACT_ACT_ENVIRONMENT = true;
 
-const mocked = api as unknown as { engineTiming: jest.Mock };
+const mocked = api as unknown as {
+	engineTiming: jest.Mock;
+	status: jest.Mock;
+};
 
 const row = ( over: Partial< EngineTimingRow > = {} ): EngineTimingRow => ( {
 	count: 20,
@@ -82,6 +85,7 @@ let root: Root;
 
 async function mount( response: EngineTimingResponse ) {
 	mocked.engineTiming.mockResolvedValue( response );
+	mocked.status.mockResolvedValue( status );
 	await act( async () => {
 		root.render( <StatusTab status={ status } /> );
 	} );
@@ -104,7 +108,13 @@ describe( 'budgetText', () => {
 		expect( budgetText( row( { p95: 499.9 } ) ) ).toContain(
 			'Within budget'
 		);
-		expect( budgetText( row( { p95: 500 } ) ) ).toContain( 'Over budget' );
+		// Igual que el banco: «por encima» solo si el p95 supera el presupuesto.
+		expect( budgetText( row( { p95: 500 } ) ) ).toContain(
+			'Within budget'
+		);
+		expect( budgetText( row( { p95: 500.1 } ) ) ).toContain(
+			'Over budget'
+		);
 	} );
 } );
 
@@ -155,7 +165,36 @@ describe( 'StatusTab', () => {
 		expect( container.textContent ).toContain( 'No requests yet.' );
 	} );
 
+	it( 'shows an error with a retry instead of an endless spinner when the index status fails', async () => {
+		mocked.engineTiming.mockResolvedValue( {
+			keep: 20,
+			outgoing: empty(),
+			incoming: empty(),
+		} );
+		mocked.status.mockRejectedValueOnce( new Error( 'x' ) );
+		await act( async () => {
+			root.render( <StatusTab status={ null } /> );
+		} );
+		expect( container.textContent ).toContain(
+			'Could not read the index status.'
+		);
+		const refresh = Array.from(
+			container.querySelectorAll( 'button' )
+		).find( ( b ) => b.textContent === 'Refresh' );
+		mocked.status.mockResolvedValue( status );
+		await act( async () => {
+			refresh?.click();
+		} );
+		expect( container.textContent ).not.toContain(
+			'Could not read the index status.'
+		);
+		expect( container.textContent ).toContain(
+			'10 of 12 entries are in the index.'
+		);
+	} );
+
 	it( 'shows an error when the times cannot be read', async () => {
+		mocked.status.mockResolvedValue( status );
 		mocked.engineTiming.mockRejectedValue( new Error( 'x' ) );
 		await act( async () => {
 			root.render( <StatusTab status={ status } /> );

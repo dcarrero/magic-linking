@@ -28,7 +28,7 @@ function seedStatus(): void {
 		foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'st-%' OR post_name LIKE 'ex-%' OR post_name LIKE 'e2e-%' OR post_name LIKE 'entrada-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
 		foreach ( array( 'docs', 'links', 'jobs', 'changes', 'dismissed' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
 		delete_option( 'magiclinking_settings' );
-		delete_option( 'magiclinking_engine_timing' );
+		delete_option( 'magiclinking_engine_timing_out' ); delete_option( 'magiclinking_engine_timing_in' );
 		update_user_meta( 1, $wpdb->get_blog_prefix() . 'magiclinking_wizard_dismissed', '1' );
 		$block = static fn( $t ) => "<!-- wp:paragraph -->\\n<p>$t</p>\\n<!-- /wp:paragraph -->";
 		$make = static fn( $slug, $title, $content ) => wp_insert_post( array( 'post_name' => $slug, 'post_title' => $title, 'post_content' => $content, 'post_status' => 'publish' ) );
@@ -52,7 +52,7 @@ test.describe( 'Status tab', () => {
 			global $wpdb;
 			foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE 'st-%'" ) as $id ) { wp_delete_post( (int) $id, true ); }
 			foreach ( array( 'docs', 'links', 'jobs' ) as $t ) { $wpdb->query( "DELETE FROM {$wpdb->prefix}magiclinking_$t" ); }
-			delete_option( 'magiclinking_engine_timing' );
+			delete_option( 'magiclinking_engine_timing_out' ); delete_option( 'magiclinking_engine_timing_in' );
 			`
 		);
 	} );

@@ -160,17 +160,22 @@ final class Suggester {
 	private bool $semantic_retrieval;
 
 	/**
-	 * Tiempo por fase del último cálculo, en nanosegundos ({@see self::timing()}).
-	 *
-	 * @var array{retrieval: int, load: int, phrases: int, scoring: int, candidates: int}
+	 * Fases a cero: punto de partida de cada cálculo.
 	 */
-	private array $timing = array(
+	private const EMPTY_TIMING = array(
 		'retrieval'  => 0,
 		'load'       => 0,
 		'phrases'    => 0,
 		'scoring'    => 0,
 		'candidates' => 0,
 	);
+
+	/**
+	 * Tiempo por fase del último cálculo, en nanosegundos ({@see self::timing()}).
+	 *
+	 * @var array{retrieval: int|float, load: int|float, phrases: int|float, scoring: int|float, candidates: int}|null
+	 */
+	private ?array $timing = null;
 
 	/**
 	 * Crea el orquestador.
@@ -234,9 +239,9 @@ final class Suggester {
 	 * Son lecturas de `hrtime()` sin consultas propias. Quedan fuera de las fases ordenar, los motivos y lo que
 	 * hace después quien llama.
 	 *
-	 * @return array{retrieval: int, load: int, phrases: int, scoring: int, candidates: int}
+	 * @return array{retrieval: int|float, load: int|float, phrases: int|float, scoring: int|float, candidates: int}|null Null si el último cálculo no llegó a calcular nada (salida temprana).
 	 */
-	public function timing(): array {
+	public function timing(): ?array {
 		return $this->timing;
 	}
 
@@ -353,13 +358,7 @@ final class Suggester {
 	 */
 	private function compute_outgoing( Document $source, ?array $vector ): array {
 		$started      = hrtime( true );
-		$this->timing = array(
-			'retrieval'  => 0,
-			'load'       => 0,
-			'phrases'    => 0,
-			'scoring'    => 0,
-			'candidates' => 0,
-		);
+		$this->timing = self::EMPTY_TIMING;
 		$links        = null;
 		if ( ! $this->existing ) {
 			$links  = $this->count_removed ? count( $source->links ) : null;
@@ -380,6 +379,7 @@ final class Suggester {
 		// filtro exigido, nada puede compartirlo.
 		$needs = $required ? $this->requirement( $source->type, $source->taxonomies ) : array();
 		if ( null === $needs ) {
+			$this->timing = null;
 			return array();
 		}
 		if ( null !== $vectors && null !== $query && $this->semantic_retrieval ) {
@@ -474,21 +474,17 @@ final class Suggester {
 	 */
 	private function compute_incoming( int $target ): array {
 		$started      = hrtime( true );
-		$this->timing = array(
-			'retrieval'  => 0,
-			'load'       => 0,
-			'phrases'    => 0,
-			'scoring'    => 0,
-			'candidates' => 0,
-		);
+		$this->timing = self::EMPTY_TIMING;
 		// El destino primero: su ficha, sus términos y sus enlaces se leen una vez y la recuperación y el contexto los encuentran cargados.
 		$this->preload( array( $target ) );
 		$meta = $this->index->meta( $target );
 		if ( null === $meta || in_array( $target, $this->never, true ) ) {
+			$this->timing = null;
 			return array();
 		}
 		$needs = in_array( self::REQUIRE, $this->filters, true ) ? $this->requirement( $meta->type, $meta->taxonomies ) : array();
 		if ( null === $needs ) {
+			$this->timing = null;
 			return array();
 		}
 		$analyzer = Analyzer::for_language( $meta->lang );

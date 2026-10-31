@@ -246,6 +246,28 @@ final class EngineTimingTest extends GraphTestCase {
 		$this->assertSame( 1, $row['cached'] );
 	}
 
+	public function test_early_exits_that_never_reach_the_engine_are_not_recorded(): void {
+		// Con «Exigir etiqueta» y ninguna etiqueta en el origen ni en el destino, el motor sale sin calcular nada.
+		( new \MagicLinking\Core\Settings() )->update( array( 'filters' => array( 'tag' => 'require' ) ) );
+		$this->assertSame( array(), $this->service()->outgoing( $this->sources[0] ) );
+		$this->assertSame( array(), $this->service()->incoming( $this->target ) );
+
+		$summary = $this->timing()->summary();
+		$this->assertSame( 0, $summary['outgoing']['count'] );
+		$this->assertSame( 0, $summary['incoming']['count'] );
+	}
+
+	public function test_float_nanoseconds_from_32_bit_php_are_accepted(): void {
+		$timing = $this->timing();
+		// En PHP de 32 bits hrtime( true ) devuelve float: no puede romper la petición.
+		$timing->record( EngineTiming::OUTGOING, 4500000.0, array_merge( $this->phases(), array( 'retrieval' => 1500000.0 ) ) );
+		$timing->record_cached( EngineTiming::INCOMING, 2000000.0 );
+		$summary = $timing->summary();
+		$this->assertSame( 4.5, $summary['outgoing']['median'] );
+		$this->assertSame( 1.5, $summary['outgoing']['retrieval'] );
+		$this->assertSame( 2.0, $summary['incoming']['median'] );
+	}
+
 	/**
 	 * @return array{retrieval: int, load: int, phrases: int, scoring: int, candidates: int}
 	 */

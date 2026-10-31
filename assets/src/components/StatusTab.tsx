@@ -40,7 +40,7 @@ export function budgetText( row: EngineTimingRow ): string {
 		__( 'target under %s', 'magic-linking' ),
 		msText( row.budget )
 	);
-	return row.p95 < row.budget
+	return row.p95 <= row.budget
 		? sprintf(
 				/* translators: %s: the target, e.g. "target under 500.0 ms". */
 				__( 'Within budget (%s)', 'magic-linking' ),
@@ -59,34 +59,52 @@ export function budgetText( row: EngineTimingRow ): string {
  * @param root0
  * @param root0.status
  */
-export function StatusTab( { status }: Props ) {
+export function StatusTab( { status: initial }: Props ) {
+	const [ status, setStatus ] = useState< StatusResponse | null >( initial );
+	const [ statusError, setStatusError ] = useState( '' );
 	const [ timing, setTiming ] = useState< EngineTimingResponse | null >(
 		null
 	);
 	const [ error, setError ] = useState( '' );
 	const [ loading, setLoading ] = useState( true );
 
+	// Recarga el estado del índice y los tiempos; cada uno falla por su cuenta y «Refresh» reintenta los dos.
 	const load = useCallback( async ( announce: boolean ) => {
 		setLoading( true );
-		try {
-			setTiming( await api.engineTiming() );
+		const [ index, times ] = await Promise.allSettled( [
+			api.status(),
+			api.engineTiming(),
+		] );
+		if ( index.status === 'fulfilled' ) {
+			setStatus( index.value );
+			setStatusError( '' );
+		} else {
+			setStatusError(
+				errorMessage(
+					index.reason,
+					__( 'Could not read the index status.', 'magic-linking' )
+				)
+			);
+		}
+		if ( times.status === 'fulfilled' ) {
+			setTiming( times.value );
 			setError( '' );
-			if ( announce ) {
-				speak(
-					__( 'Engine times refreshed.', 'magic-linking' ),
-					'polite'
-				);
-			}
-		} catch ( e ) {
+		} else {
 			setError(
 				errorMessage(
-					e,
+					times.reason,
 					__( 'Could not read the engine times.', 'magic-linking' )
 				)
 			);
-		} finally {
-			setLoading( false );
 		}
+		if (
+			announce &&
+			index.status === 'fulfilled' &&
+			times.status === 'fulfilled'
+		) {
+			speak( __( 'Engine times refreshed.', 'magic-linking' ), 'polite' );
+		}
+		setLoading( false );
 	}, [] );
 
 	useEffect( () => {
@@ -104,7 +122,7 @@ export function StatusTab( { status }: Props ) {
 	return (
 		<div className="magiclinking-status-tab">
 			<h2>{ __( 'Index', 'magic-linking' ) }</h2>
-			{ status ? (
+			{ status && (
 				<p>
 					{ sprintf(
 						/* translators: 1: entries in the index, 2: entries that can be analyzed. */
@@ -116,9 +134,13 @@ export function StatusTab( { status }: Props ) {
 						status.eligible.toLocaleString()
 					) }
 				</p>
-			) : (
-				<Spinner />
 			) }
+			{ ! status && statusError && (
+				<Notice status="error" isDismissible={ false }>
+					{ statusError }
+				</Notice>
+			) }
+			{ ! status && ! statusError && <Spinner /> }
 			{ status?.last_done && (
 				<p className="description">
 					{ sprintf(

@@ -28,7 +28,6 @@ use MagicLinking\History\AiOrigin;
 use MagicLinking\History\BatchId;
 use MagicLinking\History\Reader;
 use MagicLinking\I18n\Language;
-use MagicLinking\Index\EngineTiming;
 use MagicLinking\Index\SuggestionCache;
 use MagicLinking\Index\Suggestions;
 use Throwable;
@@ -482,20 +481,7 @@ final class SuggestionsController implements Module {
 		if ( null !== $content ) {
 			$found = $this->suggestions->outgoing( $post_id, array(), $content, $title, $terms, $names, $links );
 		} elseif ( 'publish' === $post->post_status ) {
-			$started = hrtime( true );
-			$hit     = true;
-			$found   = SuggestionCache::remember(
-				'out',
-				$post_id,
-				function () use ( $post_id, &$hit ): array {
-					$hit = false;
-					return $this->suggestions->outgoing( $post_id );
-				}
-			);
-			if ( $hit ) {
-				// Servida desde la caché: también cuenta para la latencia que ve el usuario (pestaña Estado).
-				$this->suggestions->record_cached( EngineTiming::OUTGOING, hrtime( true ) - $started );
-			}
+			$found = $this->suggestions->cached_outgoing( $post_id );
 			$links = SuggestionCache::remember( 'links', $post_id, fn(): array => $this->suggestions->current_links( $post_id ) );
 		} else {
 			$found = $this->suggestions->outgoing( $post_id, array(), null, null, null, null, $links );
@@ -634,19 +620,7 @@ final class SuggestionsController implements Module {
 			return $this->empty( $state, $page, $per_page );
 		}
 
-		$started = hrtime( true );
-		$hit     = true;
-		$all     = SuggestionCache::remember(
-			'in',
-			$post_id,
-			function () use ( $post_id, &$hit ): array {
-				$hit = false;
-				return $this->suggestions->incoming( $post_id );
-			}
-		);
-		if ( $hit ) {
-			$this->suggestions->record_cached( EngineTiming::INCOMING, hrtime( true ) - $started );
-		}
+		$all = $this->suggestions->cached_incoming( $post_id );
 
 		// El motor da la mejor frase de cada origen y se listan todas (07 §3); `can_insert` dice cuáles puede
 		// insertar el usuario. Los permisos solo se miran en la página que se enseña, con sus entradas ya cargadas.
