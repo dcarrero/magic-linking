@@ -8,9 +8,10 @@ import { IndexStatus } from './IndexStatus';
 import { ReportTab } from './ReportTab';
 import { RulesTab } from './RulesTab';
 import { SettingsTab } from './SettingsTab';
+import { StatusTab } from './StatusTab';
 import { Wizard } from './Wizard';
 
-type Tab = 'report' | 'broken' | 'history' | 'rules' | 'settings';
+type Tab = 'report' | 'broken' | 'history' | 'rules' | 'status' | 'settings';
 
 type TabUrls = Record< Tab, string >;
 
@@ -26,6 +27,7 @@ const DEFAULT_URLS: TabUrls = {
 	broken: 'admin.php?page=magic-linking-broken',
 	history: 'admin.php?page=magic-linking-history',
 	rules: 'admin.php?page=magic-linking-rules',
+	status: 'admin.php?page=magic-linking-status',
 	settings: 'admin.php?page=magic-linking-settings',
 };
 
@@ -139,6 +141,7 @@ export function App( {
 		broken: __( 'Broken links', 'magic-linking' ),
 		history: __( 'History', 'magic-linking' ),
 		rules: __( 'Rules', 'magic-linking' ),
+		status: __( 'Status', 'magic-linking' ),
 		settings: __( 'Settings', 'magic-linking' ),
 	};
 
@@ -210,7 +213,8 @@ export function App( {
 			{ ( hasIndex ||
 				tab === 'settings' ||
 				tab === 'history' ||
-				tab === 'rules' ) && (
+				tab === 'rules' ||
+				tab === 'status' ) && (
 				<>
 					<div
 						className={
@@ -264,6 +268,7 @@ export function App( {
 								}
 							/>
 						) }
+						{ tab === 'status' && <StatusTab status={ status } /> }
 						{ tab === 'rules' && canManage && (
 							<RulesTab settingsUrl={ tabUrls.settings } />
 						) }
@@ -280,18 +285,21 @@ export function App( {
 				</>
 			) }
 
-			{ ! hasIndex && indexed !== null && tab !== 'history' && (
-				<p className="description">
-					{ sprintf(
-						/* translators: %s: WP-CLI command. */
-						__(
-							'You can also run the analysis from the terminal: %s',
-							'magic-linking'
-						),
-						'wp magic-linking index'
-					) }
-				</p>
-			) }
+			{ ! hasIndex &&
+				indexed !== null &&
+				tab !== 'history' &&
+				tab !== 'status' && (
+					<p className="description">
+						{ sprintf(
+							/* translators: %s: WP-CLI command. */
+							__(
+								'You can also run the analysis from the terminal: %s',
+								'magic-linking'
+							),
+							'wp magic-linking index'
+						) }
+					</p>
+				) }
 		</>
 	);
 }

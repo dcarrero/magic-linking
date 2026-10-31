@@ -160,6 +160,18 @@ final class Suggester {
 	private bool $semantic_retrieval;
 
 	/**
+	 * Tiempo por fase del último cálculo, en nanosegundos ({@see self::timing()}).
+	 *
+	 * @var array{retrieval: int, phrases: int, scoring: int, candidates: int}
+	 */
+	private array $timing = array(
+		'retrieval'  => 0,
+		'phrases'    => 0,
+		'scoring'    => 0,
+		'candidates' => 0,
+	);
+
+	/**
 	 * Crea el orquestador.
 	 *
 	 * @param IndexRepository  $index     Índice.
@@ -211,6 +223,18 @@ final class Suggester {
 				$this->filters[ $filter ] = $mode;
 			}
 		}
+	}
+
+	/**
+	 * Tiempo por fase del último cálculo de {@see self::outgoing()} o {@see self::incoming()} (D-30, `04 §12`), en
+	 * nanosegundos: `retrieval` (analizar el origen, pesar y recuperar candidatas; en las entrantes, hasta tener los
+	 * orígenes), `phrases` (buscar la frase donde anclar), `scoring` (puntuar) y las `candidates` evaluadas. Son
+	 * lecturas de `hrtime()` sin consultas: el resto del tiempo (ordenar, motivos) no se atribuye a ninguna fase.
+	 *
+	 * @return array{retrieval: int, phrases: int, scoring: int, candidates: int}
+	 */
+	public function timing(): array {
+		return $this->timing;
 	}
 
 	/**
@@ -325,7 +349,14 @@ final class Suggester {
 	 * @phpstan-param list<float>|null $vector
 	 */
 	private function compute_outgoing( Document $source, ?array $vector ): array {
-		$links = null;
+		$started      = hrtime( true );
+		$this->timing = array(
+			'retrieval'  => 0,
+			'phrases'    => 0,
+			'scoring'    => 0,
+			'candidates' => 0,
+		);
+		$links        = null;
 		if ( ! $this->existing ) {
 			$links  = $this->count_removed ? count( $source->links ) : null;
 			$source = $source->without_links();
@@ -377,6 +408,9 @@ final class Suggester {
 		$max     = array() === $candidates ? 0.0 : max( $candidates );
 		$scaled  = Semantic::rescale( $cosines );
 		$blocked = $this->blocked( $source, $analyzer );
+
+		$this->timing['retrieval']  = hrtime( true ) - $started;
+		$this->timing['candidates'] = count( $candidates );
 
 		$found = array();
 		foreach ( $candidates as $target => $similarity ) {
@@ -435,6 +469,13 @@ final class Suggester {
 	 * @return list<Suggestion>
 	 */
 	private function compute_incoming( int $target ): array {
+		$started      = hrtime( true );
+		$this->timing = array(
+			'retrieval'  => 0,
+			'phrases'    => 0,
+			'scoring'    => 0,
+			'candidates' => 0,
+		);
 		// El destino primero: su ficha, sus términos y sus enlaces se leen una vez y la recuperación y el contexto los encuentran cargados.
 		$this->preload( array( $target ) );
 		$meta = $this->index->meta( $target );
@@ -463,6 +504,9 @@ final class Suggester {
 		}
 		$max = array() === $similarity ? 0.0 : max( $similarity );
 
+		$this->timing['retrieval']  = hrtime( true ) - $started;
+		$this->timing['candidates'] = count( $origins );
+
 		$result = array();
 		foreach ( $origins as $origin ) {
 			$document = $this->documents->get( $origin );
@@ -482,8 +526,10 @@ final class Suggester {
 				$document = $document->without_links();
 			}
 			// Del origen solo hacen falta las frases y las formas de los términos del destino: sus pesos ya están en el índice.
-			$analyzed = $analyzer->analyze_for_anchors( $document, $wanted );
-			$best     = $this->best( $analyzed, $target, $max > 0 ? $similarity[ $origin ] / $max : 0.0, $this->index->terms( $origin ), $analyzer, $this->blocked( $document, $analyzer ), null, $links, $context );
+			$analysis                 = hrtime( true );
+			$analyzed                 = $analyzer->analyze_for_anchors( $document, $wanted );
+			$this->timing['phrases'] += hrtime( true ) - $analysis;
+			$best                     = $this->best( $analyzed, $target, $max > 0 ? $similarity[ $origin ] / $max : 0.0, $this->index->terms( $origin ), $analyzer, $this->blocked( $document, $analyzer ), null, $links, $context );
 			if ( null !== $best && $best[0]->score->passes ) {
 				$result[] = $best[0];
 			}
@@ -551,7 +597,9 @@ final class Suggester {
 			}
 			$context = $this->target_context( $target, $analyzer, $meta );
 		}
-		$matches = $this->finder->find( $source, $context->phrases, $analyzer, $context->expansions, $blocked, $target, $context->terms );
+		$found_at                 = hrtime( true );
+		$matches                  = $this->finder->find( $source, $context->phrases, $analyzer, $context->expansions, $blocked, $target, $context->terms );
+		$this->timing['phrases'] += hrtime( true ) - $found_at;
 		if ( array() === $matches ) {
 			return null;
 		}
@@ -568,11 +616,13 @@ final class Suggester {
 		$affinity = $this->affinity( $document, $meta );
 		$linked   = $links ?? count( $document->links );
 
-		$scored = array();
+		$scoring_at = hrtime( true );
+		$scored     = array();
 		foreach ( $matches as $n => $match ) {
 			$candidate = new Candidate( $relevance, $match->kind, $match->words, $inbound, $match->position, $match->last, $age, $linked, $source->words, $this->index->anchor_uses( $match->key, $target ), $unlike, $pillar, $affinity, $penalty );
 			$scored[]  = array( $match, $this->scorer->score( $candidate ), $n );
 		}
+		$this->timing['scoring'] += hrtime( true ) - $scoring_at;
 		// Mayor puntuación primero; con empate, la primera aparición en el texto.
 		usort( $scored, static fn( array $a, array $b ): int => array( $b[1]->value, $a[2] ) <=> array( $a[1]->value, $b[2] ) );
 		[ $best, $score ] = $scored[0];

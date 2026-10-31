@@ -6,8 +6,9 @@
  * Hace falta el sitio sintético ya indexado: `wp eval-file tests/perf/seed.php 10000` y `wp magic-linking index`.
  * Imprime p50, p95 y máximo de cada dirección, consultas por petición y memoria (pico total y añadida). Con `strict`
  * (CI) sale con error si el p95 de salientes pasa de 500 ms, el de entrantes de 800 ms o la memoria
- * que añade el cálculo de 32 MB, la capa REST añade más de 20 ms al p95 (ver el comentario del final) o los avisos de
- * ancla repetida y los enlaces actuales (F1-23) añaden más de 20 ms al p95.
+ * que añade el cálculo de 32 MB, la capa REST añade más de 20 ms al p95 (ver el comentario del final), los avisos de
+ * ancla repetida y los enlaces actuales (F1-23) añaden más de 20 ms al p95 o el tiempo que la pestaña Estado (F1-27)
+ * enseña para las últimas 20 peticiones difiere más de un 10 % de lo medido aquí.
  *
  * @package MagicLinking
  */
@@ -16,6 +17,7 @@
 
 use MagicLinking\Core\Plugin;
 use MagicLinking\Core\Schema;
+use MagicLinking\Index\EngineTiming;
 use MagicLinking\Index\Suggestions;
 use MagicLinking\Index\TableRepository;
 
@@ -60,13 +62,16 @@ $report = static function ( string $name, array $times, array $queries, array $c
 	return $p95;
 };
 
-$results = array();
-$extra   = 0.0;
+$timing           = Plugin::container()->get( EngineTiming::class );
+$status_deviation = 0.0;
+$results          = array();
+$extra            = 0.0;
 $total   = 0.0;
 foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 	$times   = array();
 	$queries = array();
 	$counts  = array();
+	$timing->summary(); // Escribe lo pendiente: el búfer de esta dirección empieza con sus propias peticiones.
 	foreach ( $sample as $id ) {
 		// Cada medida es una petición nueva: sin las cachés de entradas de la anterior.
 		wp_cache_flush();
@@ -84,6 +89,31 @@ foreach ( array( 'outgoing', 'incoming' ) as $direction ) {
 	}
 	sort( $queries );
 	$results[ $direction ] = $report( $direction, $times, $queries, $counts );
+
+	// F1-27: lo que la pestaña Estado enseña (búfer de las últimas 20 peticiones, mismo cálculo de mediana y p95) frente a lo
+	// medido aquí sobre esas mismas 20 peticiones. Debe coincidir en un 10 %.
+	$last      = array_slice( $times, -EngineTiming::KEEP );
+	$shown     = $timing->summary()[ $direction ];
+	$mine      = array( EngineTiming::median( $last ), EngineTiming::p95( $last ) );
+	$deviation = array();
+	foreach ( array( $shown['median'], $shown['p95'] ) as $i => $value ) {
+		$deviation[] = $mine[ $i ] > 0 ? 100 * abs( $value - $mine[ $i ] ) / $mine[ $i ] : 0.0;
+	}
+	printf(
+		"estado %-9s mediana=%6.2f ms (medida %6.2f, %.1f %%)  p95=%6.2f ms (medida %6.2f, %.1f %%)  fases(mediana): recuperación=%.2f frases=%.2f puntuación=%.2f ms  candidatas=%.1f\n",
+		$direction,
+		$shown['median'],
+		$mine[0],
+		$deviation[0],
+		$shown['p95'],
+		$mine[1],
+		$deviation[1],
+		$shown['retrieval'],
+		$shown['phrases'],
+		$shown['scoring'],
+		$shown['candidates']
+	);
+	$status_deviation = max( $status_deviation, ...$deviation );
 }
 
 // La capa REST (F1-08): la misma petición de la pantalla, con permisos, presentación de la tarjeta y JSON.
@@ -212,7 +242,7 @@ $added['draft'] = $report( 'avisos borrador', $times, array( 0 ), $cards );
 $peak = $extra;
 printf( "memoria: pico total en WP-CLI=%.1f MB (base incluida), añadida por el cálculo=%.1f MB (límite 32 MB; el total de la petición web no debe pasar de 64 MB)\n", $total, $extra );
 
-if ( $strict && ( $results['outgoing'] > 500 || $results['incoming'] > 800 || $peak > 32 || $rest_over > 20 || max( $added ) > 20 || $rest_total['outbound'] > 500 || $rest_total['inbound'] > 800 ) ) {
+if ( $strict && ( $results['outgoing'] > 500 || $results['incoming'] > 800 || $peak > 32 || $rest_over > 20 || $status_deviation > 10 || max( $added ) > 20 || $rest_total['outbound'] > 500 || $rest_total['inbound'] > 800 ) ) {
 	fwrite( STDERR, "Presupuesto de rendimiento superado.\n" );
 	exit( 1 );
 }

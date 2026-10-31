@@ -61,6 +61,7 @@ final class Suggestions {
 	 * @param DismissalRepository $dismissals Pares descartados.
 	 * @param Pillars             $pillars    Contenido pilar.
 	 * @param Language            $language   Idioma por entrada (para agrupar las anclas de los enlaces actuales).
+	 * @param EngineTiming|null   $timing     Dónde apuntar el tiempo de cada petición (D-30); null = no se apunta.
 	 */
 	public function __construct(
 		private TableRepository $repository,
@@ -69,7 +70,8 @@ final class Suggestions {
 		private Settings $settings,
 		private DismissalRepository $dismissals,
 		private Pillars $pillars,
-		private Language $language
+		private Language $language,
+		private ?EngineTiming $timing = null
 	) {
 	}
 
@@ -132,6 +134,7 @@ final class Suggestions {
 	 * @phpstan-param list<array{id: int, anchors: list<string>}>|null $links
 	 */
 	public function outgoing( int $post_id, array $options = array(), ?string $content = null, ?string $title = null, ?array $terms = null, ?array $names = null, ?array &$links = null ): array {
+		$started  = hrtime( true );
 		$prepared = $this->prepare_outgoing( $post_id, $options, $content, $title, $terms, $names );
 		if ( null === $prepared ) {
 			return array();
@@ -141,8 +144,10 @@ final class Suggestions {
 		try {
 			$found = $suggester->outgoing( $document );
 			$links = $this->group_links( $document->links, $post_id );
+			$shown = array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
+			$this->timing?->record( EngineTiming::OUTGOING, hrtime( true ) - $started, $suggester->timing() );
 
-			return array_slice( $this->without_ignored( $found ), 0, (int) ( $options['max_outgoing'] ?? $this->settings->all()['outbound_shown'] ) );
+			return $shown;
 		} finally {
 			$documents->release();
 		}
@@ -328,7 +333,8 @@ final class Suggestions {
 	 * @phpstan-param array<string, mixed> $options
 	 */
 	public function incoming( int $post_id, array $options = array() ): array {
-		$post = get_post( $post_id );
+		$started = hrtime( true );
+		$post    = get_post( $post_id );
 		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || ! $this->analyzes( $post ) || ! $this->ready() ) {
 			return array();
 		}
@@ -339,7 +345,11 @@ final class Suggestions {
 
 		[ $repository, $documents ] = $this->views();
 		try {
-			return $this->without_ignored( $this->suggester( $options, $repository, $documents )->incoming( $post_id ) );
+			$suggester = $this->suggester( $options, $repository, $documents );
+			$found     = $this->without_ignored( $suggester->incoming( $post_id ) );
+			$this->timing?->record( EngineTiming::INCOMING, hrtime( true ) - $started, $suggester->timing() );
+
+			return $found;
 		} finally {
 			$documents->release();
 		}

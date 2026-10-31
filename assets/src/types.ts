@@ -161,6 +161,27 @@ export interface StatusResponse {
 	last_done: Job | null;
 }
 
+/** Tiempo del motor de una dirección (F1-27): milisegundos, de las últimas `keep` peticiones. */
+export interface EngineTimingRow {
+	count: number;
+	median: number;
+	p95: number;
+	retrieval: number;
+	phrases: number;
+	scoring: number;
+	/** Candidatas evaluadas por petición (media). */
+	candidates: number;
+	/** Presupuesto del p95, en ms (`docs/09 §4`). */
+	budget: number;
+}
+
+/** Respuesta de `GET /engine-timing`. */
+export interface EngineTimingResponse {
+	keep: number;
+	outgoing: EngineTimingRow;
+	incoming: EngineTimingRow;
+}
+
 /** Modo de un filtro de las sugerencias. */
 export type FilterMode = 'ignore' | 'consider' | 'require';
 
@@ -258,9 +279,15 @@ export interface Boot {
 	settingsUrl: string;
 	/** Mínimo y máximo de los ajustes numéricos, tal como los aplica el servidor (`Settings::INT_RANGES`). */
 	intRanges?: Record< string, [ number, number ] >;
-	initialTab?: 'report' | 'broken' | 'history' | 'rules' | 'settings';
+	initialTab?:
+		| 'report'
+		| 'broken'
+		| 'history'
+		| 'rules'
+		| 'status'
+		| 'settings';
 	tabUrls?: Record<
-		'report' | 'broken' | 'history' | 'rules' | 'settings',
+		'report' | 'broken' | 'history' | 'rules' | 'status' | 'settings',
 		string
 	>;
 }
