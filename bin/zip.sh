@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Genera dist/<slug>.zip con la carpeta <slug>/ dentro, sin nada de desarrollo (.distignore),
-# y falla si pasa del presupuesto de 1,5 MB (D-64).
+# y falla si pasa del presupuesto de 2 MB (D-64, D-78).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 SLUG="magic-linking"
-MAX_BYTES=$((1536 * 1024))
+MAX_BYTES=$((2048 * 1024))
 BUILD="dist/${SLUG}"
 
 rm -rf dist
@@ -51,6 +51,6 @@ SIZE=$(wc -c < "dist/${SLUG}.zip" | tr -d ' ')
 echo "dist/${SLUG}.zip: ${SIZE} bytes (límite ${MAX_BYTES})"
 
 if [ "${SIZE}" -gt "${MAX_BYTES}" ]; then
-	echo "El ZIP supera 1,5 MB (1.572.864 bytes)." >&2
+	echo "El ZIP supera 2 MB (2.097.152 bytes)." >&2
 	exit 1
 fi
