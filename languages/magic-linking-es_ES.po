@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T21:09:23+00:00\n"
+"POT-Creation-Date: 2026-10-31T23:30:21+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -72,12 +72,12 @@ msgstr "Plugin no activado"
 msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
 msgstr "A Magic Linking le faltan sus bibliotecas incluidas (la carpeta vendor). Vuelve a instalar el plugin desde wordpress.org. No se ha cargado."
 
-#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:301
+#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:312
 #: assets/build/editor.js:46 assets/build/index.js:131
 msgid "Internal links"
 msgstr "Enlaces internos"
 
-#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:302
+#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:313
 #: assets/build/index.js:7 assets/build/index.js:23 assets/build/index.js:35
 #: assets/build/index.js:53 assets/build/index.js:108 assets/build/index.js:117
 #: assets/build/index.js:129
@@ -88,49 +88,74 @@ msgstr "Cargando…"
 msgid "This box needs JavaScript to show the link suggestions."
 msgstr "Esta caja necesita JavaScript para mostrar las sugerencias de enlaces."
 
-#: src/Admin/Screen.php:96
+#: src/Admin/Notices.php:174
+msgid "Do not show again"
+msgstr "No volver a mostrar"
+
+#: src/Admin/Notices.php:260
+msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
+msgstr "Has añadido bastantes enlaces con Magic Linking. Si te está ahorrando tiempo, una reseña en wordpress.org ayuda a que otras personas lo encuentren."
+
+#: src/Admin/Notices.php:262
+msgid "Write a review"
+msgstr "Escribir una reseña"
+
+#: src/Admin/Notices.php:265
+msgid "No, thanks"
+msgstr "No, gracias"
+
+#: src/Admin/Notices.php:278
+msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
+msgstr "Este sitio no tiene IA conectada. Puedes conectar la tuya en Ajustes → Conectores (OpenAI, Google, Ollama local…). Mientras tanto, las sugerencias usan el motor léxico."
+
+#: src/Admin/Notices.php:280 assets/build/index.js:111
+#: assets/build/index.js:112
+msgid "Go to Connectors"
+msgstr "Ir a Conectores"
+
+#: src/Admin/Screen.php:105
 msgid "Open report"
 msgstr "Abrir informe"
 
-#: src/Admin/Screen.php:142
+#: src/Admin/Screen.php:151
 msgid "Magic Linking"
 msgstr "Magic Linking"
 
-#: src/Admin/Screen.php:147 assets/build/index.js:130
+#: src/Admin/Screen.php:156 assets/build/index.js:130
 msgid "Report"
 msgstr "Informe"
 
-#: src/Admin/Screen.php:153 assets/build/index.js:130 assets/build/index.js:131
+#: src/Admin/Screen.php:162 assets/build/index.js:130 assets/build/index.js:131
 msgid "Broken links"
 msgstr "Enlaces rotos"
 
-#: src/Admin/Screen.php:157 assets/build/index.js:130
+#: src/Admin/Screen.php:166 assets/build/index.js:130
 msgid "History"
 msgstr "Historial"
 
-#: src/Admin/Screen.php:161 assets/build/index.js:130
+#: src/Admin/Screen.php:170 assets/build/index.js:130
 msgid "Rules"
 msgstr "Reglas"
 
-#: src/Admin/Screen.php:165 assets/build/index.js:23 assets/build/index.js:44
+#: src/Admin/Screen.php:174 assets/build/index.js:23 assets/build/index.js:44
 #: assets/build/index.js:50 assets/build/index.js:53 assets/build/index.js:88
 #: assets/build/index.js:101 assets/build/index.js:130
 msgid "Status"
 msgstr "Estado"
 
-#: src/Admin/Screen.php:169 assets/build/index.js:130
+#: src/Admin/Screen.php:178 assets/build/index.js:130
 msgid "Settings"
 msgstr "Ajustes"
 
-#: src/Admin/Screen.php:216
+#: src/Admin/Screen.php:225
 msgid "Items per page"
 msgstr "Elementos por página"
 
-#: src/Admin/Screen.php:296
+#: src/Admin/Screen.php:307
 msgid "You do not have permission to see this page."
 msgstr "No tienes permiso para ver esta página."
 
-#: src/Admin/Screen.php:303
+#: src/Admin/Screen.php:314
 msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
 msgstr "Esta pantalla necesita JavaScript. Puedes obtener el mismo informe con WP-CLI: wp magic-linking report"
 
@@ -286,7 +311,7 @@ msgid "That entry does not exist or is not of a chosen content type."
 msgstr "Esa entrada no existe o no es de un tipo de contenido elegido."
 
 #: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
-#: src/Rest/AiController.php:227 src/Rest/AnalyzedEntry.php:43
+#: src/Rest/AiController.php:196 src/Rest/AnalyzedEntry.php:43
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
 #: src/Rest/SuggestionsController.php:1027
@@ -689,50 +714,50 @@ msgstr "Esta entrada se editó después; quita el enlace a mano."
 msgid "You are not allowed to export this data."
 msgstr "No tienes permiso para exportar estos datos."
 
-#: src/Rest/AiController.php:245 src/Rest/SuggestionsController.php:412
+#: src/Rest/AiController.php:214 src/Rest/SuggestionsController.php:412
 #: src/Rest/SuggestionsController.php:440
 msgid "The content is too long to analyze."
 msgstr "El contenido es demasiado largo para analizarlo."
 
 #. translators: %s: tokens one AI request needs, formatted.
-#: src/Rest/AiController.php:305
+#: src/Rest/AiController.php:274
 #, php-format
 msgid "The daily AI limit you set is lower than what one request needs (about %s tokens); raise it in Settings → AI. Showing suggestions without AI."
 msgstr "El tope diario de IA que fijaste es menor que lo que necesita una petición (unos %s tokens); súbelo en Ajustes → IA. Se muestran las sugerencias sin IA."
 
-#: src/Rest/AiController.php:309
+#: src/Rest/AiController.php:278
 msgid "You are asking for AI too often; wait a minute and try again. Showing suggestions without AI."
 msgstr "Estás pidiendo IA con demasiada frecuencia; espera un minuto e inténtalo de nuevo. Se muestran las sugerencias sin IA."
 
-#: src/Rest/AiController.php:311
+#: src/Rest/AiController.php:280
 msgid "There is no AI connected on this site, so the suggestions are shown without AI."
 msgstr "Este sitio no tiene IA conectada, así que las sugerencias se muestran sin IA."
 
-#: src/Rest/AiController.php:313
+#: src/Rest/AiController.php:282
 msgid "AI is turned off for this action on this site; showing suggestions without AI."
 msgstr "La IA está desactivada para esta acción en este sitio; se muestran las sugerencias sin IA."
 
-#: src/Rest/AiController.php:315
+#: src/Rest/AiController.php:284
 msgid "The daily AI limit you set has been reached; showing suggestions without AI. It will be available again tomorrow."
 msgstr "Has alcanzado el tope diario de IA que fijaste; se muestran las sugerencias sin IA. Volverá a estar disponible mañana."
 
-#: src/Rest/AiController.php:317
+#: src/Rest/AiController.php:286
 msgid "The AI provider took too long to answer; showing suggestions without AI. Try again, or pick a faster model in Settings → AI."
 msgstr "El proveedor de IA ha tardado demasiado en responder; se muestran las sugerencias sin IA. Inténtalo de nuevo o elige un modelo más rápido en Ajustes → IA."
 
-#: src/Rest/AiController.php:319
+#: src/Rest/AiController.php:288
 msgid "The AI provider had a problem on its side; showing suggestions without AI. Try again in a moment."
 msgstr "El proveedor de IA ha tenido un problema por su parte; se muestran las sugerencias sin IA. Inténtalo de nuevo en un momento."
 
-#: src/Rest/AiController.php:321
+#: src/Rest/AiController.php:290
 msgid "Your AI provider is limiting requests right now; showing suggestions without AI. Try again in a moment."
 msgstr "Tu proveedor de IA está limitando las peticiones ahora mismo; se muestran las sugerencias sin IA. Inténtalo de nuevo en un momento."
 
-#: src/Rest/AiController.php:323
+#: src/Rest/AiController.php:292
 msgid "None of these suggestions can be sent to AI; showing them as they are."
 msgstr "Ninguna de estas sugerencias se puede enviar a la IA; se muestran tal cual."
 
-#: src/Rest/AiController.php:325 assets/build/classic.js:4
+#: src/Rest/AiController.php:294 assets/build/classic.js:4
 #: assets/build/editor.js:4
 msgid "The AI did not respond; showing suggestions without AI."
 msgstr "La IA no respondió; mostrando sugerencias sin IA."
@@ -854,6 +879,10 @@ msgstr "Envía un lote entero o un solo cambio, no los dos."
 #: src/Rest/JobsController.php:200
 msgid "That process does not exist."
 msgstr "Ese proceso no existe."
+
+#: src/Rest/NoticesController.php:87 src/Rest/NoticesController.php:103
+msgid "That notice does not exist."
+msgstr "Ese aviso no existe."
 
 #: src/Rest/RulesController.php:653
 msgid "You do not have permission to edit this entry."
@@ -1730,17 +1759,9 @@ msgstr "No se puede usar esa frase: un enlace que has añadido o descartado ya l
 msgid "Notice closed."
 msgstr "Aviso cerrado."
 
-#: assets/build/index.js:1 assets/build/index.js:111 assets/build/index.js:112
-msgid "Go to Connectors"
-msgstr "Ir a Conectores"
-
-#: assets/build/index.js:1 assets/build/index.js:94 assets/build/index.js:129
-msgid "Close"
-msgstr "Cerrar"
-
 #: assets/build/index.js:1
-msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
-msgstr "Este sitio no tiene IA conectada. Puedes conectar la tuya en Ajustes → Conectores (OpenAI, Google, Ollama local…). Mientras tanto, las sugerencias usan el motor léxico."
+msgid "The notice could not be closed. Try again."
+msgstr "No se ha podido cerrar el aviso. Inténtalo de nuevo."
 
 #. translators: %s: number of entries.
 #: assets/build/index.js:3 assets/build/index.js:23
@@ -2912,6 +2933,10 @@ msgstr "Seguir buscando"
 #: assets/build/index.js:94
 msgid "Find more entries"
 msgstr "Buscar más entradas"
+
+#: assets/build/index.js:94 assets/build/index.js:129
+msgid "Close"
+msgstr "Cerrar"
 
 #: assets/build/index.js:94
 msgid "Pick the entry the rule should link to."

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MagicLinking\Core;
 
+use MagicLinking\Admin\Notices;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\Exclusions;
 use MagicLinking\Index\Pillars;
@@ -41,6 +42,11 @@ final class Installer implements Module {
 	 * Acción de Action Scheduler que añade el índice por ancla a `links` en una actualización (esquema 7).
 	 */
 	public const HOOK_ANCHOR_INDEX = 'magiclinking_add_anchor_index';
+
+	/**
+	 * Acción de Action Scheduler que añade el índice `user_action` a `changes` en una actualización (esquema 8).
+	 */
+	public const HOOK_USER_INDEX = 'magiclinking_add_user_action_index';
 
 	/**
 	 * Transitorio (sin autoload) que frena los reintentos de una migración que falló.
@@ -142,6 +148,7 @@ final class Installer implements Module {
 	public function register(): void {
 		add_action( 'admin_init', array( $this, 'on_admin_init' ) );
 		add_action( self::HOOK_ANCHOR_INDEX, array( $this, 'add_anchor_index' ) );
+		add_action( self::HOOK_USER_INDEX, array( $this, 'add_user_action_index' ) );
 	}
 
 	/**
@@ -161,7 +168,13 @@ final class Installer implements Module {
 	public static function activate(): void {
 		global $wpdb;
 
-		( new self( $wpdb, MAGICLINKING_DB_VERSION ) )->maybe_upgrade();
+		$installer = new self( $wpdb, MAGICLINKING_DB_VERSION );
+		$installer->maybe_upgrade();
+		// La desactivación cancela las acciones pendientes: si un índice de fondo no llegó a crearse, se encola otra vez.
+		$installer->ensure_background_indexes( true );
+
+		// Desde aquí cuentan los 30 días del aviso de reseña (docs/07 §5).
+		Notices::remember_activation();
 
 		// La desactivación cancela lo programado: se vuelve a programar el recálculo nocturno.
 		self::request_reconcile();
@@ -206,6 +219,11 @@ final class Installer implements Module {
 		$installed = $this->installed_version();
 
 		if ( $installed >= $this->target_version ) {
+			// Un índice de fondo que falta (la desactivación canceló su acción) se vuelve a encolar.
+			if ( $installed > 0 && $installed === $this->target_version && is_admin() ) {
+				$this->ensure_background_indexes();
+			}
+
 			return true;
 		}
 
@@ -229,7 +247,8 @@ final class Installer implements Module {
 		// En un sitio con datos el índice por ancla de `links` no se crea en esta petición (en una tabla grande puede tardar
 		// mucho): dbDelta no lo ve y se añade en segundo plano. Las consultas funcionan sin él mientras tanto.
 		$with_index = 0 === $from || $this->has_anchor_index();
-		$this->create_tables( $with_index );
+		$with_user  = 0 === $from || $this->has_user_action_index();
+		$this->create_tables( $with_index, $with_user );
 
 		if ( array() !== $this->missing_tables() ) {
 			return false;
@@ -260,6 +279,9 @@ final class Installer implements Module {
 			if ( ! $with_index ) {
 				self::request_anchor_index();
 			}
+			if ( ! $with_user ) {
+				self::request_user_action_index();
+			}
 		}
 
 		return true;
@@ -269,16 +291,41 @@ final class Installer implements Module {
 	 * Crea las tablas que falten y añade columnas e índices nuevos.
 	 *
 	 * @param bool $anchor_index Incluir el índice por ancla de `links`.
+	 * @param bool $user_index   Incluir el índice `user_action` de `changes`.
 	 *
 	 * @return array<string, string> Cambios aplicados, según dbDelta(); vacío si no había nada que hacer.
 	 */
-	public function create_tables( bool $anchor_index = true ): array {
+	public function create_tables( bool $anchor_index = true, bool $user_index = true ): array {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$statements = Schema::create_statements( $this->wpdb->prefix, $this->wpdb->get_charset_collate(), $anchor_index );
+		$statements = Schema::create_statements( $this->wpdb->prefix, $this->wpdb->get_charset_collate(), $anchor_index, $user_index );
 
 		return dbDelta( array_values( $statements ) );
 	}
+
+	/**
+	 * Índices que una actualización no crea en la petición (en una tabla grande pueden tardar mucho) y se añaden en
+	 * segundo plano: clave, tabla, definición y acción de Action Scheduler que los crea.
+	 *
+	 * @var array<string, array{table: string, ddl: string, hook: string}>
+	 */
+	private const BACKGROUND_INDEXES = array(
+		'anchor'      => array(
+			'table' => 'links',
+			'ddl'   => 'anchor (anchor(40))',
+			'hook'  => self::HOOK_ANCHOR_INDEX,
+		),
+		'user_action' => array(
+			'table' => 'changes',
+			'ddl'   => 'user_action (user_id, action)',
+			'hook'  => self::HOOK_USER_INDEX,
+		),
+	);
+
+	/**
+	 * Transitorio que evita comprobar los índices de fondo en cada carga del administrador.
+	 */
+	private const INDEX_CHECK_TRANSIENT = 'magiclinking_index_check';
 
 	/**
 	 * Si la tabla de enlaces ya tiene el índice por ancla (esquema 7).
@@ -286,42 +333,117 @@ final class Installer implements Module {
 	 * @phpstan-impure
 	 */
 	public function has_anchor_index(): bool {
+		return $this->has_index( 'anchor' );
+	}
+
+	/**
+	 * Si la tabla de cambios ya tiene el índice por usuario y acción (esquema 8).
+	 *
+	 * @phpstan-impure
+	 */
+	public function has_user_action_index(): bool {
+		return $this->has_index( 'user_action' );
+	}
+
+	/**
+	 * Si una tabla propia tiene uno de los índices de fondo.
+	 *
+	 * @param string $key Clave de BACKGROUND_INDEXES.
+	 *
+	 * @phpstan-impure
+	 */
+	private function has_index( string $key ): bool {
 		$wpdb     = $this->wpdb;
-		$table    = Schema::table( $wpdb->prefix, 'links' );
+		$name     = Schema::table( $wpdb->prefix, self::BACKGROUND_INDEXES[ $key ]['table'] );
 		$previous = $wpdb->suppress_errors( true );
-		$found    = $wpdb->get_var( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table, 'anchor' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Comprobación del esquema.
+		$found    = $wpdb->get_var( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $name, $key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Comprobación del esquema.
 		$wpdb->suppress_errors( $previous );
 
 		return null !== $found;
 	}
 
 	/**
-	 * Pide en segundo plano (Action Scheduler) que se añada el índice por ancla. No bloquea la petición ni duplica la
+	 * Pide en segundo plano (Action Scheduler) que se añada un índice de fondo. No bloquea la petición ni duplica la
 	 * acción pendiente.
+	 *
+	 * @param string $key Clave de BACKGROUND_INDEXES.
 	 */
-	public static function request_anchor_index(): void {
+	private static function request_index( string $key ): void {
 		if ( ! function_exists( 'as_enqueue_async_action' ) || ! did_action( 'init' ) ) {
 			return;
 		}
 
-		as_enqueue_async_action( self::HOOK_ANCHOR_INDEX, array(), self::ACTION_GROUP, true );
+		as_enqueue_async_action( self::BACKGROUND_INDEXES[ $key ]['hook'], array(), self::ACTION_GROUP, true );
 	}
 
 	/**
-	 * Acción de Action Scheduler: añade a `links` el índice por ancla. Idempotente (no hace nada si ya existe) y
-	 * reanudable: si falla, se vuelve a intentar dentro de una hora.
+	 * Vuelve a pedir los índices de fondo que falten. La desactivación cancela las acciones pendientes del plugin, así
+	 * que activar o abrir el administrador sin que el índice exista lo vuelve a encolar. Sin `$force` se comprueba como
+	 * mucho una vez al día (una hora si faltaba alguno).
+	 *
+	 * @param bool $force Comprobar ahora, sin esperar al transitorio.
 	 */
-	public function add_anchor_index(): void {
-		if ( $this->has_anchor_index() ) {
+	public function ensure_background_indexes( bool $force = false ): void {
+		if ( ! $force && false !== get_transient( self::INDEX_CHECK_TRANSIENT ) ) {
 			return;
 		}
 
-		$wpdb  = $this->wpdb;
-		$table = esc_sql( Schema::table( $wpdb->prefix, 'links' ) );
-		$done  = $wpdb->query( "ALTER TABLE `{$table}` ADD INDEX anchor (anchor(40))" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Nombre de tabla desde constantes; no admite marcadores.
+		$missing = false;
+		foreach ( array_keys( self::BACKGROUND_INDEXES ) as $key ) {
+			if ( ! $this->has_index( $key ) ) {
+				$missing = true;
+				self::request_index( $key );
+			}
+		}
+		set_transient( self::INDEX_CHECK_TRANSIENT, 1, $missing ? HOUR_IN_SECONDS : DAY_IN_SECONDS );
+	}
 
-		if ( false === $done && ! $this->has_anchor_index() && function_exists( 'as_schedule_single_action' ) ) {
-			as_schedule_single_action( time() + HOUR_IN_SECONDS, self::HOOK_ANCHOR_INDEX, array(), self::ACTION_GROUP, true );
+	/**
+	 * Pide en segundo plano que se añada el índice por ancla.
+	 */
+	public static function request_anchor_index(): void {
+		self::request_index( 'anchor' );
+	}
+
+	/**
+	 * Pide en segundo plano que se añada el índice `user_action`.
+	 */
+	public static function request_user_action_index(): void {
+		self::request_index( 'user_action' );
+	}
+
+	/**
+	 * Acción de Action Scheduler: añade a `links` el índice por ancla. Idempotente y reanudable.
+	 */
+	public function add_anchor_index(): void {
+		$this->add_index( 'anchor' );
+	}
+
+	/**
+	 * Acción de Action Scheduler: añade a `changes` el índice `user_action`. Idempotente y reanudable.
+	 */
+	public function add_user_action_index(): void {
+		$this->add_index( 'user_action' );
+	}
+
+	/**
+	 * Añade un índice de fondo. Idempotente (no hace nada si ya existe) y reanudable: si falla, se vuelve a intentar
+	 * dentro de una hora.
+	 *
+	 * @param string $key Clave de BACKGROUND_INDEXES.
+	 */
+	private function add_index( string $key ): void {
+		if ( $this->has_index( $key ) ) {
+			return;
+		}
+
+		$index = self::BACKGROUND_INDEXES[ $key ];
+		$wpdb  = $this->wpdb;
+		$table = esc_sql( Schema::table( $wpdb->prefix, $index['table'] ) );
+		$done  = $wpdb->query( "ALTER TABLE `{$table}` ADD INDEX {$index['ddl']}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Nombre de tabla y definición desde constantes; no admiten marcadores.
+
+		if ( false === $done && ! $this->has_index( $key ) && function_exists( 'as_schedule_single_action' ) ) {
+			as_schedule_single_action( time() + HOUR_IN_SECONDS, $index['hook'], array(), self::ACTION_GROUP, true );
 		}
 	}
 
@@ -392,7 +514,7 @@ final class Installer implements Module {
 		// Metadatos de usuario: solo las claves propias exactas de este sitio (el prefijo de sus tablas), con la
 		// caché de WordPress al día. Nada de LIKE: las claves de Magic Linking Pro (`magiclinking_pro_*`) y las de
 		// otros sitios de una red no se tocan. Con varios sitios, `uninstall_everywhere()` pasa por cada uno.
-		foreach ( array( 'magiclinking_wizard_dismissed', 'magiclinking_ai_notice_dismissed', 'magiclinking_per_page' ) as $key ) {
+		foreach ( array( 'magiclinking_wizard_dismissed', 'magiclinking_ai_notice_dismissed', 'magiclinking_dismissed_notices', 'magiclinking_notices_state', 'magiclinking_per_page' ) as $key ) {
 			delete_metadata( 'user', 0, $wpdb->get_blog_prefix() . $key, '', true );
 		}
 

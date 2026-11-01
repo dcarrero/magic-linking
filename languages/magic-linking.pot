@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-31T21:09:36+00:00\n"
+"POT-Creation-Date: 2026-10-31T23:30:21+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -70,14 +70,14 @@ msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reins
 msgstr ""
 
 #: src/Admin/EditorPanel.php:84
-#: src/Admin/Screen.php:301
+#: src/Admin/Screen.php:312
 #: assets/build/editor.js:46
 #: assets/build/index.js:131
 msgid "Internal links"
 msgstr ""
 
 #: src/Admin/EditorPanel.php:97
-#: src/Admin/Screen.php:302
+#: src/Admin/Screen.php:313
 #: assets/build/index.js:7
 #: assets/build/index.js:23
 #: assets/build/index.js:35
@@ -92,36 +92,62 @@ msgstr ""
 msgid "This box needs JavaScript to show the link suggestions."
 msgstr ""
 
-#: src/Admin/Screen.php:96
+#: src/Admin/Notices.php:174
+msgid "Do not show again"
+msgstr ""
+
+#: src/Admin/Notices.php:260
+msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
+msgstr ""
+
+#: src/Admin/Notices.php:262
+msgid "Write a review"
+msgstr ""
+
+#: src/Admin/Notices.php:265
+msgid "No, thanks"
+msgstr ""
+
+#: src/Admin/Notices.php:278
+msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
+msgstr ""
+
+#: src/Admin/Notices.php:280
+#: assets/build/index.js:111
+#: assets/build/index.js:112
+msgid "Go to Connectors"
+msgstr ""
+
+#: src/Admin/Screen.php:105
 msgid "Open report"
 msgstr ""
 
-#: src/Admin/Screen.php:142
+#: src/Admin/Screen.php:151
 msgid "Magic Linking"
 msgstr ""
 
-#: src/Admin/Screen.php:147
+#: src/Admin/Screen.php:156
 #: assets/build/index.js:130
 msgid "Report"
 msgstr ""
 
-#: src/Admin/Screen.php:153
+#: src/Admin/Screen.php:162
 #: assets/build/index.js:130
 #: assets/build/index.js:131
 msgid "Broken links"
 msgstr ""
 
-#: src/Admin/Screen.php:157
+#: src/Admin/Screen.php:166
 #: assets/build/index.js:130
 msgid "History"
 msgstr ""
 
-#: src/Admin/Screen.php:161
+#: src/Admin/Screen.php:170
 #: assets/build/index.js:130
 msgid "Rules"
 msgstr ""
 
-#: src/Admin/Screen.php:165
+#: src/Admin/Screen.php:174
 #: assets/build/index.js:23
 #: assets/build/index.js:44
 #: assets/build/index.js:50
@@ -132,20 +158,20 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: src/Admin/Screen.php:169
+#: src/Admin/Screen.php:178
 #: assets/build/index.js:130
 msgid "Settings"
 msgstr ""
 
-#: src/Admin/Screen.php:216
+#: src/Admin/Screen.php:225
 msgid "Items per page"
 msgstr ""
 
-#: src/Admin/Screen.php:296
+#: src/Admin/Screen.php:307
 msgid "You do not have permission to see this page."
 msgstr ""
 
-#: src/Admin/Screen.php:303
+#: src/Admin/Screen.php:314
 msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
 msgstr ""
 
@@ -309,7 +335,7 @@ msgstr ""
 
 #: src/Cli/Command.php:904
 #: src/Cli/RulesCommand.php:301
-#: src/Rest/AiController.php:227
+#: src/Rest/AiController.php:196
 #: src/Rest/AnalyzedEntry.php:43
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
@@ -739,51 +765,51 @@ msgstr ""
 msgid "You are not allowed to export this data."
 msgstr ""
 
-#: src/Rest/AiController.php:245
+#: src/Rest/AiController.php:214
 #: src/Rest/SuggestionsController.php:412
 #: src/Rest/SuggestionsController.php:440
 msgid "The content is too long to analyze."
 msgstr ""
 
 #. translators: %s: tokens one AI request needs, formatted.
-#: src/Rest/AiController.php:305
+#: src/Rest/AiController.php:274
 #, php-format
 msgid "The daily AI limit you set is lower than what one request needs (about %s tokens); raise it in Settings → AI. Showing suggestions without AI."
 msgstr ""
 
-#: src/Rest/AiController.php:309
+#: src/Rest/AiController.php:278
 msgid "You are asking for AI too often; wait a minute and try again. Showing suggestions without AI."
 msgstr ""
 
-#: src/Rest/AiController.php:311
+#: src/Rest/AiController.php:280
 msgid "There is no AI connected on this site, so the suggestions are shown without AI."
 msgstr ""
 
-#: src/Rest/AiController.php:313
+#: src/Rest/AiController.php:282
 msgid "AI is turned off for this action on this site; showing suggestions without AI."
 msgstr ""
 
-#: src/Rest/AiController.php:315
+#: src/Rest/AiController.php:284
 msgid "The daily AI limit you set has been reached; showing suggestions without AI. It will be available again tomorrow."
 msgstr ""
 
-#: src/Rest/AiController.php:317
+#: src/Rest/AiController.php:286
 msgid "The AI provider took too long to answer; showing suggestions without AI. Try again, or pick a faster model in Settings → AI."
 msgstr ""
 
-#: src/Rest/AiController.php:319
+#: src/Rest/AiController.php:288
 msgid "The AI provider had a problem on its side; showing suggestions without AI. Try again in a moment."
 msgstr ""
 
-#: src/Rest/AiController.php:321
+#: src/Rest/AiController.php:290
 msgid "Your AI provider is limiting requests right now; showing suggestions without AI. Try again in a moment."
 msgstr ""
 
-#: src/Rest/AiController.php:323
+#: src/Rest/AiController.php:292
 msgid "None of these suggestions can be sent to AI; showing them as they are."
 msgstr ""
 
-#: src/Rest/AiController.php:325
+#: src/Rest/AiController.php:294
 #: assets/build/classic.js:4
 #: assets/build/editor.js:4
 msgid "The AI did not respond; showing suggestions without AI."
@@ -907,6 +933,11 @@ msgstr ""
 
 #: src/Rest/JobsController.php:200
 msgid "That process does not exist."
+msgstr ""
+
+#: src/Rest/NoticesController.php:87
+#: src/Rest/NoticesController.php:103
+msgid "That notice does not exist."
 msgstr ""
 
 #: src/Rest/RulesController.php:653
@@ -1988,19 +2019,7 @@ msgid "Notice closed."
 msgstr ""
 
 #: assets/build/index.js:1
-#: assets/build/index.js:111
-#: assets/build/index.js:112
-msgid "Go to Connectors"
-msgstr ""
-
-#: assets/build/index.js:1
-#: assets/build/index.js:94
-#: assets/build/index.js:129
-msgid "Close"
-msgstr ""
-
-#: assets/build/index.js:1
-msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
+msgid "The notice could not be closed. Try again."
 msgstr ""
 
 #. translators: %s: number of entries.
@@ -3310,6 +3329,11 @@ msgstr ""
 
 #: assets/build/index.js:94
 msgid "Find more entries"
+msgstr ""
+
+#: assets/build/index.js:94
+#: assets/build/index.js:129
+msgid "Close"
 msgstr ""
 
 #: assets/build/index.js:94

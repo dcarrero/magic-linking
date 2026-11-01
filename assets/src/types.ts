@@ -289,7 +289,21 @@ export interface SettingsResponse {
 	job?: Job | null;
 }
 
+/** Aviso que el servidor decide enseñar en esta carga (docs/07 §5); como mucho uno. */
+export interface AdminNotice {
+	id: string;
+	type: 'info' | 'warning' | 'error';
+	text: string;
+	action: { label: string; url: string } | null;
+	/** Texto del botón que lo cierra para siempre. */
+	dismiss_label: string;
+}
+
 export interface Boot {
+	/** Aviso visible en esta pantalla, o null. */
+	notice?: AdminNotice | null;
+	/** El estado del conector de IA no está calculado: la pantalla lo pide en segundo plano para la próxima carga. */
+	warmAi?: boolean;
 	namespace: string;
 	exportUrl: string;
 	canManage: boolean;
@@ -869,7 +883,6 @@ export interface AiStatus {
 		models: AiStatusModel[];
 		prices_date: string;
 	};
-	notice_dismissed: boolean;
 }
 
 /** Reglas automáticas (F1-13). */

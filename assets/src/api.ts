@@ -576,15 +576,27 @@ export const api = {
 			signal,
 		} ),
 	/**
-	 * Cierra para siempre (para este usuario) el aviso «Sin conector de IA», o lo vuelve a abrir.
+	 * Apunta que un aviso se ha enseñado de verdad.
 	 *
-	 * @param dismissed Cerrarlo.
+	 * @param id Identificador del aviso.
 	 */
-	setAiNoticeDismissed: ( dismissed: boolean ) =>
-		apiFetch< { dismissed: boolean } >( {
-			path: path( '/ai/notice' ),
+	seenNotice: ( id: string ) =>
+		apiFetch< { seen: string } >( {
+			path: path( '/notices/seen' ),
 			method: 'POST',
-			data: { dismissed },
+			data: { id },
+		} ),
+	/**
+	 * Cierra un aviso para siempre (para este usuario). `keepalive`: la petición sigue aunque el clic navegue a otra página.
+	 *
+	 * @param id Identificador del aviso.
+	 */
+	dismissNotice: ( id: string ) =>
+		apiFetch< { dismissed: string } >( {
+			path: path( '/notices/dismiss' ),
+			method: 'POST',
+			data: { id },
+			keepalive: true,
 		} ),
 	settings: () =>
 		apiFetch< SettingsResponse >( { path: path( '/settings' ) } ),

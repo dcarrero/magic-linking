@@ -124,6 +124,36 @@ final class Capabilities implements Module {
 	}
 
 	/**
+	 * Estado del conector solo si ya está calculado (en esta petición o en el transitorio); nunca lo calcula.
+	 *
+	 * Para las pantallas que solo quieren decidir si enseñan un aviso: no llama a `supports()` ni a `text_models()`.
+	 * Devuelve `unavailable` sin cliente de IA, `connected` o `none` con lo guardado, y null si está frío o en el front-end.
+	 */
+	public function cached_state(): ?string {
+		if ( ! $this->client->available() ) {
+			return 'unavailable';
+		}
+		if ( null === $this->front_end ? self::is_front_end() : (bool) ( $this->front_end )() ) {
+			return null;
+		}
+
+		$found = $this->memo;
+		if ( null === $found ) {
+			$stored = get_transient( self::TRANSIENT );
+			$found  = is_array( $stored ) && isset( $stored['text'], $stored['json'], $stored['models'], $stored['checked_at'] ) ? $stored : null;
+		}
+
+		return null === $found ? null : ( $found['text'] ? 'connected' : 'none' );
+	}
+
+	/**
+	 * Dirección de la pantalla de Conectores de WordPress (la usan el aviso y el estado de la IA).
+	 */
+	public static function connectors_url(): string {
+		return admin_url( 'options-connectors.php' );
+	}
+
+	/**
 	 * Capacidades del sitio.
 	 *
 	 * @param bool $refresh Ignora lo guardado y vuelve a comprobar.

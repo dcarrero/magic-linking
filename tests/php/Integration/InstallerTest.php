@@ -46,7 +46,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( array(), $installer->missing_tables() );
 		$this->assertCount( 8, Schema::TABLES );
 		$this->assertSame( MAGICLINKING_DB_VERSION, $installer->installed_version() );
-		$this->assertSame( 7, MAGICLINKING_DB_VERSION );
+		$this->assertSame( 8, MAGICLINKING_DB_VERSION );
 		$this->assertContains( $this->autoload_of( Installer::DB_VERSION_OPTION ), array( 'no', 'off' ) );
 		$this->assertSame( 0, $this->own_autoloaded_options() );
 	}
@@ -90,7 +90,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( '0', (string) $row['ai_recommended'] );
 		$this->assertSame( '0', (string) $row['ai_anchor'] );
 		$this->assertNull( $row['ai_model'] );
-		$this->assertSame( 7, $this->installer()->installed_version() );
+		$this->assertSame( 8, $this->installer()->installed_version() );
 	}
 
 	public function test_upgrading_from_schema_6_adds_the_anchor_index_in_the_background_not_in_the_request(): void {
@@ -109,7 +109,7 @@ final class InstallerTest extends WP_UnitTestCase {
 
 		// La petición de actualización no toca la tabla: el índice llega después, con una acción reanudable.
 		$this->assertNotContains( 'anchor', $this->index_names( 'links' ) );
-		$this->assertSame( 7, $this->installer()->installed_version() );
+		$this->assertSame( 8, $this->installer()->installed_version() );
 		$this->assertTrue( as_has_scheduled_action( Installer::HOOK_ANCHOR_INDEX, array(), Installer::ACTION_GROUP ) );
 
 		$this->installer()->add_anchor_index();
@@ -130,6 +130,74 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->installer()->create_tables( $this->installer()->has_anchor_index() );
 
 		$this->assertNotContains( 'anchor', $this->index_names( 'links' ) );
+	}
+
+	public function test_upgrading_from_schema_7_adds_the_user_action_index_in_the_background(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'changes' );
+
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX user_action" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		update_option( Installer::DB_VERSION_OPTION, 7, false );
+		Installer::forget_check();
+		as_unschedule_all_actions( Installer::HOOK_USER_INDEX );
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		$this->assertNotContains( 'user_action', $this->index_names( 'changes' ), 'La petición de actualización no toca la tabla.' );
+		$this->assertSame( 8, $this->installer()->installed_version() );
+		$this->assertTrue( as_has_scheduled_action( Installer::HOOK_USER_INDEX, array(), Installer::ACTION_GROUP ) );
+
+		$this->installer()->add_user_action_index();
+		$this->assertContains( 'user_action', $this->index_names( 'changes' ) );
+
+		$this->installer()->add_user_action_index();
+		$this->assertSame( 1, count( array_keys( $this->index_names( 'changes' ), 'user_action', true ) ), 'Idempotente.' );
+	}
+
+	public function test_activating_again_requeues_a_background_index_that_never_got_created(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'changes' );
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX user_action" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		update_option( Installer::DB_VERSION_OPTION, 8, false );
+
+		// La desactivación cancela las acciones pendientes del plugin antes de que el índice se cree.
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+		$this->assertFalse( as_has_scheduled_action( Installer::HOOK_USER_INDEX, array(), Installer::ACTION_GROUP ) );
+
+		Installer::activate();
+
+		$this->assertTrue( as_has_scheduled_action( Installer::HOOK_USER_INDEX, array(), Installer::ACTION_GROUP ) );
+		$this->assertFalse( as_has_scheduled_action( Installer::HOOK_ANCHOR_INDEX, array(), Installer::ACTION_GROUP ), 'El que existe no se vuelve a pedir.' );
+	}
+
+	public function test_the_admin_requeues_a_missing_index_even_when_the_schema_is_current(): void {
+		global $wpdb;
+		$this->installer()->maybe_upgrade();
+		$table = Schema::table( $wpdb->prefix, 'links' );
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX anchor" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia.
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+		delete_transient( 'magiclinking_index_check' );
+		set_current_screen( 'dashboard' );
+
+		$this->assertTrue( $this->installer()->maybe_upgrade() );
+
+		$this->assertTrue( as_has_scheduled_action( Installer::HOOK_ANCHOR_INDEX, array(), Installer::ACTION_GROUP ) );
+
+		// Y no vuelve a mirar en cada carga: el transitorio frena la comprobación.
+		as_unschedule_all_actions( '', array(), Installer::ACTION_GROUP );
+		$this->installer()->maybe_upgrade();
+		$this->assertFalse( as_has_scheduled_action( Installer::HOOK_ANCHOR_INDEX, array(), Installer::ACTION_GROUP ) );
+		delete_transient( 'magiclinking_index_check' );
+		$this->installer()->add_anchor_index();
+		set_current_screen( 'front' );
+	}
+
+	public function test_a_fresh_install_has_the_user_action_index_on_changes(): void {
+		$this->installer()->maybe_upgrade();
+
+		$this->assertContains( 'user_action', $this->index_names( 'changes' ) );
 	}
 
 	public function test_a_fresh_install_has_the_anchor_index_on_links(): void {
@@ -179,7 +247,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertFalse( Schema::has_columns( $wpdb, 'changes', Schema::AI_COLUMNS ) );
 
 		$this->assertTrue( $this->installer()->upgrade( 5 ), 'Al reintentar, con el ALTER funcionando, termina.' );
-		$this->assertSame( 7, $this->installer()->installed_version() );
+		$this->assertSame( 8, $this->installer()->installed_version() );
 		$this->assertTrue( Schema::has_columns( $wpdb, 'changes', Schema::AI_COLUMNS ) );
 	}
 
@@ -208,7 +276,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertTrue( $this->installer()->upgrade( 5 ) );
 
 		$this->assertSame( 'rehecho', $wpdb->get_var( "SELECT lex_hash FROM {$docs} WHERE post_id = 7" ), 'Un reintento no repite la migración 3.' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$this->assertSame( 7, $this->installer()->installed_version() );
+		$this->assertSame( 8, $this->installer()->installed_version() );
 	}
 
 	public function test_tables_have_the_documented_columns(): void {
@@ -230,7 +298,7 @@ final class InstallerTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'PRIMARY', 'lang_stem_n' ), $this->index_names( 'terms' ) );
 		$this->assertSame( array( 'PRIMARY', 'post_id' ), $this->index_names( 'postings' ) );
 		$this->assertSame( array( 'PRIMARY', 'anchor', 'is_broken', 'source_id', 'target_id' ), $this->index_names( 'links' ) );
-		$this->assertSame( array( 'PRIMARY', 'batch_id', 'created_at', 'origin_key', 'post_created' ), $this->index_names( 'changes' ) );
+		$this->assertSame( array( 'PRIMARY', 'batch_id', 'created_at', 'origin_key', 'post_created', 'user_action' ), $this->index_names( 'changes' ) );
 	}
 
 	public function test_stems_differing_only_in_accents_do_not_collide(): void {
@@ -518,6 +586,8 @@ final class InstallerTest extends WP_UnitTestCase {
 		$user = self::factory()->user->create();
 		update_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_wizard_dismissed', '1' );
 		update_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed', '1' );
+		update_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices', array( 'review' ) );
+		add_option( 'magiclinking_activated_at', time(), '', false );
 		set_transient( 'magiclinking_ai_capabilities', array( 'text' => true ) );
 		update_user_meta( $user, 'magiclinking_pro_something', 'keep' );
 		update_user_meta( $user, 'other_plugin_user_meta', 'keep' );
@@ -528,6 +598,8 @@ final class InstallerTest extends WP_UnitTestCase {
 
 		$this->assertSame( '', get_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_wizard_dismissed', true ), 'El asistente cerrado se borra con los datos, también de la caché.' );
 		$this->assertSame( '', get_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_ai_notice_dismissed', true ), 'El aviso de IA cerrado también.' );
+		$this->assertSame( '', get_user_meta( $user, $wpdb->get_blog_prefix() . 'magiclinking_dismissed_notices', true ), 'Los avisos cerrados también.' );
+		$this->assertFalse( get_option( 'magiclinking_activated_at' ), 'La fecha de activación también.' );
 		$this->assertFalse( get_transient( 'magiclinking_ai_capabilities' ), 'Lo que la IA guarda de los conectores, también.' );
 		$this->assertSame( 'keep', get_user_meta( $user, 'magiclinking_pro_something', true ), 'Solo se borran las claves propias exactas.' );
 		$this->assertSame( 'keep', get_user_meta( $user, 'other_plugin_user_meta', true ) );

@@ -26,7 +26,7 @@ use WP_REST_Response;
 use WP_REST_Server;
 
 /**
- * `POST /suggestions/rerank`, `GET /ai/capabilities`, `GET /ai/status` y `POST /ai/notice` (docs/03 §6, docs/05).
+ * `POST /suggestions/rerank`, `GET /ai/capabilities`, `GET /ai/status` (docs/03 §6, docs/05).
  *
  * Permisos: reordenar y consultar las capacidades piden `edit_posts` y, para reordenar, `edit_post` sobre la entrada
  * que se edita (la única cuyo texto se envía al modelo, y solo al pulsar el botón). El estado completo, el gasto y
@@ -34,11 +34,6 @@ use WP_REST_Server;
  * lleva `ok: false`, el motivo y un texto breve y sin detalles técnicos, y el panel sigue con el orden léxico.
  */
 final class AiController implements Module {
-
-	/**
-	 * Metadato de usuario donde se guarda que el aviso «Sin conector de IA» se cerró para siempre (docs/02 §5, regla 7).
-	 */
-	public const NOTICE_META = 'magiclinking_ai_notice_dismissed';
 
 	/**
 	 * Días del gasto que se enseña en Ajustes.
@@ -63,16 +58,6 @@ final class AiController implements Module {
 		private JobRepository $jobs,
 		private AnchorNotes $notes
 	) {
-	}
-
-	/**
-	 * Clave del metadato del aviso en este sitio. Lleva el prefijo de las tablas (como el del asistente): en una red
-	 * cada sitio cierra el suyo y al desinstalar se borra solo la clave de ese sitio.
-	 */
-	public static function notice_meta_key(): string {
-		global $wpdb;
-
-		return $wpdb->get_blog_prefix() . self::NOTICE_META;
 	}
 
 	/**
@@ -164,22 +149,6 @@ final class AiController implements Module {
 				'permission_callback' => array( $this, 'can_manage' ),
 				'args'                => array(
 					'refresh' => array( 'type' => 'boolean' ),
-				),
-			)
-		);
-
-		register_rest_route(
-			$ns,
-			'/ai/notice',
-			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'update_notice' ),
-				'permission_callback' => array( $this, 'can_manage' ),
-				'args'                => array(
-					'dismissed' => array(
-						'type'     => 'boolean',
-						'required' => true,
-					),
 				),
 			)
 		);
@@ -402,23 +371,23 @@ final class AiController implements Module {
 
 		return new WP_REST_Response(
 			array(
-				'state'            => $this->capabilities->state(),
-				'available'        => $base['available'],
-				'text'             => $caps['text'],
-				'json'             => $caps['json'],
-				'local'            => $caps['local'],
-				'provider'         => $base['provider'],
-				'model'            => $base['model'],
-				'models'           => $this->model_list( $caps['models'] ),
-				'last_failure'     => $this->last_failure(),
-				'connectors_url'   => $base['connectors_url'],
-				'budget'           => array(
+				'state'          => $this->capabilities->state(),
+				'available'      => $base['available'],
+				'text'           => $caps['text'],
+				'json'           => $caps['json'],
+				'local'          => $caps['local'],
+				'provider'       => $base['provider'],
+				'model'          => $base['model'],
+				'models'         => $this->model_list( $caps['models'] ),
+				'last_failure'   => $this->last_failure(),
+				'connectors_url' => $base['connectors_url'],
+				'budget'         => array(
 					'limit'     => $this->budget->limit(),
 					'used'      => $this->budget->used_today(),
 					'remaining' => $this->budget->remaining(),
 					'exhausted' => $this->budget->exhausted(),
 				),
-				'usage'            => array(
+				'usage'          => array(
 					'days'         => self::USAGE_DAYS,
 					'calls'        => $usage['calls'],
 					'failed'       => $usage['failed'],
@@ -428,24 +397,8 @@ final class AiController implements Module {
 					'models'       => $models,
 					'prices_date'  => Models::PRICES_DATE,
 				),
-				'notice_dismissed' => (bool) get_user_meta( get_current_user_id(), self::notice_meta_key(), true ),
 			)
 		);
-	}
-
-	/**
-	 * POST /ai/notice: cierra para siempre (para este usuario) el aviso «Sin conector de IA», o lo vuelve a abrir.
-	 *
-	 * @param WP_REST_Request $request Petición.
-	 */
-	public function update_notice( WP_REST_Request $request ): WP_REST_Response {
-		if ( filter_var( $request['dismissed'], FILTER_VALIDATE_BOOLEAN ) ) {
-			update_user_meta( get_current_user_id(), self::notice_meta_key(), '1' );
-		} else {
-			delete_user_meta( get_current_user_id(), self::notice_meta_key() );
-		}
-
-		return new WP_REST_Response( array( 'dismissed' => (bool) get_user_meta( get_current_user_id(), self::notice_meta_key(), true ) ) );
 	}
 
 	/**
@@ -536,7 +489,7 @@ final class AiController implements Module {
 			'available'      => $this->client->available(),
 			'provider'       => $caps['provider'],
 			'model'          => $caps['model'],
-			'connectors_url' => admin_url( 'options-connectors.php' ),
+			'connectors_url' => Capabilities::connectors_url(),
 		);
 	}
 }

@@ -52,6 +52,13 @@ final class Screen implements Module {
 	private Jobs $jobs;
 
 	/**
+	 * Avisos.
+	 *
+	 * @var Notices
+	 */
+	private Notices $notices;
+
+	/**
 	 * Sufijos de las pantallas registradas, con la pestaña inicial de cada una.
 	 *
 	 * @var array<string, string>
@@ -61,10 +68,12 @@ final class Screen implements Module {
 	/**
 	 * Constructor.
 	 *
-	 * @param Jobs $jobs Procesos.
+	 * @param Jobs    $jobs    Procesos.
+	 * @param Notices $notices Avisos.
 	 */
-	public function __construct( Jobs $jobs ) {
-		$this->jobs = $jobs;
+	public function __construct( Jobs $jobs, Notices $notices ) {
+		$this->jobs    = $jobs;
+		$this->notices = $notices;
 	}
 
 	/**
@@ -261,6 +270,8 @@ final class Screen implements Module {
 					'perPage'     => self::per_page(),
 					'wizard'      => current_user_can( 'manage_options' ) ? ! get_user_meta( get_current_user_id(), SettingsController::wizard_meta_key(), true ) : false,
 					'settingsUrl' => self::page_url( 'settings' ),
+					'notice'      => $this->notices->current( get_current_user_id(), $this->screens[ $hook_suffix ] ),
+					'warmAi'      => 'report' === $this->screens[ $hook_suffix ] && $this->notices->ai_cold( get_current_user_id() ),
 					'intRanges'   => Settings::INT_RANGES,
 					'initialTab'  => $this->screens[ $hook_suffix ],
 					'tabUrls'     => array(
