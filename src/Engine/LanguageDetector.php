@@ -11,9 +11,11 @@ namespace MagicLinking\Engine;
 
 /**
  * Heurística sin dependencias: cuenta, entre las primeras palabras del texto, las palabras vacías que son propias
- * de cada idioma. Castellano e inglés usan las listas del motor ({@see Stopwords}); francés, alemán, italiano y
- * portugués llevan aquí una lista corta de palabras funcionales. De cada lista se quitan las palabras que también
- * existen en otro idioma («de», «no», «a», «la»…), para que lo que cuente discrimine.
+ * de cada idioma. Las listas son las de {@see Stopwords::detection()} (las del motor para castellano e inglés, y
+ * las de reconocimiento para francés, alemán, italiano y portugués). Una palabra que está en la lista de más de un
+ * idioma («de», «e», «no», «a», «la»…) reparte su peso entre todos los que la tienen, nunca cuenta para uno solo
+ * (portugués y castellano comparten muchas); decide el ganador con margen sobre el segundo. Se comparan sin
+ * tildes, como {@see Stopwords::is()}, y las elisiones («all'», «l'», «don'») se quitan antes de contar.
  *
  * No adivina: con pocas palabras, o sin un ganador claro, devuelve el idioma de reserva.
  */
@@ -45,29 +47,9 @@ final class LanguageDetector {
 	public const MIN_RATIO = 1.6;
 
 	/**
-	 * Francés.
-	 */
-	private const FR = array( 'le', 'la', 'les', 'des', 'du', 'un', 'une', 'et', 'est', 'que', 'qui', 'dans', 'pour', 'pas', 'sur', 'avec', 'ce', 'cette', 'ces', 'son', 'sa', 'ses', 'au', 'aux', 'ne', 'il', 'elle', 'nous', 'vous', 'ils', 'elles', 'mais', 'ou', 'où', 'comme', 'plus', 'par', 'sont', 'été', 'être', 'avoir', 'fait', 'peut', 'aussi', 'très', 'cela', 'leur', 'leurs', 'entre', 'sans', 'sous', 'chez', 'dont', 'donc', 'alors', 'tout', 'tous', 'ont', 'était', 'ça', 'qu', 'l' );
-
-	/**
-	 * Alemán.
-	 */
-	private const DE = array( 'der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einer', 'eines', 'einem', 'einen', 'und', 'ist', 'nicht', 'mit', 'für', 'auf', 'von', 'zu', 'im', 'auch', 'sich', 'es', 'wird', 'werden', 'wurde', 'sind', 'aber', 'wie', 'oder', 'dass', 'bei', 'nach', 'aus', 'noch', 'nur', 'wenn', 'kann', 'hat', 'haben', 'über', 'ich', 'wir', 'sie', 'er', 'ihr', 'sein', 'war', 'dieser', 'diese', 'dieses', 'als', 'zum', 'zur', 'vom', 'am', 'um', 'durch', 'mehr', 'sehr', 'schon', 'unter', 'bis' );
-
-	/**
-	 * Italiano.
-	 */
-	private const IT = array( 'il', 'lo', 'la', 'gli', 'le', 'di', 'del', 'della', 'dei', 'delle', 'degli', 'che', 'non', 'per', 'con', 'una', 'uno', 'sono', 'è', 'come', 'più', 'anche', 'nel', 'nella', 'nei', 'nelle', 'alla', 'alle', 'al', 'ai', 'sul', 'sulla', 'questo', 'questa', 'questi', 'quello', 'quella', 'essere', 'ha', 'hanno', 'ma', 'se', 'tra', 'fra', 'molto', 'dove', 'quando', 'però', 'perché', 'così', 'suo', 'sua', 'loro', 'può', 'dal', 'dalla', 'dai', 'cui', 'ogni', 'ci' );
-
-	/**
-	 * Portugués.
-	 */
-	private const PT = array( 'o', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'que', 'não', 'para', 'com', 'por', 'mais', 'como', 'mas', 'foi', 'são', 'ser', 'está', 'também', 'muito', 'seu', 'sua', 'seus', 'suas', 'ao', 'aos', 'pelo', 'pela', 'pelos', 'pelas', 'entre', 'sobre', 'já', 'ou', 'isso', 'isto', 'esta', 'este', 'esse', 'essa', 'ele', 'ela', 'eles', 'elas', 'nós', 'você', 'tem', 'têm', 'há', 'só', 'então', 'quando', 'onde', 'ainda', 'depois', 'sem', 'nem', 'até', 'apenas', 'seja', 'sempre', 'mesmo', 'todos', 'todas', 'muitos', 'faz', 'fazer', 'pode', 'podem', 'temos', 'estão', 'estava', 'foram', 'será', 'nosso', 'nossa', 'deste', 'desta', 'neste', 'nesta', 'dessa', 'nas', 'à', 'às', 'cada', 'quem', 'qual', 'quais', 'porque', 'pois', 'sobre' );
-
-	/**
-	 * Palabras exclusivas de cada idioma, calculadas la primera vez que se piden.
+	 * Idiomas de cada palabra, calculados la primera vez que se piden.
 	 *
-	 * @var array<string, array<string, true>>|null
+	 * @var array<string, list<string>>|null
 	 */
 	private static ?array $markers = null;
 
@@ -77,7 +59,7 @@ final class LanguageDetector {
 	 * @return list<string>
 	 */
 	public static function languages(): array {
-		return array( 'es', 'en', 'fr', 'de', 'it', 'pt' );
+		return Stopwords::detection_languages();
 	}
 
 	/**
@@ -87,7 +69,9 @@ final class LanguageDetector {
 	 * @param string $fallback Idioma que se devuelve cuando no hay confianza.
 	 */
 	public static function detect( string $text, string $fallback ): string {
-		$sample = mb_strtolower( mb_substr( $text, 0, self::MAX_CHARS, 'UTF-8' ), 'UTF-8' );
+		$sample = mb_strtolower( mb_substr( Tokenizer::nfc( $text ), 0, self::MAX_CHARS, 'UTF-8' ), 'UTF-8' );
+		// «all'innovazione», «l'estate», «don't»: la parte elidida no es una palabra de otro idioma.
+		$sample = (string) preg_replace( "/\p{L}+['’]/u", ' ', $sample );
 		if ( 1 > (int) preg_match_all( '/\p{L}+/u', $sample, $found ) ) {
 			return $fallback;
 		}
@@ -99,12 +83,12 @@ final class LanguageDetector {
 		}
 
 		$markers = self::markers();
-		$hits    = array_fill_keys( self::languages(), 0 );
+		$hits    = array_fill_keys( self::languages(), 0.0 );
 		foreach ( $words as $word ) {
-			foreach ( $markers as $language => $set ) {
-				if ( isset( $set[ $word ] ) ) {
-					++$hits[ $language ];
-				}
+			$owners = $markers[ Stopwords::fold( $word ) ] ?? array();
+			foreach ( $owners as $language ) {
+				// Una palabra de varios idiomas reparte su peso entre ellos.
+				$hits[ $language ] += 1 / count( $owners );
 			}
 		}
 
@@ -121,40 +105,22 @@ final class LanguageDetector {
 	}
 
 	/**
-	 * Palabras exclusivas de cada idioma: su lista sin las que aparecen en otra.
+	 * Idiomas que tienen cada palabra (sin tildes), calculado la primera vez que se pide.
 	 *
-	 * @return array<string, array<string, true>>
+	 * @return array<string, list<string>>
 	 */
 	private static function markers(): array {
 		if ( null !== self::$markers ) {
 			return self::$markers;
 		}
 
-		$lists = array(
-			'es' => Stopwords::for( 'es' ),
-			'en' => Stopwords::for( 'en' ),
-			'fr' => self::FR,
-			'de' => self::DE,
-			'it' => self::IT,
-			'pt' => self::PT,
-		);
-
-		$count = array();
-		foreach ( $lists as $words ) {
-			foreach ( array_unique( $words ) as $word ) {
-				$count[ $word ] = ( $count[ $word ] ?? 0 ) + 1;
-			}
-		}
-
 		self::$markers = array();
-		foreach ( $lists as $language => $words ) {
-			self::$markers[ $language ] = array();
-			foreach ( $words as $word ) {
-				if ( 1 === $count[ $word ] ) {
-					self::$markers[ $language ][ $word ] = true;
-				}
+		foreach ( self::languages() as $language ) {
+			foreach ( Stopwords::detection( $language ) as $word ) {
+				self::$markers[ Stopwords::fold( $word ) ][ $language ] = $language;
 			}
 		}
+		self::$markers = array_map( 'array_values', self::$markers );
 
 		return self::$markers;
 	}
