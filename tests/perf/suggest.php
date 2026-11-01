@@ -247,13 +247,12 @@ foreach ( $sample as $id ) {
 }
 $added['draft'] = $report( 'avisos borrador', $times, array( 0 ), $cards );
 
-// `09 §4` habla del pico total de la petición: se mide el pico absoluto de cada cálculo (con la caché de
-// objetos vacía al empezar), que aquí incluye la base de WP-CLI. Se imprime también lo que añade el cálculo.
-// En una petición web la base es la de WordPress (unos 25–35 MB con WP_DEBUG); aquí la de WP-CLI, que es mayor,
-// así que el pico total no es comparable con el límite. El presupuesto se comprueba sobre lo que añade el
+// El pico total de la petición NO se comprueba aquí: en WP-CLI la base (WP-CLI, sus comandos y el intérprete) pesa unos
+// 20 MB más que en una petición web y el total no es comparable con el límite de `09 §4`. El pico por petición real lo
+// mide `tests/perf/rest-memory.php` (F1-44), en un proceso PHP nuevo por petición. Aquí se comprueba lo que añade el
 // cálculo: 32 MB, la mitad del límite, que deja el resto a la base de WordPress.
 $peak = $extra;
-printf( "memoria: pico total en WP-CLI=%.1f MB (base incluida), añadida por el cálculo=%.1f MB (límite 32 MB; el total de la petición web no debe pasar de 64 MB)\n", $total, $extra );
+printf( "memoria: pico total en WP-CLI=%.1f MB (base de WP-CLI incluida, no comparable con el límite; ver rest-memory.php), añadida por el cálculo=%.1f MB (límite 32 MB)\n", $total, $extra );
 
 if ( $strict && ( $results['outgoing'] > EngineTiming::BUDGET_OUTGOING || $results['incoming'] > EngineTiming::BUDGET_INCOMING || $peak > 32 || $rest_over > 20 || $status_deviation > 10 || max( $added ) > 20 || $rest_total['outbound'] > EngineTiming::BUDGET_OUTGOING || $rest_total['inbound'] > EngineTiming::BUDGET_INCOMING ) ) {
 	fwrite( STDERR, "Presupuesto de rendimiento superado.\n" );

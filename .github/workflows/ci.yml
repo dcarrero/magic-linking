@@ -135,6 +135,8 @@ jobs:
         run: npx wp-env run cli wp magic-linking index
       - name: Sugerencias salientes y entrantes
         run: npx wp-env run cli wp eval-file wp-content/plugins/magiclinking-wordpress-plugin/tests/perf/suggest.php 100 strict
+      - name: Memoria pico por petición REST (proceso PHP nuevo, sin WP-CLI)
+        run: npx wp-env run cli wp eval-file wp-content/plugins/magiclinking-wordpress-plugin/tests/perf/rest-memory.php 20 strict
 
   package:
     runs-on: ubuntu-latest
