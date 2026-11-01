@@ -133,6 +133,7 @@ final class SuggestionPresenter {
 		if ( count( $ids ) > 1 ) {
 			_prime_post_caches( $ids, false, false );
 		}
+		$this->language->prime( $ids );
 
 		$out = array();
 		foreach ( $links as $link ) {
