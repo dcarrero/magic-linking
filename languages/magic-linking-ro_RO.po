@@ -1,0 +1,4085 @@
+# Copyright (C) 2026 Color Vivo
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Magic Linking 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
+"POT-Creation-Date: 2026-11-01T12:23:59+00:00\n"
+"PO-Revision-Date: 2026-11-01 12:00+0000\n"
+"Last-Translator: Color Vivo\n"
+"Language-Team: Romanian\n"
+"Language: ro_RO\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n == 1) ? 0 : ((n == 0 || n % 100 >= 2 && n % 100 <= 19) ? 1 : 2);\n"
+"X-Domain: magic-linking\n"
+
+#. Plugin Name of the plugin
+#: magic-linking.php
+msgid "Magic Linking – Internal Links"
+msgstr "Magic Linking – Internal Links"
+
+#. Plugin URI of the plugin
+#: magic-linking.php
+msgid "https://magiclinking.com"
+msgstr "https://magiclinking.com"
+
+#. Description of the plugin
+#: magic-linking.php
+msgid "Internal link suggestions in the editor. Link in one click, check that nothing else changes, undo from History. Plus orphan and broken link reports."
+msgstr "Sugestii de legături interne chiar în editor. Adaugi legătura cu un clic, verifici că nu se schimbă nimic altceva și anulezi din Istoric. În plus, rapoarte despre intrările orfane și legăturile defecte."
+
+#. Author of the plugin
+#: magic-linking.php
+msgid "Color Vivo"
+msgstr "Color Vivo"
+
+#. Author URI of the plugin
+#: magic-linking.php
+msgid "https://colorvivo.com"
+msgstr "https://colorvivo.com"
+
+#. translators: 1: minimum PHP version, 2: PHP version in use.
+#: magic-linking.php:53
+#, php-format
+msgid "PHP %1$s or later (this site runs PHP %2$s)"
+msgstr "PHP %1$s sau mai nou (acest site rulează PHP %2$s)"
+
+#. translators: 1: minimum WordPress version, 2: WordPress version in use.
+#: magic-linking.php:58
+#, php-format
+msgid "WordPress %1$s or later (this site runs WordPress %2$s)"
+msgstr "WordPress %1$s sau mai nou (acest site rulează WordPress %2$s)"
+
+#: magic-linking.php:62
+msgid "the PHP mbstring extension"
+msgstr "extensia PHP mbstring"
+
+#. translators: %s: list of missing requirements, separated by commas.
+#: magic-linking.php:75
+#, php-format
+msgid "Magic Linking needs %s. It has not been loaded."
+msgstr "Magic Linking are nevoie de %s. Nu a fost încărcat."
+
+#: magic-linking.php:104
+msgid "Plugin not activated"
+msgstr "Modulul nu a fost activat"
+
+#: magic-linking.php:125
+msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
+msgstr "Lipsesc bibliotecile incluse în Magic Linking (dosarul vendor). Reinstalează modulul de pe wordpress.org. Nu a fost încărcat."
+
+#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:312
+#: assets/build/editor.js:46 assets/build/index.js:132
+msgid "Internal links"
+msgstr "Legături interne"
+
+#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:313
+#: assets/build/index.js:7 assets/build/index.js:23 assets/build/index.js:35
+#: assets/build/index.js:53 assets/build/index.js:108 assets/build/index.js:117
+#: assets/build/index.js:130
+msgid "Loading…"
+msgstr "Se încarcă…"
+
+#: src/Admin/EditorPanel.php:98
+msgid "This box needs JavaScript to show the link suggestions."
+msgstr "Această casetă are nevoie de JavaScript pentru a afișa sugestiile de legături."
+
+#: src/Admin/Notices.php:174
+msgid "Do not show again"
+msgstr "Nu mai afișa"
+
+#: src/Admin/Notices.php:260
+msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
+msgstr "Ai adăugat destul de multe legături cu Magic Linking. Dacă îți economisește timp, o recenzie pe wordpress.org îi ajută pe alții să îl găsească."
+
+#: src/Admin/Notices.php:262
+msgid "Write a review"
+msgstr "Scrie o recenzie"
+
+#: src/Admin/Notices.php:265
+msgid "No, thanks"
+msgstr "Nu, mulțumesc"
+
+#: src/Admin/Notices.php:278
+msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
+msgstr "Pe acest site nu este conectată nicio IA. Poți să o conectezi pe a ta în Setări → Conectori (OpenAI, Google, Ollama local…). Între timp, sugestiile folosesc motorul lexical."
+
+#: src/Admin/Notices.php:280 assets/build/index.js:111
+#: assets/build/index.js:112
+msgid "Go to Connectors"
+msgstr "Mergi la Conectori"
+
+#: src/Admin/Screen.php:105
+msgid "Open report"
+msgstr "Deschide raportul"
+
+#: src/Admin/Screen.php:151
+msgid "Magic Linking"
+msgstr "Magic Linking"
+
+#: src/Admin/Screen.php:156 assets/build/index.js:131
+msgid "Report"
+msgstr "Raport"
+
+#: src/Admin/Screen.php:162 assets/build/index.js:131 assets/build/index.js:132
+msgid "Broken links"
+msgstr "Legături defecte"
+
+#: src/Admin/Screen.php:166 assets/build/index.js:131
+msgid "History"
+msgstr "Istoric"
+
+#: src/Admin/Screen.php:170 assets/build/index.js:131
+msgid "Rules"
+msgstr "Reguli"
+
+#: src/Admin/Screen.php:174 assets/build/index.js:23 assets/build/index.js:44
+#: assets/build/index.js:50 assets/build/index.js:53 assets/build/index.js:88
+#: assets/build/index.js:101 assets/build/index.js:131
+msgid "Status"
+msgstr "Stare"
+
+#: src/Admin/Screen.php:178 assets/build/index.js:131
+msgid "Settings"
+msgstr "Setări"
+
+#: src/Admin/Screen.php:225
+msgid "Items per page"
+msgstr "Elemente pe pagină"
+
+#: src/Admin/Screen.php:307
+msgid "You do not have permission to see this page."
+msgstr "Nu ai permisiunea de a vedea această pagină."
+
+#: src/Admin/Screen.php:314
+msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
+msgstr "Acest ecran are nevoie de JavaScript. Poți obține același raport cu WP-CLI: wp magic-linking report"
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:176
+#, php-format
+msgid "Process %1$d is paused. Resume it with: wp magic-linking job resume %2$d"
+msgstr "Procesul %1$d este în pauză. Reia-l cu: wp magic-linking job resume %2$d"
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:187
+#, php-format
+msgid "Process %d queued. It will run in the background with Action Scheduler."
+msgstr "Procesul %d este în coadă. Va rula în fundal cu Action Scheduler."
+
+#: src/Cli/Command.php:194
+msgid "Analyzing entries"
+msgstr "Se analizează intrările"
+
+#. translators: 1: new or modified entries, 2: unchanged entries skipped.
+#: src/Cli/Command.php:210
+#, php-format
+msgid "%1$d new or modified, %2$d unchanged and skipped."
+msgstr "%1$d noi sau modificate, %2$d nemodificate și omise."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:218
+#, php-format
+msgid "%d entry analyzed."
+msgid_plural "%d entries analyzed."
+msgstr[0] "%d intrare analizată."
+msgstr[1] "%d intrări analizate."
+msgstr[2] "%d de intrări analizate."
+
+#: src/Cli/Command.php:228
+msgid "The process did not finish. Check its state with: wp magic-linking status"
+msgstr "Procesul nu s-a încheiat. Verifică starea lui cu: wp magic-linking status"
+
+#: src/Cli/Command.php:361
+msgid "Invalid filter. Use: all, orphans, low, over, broken or excluded."
+msgstr "Filtru nevalid. Folosește: all, orphans, low, over, broken sau excluded."
+
+#: src/Cli/Command.php:364
+msgid "Invalid column for --orderby."
+msgstr "Coloană nevalidă pentru --orderby."
+
+#: src/Cli/Command.php:487
+msgid "Unknown action. Use: list, pause, resume or cancel."
+msgstr "Acțiune necunoscută. Folosește: list, pause, resume sau cancel."
+
+#: src/Cli/Command.php:492
+msgid "There is no such process."
+msgstr "Nu există un astfel de proces."
+
+#: src/Cli/Command.php:507 src/Rest/HistoryController.php:478
+#: src/Rest/JobsController.php:205 src/Rest/JobsController.php:220
+msgid "That process cannot be changed in its current state."
+msgstr "Procesul nu poate fi modificat în starea lui actuală."
+
+#. translators: 1: process ID, 2: new state.
+#: src/Cli/Command.php:513
+#, php-format
+msgid "Process %1$d is now %2$s."
+msgstr "Procesul %1$d este acum %2$s."
+
+#. translators: %s: batch ID.
+#: src/Cli/Command.php:610
+#, php-format
+msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
+msgstr "Mai sunt și alte loturi. Continuă cu: wp magic-linking history list --before=%s"
+
+#: src/Cli/Command.php:635
+msgid "Unknown action. Use: list, undo, redo, purge or export."
+msgstr "Acțiune necunoscută. Folosește: list, undo, redo, purge sau export."
+
+#: src/Cli/Command.php:685 src/Cli/Command.php:719
+#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
+#: src/Rest/SuggestionsController.php:705
+msgid "You do not have permission to edit one of the entries involved."
+msgstr "Nu ai permisiunea de a edita una dintre intrările implicate."
+
+#: src/Cli/Command.php:690 src/History/Redo.php:65 src/History/Undo.php:165
+#: src/Rest/HistoryController.php:788
+msgid "That change does not exist."
+msgstr "Modificarea nu există."
+
+#: src/Cli/Command.php:694 src/Cli/Command.php:714
+#: src/Rest/HistoryController.php:774
+msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
+msgstr "Acest lot este procesat în fundal. Așteaptă să se termine sau anulează-l."
+
+#: src/Cli/Command.php:710
+msgid "There is no such group in the history (or you cannot edit all of its entries)."
+msgstr "Nu există un astfel de grup în istoric (sau nu poți edita toate intrările lui)."
+
+#. translators: %d: number of changes.
+#: src/Cli/Command.php:755
+#, php-format
+msgid "%d change could not be applied by itself."
+msgid_plural "%d changes could not be applied by themselves."
+msgstr[0] "%d modificare nu a putut fi aplicată singură."
+msgstr[1] "%d modificări nu au putut fi aplicate singure."
+msgstr[2] "%d de modificări nu au putut fi aplicate singure."
+
+#: src/Cli/Command.php:762
+msgid "Group redone."
+msgstr "Am refăcut grupul."
+
+#: src/Cli/Command.php:762
+msgid "Group undone."
+msgstr "Am anulat grupul."
+
+#: src/Cli/Command.php:773
+msgid "The history never expires with the current setting; nothing to delete."
+msgstr "Cu setarea actuală, istoricul nu expiră niciodată; nu este nimic de șters."
+
+#. translators: %d: number of history rows.
+#: src/Cli/Command.php:782
+#, php-format
+msgid "%d history row has expired."
+msgid_plural "%d history rows have expired."
+msgstr[0] "%d rând din istoric a expirat."
+msgstr[1] "%d rânduri din istoric au expirat."
+msgstr[2] "%d de rânduri din istoric au expirat."
+
+#: src/Cli/Command.php:791
+msgid "Nothing has expired."
+msgstr "Nu a expirat nimic."
+
+#. translators: %d: number of history rows.
+#: src/Cli/Command.php:801
+#, php-format
+msgid "%d history row deleted."
+msgid_plural "%d history rows deleted."
+msgstr[0] "Am șters %d rând din istoric."
+msgstr[1] "Am șters %d rânduri din istoric."
+msgstr[2] "Am șters %d de rânduri din istoric."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:836
+#, php-format
+msgid "%d entry excluded from the analysis."
+msgid_plural "%d entries excluded from the analysis."
+msgstr[0] "%d intrare exclusă din analiză."
+msgstr[1] "%d intrări excluse din analiză."
+msgstr[2] "%d de intrări excluse din analiză."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:870
+#, php-format
+msgid "%d entry included in the analysis again."
+msgid_plural "%d entries included in the analysis again."
+msgstr[0] "%d intrare inclusă din nou în analiză."
+msgstr[1] "%d intrări incluse din nou în analiză."
+msgstr[2] "%d de intrări incluse din nou în analiză."
+
+#: src/Cli/Command.php:888
+msgid "That entry does not exist or is not of a chosen content type."
+msgstr "Intrarea aceea nu există sau nu este de un tip de conținut ales."
+
+#: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
+#: src/Rest/AiController.php:196 src/Rest/AnalyzedEntry.php:43
+#: src/Rest/DismissalsController.php:141
+#: src/Rest/EditorHistoryController.php:95
+#: src/Rest/SuggestionsController.php:1030
+msgid "That entry does not exist."
+msgstr "Intrarea nu există."
+
+#: src/Cli/Command.php:911
+msgid "Entry analyzed."
+msgstr "Am analizat intrarea."
+
+#: src/Cli/Command.php:914
+msgid "Nothing changed since the last analysis. Use --force to analyze it again."
+msgstr "Nu s-a schimbat nimic de la ultima analiză. Folosește --force pentru a o analiza din nou."
+
+#: src/Cli/Command.php:917
+msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
+msgstr "Intrarea nu este publicată sau nu este de un tip de conținut ales: am scos-o din raport."
+
+#: src/Cli/Command.php:920
+msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
+msgstr "Intrarea nu este publicată sau nu este de un tip de conținut ales, deci nu este analizată."
+
+#: src/Cli/Command.php:933
+msgid "Could not open the output."
+msgstr "Nu am putut deschide ieșirea."
+
+#: src/Cli/RulesCommand.php:152
+msgid "The rule could not be saved."
+msgstr "Nu am putut salva regula."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:155
+#, php-format
+msgid "Rule %d created."
+msgstr "Am creat regula %d."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:174
+#, php-format
+msgid "Rule %d does not exist."
+msgstr "Regula %d nu există."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:177
+#, php-format
+msgid "Rule %d deleted."
+msgstr "Am șters regula %d."
+
+#: src/Cli/RulesCommand.php:203
+msgid "That rule does not exist."
+msgstr "Regula nu există."
+
+#: src/Cli/RulesCommand.php:225
+msgid "No entry found using the index, which can miss some matches. Run it again with --full to check every entry."
+msgstr "Nu am găsit nicio intrare folosind indexul, care poate omite unele potriviri. Rulează din nou cu --full pentru a verifica toate intrările."
+
+#. translators: %d: number of entries.
+#: src/Cli/RulesCommand.php:227
+#, php-format
+msgid "%d entry where the rule fits."
+msgid_plural "%d entries where the rule fits."
+msgstr[0] "%d intrare în care se potrivește regula."
+msgstr[1] "%d intrări în care se potrivește regula."
+msgstr[2] "%d de intrări în care se potrivește regula."
+
+#. translators: 1: number of entries shown, 2: entry ID to continue after.
+#: src/Cli/RulesCommand.php:230
+#, php-format
+msgid "%1$d entries shown. Continue with --after=%2$d"
+msgstr "Se afișează %1$d intrări. Continuă cu --after=%2$d"
+
+#: src/Cli/RulesCommand.php:254 src/Rest/RulesController.php:646
+msgid "That rule or entry does not exist."
+msgstr "Regula sau intrarea nu există."
+
+#: src/Cli/RulesCommand.php:260
+msgid "Nothing to link."
+msgstr "Nu este nimic de legat."
+
+#: src/Cli/RulesCommand.php:267
+msgid "Nothing was written. Add --yes to add these links."
+msgstr "Nu am scris nimic. Adaugă --yes pentru a adăuga aceste legături."
+
+#: src/Cli/RulesCommand.php:278 src/Cli/RulesCommand.php:319
+#: assets/build/index.js:94
+msgid "Nothing was added."
+msgstr "Nu am adăugat nimic."
+
+#. translators: 1: number of links added, 2: history batch ID.
+#: src/Cli/RulesCommand.php:282
+#, php-format
+msgid "%1$d link added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
+msgid_plural "%1$d links added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
+msgstr[0] "Am adăugat %1$d legătură (lotul %2$s). Anulează cu: wp magic-linking history undo %2$s"
+msgstr[1] "Am adăugat %1$d legături (lotul %2$s). Anulează cu: wp magic-linking history undo %2$s"
+msgstr[2] "Am adăugat %1$d de legături (lotul %2$s). Anulează cu: wp magic-linking history undo %2$s"
+
+#. translators: 1: rule ID, 2: reason.
+#: src/Cli/RulesCommand.php:311 src/Cli/RulesCommand.php:315
+#, php-format
+msgid "Rule %1$d: %2$s"
+msgstr "Regula %1$d: %2$s"
+
+#. translators: %d: number of links added.
+#: src/Cli/RulesCommand.php:322 assets/build/index.js:94
+#, php-format
+msgid "%d link added."
+msgid_plural "%d links added."
+msgstr[0] "Am adăugat %d legătură."
+msgstr[1] "Am adăugat %d legături."
+msgstr[2] "Am adăugat %d de legături."
+
+#: src/Content/BlockEditor.php:57 src/Content/LinkFixer.php:58
+msgid "The block structure of this post could not be read, so it was left untouched."
+msgstr "Nu am putut citi structura de blocuri a acestui articol, așa că l-am lăsat neatins."
+
+#: src/Content/BlockEditor.php:82
+msgid "The block contains markup (script, styles…) that cannot be scanned safely."
+msgstr "Blocul conține cod (script, stiluri…) care nu poate fi scanat în siguranță."
+
+#: src/Content/BlockEditor.php:102 src/Content/BlockEditor.php:199
+#: src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:211
+msgid "The text has changed."
+msgstr "Textul s-a schimbat."
+
+#: src/Content/BlockEditor.php:108 src/Content/LinkFixer.php:167
+msgid "The text of this block comes from another source (data binding) and cannot be edited here."
+msgstr "Textul acestui bloc provine dintr-o altă sursă (legare de date) și nu poate fi editat aici."
+
+#: src/Content/BlockEditor.php:283
+msgid "This text belongs to a reusable block: edit the original pattern."
+msgstr "Acest text aparține unui bloc reutilizabil: editează modelul original."
+
+#: src/Content/BlockEditor.php:286
+msgid "This text is in a block where links are not inserted automatically."
+msgstr "Acest text se află într-un bloc în care legăturile nu se inserează automat."
+
+#: src/Content/ClassicEditor.php:45
+msgid "The post contains markup (script, styles…) that cannot be scanned safely."
+msgstr "Articolul conține cod (script, stiluri…) care nu poate fi scanat în siguranță."
+
+#: src/Content/Destination.php:43 src/Content/Destination.php:51
+#: src/Rest/FixController.php:253 src/Rules/RuleService.php:107
+msgid "The destination is not a published entry that can be linked."
+msgstr "Destinația nu este o intrare publicată la care se poate face legătură."
+
+#: src/Content/Destination.php:46
+msgid "The destination is in a different language, so no link is added."
+msgstr "Destinația este în altă limbă, așa că nu adaug nicio legătură."
+
+#: src/Content/Inserter.php:126
+msgid "All the links of one write must be for the same post and the same user."
+msgstr "Toate legăturile unei scrieri trebuie să fie pentru același articol și același utilizator."
+
+#: src/Content/Inserter.php:140 src/Content/Repairer.php:58
+#: src/Rules/RuleService.php:103
+msgid "This content type is not one that Magic Linking analyzes."
+msgstr "Acest tip de conținut nu este unul pe care Magic Linking îl analizează."
+
+#: src/Content/Inserter.php:202 src/Content/Repairer.php:110
+#: src/History/Redo.php:267
+msgid "The change could not be confirmed as only the link; nothing was written."
+msgstr "Nu am putut confirma că modificarea este doar legătura; nu am scris nimic."
+
+#: src/Content/Inserter.php:226 src/Content/Repairer.php:117
+#: src/History/Redo.php:273 src/History/Undo.php:254
+msgid "The change history could not be saved; nothing was written."
+msgstr "Nu am putut salva istoricul modificărilor; nu am scris nimic."
+
+#: src/Content/InsertRequest.php:115
+msgid "The anchor is not part of the sentence."
+msgstr "Ancora nu face parte din propoziție."
+
+#: src/Content/Linker.php:56
+msgid "The anchor cannot be empty or start or end with a space."
+msgstr "Ancora nu poate fi goală și nu poate începe sau se termina cu un spațiu."
+
+#: src/Content/Linker.php:96
+msgid "That text is already linked."
+msgstr "Acel text are deja o legătură."
+
+#: src/Content/Linker.php:99
+msgid "This text is a heading and links in headings are not allowed."
+msgstr "Acest text este un titlu, iar legăturile în titluri nu sunt permise."
+
+#: src/Content/Linker.php:103
+msgid "This text is the citation of a quote and is not linked."
+msgstr "Acest text este sursa unui citat și nu primește legătură."
+
+#: src/Content/Linker.php:106
+msgid "This text is in a quote and links in quotes are not allowed."
+msgstr "Acest text se află într-un citat, iar legăturile în citate nu sunt permise."
+
+#: src/Content/Linker.php:109
+msgid "This text is in a table and links in tables are not allowed."
+msgstr "Acest text se află într-un tabel, iar legăturile în tabele nu sunt permise."
+
+#: src/Content/Linker.php:112
+msgid "The anchor includes a shortcode, code or a line break and cannot be linked safely."
+msgstr "Ancora include un scurtcod, cod sau o întrerupere de rând și nu poate primi o legătură în siguranță."
+
+#: src/Content/Linker.php:133
+msgid "The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it."
+msgstr "Ancora trece peste formatarea textului (aldin, cursiv…) și nu poate primi o legătură fără a o strica."
+
+#: src/Content/Linker.php:155 src/Content/LinkFixer.php:52
+msgid "The link address is not valid."
+msgstr "Adresa legăturii nu este validă."
+
+#: src/Content/LinkFixer.php:93
+msgid "The post contains markup (nested links, scripts, styles…) that cannot be scanned safely, so it was left untouched."
+msgstr "Articolul conține cod (legături imbricate, scripturi, stiluri…) care nu poate fi scanat în siguranță, așa că l-am lăsat neatins."
+
+#: src/Content/LinkFixer.php:110
+msgid "The post no longer matches the list (the link was moved, edited or is not stored in its content). Nothing was changed; reload the list."
+msgstr "Articolul nu se mai potrivește cu lista (legătura a fost mutată, editată sau nu este stocată în conținutul lui). Nu am schimbat nimic; reîncarcă lista."
+
+#: src/Content/LinkFixer.php:128
+msgid "The link address could not be changed safely, so the post was left untouched."
+msgstr "Nu am putut schimba adresa legăturii în siguranță, așa că am lăsat articolul neatins."
+
+#: src/Content/LinkFixer.php:173
+msgid "Removing the link would break this block (a button, an image…). Change its destination instead, or edit the entry."
+msgstr "Eliminarea legăturii ar strica acest bloc (un buton, o imagine…). Schimbă în schimb destinația ei sau editează intrarea."
+
+#: src/Content/LinkFixer.php:182
+msgid "The address of this link is also stored in the settings of its block, so it is not changed here. Edit the entry instead."
+msgstr "Adresa acestei legături este stocată și în setările blocului ei, așa că nu o schimb aici. Editează în schimb intrarea."
+
+#: src/Content/PostWriter.php:115
+msgid "The post does not exist or is in the trash."
+msgstr "Articolul nu există sau este în coșul de gunoi."
+
+#: src/Content/PostWriter.php:120
+msgid "You do not have permission to edit this post."
+msgstr "Nu ai permisiunea de a edita acest articol."
+
+#: src/Content/PostWriter.php:163
+msgid "Another change is being applied to this post; try again in a moment."
+msgstr "Se aplică o altă modificare acestui articol; încearcă din nou peste un moment."
+
+#: src/Content/PostWriter.php:247 src/History/BatchJob.php:384
+#: src/History/BatchJob.php:454 src/History/Redo.php:193
+#: src/History/Undo.php:117
+msgid "WordPress could not save the post; nothing was changed."
+msgstr "WordPress nu a putut salva articolul; nu s-a schimbat nimic."
+
+#: src/Content/PostWriter.php:328
+msgid "This post is open in your editor (maybe in another tab); add the link from there or close it and try again."
+msgstr "Acest articol este deschis în editorul tău (poate în altă filă); adaugă legătura de acolo sau închide-l și încearcă din nou."
+
+#: src/Content/PostWriter.php:332
+msgid "someone else"
+msgstr "altcineva"
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:338
+#, php-format
+msgid "This post has just been opened by %s; try again later."
+msgstr "Acest articol tocmai a fost deschis de %s; încearcă din nou mai târziu."
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:340
+#, php-format
+msgid "This post is being edited by %s; try again later."
+msgstr "Acest articol este editat de %s; încearcă din nou mai târziu."
+
+#: src/Content/PostWriter.php:353
+msgid "WordPress altered the content when saving it (security filters); the original was restored and the link was not inserted."
+msgstr "WordPress a modificat conținutul la salvare (filtre de securitate); am restaurat originalul și nu am inserat legătura."
+
+#: src/Content/PostWriter.php:354
+msgid "WordPress would alter the content when saving it (security filters); nothing was written and the link was not inserted."
+msgstr "WordPress ar modifica conținutul la salvare (filtre de securitate); nu am scris nimic și nu am inserat legătura."
+
+#: src/Graph/BrokenReason.php:31
+msgid "No entry exists with this URL."
+msgstr "Nu există nicio intrare cu acest URL."
+
+#: src/Graph/BrokenReason.php:33
+msgid "The destination entry is in the trash."
+msgstr "Intrarea de destinație este în coșul de gunoi."
+
+#: src/Graph/BrokenReason.php:35
+msgid "The destination entry is not published (draft, pending or scheduled)."
+msgstr "Intrarea de destinație nu este publicată (ciornă, în așteptare sau programată)."
+
+#: src/Graph/BrokenReason.php:37
+msgid "The destination entry is private."
+msgstr "Intrarea de destinație este privată."
+
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:484
+#: src/Rest/FixController.php:208 assets/build/classic.js:12
+#: assets/build/classic.js:22 assets/build/editor.js:12
+#: assets/build/editor.js:22 assets/build/index.js:15 assets/build/index.js:65
+#: assets/build/index.js:83
+msgid "(no title)"
+msgstr "(fără titlu)"
+
+#: src/Graph/LinkStatus.php:69 assets/build/index.js:86
+msgid "Orphan"
+msgstr "Orfană"
+
+#: src/Graph/LinkStatus.php:71 assets/build/index.js:86
+#: assets/build/index.js:87
+msgid "Under-linked"
+msgstr "Puține legături"
+
+#: src/Graph/LinkStatus.php:73 assets/build/index.js:86
+#: assets/build/index.js:87
+msgid "Over-linked"
+msgstr "Prea multe legături"
+
+#: src/Graph/LinkStatus.php:75 assets/build/index.js:86
+msgid "OK"
+msgstr "OK"
+
+#: src/History/Reader.php:833
+msgid "Automatic"
+msgstr "Automat"
+
+#: src/History/Reader.php:838
+msgid "Deleted user"
+msgstr "Utilizator șters"
+
+#: src/History/Redo.php:70
+msgid "This link has not been undone, so there is nothing to redo."
+msgstr "Această legătură nu a fost anulată, deci nu este nimic de refăcut."
+
+#: src/History/Redo.php:74
+msgid "This link was already added again."
+msgstr "Această legătură a fost deja adăugată din nou."
+
+#: src/History/Redo.php:93
+msgid "This post was edited afterwards; add the link again by hand."
+msgstr "Acest articol a fost editat ulterior; adaugă legătura din nou manual."
+
+#: src/History/Redo.php:94
+msgid "This post was edited afterwards; fix the link again by hand."
+msgstr "Acest articol a fost editat ulterior; corectează legătura din nou manual."
+
+#: src/History/Redo.php:113
+msgid "Destination changed again."
+msgstr "Destinația a fost schimbată din nou."
+
+#: src/History/Redo.php:114
+msgid "Link removed again."
+msgstr "Legătura a fost eliminată din nou."
+
+#: src/History/Redo.php:117
+msgid "Link added again."
+msgstr "Legătura a fost adăugată din nou."
+
+#: src/History/Undo.php:170
+msgid "This change was already undone."
+msgstr "Această modificare a fost deja anulată."
+
+#: src/History/Undo.php:192
+msgid "The post was edited afterwards: only the link was removed."
+msgstr "Articolul a fost editat ulterior: am eliminat doar legătura."
+
+#: src/History/Undo.php:193
+msgid "The post was edited afterwards: only this link was put back as it was."
+msgstr "Articolul a fost editat ulterior: am pus la loc, așa cum era, doar această legătură."
+
+#: src/History/Undo.php:194
+msgid "The link is no longer in the post."
+msgstr "Legătura nu se mai află în articol."
+
+#: src/History/Undo.php:237
+msgid "The change could not be confirmed as only removing the link; nothing was written."
+msgstr "Nu am putut confirma că modificarea este doar eliminarea legăturii; nu am scris nimic."
+
+#: src/History/Undo.php:238
+msgid "The change could not be confirmed as only restoring the link; nothing was written."
+msgstr "Nu am putut confirma că modificarea este doar restaurarea legăturii; nu am scris nimic."
+
+#: src/History/Undo.php:395
+msgid "Destination restored."
+msgstr "Am restaurat destinația."
+
+#: src/History/Undo.php:397
+msgid "Link put back."
+msgstr "Am pus legătura la loc."
+
+#: src/History/Undo.php:399
+msgid "Link undone."
+msgstr "Am anulat legătura."
+
+#: src/History/Undo.php:411
+msgid "This post was edited afterwards; restore the link address by hand."
+msgstr "Acest articol a fost editat ulterior; restaurează manual adresa legăturii."
+
+#: src/History/Undo.php:413
+msgid "This post was edited afterwards; put the link back by hand."
+msgstr "Acest articol a fost editat ulterior; pune legătura la loc manual."
+
+#: src/History/Undo.php:415
+msgid "This post was edited afterwards; remove the link by hand."
+msgstr "Acest articol a fost editat ulterior; elimină legătura manual."
+
+#: src/Report/ExportHandler.php:80
+msgid "You are not allowed to export this data."
+msgstr "Nu ai permisiunea de a exporta aceste date."
+
+#: src/Rest/AiController.php:214 src/Rest/SuggestionsController.php:412
+#: src/Rest/SuggestionsController.php:440
+msgid "The content is too long to analyze."
+msgstr "Conținutul este prea lung pentru a fi analizat."
+
+#. translators: %s: tokens one AI request needs, formatted.
+#: src/Rest/AiController.php:274
+#, php-format
+msgid "The daily AI limit you set is lower than what one request needs (about %s tokens); raise it in Settings → AI. Showing suggestions without AI."
+msgstr "Limita zilnică de IA pe care ai setat-o este mai mică decât ce are nevoie o cerere (aproximativ %s tokeni); mărește-o în Setări → IA. Afișez sugestiile fără IA."
+
+#: src/Rest/AiController.php:278
+msgid "You are asking for AI too often; wait a minute and try again. Showing suggestions without AI."
+msgstr "Ceri IA prea des; așteaptă un minut și încearcă din nou. Afișez sugestiile fără IA."
+
+#: src/Rest/AiController.php:280
+msgid "There is no AI connected on this site, so the suggestions are shown without AI."
+msgstr "Pe acest site nu este conectată nicio IA, așa că sugestiile sunt afișate fără IA."
+
+#: src/Rest/AiController.php:282
+msgid "AI is turned off for this action on this site; showing suggestions without AI."
+msgstr "IA este dezactivată pentru această acțiune pe acest site; afișez sugestiile fără IA."
+
+#: src/Rest/AiController.php:284
+msgid "The daily AI limit you set has been reached; showing suggestions without AI. It will be available again tomorrow."
+msgstr "Ai atins limita zilnică de IA pe care ai setat-o; afișez sugestiile fără IA. Va fi disponibilă din nou mâine."
+
+#: src/Rest/AiController.php:286
+msgid "The AI provider took too long to answer; showing suggestions without AI. Try again, or pick a faster model in Settings → AI."
+msgstr "Furnizorul de IA a răspuns prea greu; afișez sugestiile fără IA. Încearcă din nou sau alege un model mai rapid în Setări → IA."
+
+#: src/Rest/AiController.php:288
+msgid "The AI provider had a problem on its side; showing suggestions without AI. Try again in a moment."
+msgstr "Furnizorul de IA a avut o problemă din partea lui; afișez sugestiile fără IA. Încearcă din nou peste un moment."
+
+#: src/Rest/AiController.php:290
+msgid "Your AI provider is limiting requests right now; showing suggestions without AI. Try again in a moment."
+msgstr "Furnizorul tău de IA limitează cererile în acest moment; afișez sugestiile fără IA. Încearcă din nou peste un moment."
+
+#: src/Rest/AiController.php:292
+msgid "None of these suggestions can be sent to AI; showing them as they are."
+msgstr "Niciuna dintre aceste sugestii nu poate fi trimisă la IA; le afișez așa cum sunt."
+
+#: src/Rest/AiController.php:294 assets/build/classic.js:4
+#: assets/build/editor.js:4
+msgid "The AI did not respond; showing suggestions without AI."
+msgstr "IA nu a răspuns; afișez sugestiile fără IA."
+
+#: src/Rest/AnchorMessages.php:28
+msgid "The anchor has to be a literal part of the sentence."
+msgstr "Ancora trebuie să fie o porțiune exactă din propoziție."
+
+#: src/Rest/AnchorMessages.php:30
+msgid "The anchor has to start and end at the edge of a word."
+msgstr "Ancora trebuie să înceapă și să se termine la limita unui cuvânt."
+
+#: src/Rest/AnchorMessages.php:32
+msgid "The anchor contains a word or phrase you chose to ignore in the settings."
+msgstr "Ancora conține un cuvânt sau o expresie pe care ai ales să le ignori în setări."
+
+#: src/Rest/AnchorMessages.php:34
+msgid "This anchor already links to a different entry from this one. Use another anchor."
+msgstr "Această ancoră duce deja de aici către o altă intrare. Folosește altă ancoră."
+
+#: src/Rest/AnchorMessages.php:36
+msgid "The anchor cannot start or end with a space."
+msgstr "Ancora nu poate începe sau se termina cu un spațiu."
+
+#: src/Rest/AnchorMessages.php:38
+msgid "The anchor is too short."
+msgstr "Ancora este prea scurtă."
+
+#. translators: %d: maximum number of words of an anchor.
+#: src/Rest/AnchorMessages.php:41
+#, php-format
+msgid "The anchor has more than %d words."
+msgstr "Ancora are mai mult de %d cuvinte."
+
+#: src/Rest/AnchorMessages.php:43
+msgid "The anchor needs at least one meaningful word, not only filler words."
+msgstr "Ancora are nevoie de cel puțin un cuvânt cu înțeles, nu doar de cuvinte de umplutură."
+
+#: src/Rest/AnchorMessages.php:45
+msgid "The anchor cannot start with a filler word or a number."
+msgstr "Ancora nu poate începe cu un cuvânt de umplutură sau cu un număr."
+
+#: src/Rest/AnchorMessages.php:47
+msgid "The anchor cannot end with a unit, a magnitude or a month."
+msgstr "Ancora nu poate să se termine cu o unitate de măsură, o mărime sau o lună."
+
+#: src/Rest/AnchorMessages.php:49
+msgid "The anchor starts with a verb form. It usually reads better starting with a noun."
+msgstr "Ancora începe cu o formă verbală. De obicei sună mai bine dacă începe cu un substantiv."
+
+#: src/Rest/AnchorMessages.php:51
+msgid "The anchor ends with a verb form. It usually reads better ending with a noun."
+msgstr "Ancora se termină cu o formă verbală. De obicei sună mai bine dacă se termină cu un substantiv."
+
+#: src/Rest/AnchorMessages.php:53
+msgid "The anchor ends with a filler word."
+msgstr "Ancora se termină cu un cuvânt de umplutură."
+
+#: src/Rest/AnchorMessages.php:55
+msgid "This anchor is too generic: it says nothing about the destination."
+msgstr "Această ancoră este prea generică: nu spune nimic despre destinație."
+
+#: src/Rest/AnchorMessages.php:57
+msgid "The anchor is not valid."
+msgstr "Ancora nu este validă."
+
+#. translators: 1: title of the destination the anchor already links to, 2: number of entries that use it.
+#: src/Rest/AnchorNotes.php:138
+#, php-format
+msgid "This anchor already links to “%1$s” in %2$d entry."
+msgid_plural "This anchor already links to “%1$s” in %2$d entries."
+msgstr[0] "Această ancoră duce deja la „%1$s” în %2$d intrare."
+msgstr[1] "Această ancoră duce deja la „%1$s” în %2$d intrări."
+msgstr[2] "Această ancoră duce deja la „%1$s” în %2$d de intrări."
+
+#. translators: %d: number of other destinations the same anchor links to.
+#: src/Rest/AnchorNotes.php:141
+#, php-format
+msgid "It also links to %d other destination."
+msgid_plural "It also links to %d other destinations."
+msgstr[0] "Duce și la încă %d destinație."
+msgstr[1] "Duce și la alte %d destinații."
+msgstr[2] "Duce și la alte %d de destinații."
+
+#. translators: %d: number of entries that already use this anchor for this destination.
+#: src/Rest/AnchorNotes.php:153
+#, php-format
+msgid "This anchor is already used in %d entry for this destination."
+msgid_plural "This anchor is already used in %d entries for this destination."
+msgstr[0] "Această ancoră este deja folosită în %d intrare pentru această destinație."
+msgstr[1] "Această ancoră este deja folosită în %d intrări pentru această destinație."
+msgstr[2] "Această ancoră este deja folosită în %d de intrări pentru această destinație."
+
+#: src/Rest/DismissalsController.php:137
+msgid "An entry cannot link to itself."
+msgstr "O intrare nu poate face legătură la ea însăși."
+
+#: src/Rest/DismissalsController.php:212
+msgid "The change could not be saved. Try again."
+msgstr "Nu am putut salva modificarea. Încearcă din nou."
+
+#: src/Rest/FixController.php:242
+msgid "This link is no longer broken. Reload the list."
+msgstr "Această legătură nu mai este defectă. Reîncarcă lista."
+
+#: src/Rest/FixController.php:266 assets/build/index.js:7
+msgid "The link could not be fixed; nothing was changed."
+msgstr "Nu am putut corecta legătura; nu am schimbat nimic."
+
+#: src/Rest/FixController.php:335
+msgid "That link does not exist."
+msgstr "Legătura nu există."
+
+#: src/Rest/HistoryController.php:608 src/Rest/HistoryController.php:688
+msgid "Another large undo is already running. Wait for it to finish."
+msgstr "O altă anulare mare rulează deja. Așteaptă să se termine."
+
+#: src/Rest/HistoryController.php:781
+msgid "Send either a group or a single change."
+msgstr "Trimite fie un grup, fie o singură modificare."
+
+#: src/Rest/JobsController.php:200
+msgid "That process does not exist."
+msgstr "Procesul nu există."
+
+#: src/Rest/NoticesController.php:87 src/Rest/NoticesController.php:103
+msgid "That notice does not exist."
+msgstr "Anunțul acela nu există."
+
+#: src/Rest/RulesController.php:653
+msgid "You do not have permission to edit this entry."
+msgstr "Nu ai permisiunea de a edita această intrare."
+
+#: src/Rest/RulesController.php:660
+msgid "The rule could not be saved. Try again."
+msgstr "Nu am putut salva regula. Încearcă din nou."
+
+#: src/Rest/SettingsController.php:219
+msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
+msgstr "Acel model lucrează în loturi, nu în timp real, deci nu poate fi folosit în editor. Alege altul sau lasă setarea pe automat."
+
+#. translators: %s: comma-separated list of shared terms.
+#: src/Rest/SuggestionPresenter.php:235
+#, php-format
+msgid "They share: %s"
+msgstr "Au în comun: %s"
+
+#: src/Rest/SuggestionPresenter.php:238
+msgid "The anchor matches the title of the destination"
+msgstr "Ancora se potrivește cu titlul destinației"
+
+#: src/Rest/SuggestionPresenter.php:241
+msgid "The anchor matches the focus keyword of the destination"
+msgstr "Ancora se potrivește cu cuvântul cheie principal al destinației"
+
+#: src/Rest/SuggestionPresenter.php:244
+msgid "The destination is an orphan (0 inbound links)"
+msgstr "Destinația este orfană (0 legături primite)"
+
+#: src/Rest/SuggestionPresenter.php:247
+msgid "Very similar in meaning"
+msgstr "Foarte asemănătoare ca sens"
+
+#: src/Rest/SuggestionsController.php:697
+msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
+msgstr "Fiecare legătură are nevoie de articol, destinație, propoziție, poziție și ancoră."
+
+#: src/Rest/SuggestionsController.php:936
+msgid "The link could not be saved; nothing was changed."
+msgstr "Nu am putut salva legătura; nu am schimbat nimic."
+
+#: src/Rest/TargetPhrasesController.php:100
+msgid "The phrases must be a list."
+msgstr "Expresiile trebuie să fie o listă."
+
+#: src/Rest/TargetPhrasesController.php:108
+msgid "Each phrase needs its text, and its variants must be text."
+msgstr "Fiecare expresie are nevoie de textul ei, iar variantele ei trebuie să fie text."
+
+#. translators: %d: maximum number of phrases.
+#: src/Rest/TargetPhrasesController.php:115
+#, php-format
+msgid "You can add up to %d phrase."
+msgid_plural "You can add up to %d phrases."
+msgstr[0] "Poți adăuga cel mult %d expresie."
+msgstr[1] "Poți adăuga cel mult %d expresii."
+msgstr[2] "Poți adăuga cel mult %d de expresii."
+
+#. translators: %d: maximum number of variants per phrase.
+#: src/Rest/TargetPhrasesController.php:122 assets/build/classic.js:15
+#: assets/build/editor.js:15
+#, php-format
+msgid "Each phrase can have up to %d variant."
+msgid_plural "Each phrase can have up to %d variants."
+msgstr[0] "Fiecare expresie poate avea cel mult %d variantă."
+msgstr[1] "Fiecare expresie poate avea cel mult %d variante."
+msgstr[2] "Fiecare expresie poate avea cel mult %d de variante."
+
+#. translators: 1: the start of the phrase, 2: maximum number of characters.
+#: src/Rest/TargetPhrasesController.php:127 assets/build/classic.js:16
+#: assets/build/editor.js:16
+#, php-format
+msgid "“%1$s…” is too long: a phrase can have up to %2$d characters."
+msgstr "„%1$s…” este prea lungă: o expresie poate avea cel mult %2$d caractere."
+
+#. translators: %s: the phrase.
+#: src/Rest/TargetPhrasesController.php:131
+#, php-format
+msgid "“%s” has no content word: add a word that is not an article, a preposition or a number, or the engine will never use it."
+msgstr "„%s” nu are niciun cuvânt cu conținut: adaugă un cuvânt care nu este articol, prepoziție sau număr, altfel motorul nu o va folosi niciodată."
+
+#. translators: 1: the phrase, 2: maximum number of words.
+#: src/Rest/TargetPhrasesController.php:135
+#, php-format
+msgid "“%1$s” is too long: a phrase can have up to %2$d words."
+msgstr "„%1$s” este prea lungă: o expresie poate avea cel mult %2$d cuvinte."
+
+#: src/Rules/RuleService.php:102
+msgid "The entry is not published."
+msgstr "Intrarea nu este publicată."
+
+#: src/Rules/RuleService.php:104
+msgid "The rule excludes this content type."
+msgstr "Regula exclude acest tip de conținut."
+
+#: src/Rules/RuleService.php:105
+msgid "The rule excludes a category of this entry."
+msgstr "Regula exclude o categorie a acestei intrări."
+
+#: src/Rules/RuleService.php:106
+msgid "The entry is in a different language than the destination."
+msgstr "Intrarea este într-o altă limbă decât destinația."
+
+#: src/Rules/RuleService.php:108
+msgid "This rule was already applied to the entry (or undone there), so it is not applied again by itself."
+msgstr "Această regulă a fost deja aplicată intrării (sau anulată acolo), deci nu se mai aplică singură."
+
+#: src/Rules/RuleService.php:109
+msgid "The entry or the destination is in your list of ignored URLs."
+msgstr "Intrarea sau destinația se află în lista ta de URL-uri ignorate."
+
+#: src/Rules/RuleService.php:110
+msgid "The entry or the destination is excluded from the analysis."
+msgstr "Intrarea sau destinația este exclusă din analiză."
+
+#: src/Rules/RuleService.php:111
+msgid "The person who created the rule can no longer manage the site or edit this entry."
+msgstr "Persoana care a creat regula nu mai poate administra site-ul sau edita această intrare."
+
+#: src/Rules/RuleService.php:112
+msgid "Someone has the entry open in the editor."
+msgstr "Cineva are intrarea deschisă în editor."
+
+#: src/Rules/RuleService.php:113
+msgid "The entry is the destination itself."
+msgstr "Intrarea este chiar destinația."
+
+#: src/Rules/RuleService.php:114
+msgid "The entry already has as many internal links as its length allows."
+msgstr "Intrarea are deja atâtea legături interne câte permite lungimea ei."
+
+#: src/Rules/RuleService.php:115
+msgid "The entry already links to the destination as many times as allowed."
+msgstr "Intrarea face deja legătură la destinație de câte ori este permis."
+
+#: src/Rules/RuleService.php:116
+msgid "That anchor already points to the destination from as many entries as allowed."
+msgstr "Acea ancoră trimite deja la destinație din atâtea intrări câte sunt permise."
+
+#: src/Rules/RuleService.php:117
+msgid "No phrase of the rule fits in the text."
+msgstr "Nicio expresie din regulă nu se potrivește în text."
+
+#: src/Rules/RuleValidator.php:64
+msgid "The destination must be a published entry of a content type that Magic Linking analyzes."
+msgstr "Destinația trebuie să fie o intrare publicată dintr-un tip de conținut pe care Magic Linking îl analizează."
+
+#: src/Rules/RuleValidator.php:67
+msgid "That entry is in your list of ignored URLs, so it cannot be a destination."
+msgstr "Intrarea se află în lista ta de URL-uri ignorate, deci nu poate fi destinație."
+
+#: src/Rules/RuleValidator.php:70
+msgid "That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first."
+msgstr "Intrarea aceea este exclusă din analiză și nu poate fi o destinație. Include-o mai întâi din nou din raport."
+
+#: src/Rules/RuleValidator.php:73
+msgid "That entry is in a category excluded from the analysis, so it cannot be a destination. Change the excluded categories in Settings → General first."
+msgstr "Intrarea aceea este într-o categorie exclusă din analiză, deci nu poate fi o destinație. Schimbă mai întâi categoriile excluse din Setări → General."
+
+#: src/Rules/RuleValidator.php:89
+msgid "Write at least one phrase to link."
+msgstr "Scrie cel puțin o expresie de legat."
+
+#. translators: %d: maximum number of links a rule can add to one entry.
+#: src/Rules/RuleValidator.php:94
+#, php-format
+msgid "Links per entry must be between 1 and %d."
+msgstr "Numărul de legături pe intrare trebuie să fie între 1 și %d."
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: src/Rules/RuleValidator.php:101
+#, php-format
+msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgstr[0] "Setările tale permit %d legătură către aceeași țintă dintr-o intrare, așa că o regulă nu poate adăuga mai multe. Mărește „Legături către aceeași țintă dintr-o intrare” în Setări pentru a folosi o valoare mai mare."
+msgstr[1] "Setările tale permit %d legături către aceeași țintă dintr-o intrare, așa că o regulă nu poate adăuga mai multe. Mărește „Legături către aceeași țintă dintr-o intrare” în Setări pentru a folosi o valoare mai mare."
+msgstr[2] "Setările tale permit %d de legături către aceeași țintă dintr-o intrare, așa că o regulă nu poate adăuga mai multe. Mărește „Legături către aceeași țintă dintr-o intrare” în Setări pentru a folosi o valoare mai mare."
+
+#. translators: %d: maximum characters of a phrase.
+#: src/Rules/RuleValidator.php:154
+#, php-format
+msgid "A phrase can have at most %d characters."
+msgstr "O expresie poate avea cel mult %d caractere."
+
+#. translators: 1: the phrase, 2: maximum number of words.
+#: src/Rules/RuleValidator.php:158
+#, php-format
+msgid "“%1$s” is not a usable phrase: it needs between 1 and %2$d words."
+msgstr "„%1$s” nu este o expresie utilizabilă: trebuie să aibă între 1 și %2$d cuvinte."
+
+#. translators: %s: the phrase.
+#: src/Rules/RuleValidator.php:165
+#, php-format
+msgid "“%s” has no meaningful word to link (only articles, prepositions or numbers)."
+msgstr "„%s” nu are niciun cuvânt semnificativ de legat (doar articole, prepoziții sau numere)."
+
+#. translators: %d: maximum number of phrases in one rule.
+#: src/Rules/RuleValidator.php:175
+#, php-format
+msgid "A rule can have at most %d phrases."
+msgstr "O regulă poate avea cel mult %d expresii."
+
+#. translators: 1: tokens used, 2: model name.
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "Used %1$s tokens with %2$s (local model, no cost)."
+msgstr "Am folosit %1$s tokeni cu %2$s (model local, fără cost)."
+
+#. translators: 1: tokens used, 2: model name.
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgid "Used %1$s tokens with %2$s."
+msgstr "Am folosit %1$s tokeni cu %2$s."
+
+#. translators: 1: tokens used, 2: estimated cost in dollars, 3: model name.
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgctxt "cost of one AI request"
+msgid "Used %1$s tokens (~%2$s) with %3$s."
+msgstr "Am folosit %1$s tokeni (~%2$s) cu %3$s."
+
+#. translators: %d: maximum number of seconds the wait can last.
+#: assets/build/classic.js:5 assets/build/editor.js:5
+msgid "Asking the AI… it can take up to %d seconds."
+msgstr "Întreb IA… poate dura până la %d secunde."
+
+#: assets/build/classic.js:5 assets/build/editor.js:5
+msgid "Asking the AI…"
+msgstr "Întreb IA…"
+
+#. translators: %d: number of suggestions the AI does not recommend.
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "Suggestions improved with AI. %d is not recommended."
+msgid_plural "Suggestions improved with AI. %d are not recommended."
+msgstr[0] "Am îmbunătățit sugestiile cu IA. %d nu este recomandată."
+msgstr[1] "Am îmbunătățit sugestiile cu IA. %d nu sunt recomandate."
+msgstr[2] "Am îmbunătățit sugestiile cu IA. %d nu sunt recomandate."
+
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "Back to the original order."
+msgstr "Înapoi la ordinea inițială."
+
+#. translators: %s: new anchor text.
+#: assets/build/classic.js:7 assets/build/classic.js:35
+#: assets/build/editor.js:7 assets/build/editor.js:35 assets/build/index.js:78
+msgid "Anchor changed to “%s”."
+msgstr "Am schimbat ancora în „%s”."
+
+#. translators: 1: AI provider and model, 2: estimated tokens.
+#: assets/build/classic.js:8 assets/build/editor.js:8
+msgid "%1$s · local, no cost · ~%2$s tokens"
+msgstr "%1$s · local, fără cost · ~%2$s tokeni"
+
+#. translators: 1: AI provider and model, 2: estimated tokens.
+#: assets/build/classic.js:9 assets/build/editor.js:9
+msgid "%1$s · ~%2$s tokens"
+msgstr "%1$s · ~%2$s tokeni"
+
+#. translators: 1: AI provider and model, 2: estimated tokens, 3: estimated cost in dollars.
+#: assets/build/classic.js:10 assets/build/editor.js:10
+msgid "%1$s · ~%2$s tokens · ~%3$s"
+msgstr "%1$s · ~%2$s tokeni · ~%3$s"
+
+#: assets/build/classic.js:10 assets/build/editor.js:10
+msgid "The daily AI limit you set is reached. It will be available again tomorrow."
+msgstr "Ai atins limita zilnică de IA pe care ai setat-o. Va fi disponibilă din nou mâine."
+
+#. translators: 1: daily limit in tokens, 2: tokens one AI request needs.
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "The daily AI limit you set (%1$s tokens) is lower than what one request needs (about %2$s). Raise it in Settings → AI."
+msgstr "Limita zilnică de IA pe care ai setat-o (%1$s tokeni) este mai mică decât ce are nevoie o cerere (aproximativ %2$s). Mărește-o în Setări → IA."
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Improving…"
+msgstr "Se îmbunătățește…"
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Improve with AI"
+msgstr "Îmbunătățește cu IA"
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Ordered by AI."
+msgstr "Ordonate de IA."
+
+#. translators: %d: number of suggestions the AI does not recommend.
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "%d suggestion is marked as not recommended."
+msgid_plural "%d suggestions are marked as not recommended."
+msgstr[0] "%d sugestie este marcată ca nerecomandată."
+msgstr[1] "%d sugestii sunt marcate ca nerecomandate."
+msgstr[2] "%d de sugestii sunt marcate ca nerecomandate."
+
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "Back to the original order"
+msgstr "Înapoi la ordinea inițială"
+
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "Internal link (no access)"
+msgstr "Legătură internă (fără acces)"
+
+#: assets/build/classic.js:12 assets/build/classic.js:29
+#: assets/build/editor.js:12 assets/build/editor.js:29 assets/build/index.js:72
+msgid "(opens in a new tab)"
+msgstr "(se deschide într-o filă nouă)"
+
+#. translators: %d: number of entries this one already links to.
+#: assets/build/classic.js:13 assets/build/editor.js:13
+msgid "Current links (%d)"
+msgstr "Legături actuale (%d)"
+
+#: assets/build/classic.js:13 assets/build/editor.js:13
+msgid "Already linked"
+msgstr "Deja legată"
+
+#: assets/build/classic.js:13 assets/build/editor.js:13
+#: assets/build/index.js:62
+msgid "Previous"
+msgstr "Anterioară"
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/classic.js:14 assets/build/classic.js:42
+#: assets/build/editor.js:14 assets/build/editor.js:42 assets/build/index.js:2
+#: assets/build/index.js:63 assets/build/index.js:81
+msgid "Page %1$s of %2$s"
+msgstr "Pagina %1$s din %2$s"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+#: assets/build/index.js:63 assets/build/index.js:130
+msgid "Next"
+msgstr "Următoarea"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Could not load the pillar content mark."
+msgstr "Nu am putut încărca marcajul de conținut pilon."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Also marked as cornerstone content in Yoast SEO. Change that mark there."
+msgstr "Este marcat ca conținut fundamental și în Yoast SEO. Schimbă acel marcaj acolo."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Also marked as pillar content in Rank Math. Change that mark there."
+msgstr "Este marcat ca conținut pilon și în Rank Math. Schimbă acel marcaj acolo."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Counts as pillar content."
+msgstr "Se numără ca conținut pilon."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Counts as pillar content because of that mark, whatever this box says."
+msgstr "Se numără ca conținut pilon din cauza acelui marcaj, indiferent ce spune această casetă."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Pillar content"
+msgstr "Conținut pilon"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Suggestions that link to this entry rank a little higher. Nothing else changes."
+msgstr "Sugestiile care duc la această intrare apar puțin mai sus în clasament. Nu se schimbă nimic altceva."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Marked as pillar content."
+msgstr "Marcat ca conținut pilon."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Pillar content mark removed."
+msgstr "Am eliminat marcajul de conținut pilon."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "The pillar content mark could not be saved."
+msgstr "Nu am putut salva marcajul de conținut pilon."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Could not load the target phrases."
+msgstr "Nu am putut încărca expresiile țintă."
+
+#: assets/build/classic.js:16 assets/build/editor.js:16
+msgid "Target phrases"
+msgstr "Expresii țintă"
+
+#: assets/build/classic.js:16 assets/build/editor.js:16
+msgid "Optional. The engine finds phrases on its own; this helps with the ones you care about."
+msgstr "Opțional. Motorul găsește singur expresii; asta îl ajută cu cele care contează pentru tine."
+
+#. translators: %d: position of the phrase in the list.
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Phrase %d"
+msgstr "Expresia %d"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Phrase"
+msgstr "Expresie"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Variants (one per line)"
+msgstr "Variante (una pe rând)"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Allow one word in between"
+msgstr "Permite un cuvânt între"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words."
+msgstr "„renovare bucătărie” se potrivește și cu „renovare completă bucătărie”, dar nu cu două cuvinte în plus."
+
+#. translators: %d: position of the phrase in the list.
+#: assets/build/classic.js:18 assets/build/editor.js:18
+msgid "Remove phrase %d"
+msgstr "Elimină expresia %d"
+
+#: assets/build/classic.js:18 assets/build/editor.js:18
+msgid "Add phrase"
+msgstr "Adaugă o expresie"
+
+#. translators: %d: number of target phrases saved.
+#: assets/build/classic.js:19 assets/build/editor.js:19
+msgid "Target phrases saved: %d phrase."
+msgid_plural "Target phrases saved: %d phrases."
+msgstr[0] "Expresii țintă salvate: %d expresie."
+msgstr[1] "Expresii țintă salvate: %d expresii."
+msgstr[2] "Expresii țintă salvate: %d de expresii."
+
+#. translators: %s: list of repeated phrases the server did not keep.
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "Not kept because they were repeated: %s."
+msgstr "Nu au fost păstrate pentru că se repetau: %s."
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "The target phrases could not be saved."
+msgstr "Nu am putut salva expresiile țintă."
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "Save phrases"
+msgstr "Salvează expresiile"
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+#: assets/build/index.js:63
+msgid "The anchor could not be checked. Try again."
+msgstr "Nu am putut verifica ancora. Încearcă din nou."
+
+#. translators: 1: anchor text, 2: number of words.
+#: assets/build/classic.js:21 assets/build/classic.js:22
+#: assets/build/editor.js:21 assets/build/editor.js:22 assets/build/index.js:64
+#: assets/build/index.js:65
+msgid "Anchor: %1$s, %2$d word"
+msgid_plural "Anchor: %1$s, %2$d words"
+msgstr[0] "Ancoră: %1$s, %2$d cuvânt"
+msgstr[1] "Ancoră: %1$s, %2$d cuvinte"
+msgstr[2] "Ancoră: %1$s, %2$d de cuvinte"
+
+#: assets/build/classic.js:21 assets/build/editor.js:21
+#: assets/build/index.js:64
+msgid "Right arrow extends the anchor, left arrow shortens it. Shift with the arrows does the same on the left. Enter confirms and Escape cancels."
+msgstr "Săgeata dreapta lungește ancora, iar săgeata stânga o scurtează. Cu Shift, săgețile fac același lucru în stânga. Enter confirmă, iar Escape anulează."
+
+#: assets/build/classic.js:21 assets/build/classic.js:28
+#: assets/build/editor.js:21 assets/build/editor.js:28 assets/build/index.js:64
+#: assets/build/index.js:71
+msgid "Adjust anchor"
+msgstr "Ajustează ancora"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Checking the anchor…"
+msgstr "Se verifică ancora…"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Apply anchor"
+msgstr "Aplică ancora"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22 assets/build/index.js:7
+#: assets/build/index.js:59 assets/build/index.js:65 assets/build/index.js:98
+#: assets/build/index.js:117
+msgid "Cancel"
+msgstr "Anulează"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Link from this sentence"
+msgstr "Leagă din această propoziție"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "recommended"
+msgstr "recomandată"
+
+#: assets/build/classic.js:22 assets/build/classic.js:41
+#: assets/build/editor.js:22 assets/build/editor.js:41 assets/build/index.js:65
+#: assets/build/index.js:83
+msgid "Suggestion dismissed. It will not be proposed again."
+msgstr "Am respins sugestia. Nu va mai fi propusă."
+
+#. translators: %s: title of the entry that got the link.
+#: assets/build/classic.js:23 assets/build/editor.js:23
+#: assets/build/index.js:66
+msgid "Undo the link in “%s”"
+msgstr "Anulează legătura din „%s”"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:24 assets/build/editor.js:24
+#: assets/build/index.js:67
+msgid "Undo the link to “%s”"
+msgstr "Anulează legătura către „%s”"
+
+#. translators: %s: title of the entry the suggestion is about.
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgid "Undo dismissing the suggestion for “%s”"
+msgstr "Anulează respingerea sugestiei pentru „%s”"
+
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgctxt "state of a suggestion that has been linked"
+msgid "Linked"
+msgstr "Legată"
+
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgctxt "state of a suggestion that has been dismissed"
+msgid "Dismissed"
+msgstr "Respinsă"
+
+#: assets/build/classic.js:25 assets/build/classic.js:26
+#: assets/build/editor.js:25 assets/build/editor.js:26 assets/build/index.js:68
+#: assets/build/index.js:69
+msgid "In:"
+msgstr "În:"
+
+#. translators: %s: title of the entry that would get the link.
+#: assets/build/classic.js:26 assets/build/classic.js:27
+#: assets/build/editor.js:26 assets/build/editor.js:27 assets/build/index.js:69
+#: assets/build/index.js:70
+msgid "In: %s"
+msgstr "În: %s"
+
+#: assets/build/classic.js:26 assets/build/classic.js:29
+#: assets/build/editor.js:26 assets/build/editor.js:29 assets/build/index.js:69
+#: assets/build/index.js:72
+msgid "Links to:"
+msgstr "Leagă la:"
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+#: assets/build/index.js:10 assets/build/index.js:52 assets/build/index.js:69
+#: assets/build/index.js:94
+msgid "Undo"
+msgstr "Anulează"
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+#: assets/build/index.js:69
+msgid "See in History"
+msgstr "Vezi în Istoric"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:28 assets/build/editor.js:28
+#: assets/build/index.js:71
+msgid "Adjust anchor, link to “%s”"
+msgstr "Ajustează ancora, legătură către „%s”"
+
+#. translators: %d: number of sentences to choose from.
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "More sentences (%d)"
+msgstr "Mai multe propoziții (%d)"
+
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "Anchor notices"
+msgstr "Anunțuri despre ancoră"
+
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "You cannot edit this entry, so the link cannot be added from here."
+msgstr "Nu poți edita această intrare, așa că legătura nu poate fi adăugată de aici."
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:30 assets/build/editor.js:30
+#: assets/build/index.js:73
+msgid "Link to “%s”"
+msgstr "Leagă la „%s”"
+
+#: assets/build/classic.js:30 assets/build/editor.js:30
+#: assets/build/index.js:73
+msgctxt "button: add the link to the text"
+msgid "Link"
+msgstr "Leagă"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "Dismiss the suggestion for “%s”"
+msgstr "Respinge sugestia pentru „%s”"
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74 assets/build/index.js:103
+msgid "Dismiss"
+msgstr "Respinge"
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "The AI does not see this as a good link."
+msgstr "IA nu consideră aceasta o legătură bună."
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "Recommended by the AI."
+msgstr "Recomandată de IA."
+
+#. translators: %d: confidence of the AI, from 0 to 100.
+#: assets/build/classic.js:32 assets/build/editor.js:32
+#: assets/build/index.js:75
+msgid "Recommended by the AI (confidence %d%%)."
+msgstr "Recomandată de IA (încredere %d%%)."
+
+#. translators: %s: anchor text the AI proposes.
+#: assets/build/classic.js:33 assets/build/editor.js:33
+#: assets/build/index.js:76
+msgid "The AI suggests this anchor: “%s”."
+msgstr "IA sugerează această ancoră: „%s”."
+
+#. translators: %s: anchor text the AI proposes.
+#: assets/build/classic.js:34 assets/build/editor.js:34
+#: assets/build/index.js:77
+msgid "Use the anchor “%s”"
+msgstr "Folosește ancora „%s”"
+
+#: assets/build/classic.js:34 assets/build/editor.js:34
+#: assets/build/index.js:77
+msgid "Use this anchor"
+msgstr "Folosește această ancoră"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "content type"
+msgstr "tip de conținut"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "category"
+msgstr "categorie"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "tag"
+msgstr "etichetă"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "The site has not been analyzed yet, so there are no suggestions. Analyze it from the report and come back."
+msgstr "Site-ul nu a fost încă analizat, deci nu există sugestii. Analizează-l din raport și revino."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Open the report"
+msgstr "Deschide raportul"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is not analyzed yet. Save it and refresh in a moment, or check that its content type is analyzed in Settings."
+msgstr "Această intrare nu este încă analizată. Salvează-o și reîmprospătează peste un moment sau verifică în Setări dacă tipul ei de conținut este analizat."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is excluded from the analysis, so it has no suggestions and is not suggested anywhere. Include it again from the report."
+msgstr "Această intrare este exclusă din analiză, deci nu are sugestii și nu este sugerată nicăieri. Include-o din nou din raport."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is in a category that is excluded from the analysis, so it has no suggestions and is not suggested anywhere. You can change the excluded categories in Settings."
+msgstr "Această intrare este într-o categorie exclusă din analiză, deci nu are sugestii și nu este sugerată nicăieri. Poți schimba categoriile excluse în Setări."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Open the settings"
+msgstr "Deschide setările"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Other entries can only link to this one once it is published."
+msgstr "Alte intrări pot face legătură la aceasta doar după ce este publicată."
+
+#. translators: %s: the filters that are required, such as "category" or "category and tag".
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "There are no suggestions: only entries that match this one in %s are searched."
+msgstr "Nu există sugestii: se caută doar intrări care se potrivesc cu aceasta în %s."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "If you want more, change the filter in <a>Settings → Suggestions</a>."
+msgstr "Dacă vrei mai multe, schimbă filtrul în <a>Setări → Sugestii</a>."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "If you want more, ask an administrator to change the filter in Settings → Suggestions."
+msgstr "Dacă vrei mai multe, cere unui administrator să schimbe filtrul în Setări → Sugestii."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "There are no suggestions with enough confidence. This usually happens with very short entries or on a topic that has no other content on the site yet."
+msgstr "Nu există sugestii cu suficientă încredere. De obicei se întâmplă cu intrări foarte scurte sau cu un subiect despre care site-ul nu are încă alt conținut."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "No other entry has a sentence that fits a link to this one yet."
+msgstr "Nicio altă intrare nu are încă o propoziție în care să se potrivească o legătură către aceasta."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "Try again"
+msgstr "Încearcă din nou"
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "Looking for suggestions…"
+msgstr "Se caută sugestii…"
+
+#. translators: 1: position of the sentence, 2: number of sentences, 3: anchor text.
+#: assets/build/classic.js:37 assets/build/editor.js:37
+msgid "Sentence %1$d of %2$d selected. Anchor: %3$s."
+msgstr "Propoziția %1$d din %2$d este selectată. Ancoră: %3$s."
+
+#. translators: %s: anchor text.
+#: assets/build/classic.js:38 assets/build/editor.js:38
+msgid "Anchor set: %s."
+msgstr "Ancoră stabilită: %s."
+
+#. translators: %d: number of suggestions.
+#: assets/build/classic.js:39 assets/build/editor.js:39
+#: assets/build/editor.js:47
+msgid "%d outbound suggestion"
+msgid_plural "%d outbound suggestions"
+msgstr[0] "%d sugestie de ieșire"
+msgstr[1] "%d sugestii de ieșire"
+msgstr[2] "%d de sugestii de ieșire"
+
+#. translators: %s: title of the entry that got the link.
+#: assets/build/classic.js:40 assets/build/editor.js:40
+#: assets/build/index.js:82
+msgid "Link added in “%s”."
+msgstr "Am adăugat legătura în „%s”."
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Link to “%s” added."
+msgstr "Am adăugat legătura către „%s”."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Link removed."
+msgstr "Am eliminat legătura."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be added."
+msgstr "Nu am putut adăuga legătura."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be added. Check your connection and try again."
+msgstr "Nu am putut adăuga legătura. Verifică conexiunea și încearcă din nou."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be removed."
+msgstr "Nu am putut elimina legătura."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The suggestion could not be dismissed. Check your connection and try again."
+msgstr "Nu am putut respinge sugestia. Verifică conexiunea și încearcă din nou."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The dismissal could not be undone. Check your connection and try again."
+msgstr "Nu am putut anula respingerea. Verifică conexiunea și încearcă din nou."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Suggestion restored."
+msgstr "Am restaurat sugestia."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The text has changed since the link was added. Use Undo in the editor or remove the link by hand."
+msgstr "Textul s-a schimbat de când a fost adăugată legătura. Folosește Anulează în editor sau elimină legătura manual."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Outbound"
+msgstr "De ieșire"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:87
+msgid "Inbound"
+msgstr "Primite"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:85 assets/build/index.js:127
+msgid "Refresh"
+msgstr "Reîmprospătează"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Analyzes what you have in the editor now, saved or not."
+msgstr "Analizează ce ai acum în editor, salvat sau nu."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Link added."
+msgstr "Am adăugat legătura."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The text has changed since the suggestion was made. Refresh the suggestions and try again."
+msgstr "Textul s-a schimbat de când a fost făcută sugestia. Reîmprospătează sugestiile și încearcă din nou."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This sentence appears more than once, so the right place is unclear. Add the link by hand."
+msgstr "Această propoziție apare de mai multe ori, deci locul potrivit nu este clar. Adaugă legătura manual."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This text is already a link."
+msgstr "Acest text este deja o legătură."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This sentence is somewhere the panel cannot add a link (a block it does not edit, or a heading, quote, table or shortcode). Add the link by hand."
+msgstr "Această propoziție se află undeva unde panoul nu poate adăuga o legătură (un bloc pe care nu îl editează sau un titlu, citat, tabel ori scurtcod). Adaugă legătura manual."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The anchor crosses bold, italics or other formatting, so the link would break it. Add the link by hand."
+msgstr "Ancora trece peste text aldin, cursiv sau altă formatare, deci legătura l-ar strica. Adaugă legătura manual."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand."
+msgstr "Nu am putut adăuga legătura fără a risca restul blocului, așa că nu am schimbat nimic. Adaugă-o manual."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The address of the destination is not valid, so the link was not added."
+msgstr "Adresa destinației nu este validă, deci nu am adăugat legătura."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The Classic block has changes that are not applied yet. Save or leave the block and try again."
+msgstr "Blocul Clasic are modificări care nu sunt încă aplicate. Salvează sau părăsește blocul și încearcă din nou."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Switch to the Visual tab to add the link, or add it by hand."
+msgstr "Treci la fila Vizual pentru a adăuga legătura sau adaugă-o manual."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Sentences in other entries where a link to this one fits."
+msgstr "Propoziții din alte intrări în care se potrivește o legătură către aceasta."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:86
+msgid "Inbound suggestions pages"
+msgstr "Pagini cu sugestii primite"
+
+#: assets/build/classic.js:42 assets/build/editor.js:42
+msgid "The suggestions could not be loaded. Check your connection and try again."
+msgstr "Nu am putut încărca sugestiile. Verifică conexiunea și încearcă din nou."
+
+#. translators: %s: title of the entry where the link would go.
+#: assets/build/classic.js:43 assets/build/editor.js:43
+msgid "The suggestion in “%s” has changed sentence."
+msgstr "Sugestia din „%s” a schimbat propoziția."
+
+#. translators: %s: title of the entry where the link would go.
+#: assets/build/classic.js:44 assets/build/editor.js:44
+msgid "The suggestion in “%s” was removed because its sentence is now used by another one."
+msgstr "Sugestia din „%s” a fost eliminată pentru că propoziția ei este acum folosită de alta."
+
+#. translators: %s: title of the destination of the suggestion.
+#: assets/build/classic.js:45 assets/build/editor.js:45
+msgid "The suggestion to “%s” has changed sentence."
+msgstr "Sugestia către „%s” a schimbat propoziția."
+
+#. translators: %s: title of the destination of the suggestion.
+#: assets/build/classic.js:46 assets/build/editor.js:46
+msgid "The suggestion to “%s” was removed because its sentence is now used by another one."
+msgstr "Sugestia către „%s” a fost eliminată pentru că propoziția ei este acum folosită de alta."
+
+#: assets/build/classic.js:46 assets/build/editor.js:46
+msgid "That sentence cannot be used: a link you added or dismissed already takes it."
+msgstr "Propoziția aceea nu poate fi folosită: o ocupă deja o legătură pe care ai adăugat-o sau ai respins-o."
+
+#: assets/build/index.js:1
+msgid "Notice closed."
+msgstr "Am închis notificarea."
+
+#: assets/build/index.js:1
+msgid "The notice could not be closed. Try again."
+msgstr "Nu am putut închide anunțul. Încearcă din nou."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:3 assets/build/index.js:23
+msgid "%s entry"
+msgid_plural "%s entries"
+msgstr[0] "%s intrare"
+msgstr[1] "%s intrări"
+msgstr[2] "%s de intrări"
+
+#. translators: %s: number of rules.
+#: assets/build/index.js:4
+msgid "%s rule"
+msgid_plural "%s rules"
+msgstr[0] "%s regulă"
+msgstr[1] "%s reguli"
+msgstr[2] "%s de reguli"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:5
+msgid "%s link"
+msgid_plural "%s links"
+msgstr[0] "%s legătură"
+msgstr[1] "%s legături"
+msgstr[2] "%s de legături"
+
+#: assets/build/index.js:5
+msgid "First page"
+msgstr "Prima pagină"
+
+#: assets/build/index.js:5
+msgid "Previous page"
+msgstr "Pagina anterioară"
+
+#: assets/build/index.js:5 assets/build/index.js:6
+msgid "Current page"
+msgstr "Pagina curentă"
+
+#. translators: %s: total number of pages.
+#: assets/build/index.js:6
+msgid "of %s"
+msgstr "din %s"
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/index.js:7
+msgid "%1$s of %2$s"
+msgstr "%1$s din %2$s"
+
+#: assets/build/index.js:7
+msgid "Next page"
+msgstr "Pagina următoare"
+
+#: assets/build/index.js:7
+msgid "Last page"
+msgstr "Ultima pagină"
+
+#: assets/build/index.js:7
+msgid "Sorted descending."
+msgstr "Sortat descrescător."
+
+#: assets/build/index.js:7
+msgid "Sorted ascending."
+msgstr "Sortat crescător."
+
+#: assets/build/index.js:7
+msgid "Show more details"
+msgstr "Arată mai multe detalii"
+
+#: assets/build/index.js:7
+msgid "Search"
+msgstr "Caută"
+
+#: assets/build/index.js:7 assets/build/index.js:91 assets/build/index.js:94
+msgid "Could not search the entries."
+msgstr "Nu am putut căuta intrările."
+
+#: assets/build/index.js:7 assets/build/index.js:10 assets/build/index.js:12
+#: assets/build/index.js:13
+msgid "(no text)"
+msgstr "(fără text)"
+
+#: assets/build/index.js:7 assets/build/index.js:11 assets/build/index.js:94
+msgid "Change destination"
+msgstr "Schimbă destinația"
+
+#: assets/build/index.js:7 assets/build/index.js:11
+msgid "Remove link"
+msgstr "Înlătură legătura"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:8
+msgid "The link “%1$s” in “%2$s” leads nowhere."
+msgstr "Legătura „%1$s” din „%2$s” nu duce nicăieri."
+
+#: assets/build/index.js:8
+msgid "Pick the entry it should lead to. Only the address changes: the text and the rest of the entry stay as they are, and you can undo it from the history."
+msgstr "Alege intrarea la care trebuie să ducă. Se schimbă doar adresa: textul și restul intrării rămân așa cum sunt, iar poți anula din istoric."
+
+#: assets/build/index.js:8 assets/build/index.js:53 assets/build/index.js:88
+#: assets/build/index.js:94
+msgid "Search entries by title"
+msgstr "Caută intrări după titlu"
+
+#. translators: %d: number of entries found.
+#: assets/build/index.js:9 assets/build/index.js:91 assets/build/index.js:95
+msgid "%d entry found"
+msgid_plural "%d entries found"
+msgstr[0] "%d intrare găsită"
+msgstr[1] "%d intrări găsite"
+msgstr[2] "%d de intrări găsite"
+
+#: assets/build/index.js:9
+msgid "New destination"
+msgstr "Destinație nouă"
+
+#: assets/build/index.js:9 assets/build/index.js:95
+msgid "No published entries match."
+msgstr "Nicio intrare publicată nu se potrivește."
+
+#: assets/build/index.js:9
+msgid "The link is taken out and its text stays exactly as it is. You can undo it from the history."
+msgstr "Legătura este scoasă, iar textul ei rămâne exact așa cum este. Poți anula din istoric."
+
+#: assets/build/index.js:9
+msgid "Could not load the broken links."
+msgstr "Nu am putut încărca legăturile defecte."
+
+#: assets/build/index.js:9
+msgid "No broken links found."
+msgstr "Nu am găsit nicio legătură defectă."
+
+#. translators: %d: number of broken links.
+#: assets/build/index.js:10
+msgid "%d broken link"
+msgid_plural "%d broken links"
+msgstr[0] "%d legătură defectă"
+msgstr[1] "%d legături defecte"
+msgstr[2] "%d de legături defecte"
+
+#: assets/build/index.js:10 assets/build/index.js:23 assets/build/index.js:53
+msgid "Entry"
+msgstr "Intrare"
+
+#: assets/build/index.js:10
+msgid "Broken URL"
+msgstr "URL defect"
+
+#: assets/build/index.js:10 assets/build/index.js:23 assets/build/index.js:44
+#: assets/build/index.js:49 assets/build/index.js:53
+msgid "Anchor text"
+msgstr "Textul ancorei"
+
+#: assets/build/index.js:10
+msgid "Reason"
+msgstr "Motiv"
+
+#: assets/build/index.js:10
+msgid "Internal links that lead nowhere: the destination is in the trash, is not published, is private or does not exist. Nothing is checked over the network. Fix each one by changing its destination or removing the link, or by editing the entry."
+msgstr "Legături interne care nu duc nicăieri: destinația este în coșul de gunoi, nu este publicată, este privată sau nu există. Nu se verifică nimic prin rețea. Corectează-le pe fiecare schimbându-i destinația sau eliminând legătura, ori editând intrarea."
+
+#: assets/build/index.js:10 assets/build/index.js:94
+msgid "The link could not be put back automatically. Open the history to see why."
+msgstr "Nu am putut pune legătura la loc automat. Deschide istoricul ca să vezi de ce."
+
+#: assets/build/index.js:10
+msgid "Done: the link is back as it was."
+msgstr "Gata: legătura este la loc, așa cum era."
+
+#: assets/build/index.js:10 assets/build/index.js:94
+msgid "The change could not be undone."
+msgstr "Nu am putut anula modificarea."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:11
+msgid "Showing only the broken links in “%s”."
+msgstr "Se afișează doar legăturile defecte din „%s”."
+
+#: assets/build/index.js:11
+msgid "Show all"
+msgstr "Arată-le pe toate"
+
+#: assets/build/index.js:11
+msgid "Search broken links"
+msgstr "Caută legături defecte"
+
+#: assets/build/index.js:11
+msgid "Broken internal links"
+msgstr "Legături interne defecte"
+
+#: assets/build/index.js:11 assets/build/index.js:21 assets/build/index.js:93
+msgid "Edit entry"
+msgstr "Editează intrarea"
+
+#: assets/build/index.js:11
+msgid "There are no broken internal links. Well done."
+msgstr "Nu există legături interne defecte. Bravo!"
+
+#: assets/build/index.js:11 assets/build/index.js:53 assets/build/index.js:90
+msgid "Export CSV"
+msgstr "Exportă CSV"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:12
+msgid "Destination changed for “%1$s” in “%2$s”."
+msgstr "Am schimbat destinația pentru „%1$s” din „%2$s”."
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:13
+msgid "Link removed from “%1$s” in “%2$s”; its text stays."
+msgstr "Am eliminat legătura din „%1$s” din „%2$s”; textul rămâne."
+
+#. translators: %s: number of seconds.
+#: assets/build/index.js:14
+msgid "%s s"
+msgstr "%s s"
+
+#. translators: 1: minutes, 2: seconds.
+#: assets/build/index.js:15
+msgid "%1$s min %2$s s"
+msgstr "%1$s min %2$s s"
+
+#: assets/build/index.js:15
+msgid "(deleted entry)"
+msgstr "(intrare ștearsă)"
+
+#: assets/build/index.js:15
+msgid "Destination changed"
+msgstr "Destinație schimbată"
+
+#: assets/build/index.js:15 assets/build/index.js:16
+msgid "Link removed"
+msgstr "Legătură eliminată"
+
+#: assets/build/index.js:15
+msgid "Added"
+msgstr "Adăugată"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Editor panel · AI"
+msgstr "Panoul editorului · IA"
+
+#: assets/build/index.js:15 assets/build/index.js:53
+msgctxt "history origin"
+msgid "Editor panel"
+msgstr "Panoul editorului"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Another entry's panel · AI"
+msgstr "Panoul altei intrări · IA"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Another entry's panel"
+msgstr "Panoul altei intrări"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Automatic rule · AI"
+msgstr "Regulă automată · IA"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Automatic rule"
+msgstr "Regulă automată"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Broken links"
+msgstr "Legături defecte"
+
+#. translators: %s: exact identifier of the AI model that recommended the link.
+#: assets/build/index.js:16
+msgid "AI model: %s"
+msgstr "Model IA: %s"
+
+#: assets/build/index.js:16
+msgid "Anchor suggested by the AI"
+msgstr "Ancoră sugerată de IA"
+
+#: assets/build/index.js:16
+msgid "Added from the editor panel"
+msgstr "Adăugată din panoul editorului"
+
+#: assets/build/index.js:16
+msgid "Added from another entry's panel"
+msgstr "Adăugată din panoul altei intrări"
+
+#: assets/build/index.js:16
+msgid "Added by an automatic rule"
+msgstr "Adăugată de o regulă automată"
+
+#: assets/build/index.js:16
+msgid "Fixed from Broken links"
+msgstr "Corectată din Legături defecte"
+
+#: assets/build/index.js:16 assets/build/index.js:22 assets/build/index.js:23
+#: assets/build/index.js:50
+msgid "Undone"
+msgstr "Anulată"
+
+#: assets/build/index.js:16
+msgid "Link put back"
+msgstr "Legătură pusă la loc"
+
+#: assets/build/index.js:16
+msgid "Already gone"
+msgstr "Deja dispărută"
+
+#: assets/build/index.js:16
+msgid "Already undone"
+msgstr "Deja anulată"
+
+#: assets/build/index.js:16
+msgid "Added again"
+msgstr "Adăugată din nou"
+
+#: assets/build/index.js:16
+msgid "Needs your attention"
+msgstr "Necesită atenția ta"
+
+#: assets/build/index.js:16
+msgid "Not changed"
+msgstr "Nemodificată"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:17
+msgid "%s link added again."
+msgid_plural "%s links added again."
+msgstr[0] "Am adăugat din nou %s legătură."
+msgstr[1] "Am adăugat din nou %s legături."
+msgstr[2] "Am adăugat din nou %s de legături."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:18
+msgid "%s link undone."
+msgid_plural "%s links undone."
+msgstr[0] "Am anulat %s legătură."
+msgstr[1] "Am anulat %s legături."
+msgstr[2] "Am anulat %s de legături."
+
+#. translators: 1: links added again, 2: links that need attention.
+#: assets/build/index.js:19
+msgid "Added again: %1$s. Need your attention: %2$s."
+msgstr "Adăugate din nou: %1$s. Necesită atenția ta: %2$s."
+
+#. translators: 1: links undone, 2: links that need attention.
+#: assets/build/index.js:20
+msgid "Undone: %1$s. Need your attention: %2$s."
+msgstr "Anulate: %1$s. Necesită atenția ta: %2$s."
+
+#. translators: 1: changes done, 2: total changes.
+#: assets/build/index.js:21
+msgid "Working in the background: %1$s of %2$s."
+msgstr "Lucrez în fundal: %1$s din %2$s."
+
+#: assets/build/index.js:21
+msgid "This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running."
+msgstr "Durează mai mult decât era de așteptat. Sarcinile din fundal au nevoie ca WP-Cron sau Action Scheduler să ruleze."
+
+#: assets/build/index.js:21 assets/build/index.js:59
+msgid "Resume"
+msgstr "Reia"
+
+#: assets/build/index.js:21
+msgid "Cancel process"
+msgstr "Anulează procesul"
+
+#: assets/build/index.js:21
+msgid "Could not read the progress of the process."
+msgstr "Nu am putut citi progresul procesului."
+
+#: assets/build/index.js:21 assets/build/index.js:26 assets/build/index.js:36
+#: assets/build/index.js:57 assets/build/index.js:117 assets/build/index.js:128
+#: assets/build/index.js:130
+msgid "That did not work. Try again."
+msgstr "Nu a mers. Încearcă din nou."
+
+#. translators: 1: number of links in the batch that the AI recommended, 2: number of links in the batch.
+#: assets/build/index.js:22
+msgid "%1$s of %2$s link recommended by the AI"
+msgid_plural "%1$s of %2$s links recommended by the AI"
+msgstr[0] "%1$s din %2$s legătură recomandată de IA"
+msgstr[1] "%1$s din %2$s legături recomandate de IA"
+msgstr[2] "%1$s din %2$s de legături recomandate de IA"
+
+#: assets/build/index.js:22
+msgid "Could not load the links of this batch."
+msgstr "Nu am putut încărca legăturile acestui lot."
+
+#: assets/build/index.js:22
+msgid "Could not refresh this batch."
+msgstr "Nu am putut reîmprospăta acest lot."
+
+#: assets/build/index.js:22 assets/build/index.js:23 assets/build/index.js:50
+msgid "In place"
+msgstr "La locul lor"
+
+#: assets/build/index.js:22
+msgid "Partly undone"
+msgstr "Parțial anulat"
+
+#: assets/build/index.js:23
+msgid "Progress of undoing the batch"
+msgstr "Progresul anulării lotului"
+
+#: assets/build/index.js:23
+msgid "Progress of redoing the batch"
+msgstr "Progresul refacerii lotului"
+
+#: assets/build/index.js:23 assets/build/index.js:26
+msgid "Undo batch"
+msgstr "Anulează lotul"
+
+#: assets/build/index.js:23 assets/build/index.js:26
+msgid "Redo batch"
+msgstr "Refă lotul"
+
+#: assets/build/index.js:23
+msgid "Hide links"
+msgstr "Ascunde legăturile"
+
+#: assets/build/index.js:23
+msgid "Show links"
+msgstr "Arată legăturile"
+
+#: assets/build/index.js:23
+msgid "Links in this batch"
+msgstr "Legăturile din acest lot"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:48
+#: assets/build/index.js:53
+msgid "Date"
+msgstr "Dată"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:49
+#: assets/build/index.js:53
+msgid "Links to"
+msgstr "Duce la"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:50
+#: assets/build/index.js:53
+msgid "Source"
+msgstr "Sursă"
+
+#: assets/build/index.js:23 assets/build/index.js:44
+msgid "Actions"
+msgstr "Acțiuni"
+
+#: assets/build/index.js:23
+msgid "No links to show."
+msgstr "Nu există legături de afișat."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:24
+msgid "Redo change in %s"
+msgstr "Refă modificarea din %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:25
+msgid "Undo change in %s"
+msgstr "Anulează modificarea din %s"
+
+#: assets/build/index.js:25 assets/build/index.js:26
+msgid "Redo change"
+msgstr "Refă modificarea"
+
+#: assets/build/index.js:25 assets/build/index.js:26
+msgid "Undo change"
+msgstr "Anulează modificarea"
+
+#. translators: 1: links shown, 2: total links.
+#: assets/build/index.js:26
+msgid "Show more links (%1$s of %2$s)"
+msgstr "Arată mai multe legături (%1$s din %2$s)"
+
+#: assets/build/index.js:26
+msgid "Undo this batch?"
+msgstr "Anulezi acest lot?"
+
+#: assets/build/index.js:26
+msgid "Redo this batch?"
+msgstr "Refaci acest lot?"
+
+#: assets/build/index.js:26
+msgid "Undo this change?"
+msgstr "Anulezi această modificare?"
+
+#: assets/build/index.js:26
+msgid "Redo this change?"
+msgstr "Refaci această modificare?"
+
+#: assets/build/index.js:26
+msgid "The link will be put back around its text, as it was."
+msgstr "Legătura va fi pusă la loc în jurul textului ei, așa cum era."
+
+#: assets/build/index.js:26
+msgid "The link will point to its previous address again, and nothing else changes."
+msgstr "Legătura va indica din nou adresa ei anterioară și nu se schimbă nimic altceva."
+
+#: assets/build/index.js:26
+msgid "If the entry was edited afterwards, only this link is touched; if that cannot be done safely, nothing is changed and you are told."
+msgstr "Dacă intrarea a fost editată ulterior, se modifică doar această legătură; dacă nu se poate face în siguranță, nu se schimbă nimic și ești înștiințat."
+
+#: assets/build/index.js:26
+msgid "The link will be removed again."
+msgstr "Legătura va fi eliminată din nou."
+
+#: assets/build/index.js:26
+msgid "The new destination will be applied again."
+msgstr "Destinația nouă va fi aplicată din nou."
+
+#: assets/build/index.js:26 assets/build/index.js:28
+msgid "Any entry edited in that spot since is left alone and listed."
+msgstr "Orice intrare editată între timp în acel loc este lăsată neatinsă și apare în listă."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:27
+msgid "%s link will be taken out."
+msgid_plural "%s links will be taken out."
+msgstr[0] "%s legătură va fi scoasă."
+msgstr[1] "%s legături vor fi scoase."
+msgstr[2] "%s de legături vor fi scoase."
+
+#: assets/build/index.js:27
+msgid "Where an entry was edited afterwards, only the link is removed; anything that cannot be undone safely is left alone and listed so you can fix it by hand."
+msgstr "Acolo unde o intrare a fost editată ulterior, se elimină doar legătura; tot ce nu poate fi anulat în siguranță este lăsat neatins și apare în listă, ca să poți corecta manual."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:28
+msgid "%s undone link will be added again, as it was."
+msgid_plural "%s undone links will be added again, as they were."
+msgstr[0] "%s legătură anulată va fi adăugată din nou, așa cum era."
+msgstr[1] "%s legături anulate vor fi adăugate din nou, așa cum erau."
+msgstr[2] "%s de legături anulate vor fi adăugate din nou, așa cum erau."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:29
+msgid "The link in “%s” will be taken out. If the entry was edited afterwards, only this link is removed."
+msgstr "Legătura din „%s” va fi scoasă. Dacă intrarea a fost editată ulterior, se elimină doar această legătură."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:30
+msgid "The link will be added again in “%s”, as it was."
+msgstr "Legătura va fi adăugată din nou în „%s”, așa cum era."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:31
+msgid "%s link destination changed"
+msgid_plural "%s link destinations changed"
+msgstr[0] "%s destinație de legătură schimbată"
+msgstr[1] "%s destinații de legături schimbate"
+msgstr[2] "%s de destinații de legături schimbate"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:32
+msgid "%s link removed"
+msgid_plural "%s links removed"
+msgstr[0] "%s legătură eliminată"
+msgstr[1] "%s legături eliminate"
+msgstr[2] "%s de legături eliminate"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:33
+msgid "%s link added"
+msgid_plural "%s links added"
+msgstr[0] "%s legătură adăugată"
+msgstr[1] "%s legături adăugate"
+msgstr[2] "%s de legături adăugate"
+
+#. translators: %s: address the removed link pointed to.
+#: assets/build/index.js:34
+msgid "%s (link removed)"
+msgstr "%s (legătură eliminată)"
+
+#: assets/build/index.js:34
+msgid "There are no changes in the history."
+msgstr "Nu există modificări în istoric."
+
+#. translators: %s: number of batches.
+#: assets/build/index.js:35
+msgid "%s batch in the history."
+msgid_plural "%s batches in the history."
+msgstr[0] "%s lot în istoric."
+msgstr[1] "%s loturi în istoric."
+msgstr[2] "%s de loturi în istoric."
+
+#: assets/build/index.js:35 assets/build/index.js:36 assets/build/index.js:52
+msgid "Could not load the history."
+msgstr "Nu am putut încărca istoricul."
+
+#: assets/build/index.js:35 assets/build/index.js:53
+msgid "No changes yet. When you add a link with Magic Linking it will appear here, and you will be able to undo it."
+msgstr "Încă nu există modificări. Când adaugi o legătură cu Magic Linking, va apărea aici și o vei putea anula."
+
+#. translators: %s: number of batches.
+#: assets/build/index.js:36
+msgid "%s older batch shown."
+msgid_plural "%s older batches shown."
+msgstr[0] "Se afișează %s lot mai vechi."
+msgstr[1] "Se afișează %s loturi mai vechi."
+msgstr[2] "Se afișează %s de loturi mai vechi."
+
+#: assets/build/index.js:36
+msgid "Show older batches"
+msgstr "Arată loturi mai vechi"
+
+#: assets/build/index.js:36
+msgid "Could not refresh this entry."
+msgstr "Nu am putut reîmprospăta această intrare."
+
+#. translators: 1: active changes, 2: total changes.
+#: assets/build/index.js:37
+msgid "%1$s of %2$s change active"
+msgid_plural "%1$s of %2$s changes active"
+msgstr[0] "%1$s din %2$s modificare activă"
+msgstr[1] "%1$s din %2$s modificări active"
+msgstr[2] "%1$s din %2$s de modificări active"
+
+#: assets/build/index.js:37
+msgid "Last change"
+msgstr "Ultima modificare"
+
+#: assets/build/index.js:37 assets/build/index.js:88 assets/build/index.js:105
+msgid "Edit"
+msgstr "Editează"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:38
+msgid "Edit “%s”"
+msgstr "Editează „%s”"
+
+#: assets/build/index.js:38 assets/build/index.js:88
+msgid "View"
+msgstr "Vezi"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:39
+msgid "View “%s”"
+msgstr "Vezi „%s”"
+
+#. translators: 1: number of active changes, 2: entry title.
+#: assets/build/index.js:40
+msgid "Undo all (%1$s) in %2$s"
+msgstr "Anulează tot (%1$s) în %2$s"
+
+#. translators: %s: number of active changes.
+#: assets/build/index.js:41
+msgid "Undo all (%s)"
+msgstr "Anulează tot (%s)"
+
+#. translators: 1: number of undone changes, 2: entry title.
+#: assets/build/index.js:42
+msgid "Redo all (%1$s) in %2$s"
+msgstr "Refă tot (%1$s) în %2$s"
+
+#. translators: %s: number of undone changes.
+#: assets/build/index.js:43
+msgid "Redo all (%s)"
+msgstr "Refă tot (%s)"
+
+#: assets/build/index.js:43
+msgid "Progress of undoing the changes"
+msgstr "Progresul anulării modificărilor"
+
+#: assets/build/index.js:43
+msgid "Progress of redoing the changes"
+msgstr "Progresul refacerii modificărilor"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:44
+msgid "Changes in “%s”, newest first"
+msgstr "Modificări în „%s”, cele mai noi primele"
+
+#: assets/build/index.js:44 assets/build/index.js:48 assets/build/index.js:53
+msgid "Change"
+msgstr "Modificare"
+
+#: assets/build/index.js:44 assets/build/index.js:50 assets/build/index.js:53
+msgid "User"
+msgstr "Utilizator"
+
+#. translators: %s: number of changes.
+#: assets/build/index.js:45
+msgid "%s more change shown."
+msgid_plural "%s more changes shown."
+msgstr[0] "Se afișează încă %s modificare."
+msgstr[1] "Se afișează încă %s modificări."
+msgstr[2] "Se afișează încă %s de modificări."
+
+#: assets/build/index.js:45
+msgid "Could not load more changes."
+msgstr "Nu am putut încărca mai multe modificări."
+
+#. translators: 1: changes shown, 2: total changes.
+#: assets/build/index.js:46
+msgid "Show more changes (%1$s of %2$s)"
+msgstr "Arată mai multe modificări (%1$s din %2$s)"
+
+#: assets/build/index.js:46
+msgid "Undo all changes in this entry?"
+msgstr "Anulezi toate modificările din această intrare?"
+
+#: assets/build/index.js:46
+msgid "Redo all changes in this entry?"
+msgstr "Refaci toate modificările din această intrare?"
+
+#: assets/build/index.js:46
+msgid "Undo all"
+msgstr "Anulează tot"
+
+#: assets/build/index.js:46
+msgid "Redo all"
+msgstr "Refă tot"
+
+#. translators: 1: number of links, 2: entry title.
+#: assets/build/index.js:47
+msgid "%1$s change will be undone in “%2$s”, newest first."
+msgid_plural "%1$s changes will be undone in “%2$s”, newest first."
+msgstr[0] "%1$s modificare va fi anulată în „%2$s”, începând cu cea mai nouă."
+msgstr[1] "%1$s modificări vor fi anulate în „%2$s”, începând cu cea mai nouă."
+msgstr[2] "%1$s de modificări vor fi anulate în „%2$s”, începând cu cea mai nouă."
+
+#: assets/build/index.js:47
+msgid "If the entry was edited afterwards, only the link is touched; anything that cannot be undone safely is left alone and listed so you can fix it by hand."
+msgstr "Dacă intrarea a fost editată ulterior, se modifică doar legătura; tot ce nu poate fi anulat în siguranță este lăsat neatins și apare în listă, ca să poți corecta manual."
+
+#. translators: 1: number of links, 2: entry title.
+#: assets/build/index.js:48
+msgid "%1$s undone change will be applied again in “%2$s”, as it was."
+msgid_plural "%1$s undone changes will be applied again in “%2$s”, as they were."
+msgstr[0] "%1$s modificare anulată va fi aplicată din nou în „%2$s”, așa cum era."
+msgstr[1] "%1$s modificări anulate vor fi aplicate din nou în „%2$s”, așa cum erau."
+msgstr[2] "%1$s de modificări anulate vor fi aplicate din nou în „%2$s”, așa cum erau."
+
+#: assets/build/index.js:48
+msgid "Any spot edited since is left alone and listed."
+msgstr "Orice loc editat între timp este lăsat neatins și apare în listă."
+
+#: assets/build/index.js:48
+msgid "(unknown)"
+msgstr "(necunoscut)"
+
+#. translators: %s: number of entries in the batch.
+#: assets/build/index.js:49
+msgid "Part of a batch of %s entries"
+msgstr "Face parte dintr-un lot de %s intrări"
+
+#. translators: %s: address the link pointed to before.
+#: assets/build/index.js:50
+msgid "Was: %s"
+msgstr "Era: %s"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:51
+msgid "Redo “%1$s” in %2$s"
+msgstr "Refă „%1$s” în %2$s"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:52
+msgid "Undo “%1$s” in %2$s"
+msgstr "Anulează „%1$s” în %2$s"
+
+#: assets/build/index.js:52
+msgid "Redo"
+msgstr "Refă"
+
+#: assets/build/index.js:52 assets/build/index.js:86
+msgid "No entries found."
+msgstr "Nu am găsit nicio intrare."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:53
+msgid "%s entry with changes."
+msgid_plural "%s entries with changes."
+msgstr[0] "%s intrare cu modificări."
+msgstr[1] "%s intrări cu modificări."
+msgstr[2] "%s de intrări cu modificări."
+
+#: assets/build/index.js:53
+msgid "Show entries with"
+msgstr "Arată intrările cu"
+
+#: assets/build/index.js:53
+msgid "All changes"
+msgstr "Toate modificările"
+
+#: assets/build/index.js:53
+msgid "With changes in place"
+msgstr "Cu modificări în vigoare"
+
+#: assets/build/index.js:53
+msgid "With undone changes"
+msgstr "Cu modificări anulate"
+
+#: assets/build/index.js:53
+msgid "All sources"
+msgstr "Toate sursele"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Another entry's panel and broken links"
+msgstr "Panoul altei intrări și legături defecte"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Automatic rules"
+msgstr "Reguli automate"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Recommended by the AI"
+msgstr "Recomandate de IA"
+
+#: assets/build/index.js:53
+msgid "Search entries…"
+msgstr "Caută intrări…"
+
+#: assets/build/index.js:53 assets/build/index.js:90
+msgid "No entries match these filters."
+msgstr "Nicio intrare nu se potrivește cu aceste filtre."
+
+#: assets/build/index.js:53
+msgid "Showing changes by entry."
+msgstr "Se afișează modificările pe intrări."
+
+#: assets/build/index.js:53
+msgid "Showing changes by batch."
+msgstr "Se afișează modificările pe loturi."
+
+#: assets/build/index.js:53
+msgid "View by:"
+msgstr "Vizualizare după:"
+
+#: assets/build/index.js:53
+msgid "Batch"
+msgstr "Lot"
+
+#: assets/build/index.js:53
+msgid "Every link Magic Linking changes is listed here so you can undo it. Links you add in the editor panel appear here once you save the entry. Links added to other entries from the panel appear right away."
+msgstr "Fiecare legătură pe care o modifică Magic Linking apare aici, ca s-o poți anula. Legăturile adăugate din panoul editorului apar aici după ce salvezi intrarea. Legăturile adăugate în alte intrări din panou apar imediat."
+
+#. translators: %s: number of days.
+#: assets/build/index.js:54
+msgid "Changes are kept for %s day."
+msgid_plural "Changes are kept for %s days."
+msgstr[0] "Modificările se păstrează %s zi."
+msgstr[1] "Modificările se păstrează %s zile."
+msgstr[2] "Modificările se păstrează %s de zile."
+
+#: assets/build/index.js:54
+msgid "Changes are kept with no expiry date."
+msgstr "Modificările se păstrează fără dată de expirare."
+
+#: assets/build/index.js:54
+msgid "Change how long they are kept"
+msgstr "Schimbă cât timp se păstrează"
+
+#: assets/build/index.js:54
+msgid "Less than a minute left."
+msgstr "Mai rămâne mai puțin de un minut."
+
+#. translators: %s: number of minutes.
+#: assets/build/index.js:55
+msgid "About %s minute left."
+msgid_plural "About %s minutes left."
+msgstr[0] "Mai rămâne aproximativ %s minut."
+msgstr[1] "Mai rămân aproximativ %s minute."
+msgstr[2] "Mai rămân aproximativ %s de minute."
+
+#. translators: %s: number of hours.
+#: assets/build/index.js:56
+msgid "About %s hour left."
+msgid_plural "About %s hours left."
+msgstr[0] "Mai rămâne aproximativ %s oră."
+msgstr[1] "Mai rămân aproximativ %s ore."
+msgstr[2] "Mai rămân aproximativ %s de ore."
+
+#. translators: 1: new or modified entries analyzed, 2: unchanged entries skipped.
+#: assets/build/index.js:57
+msgid "Analysis finished: %1$s new or modified, %2$s unchanged and skipped."
+msgstr "Analiza s-a încheiat: %1$s noi sau modificate, %2$s nemodificate și omise."
+
+#: assets/build/index.js:57
+msgid "Analysis finished."
+msgstr "Analiza s-a încheiat."
+
+#: assets/build/index.js:57
+msgid "Could not read the analysis status."
+msgstr "Nu am putut citi starea analizei."
+
+#: assets/build/index.js:57 assets/build/index.js:117 assets/build/index.js:130
+msgid "Analysis started."
+msgstr "Analiza a început."
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:58
+msgid "Analysis paused: %1$s of %2$s entries."
+msgstr "Analiză în pauză: %1$s din %2$s intrări."
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:59
+msgid "Analyzing your entries: %1$s of %2$s."
+msgstr "Îți analizez intrările: %1$s din %2$s."
+
+#: assets/build/index.js:59
+msgid "The analysis seems to have stopped. Resume it, or check that WP-Cron or Action Scheduler is running."
+msgstr "Se pare că analiza s-a oprit. Reia-o sau verifică dacă WP-Cron sau Action Scheduler rulează."
+
+#: assets/build/index.js:59
+msgid "Analysis resumed."
+msgstr "Am reluat analiza."
+
+#: assets/build/index.js:59
+msgid "Analysis paused."
+msgstr "Am pus analiza în pauză."
+
+#: assets/build/index.js:59 assets/build/index.js:105
+msgid "Pause"
+msgstr "Pauză"
+
+#: assets/build/index.js:59
+msgid "Analysis cancelled."
+msgstr "Am anulat analiza."
+
+#: assets/build/index.js:59 assets/build/index.js:128
+msgid "Analyze your site"
+msgstr "Analizează-ți site-ul"
+
+#: assets/build/index.js:59
+msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "Magic Linking citește legăturile interne deja scrise în intrările tale și arată care nu au nicio legătură către ele, care au prea puține, care au prea multe și care sunt defecte. Analiza doar citește conținutul tău; nu îl modifică niciodată. Legăturile se adaugă doar când apeși Leagă."
+
+#: assets/build/index.js:59
+msgid "Analyze my site"
+msgstr "Analizează site-ul meu"
+
+#: assets/build/index.js:59
+msgid "An administrator has to run the first analysis."
+msgstr "Prima analiză trebuie rulată de un administrator."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:60
+msgid "%s new or modified entry pending."
+msgid_plural "%s new or modified entries pending."
+msgstr[0] "%s intrare nouă sau modificată în așteptare."
+msgstr[1] "%s intrări noi sau modificate în așteptare."
+msgstr[2] "%s de intrări noi sau modificate în așteptare."
+
+#: assets/build/index.js:60 assets/build/index.js:62
+msgid "Analyze changes"
+msgstr "Analizează modificările"
+
+#. translators: %s: error message.
+#: assets/build/index.js:61
+msgid "The last analysis failed: %s"
+msgstr "Ultima analiză a eșuat: %s"
+
+#: assets/build/index.js:61
+msgid "unknown error"
+msgstr "eroare necunoscută"
+
+#. translators: %s: date and time of the last analysis.
+#: assets/build/index.js:62 assets/build/index.js:126
+msgid "Last analysis: %s"
+msgstr "Ultima analiză: %s"
+
+#: assets/build/index.js:79
+msgid "The suggestions could not be loaded."
+msgstr "Nu am putut încărca sugestiile."
+
+#. translators: %d: number of suggestions.
+#: assets/build/index.js:80 assets/build/index.js:86
+msgid "%d suggestion"
+msgid_plural "%d suggestions"
+msgstr[0] "%d sugestie"
+msgstr[1] "%d sugestii"
+msgstr[2] "%d de sugestii"
+
+#: assets/build/index.js:83
+msgid "The text has changed since the link was added, so it could not be removed automatically. Open the history to see why."
+msgstr "Textul s-a schimbat de când a fost adăugată legătura, deci nu a putut fi eliminată automat. Deschide istoricul ca să vezi de ce."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:84
+msgid "Inbound suggestions: %s"
+msgstr "Sugestii primite: %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:85
+msgid "Outbound suggestions: %s"
+msgstr "Sugestii de ieșire: %s"
+
+#: assets/build/index.js:85
+msgid "Sentences in other entries where a link to this one fits. Each link is added right away, one at a time, without opening the editor of that entry, and you can undo it."
+msgstr "Propoziții din alte intrări în care se potrivește o legătură către aceasta. Fiecare legătură se adaugă imediat, pe rând, fără a deschide editorul acelei intrări, și o poți anula."
+
+#: assets/build/index.js:85
+msgid "Sentences in this entry where a link to another entry fits. Each link is added right away, one at a time, without opening the editor, and you can undo it."
+msgstr "Propoziții din această intrare în care se potrivește o legătură către altă intrare. Fiecare legătură se adaugă imediat, pe rând, fără a deschide editorul, și o poți anula."
+
+#: assets/build/index.js:86
+msgid "Outbound suggestions pages"
+msgstr "Pagini cu sugestii de ieșire"
+
+#: assets/build/index.js:86
+msgid "Not analyzed"
+msgstr "Neanalizată"
+
+#: assets/build/index.js:86 assets/build/index.js:87
+msgid "Excluded"
+msgstr "Excluse"
+
+#: assets/build/index.js:86 assets/build/index.js:130
+msgid "Could not load the report."
+msgstr "Nu am putut încărca raportul."
+
+#. translators: %d: number of entries.
+#: assets/build/index.js:87
+msgid "%d entry"
+msgid_plural "%d entries"
+msgstr[0] "%d intrare"
+msgstr[1] "%d intrări"
+msgstr[2] "%d de intrări"
+
+#: assets/build/index.js:87
+msgid "All"
+msgstr "Toate"
+
+#: assets/build/index.js:87
+msgid "Orphans"
+msgstr "Orfane"
+
+#: assets/build/index.js:87
+msgid "With broken links"
+msgstr "Cu legături defecte"
+
+#: assets/build/index.js:87
+msgid "Title"
+msgstr "Titlu"
+
+#: assets/build/index.js:87
+msgid "Type · Language"
+msgstr "Tip · Limbă"
+
+#: assets/build/index.js:87
+msgid "Type"
+msgstr "Tip"
+
+#: assets/build/index.js:87
+msgid "Internal outbound"
+msgstr "Interne de ieșire"
+
+#: assets/build/index.js:87
+msgid "External"
+msgstr "Externe"
+
+#: assets/build/index.js:87
+msgid "Broken"
+msgstr "Defecte"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:88
+msgid "broken links in %s"
+msgstr "legături defecte în %s"
+
+#: assets/build/index.js:88
+msgid "category excluded"
+msgstr "categorie exclusă"
+
+#: assets/build/index.js:88
+msgid "Analyzed"
+msgstr "Analizată"
+
+#: assets/build/index.js:88
+msgid "Internal links by entry"
+msgstr "Legături interne pe intrări"
+
+#: assets/build/index.js:88
+msgid "Inbound suggestions"
+msgstr "Sugestii primite"
+
+#: assets/build/index.js:88
+msgid "Outbound suggestions"
+msgstr "Sugestii de ieșire"
+
+#: assets/build/index.js:88
+msgid "Change excluded categories"
+msgstr "Schimbă categoriile excluse"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:89
+msgid "%s excluded from the analysis."
+msgstr "%s a fost exclusă din analiză."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:90
+msgid "%s included in the analysis again."
+msgstr "%s a fost inclusă din nou în analiză."
+
+#: assets/build/index.js:90
+msgid "Could not exclude the entry from the analysis."
+msgstr "Nu am putut exclude intrarea din analiză."
+
+#: assets/build/index.js:90
+msgid "Could not include the entry in the analysis again."
+msgstr "Nu am putut include intrarea din nou în analiză."
+
+#: assets/build/index.js:90
+msgid "Include in the analysis"
+msgstr "Include din nou în analiză"
+
+#: assets/build/index.js:90
+msgid "Exclude from the analysis"
+msgstr "Exclude din analiză"
+
+#: assets/build/index.js:90
+msgid "View broken links"
+msgstr "Vezi legăturile defecte"
+
+#: assets/build/index.js:90
+msgid "No entries are excluded from the analysis."
+msgstr "Nicio intrare nu este exclusă din analiză."
+
+#: assets/build/index.js:90 assets/build/index.js:118
+msgid "Content type"
+msgstr "Tip de conținut"
+
+#: assets/build/index.js:90
+msgid "All types"
+msgstr "Toate tipurile"
+
+#: assets/build/index.js:90
+msgid "Language"
+msgstr "Limbă"
+
+#: assets/build/index.js:90
+msgid "All languages"
+msgstr "Toate limbile"
+
+#: assets/build/index.js:90
+msgid "No more entries fit this rule."
+msgstr "Nu se mai potrivește nicio intrare cu această regulă."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:92
+msgid "Apply “%s” to existing entries"
+msgstr "Aplică „%s” intrărilor existente"
+
+#: assets/build/index.js:92
+msgid "These are the entries where the rule fits. Check the link that would be added and add it entry by entry. Each one is written safely, shown in the history and can be undone."
+msgstr "Acestea sunt intrările în care se potrivește regula. Verifică legătura care ar fi adăugată și adaugă-o intrare cu intrare. Fiecare este scrisă în siguranță, apare în istoric și poate fi anulată."
+
+#: assets/build/index.js:92
+msgid "Searching…"
+msgstr "Se caută…"
+
+#. translators: 1: number of entries where the rule fits, 2: number of entries checked.
+#: assets/build/index.js:93
+msgid "%1$s where it fits, %2$s checked."
+msgstr "%1$s în care se potrivește, %2$s verificate."
+
+#: assets/build/index.js:93
+msgid "Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower)."
+msgstr "Căutare cu ajutorul indexului: doar intrările care au primul cuvânt al unei expresii printre termenii lor principali. „Caută în toate intrările” le verifică pe toate (mai lent)."
+
+#: assets/build/index.js:93
+msgid "No entry needs this rule right now."
+msgstr "Nicio intrare nu are nevoie de această regulă acum."
+
+#: assets/build/index.js:93
+msgid "The link would be added here:"
+msgstr "Legătura ar fi adăugată aici:"
+
+#: assets/build/index.js:94
+msgid "The link could not be added; nothing was changed."
+msgstr "Nu am putut adăuga legătura; nu am schimbat nimic."
+
+#: assets/build/index.js:94
+msgid "Add link"
+msgstr "Adaugă legătura"
+
+#: assets/build/index.js:94
+msgid "Undone: the entry is back as it was."
+msgstr "Anulat: intrarea este la loc, așa cum era."
+
+#: assets/build/index.js:94
+msgid "Search every entry"
+msgstr "Caută în toate intrările"
+
+#: assets/build/index.js:94
+msgid "Keep searching"
+msgstr "Continuă căutarea"
+
+#: assets/build/index.js:94
+msgid "Find more entries"
+msgstr "Găsește mai multe intrări"
+
+#: assets/build/index.js:94 assets/build/index.js:130
+msgid "Close"
+msgstr "Închide"
+
+#: assets/build/index.js:94
+msgid "Pick the entry the rule should link to."
+msgstr "Alege intrarea la care trebuie să ducă regula."
+
+#: assets/build/index.js:94
+msgid "The rule could not be saved. Nothing was changed."
+msgstr "Nu am putut salva regula. Nu am schimbat nimic."
+
+#: assets/build/index.js:94
+msgid "Edit rule"
+msgstr "Editează regula"
+
+#: assets/build/index.js:94
+msgid "Add a rule"
+msgstr "Adaugă o regulă"
+
+#: assets/build/index.js:94
+msgid "Phrases to link"
+msgstr "Expresii de legat"
+
+#: assets/build/index.js:94
+msgid "(required)"
+msgstr "(obligatoriu)"
+
+#: assets/build/index.js:94
+msgid "One phrase per line: the first is the main one and the rest are variants. Plurals and similar forms are matched too, so “heat pump” also finds “heat pumps”. The text is linked exactly as it is written in the entry."
+msgstr "O expresie pe rând: prima este cea principală, iar celelalte sunt variante. Se potrivesc și pluralele și formele asemănătoare, așa că „pompă de căldură” găsește și „pompe de căldură”. Textul primește legătura exact așa cum este scris în intrare."
+
+#: assets/build/index.js:94 assets/build/index.js:98
+msgid "Destination"
+msgstr "Destinație"
+
+#: assets/build/index.js:95
+msgid "Type part of the title of the entry the links should lead to."
+msgstr "Scrie o parte din titlul intrării la care trebuie să ducă legăturile."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:96
+msgid "Destination: %s"
+msgstr "Destinație: %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:97
+msgid "Selected: %s"
+msgstr "Selectat: %s"
+
+#: assets/build/index.js:97
+msgid "Keep the current one"
+msgstr "Păstrează-o pe cea actuală"
+
+#: assets/build/index.js:97
+msgid "Links per entry"
+msgstr "Legături pe intrare"
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: assets/build/index.js:98
+msgid "The most links this rule adds to one entry. Your settings allow %d link to the same target from one entry, so that is the real maximum."
+msgid_plural "The most links this rule adds to one entry. Your settings allow %d links to the same target from one entry, so that is the real maximum."
+msgstr[0] "Cel mai mare număr de legături pe care această regulă îl adaugă într-o intrare. Setările tale permit %d legătură către aceeași țintă dintr-o intrare, deci acela este maximul real."
+msgstr[1] "Cel mai mare număr de legături pe care această regulă îl adaugă într-o intrare. Setările tale permit %d legături către aceeași țintă dintr-o intrare, deci acela este maximul real."
+msgstr[2] "Cel mai mare număr de legături pe care această regulă îl adaugă într-o intrare. Setările tale permit %d de legături către aceeași țintă dintr-o intrare, deci acela este maximul real."
+
+#: assets/build/index.js:98
+msgid "The most links this rule adds to one entry."
+msgstr "Cel mai mare număr de legături pe care această regulă îl adaugă într-o intrare."
+
+#: assets/build/index.js:98
+msgid "Only the first appearance of each phrase"
+msgstr "Doar prima apariție a fiecărei expresii"
+
+#: assets/build/index.js:98
+msgid "Allow one extra word inside a phrase"
+msgstr "Permite un cuvânt în plus în interiorul unei expresii"
+
+#: assets/build/index.js:98
+msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words, and never across punctuation."
+msgstr "„renovare bucătărie” se potrivește și cu „renovare completă bucătărie”, dar nu cu două cuvinte în plus și niciodată peste semne de punctuație."
+
+#: assets/build/index.js:98
+msgid "Do not apply to"
+msgstr "Nu aplica la"
+
+#: assets/build/index.js:98
+msgid "Skip entries in these categories"
+msgstr "Omite intrările din aceste categorii"
+
+#: assets/build/index.js:98
+msgid "Categories to skip"
+msgstr "Categorii de omis"
+
+#: assets/build/index.js:98
+msgid "Active: apply it when an entry is saved"
+msgstr "Activă: se aplică la salvarea unei intrări"
+
+#: assets/build/index.js:98
+msgid "Save rule"
+msgstr "Salvează regula"
+
+#: assets/build/index.js:98 assets/build/index.js:105
+msgid "Add rule"
+msgstr "Adaugă regula"
+
+#: assets/build/index.js:98
+msgid "Could not load the rules."
+msgstr "Nu am putut încărca regulile."
+
+#: assets/build/index.js:98
+msgid "Could not load the options."
+msgstr "Nu am putut încărca opțiunile."
+
+#: assets/build/index.js:98 assets/build/index.js:127
+msgid "Phrases"
+msgstr "Expresii"
+
+#: assets/build/index.js:98
+msgid "(missing entry)"
+msgstr "(intrare lipsă)"
+
+#: assets/build/index.js:98
+msgid "not published"
+msgstr "nepublicată"
+
+#: assets/build/index.js:98
+msgid "Options"
+msgstr "Opțiuni"
+
+#. translators: %d: links per entry.
+#: assets/build/index.js:99
+msgid "%d link per entry"
+msgid_plural "%d links per entry"
+msgstr[0] "%d legătură pe intrare"
+msgstr[1] "%d legături pe intrare"
+msgstr[2] "%d de legături pe intrare"
+
+#: assets/build/index.js:99
+msgid "first appearance only"
+msgstr "doar prima apariție"
+
+#: assets/build/index.js:99
+msgid "one extra word allowed"
+msgstr "un cuvânt în plus permis"
+
+#. translators: %s: content types, comma separated.
+#: assets/build/index.js:100
+msgid "skips %s"
+msgstr "omite %s"
+
+#. translators: %d: number of categories.
+#: assets/build/index.js:101
+msgid "skips %d category"
+msgid_plural "skips %d categories"
+msgstr[0] "omite %d categorie"
+msgstr[1] "omite %d categorii"
+msgstr[2] "omite %d de categorii"
+
+#: assets/build/index.js:101
+msgid "Active"
+msgstr "Activă"
+
+#: assets/build/index.js:101
+msgid "Paused"
+msgstr "În pauză"
+
+#: assets/build/index.js:101
+msgid "A rule turns a phrase into a link to an entry. It is applied when a published entry is saved (never when a page is shown) and it only adds links: it never removes or changes one that exists, and everything it writes can be undone from the history. If someone has the entry open in the editor, the rule waits until it is closed."
+msgstr "O regulă transformă o expresie într-o legătură către o intrare. Se aplică la salvarea unei intrări publicate (niciodată la afișarea unei pagini) și doar adaugă legături: nu elimină și nu schimbă niciodată una existentă, iar tot ce scrie poate fi anulat din istoric. Dacă cineva are intrarea deschisă în editor, regula așteaptă până când aceasta este închisă."
+
+#. translators: 1: words per link, 2: links to the same target per entry, 3: entries with the same anchor.
+#: assets/build/index.js:102
+msgid "Limits that rules never exceed (change them in Settings): one internal link for every %1$d words of an entry, %2$d to the same target from one entry, and %3$d entries using the same anchor text for the same target."
+msgstr "Limite pe care regulile nu le depășesc niciodată (le schimbi în Setări): o legătură internă la fiecare %1$d cuvinte dintr-o intrare, %2$d către aceeași țintă dintr-o intrare și %3$d intrări care folosesc același text de ancoră pentru aceeași țintă."
+
+#: assets/build/index.js:102
+msgid "Open Settings"
+msgstr "Deschide Setările"
+
+#: assets/build/index.js:102
+msgid "Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed."
+msgstr "Unele intrări au rămas deschise în editor timp de o zi, așa că regulile nu au putut fi aplicate. Salvează-le din nou după ce sunt închise."
+
+#. translators: %s: main phrase of a rule.
+#: assets/build/index.js:103
+msgid "The rule “%s” is not being applied: the person who created it can no longer manage the site."
+msgstr "Regula „%s” nu se aplică: persoana care a creat-o nu mai poate administra site-ul."
+
+#: assets/build/index.js:103
+msgid "Notice dismissed."
+msgstr "Am respins notificarea."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:104
+msgid "Rule “%s” added. It will be applied the next time a published entry is saved. To use it on existing entries, choose “Apply to existing entries”."
+msgstr "Am adăugat regula „%s”. Se va aplica la următoarea salvare a unei intrări publicate. Pentru a o folosi pe intrările existente, alege „Aplică la intrările existente”."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:105
+msgid "Rule “%s” saved."
+msgstr "Am salvat regula „%s”."
+
+#: assets/build/index.js:105
+msgid "Automatic rules"
+msgstr "Reguli automate"
+
+#: assets/build/index.js:105
+msgid "Apply to existing entries"
+msgstr "Aplică la intrările existente"
+
+#: assets/build/index.js:105
+msgid "Rule paused."
+msgstr "Am pus regula în pauză."
+
+#: assets/build/index.js:105
+msgid "Rule activated."
+msgstr "Am activat regula."
+
+#: assets/build/index.js:105
+msgid "The rule could not be changed."
+msgstr "Nu am putut modifica regula."
+
+#: assets/build/index.js:105
+msgid "Activate"
+msgstr "Activează"
+
+#: assets/build/index.js:105
+msgid "Delete"
+msgstr "Șterge"
+
+#: assets/build/index.js:105
+msgid "There are no rules yet. Add one to link a phrase to an entry automatically."
+msgstr "Încă nu există reguli. Adaugă una pentru a lega automat o expresie de o intrare."
+
+#: assets/build/index.js:105
+msgid "Delete rule"
+msgstr "Șterge regula"
+
+#: assets/build/index.js:105
+msgid "Rule deleted. The links it already added stay in your entries; you can undo them from the history."
+msgstr "Am șters regula. Legăturile pe care le-a adăugat deja rămân în intrările tale; le poți anula din istoric."
+
+#: assets/build/index.js:105
+msgid "The rule could not be deleted."
+msgstr "Nu am putut șterge regula."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:106
+msgid "Delete the rule “%s”? The links it already added stay in your entries; you can undo them from the history."
+msgstr "Ștergi regula „%s”? Legăturile pe care le-a adăugat deja rămân în intrările tale; le poți anula din istoric."
+
+#. translators: %s: name of the taxonomy, e.g. Categories.
+#: assets/build/index.js:107
+msgid "Filter %s by name"
+msgstr "Filtrează %s după nume"
+
+#. translators: %d: number of categories not shown.
+#: assets/build/index.js:108
+msgid "%d more not shown. Type in the filter to find them."
+msgstr "Încă %d nu sunt afișate. Scrie în filtru pentru a le găsi."
+
+#: assets/build/index.js:108
+msgid "Content analyzed"
+msgstr "Conținut analizat"
+
+#: assets/build/index.js:108
+msgid "Magic Linking reads these content types to find links between them."
+msgstr "Magic Linking citește aceste tipuri de conținut pentru a găsi legături între ele."
+
+#: assets/build/index.js:108
+msgid "Categories left out"
+msgstr "Categorii excluse"
+
+#: assets/build/index.js:108
+msgid "Entries in the categories you tick are not analyzed, like an entry you exclude yourself: they get no suggestions and are not suggested anywhere."
+msgstr "Intrările din categoriile pe care le bifezi nu sunt analizate, ca o intrare pe care o excluzi chiar tu: nu au sugestii și nu sunt sugerate nicăieri."
+
+#: assets/build/index.js:108
+msgid "Maintenance"
+msgstr "Întreținere"
+
+#: assets/build/index.js:108
+msgid "Run the analysis again and go back through the first steps."
+msgstr "Rulează din nou analiza și reia primii pași."
+
+#: assets/build/index.js:108
+msgid "Suggestions shown"
+msgstr "Sugestii afișate"
+
+#: assets/build/index.js:108
+msgid "How many suggestions you see in the editor."
+msgstr "Câte sugestii vezi în editor."
+
+#: assets/build/index.js:108
+msgid "To avoid overloading your texts"
+msgstr "Pentru a nu supraîncărca textele"
+
+#: assets/build/index.js:108
+msgid "These are quality settings, not limits: you can always insert any link yourself."
+msgstr "Acestea sunt setări de calitate, nu limite: poți oricând să inserezi singur orice legătură."
+
+#: assets/build/index.js:108
+msgid "Which entries are suggested"
+msgstr "Ce intrări sunt sugerate"
+
+#: assets/build/index.js:108
+msgid "Quality settings, not limits: you can always insert any link yourself. Suggestions never mix languages."
+msgstr "Setări de calitate, nu limite: poți oricând să inserezi singur orice legătură. Sugestiile nu amestecă niciodată limbile."
+
+#: assets/build/index.js:108
+msgid "Under-linked entries"
+msgstr "Intrări cu puține legături"
+
+#: assets/build/index.js:108
+msgid "When an entry is shown as linked too little."
+msgstr "Când o intrare este afișată ca având prea puține legături."
+
+#: assets/build/index.js:108
+msgid "Advanced"
+msgstr "Avansat"
+
+#: assets/build/index.js:108
+msgid "The defaults suit almost every site. Change them only if you know what they do."
+msgstr "Valorile implicite se potrivesc aproape oricărui site. Schimbă-le doar dacă știi ce fac."
+
+#: assets/build/index.js:108
+msgid "Where links can be inserted"
+msgstr "Unde se pot insera legături"
+
+#: assets/build/index.js:108
+msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
+msgstr "Paragrafele și listele sunt folosite întotdeauna. Acestea sunt dezactivate implicit; activează-le dacă vrei sugestii și legături și acolo."
+
+#: assets/build/index.js:108
+msgid "How links are inserted"
+msgstr "Cum se inserează legăturile"
+
+#: assets/build/index.js:108
+msgid "What the links Magic Linking inserts look like."
+msgstr "Cum arată legăturile pe care le inserează Magic Linking."
+
+#: assets/build/index.js:108
+msgid "Exclusions"
+msgstr "Excluderi"
+
+#: assets/build/index.js:108
+msgid "Entries and words that Magic Linking should leave alone."
+msgstr "Intrări și cuvinte pe care Magic Linking trebuie să le lase în pace."
+
+#: assets/build/index.js:108
+msgid "AI connector"
+msgstr "Conector IA"
+
+#: assets/build/index.js:108
+msgid "Magic Linking uses the AI you connect in WordPress. It never asks for a key of its own."
+msgstr "Magic Linking folosește IA pe care o conectezi în WordPress. Nu cere niciodată o cheie proprie."
+
+#: assets/build/index.js:108
+msgid "Daily limit and model"
+msgstr "Limită zilnică și model"
+
+#: assets/build/index.js:108
+msgid "You decide how much AI can be used each day and, if you want, which model."
+msgstr "Tu decizi cât de multă IA poate fi folosită pe zi și, dacă vrei, ce model."
+
+#: assets/build/index.js:108
+msgid "AI use in the last 30 days"
+msgstr "Utilizarea IA în ultimele 30 de zile"
+
+#: assets/build/index.js:108
+msgid "What Magic Linking has used through your connector. Your provider is the one that charges you."
+msgstr "Ce a folosit Magic Linking prin conectorul tău. Furnizorul tău este cel care te taxează."
+
+#: assets/build/index.js:108
+msgid "History of changes"
+msgstr "Istoricul modificărilor"
+
+#: assets/build/index.js:108
+msgid "How long you can undo changes."
+msgstr "Cât timp poți anula modificările."
+
+#: assets/build/index.js:108
+msgid "When the plugin is deleted"
+msgstr "La ștergerea modulului"
+
+#: assets/build/index.js:108
+msgid "What happens to the data of Magic Linking."
+msgstr "Ce se întâmplă cu datele Magic Linking."
+
+#: assets/build/index.js:108
+msgid "Could not load the AI status."
+msgstr "Nu am putut încărca starea IA."
+
+#: assets/build/index.js:108
+msgid "Preferred model"
+msgstr "Model preferat"
+
+#: assets/build/index.js:108
+msgid "Automatic picks a small, fast model from your connector, the cheapest one when it can. Pick another if you prefer."
+msgstr "Automat alege un model mic și rapid din conectorul tău, cel mai ieftin când este posibil. Alege altul dacă preferi."
+
+#: assets/build/index.js:108
+msgid "no cost (local)"
+msgstr "fără cost (local)"
+
+#. translators: 1: dollars per million input tokens, 2: dollars per million output tokens.
+#: assets/build/index.js:109
+msgid "%1$s in / %2$s out per million"
+msgstr "%1$s intrare / %2$s ieșire per milion"
+
+#: assets/build/index.js:109
+msgid "Automatic (recommended)"
+msgstr "Automat (recomandat)"
+
+#: assets/build/index.js:109
+msgid "Recommended"
+msgstr "Recomandat"
+
+#: assets/build/index.js:109
+msgid "All models"
+msgstr "Toate modelele"
+
+#. translators: %s: model name.
+#: assets/build/index.js:110
+msgid "%s (not available now)"
+msgstr "%s (indisponibil acum)"
+
+#: assets/build/index.js:110
+msgid "AI is turned off: the daily limit is 0 tokens. Suggestions use the built-in engine."
+msgstr "IA este dezactivată: limita zilnică este de 0 tokeni. Sugestiile folosesc motorul integrat."
+
+#. translators: 1: tokens used today, 2: daily limit in tokens.
+#: assets/build/index.js:111
+msgid "Today: %1$s of %2$s tokens used."
+msgstr "Astăzi: %1$s din %2$s tokeni folosiți."
+
+#: assets/build/index.js:111
+msgid "The limit is reached: AI is paused until tomorrow and suggestions use the built-in engine."
+msgstr "Limita a fost atinsă: IA este în pauză până mâine, iar sugestiile folosesc motorul integrat."
+
+#: assets/build/index.js:111
+msgid "AI needs WordPress 7.0 or later. This site runs an earlier version, so Magic Linking works with its own engine and the AI options are turned off."
+msgstr "IA necesită WordPress 7.0 sau mai nou. Acest site rulează o versiune mai veche, deci Magic Linking lucrează cu propriul motor, iar opțiunile de IA sunt dezactivate."
+
+#: assets/build/index.js:111
+msgid "This site has no AI connected. Magic Linking works fully without it: suggestions use its own engine."
+msgstr "Pe acest site nu este conectată nicio IA. Magic Linking funcționează complet și fără ea: sugestiile folosesc propriul motor."
+
+#: assets/build/index.js:111
+msgid "You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…)."
+msgstr "Poți să o conectezi pe a ta în Setări → Conectori (OpenAI, Google, Ollama local…)."
+
+#: assets/build/index.js:111 assets/build/index.js:112
+msgid "Check again"
+msgstr "Verifică din nou"
+
+#: assets/build/index.js:111
+msgid "Provider"
+msgstr "Furnizor"
+
+#: assets/build/index.js:111
+msgid "Model it will use"
+msgstr "Modelul pe care îl va folosi"
+
+#: assets/build/index.js:111
+msgid "Where it runs"
+msgstr "Unde rulează"
+
+#: assets/build/index.js:111
+msgid "Local, on your own server"
+msgstr "Local, pe propriul tău server"
+
+#: assets/build/index.js:111
+msgid "Remote, at your provider"
+msgstr "La distanță, la furnizorul tău"
+
+#: assets/build/index.js:111
+msgid "The AI on this site is local: the text does not leave your server."
+msgstr "IA de pe acest site este locală: textul nu părăsește serverul tău."
+
+#. translators: %s: name of the AI provider.
+#: assets/build/index.js:112
+msgid "To use the AI suggestions, the text of the entries involved is sent to %s through your WordPress connector."
+msgstr "Pentru a folosi sugestiile IA, textul intrărilor implicate este trimis la %s prin conectorul tău WordPress."
+
+#: assets/build/index.js:112
+msgid "No AI requests in the last 30 days."
+msgstr "Nicio cerere de IA în ultimele 30 de zile."
+
+#. translators: %s: estimated cost in dollars.
+#: assets/build/index.js:113
+msgid "%s (only models with a known price)"
+msgstr "%s (doar modelele cu preț cunoscut)"
+
+#. translators: 1: number of AI requests, 2: tokens used, 3: estimated cost.
+#: assets/build/index.js:114
+msgid "%1$s requests, %2$s tokens, about %3$s."
+msgstr "%1$s cereri, %2$s tokeni, aproximativ %3$s."
+
+#. translators: %s: number of AI requests that got no usable answer.
+#: assets/build/index.js:115
+msgid "Requests without an answer: %s."
+msgstr "Cereri fără răspuns: %s."
+
+#: assets/build/index.js:115
+msgid "AI use by model"
+msgstr "Utilizarea IA pe modele"
+
+#: assets/build/index.js:115
+msgid "Model"
+msgstr "Model"
+
+#: assets/build/index.js:115 assets/build/index.js:127
+msgid "Requests"
+msgstr "Cereri"
+
+#: assets/build/index.js:115
+msgid "Tokens"
+msgstr "Tokeni"
+
+#: assets/build/index.js:115
+msgid "Estimated cost"
+msgstr "Cost estimat"
+
+#. translators: %s: date of the price list, like 2026-10-15.
+#: assets/build/index.js:116
+msgid "Costs are estimates with public list prices as of %s. What your provider charges is what counts. A local model costs nothing."
+msgstr "Costurile sunt estimări pe baza prețurilor publice de listă din %s. Contează ce te taxează furnizorul tău. Un model local nu costă nimic."
+
+#: assets/build/index.js:116
+msgid "No cost (local)"
+msgstr "Fără cost (local)"
+
+#: assets/build/index.js:116
+msgid "Price unknown"
+msgstr "Preț necunoscut"
+
+#: assets/build/index.js:116
+msgid "Last failed request"
+msgstr "Ultima cerere eșuată"
+
+#. translators: 1: date and time, 2: model name (may be empty), 3: error code.
+#: assets/build/index.js:117
+msgid "%1$s · %2$s · code: %3$s"
+msgstr "%1$s · %2$s · cod: %3$s"
+
+#: assets/build/index.js:117
+msgid "unknown model"
+msgstr "model necunoscut"
+
+#: assets/build/index.js:117
+msgid "Last full analysis"
+msgstr "Ultima analiză completă"
+
+#: assets/build/index.js:117
+msgid "Duration"
+msgstr "Durată"
+
+#: assets/build/index.js:117 assets/build/index.js:132
+msgid "Entries analyzed"
+msgstr "Intrări analizate"
+
+#: assets/build/index.js:117
+msgid "There is no completed analysis yet."
+msgstr "Încă nu există nicio analiză finalizată."
+
+#: assets/build/index.js:117
+msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background. Analyzing only reads your content; it never changes it."
+msgstr "Analizează din nou fiecare intrare de la zero, chiar și pe cele care nu s-au schimbat. Pentru a analiza doar ce este nou sau modificat, folosește „Analizează modificările” din Raport. Rulează în fundal. Analiza doar citește conținutul tău; nu îl modifică niciodată."
+
+#: assets/build/index.js:117
+msgid "Analyze everything again from scratch"
+msgstr "Analizează tot din nou de la zero"
+
+#: assets/build/index.js:117
+msgid "An analysis is already running; its progress is shown above."
+msgstr "O analiză rulează deja; progresul ei este afișat mai sus."
+
+#: assets/build/index.js:117
+msgid "Setup assistant"
+msgstr "Asistent de configurare"
+
+#: assets/build/index.js:117
+msgid "Go through the first steps again: content types, AI and the first analysis."
+msgstr "Parcurge din nou primii pași: tipurile de conținut, IA și prima analiză."
+
+#: assets/build/index.js:117
+msgid "Open the setup assistant"
+msgstr "Deschide asistentul de configurare"
+
+#: assets/build/index.js:117
+msgid "Analyze everything again from scratch?"
+msgstr "Analizezi tot din nou de la zero?"
+
+#: assets/build/index.js:117
+msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it."
+msgstr "Magic Linking va citi din nou fiecare intrare. Rulează în fundal, deci poți continua să lucrezi. Analiza doar citește conținutul tău; nu îl modifică niciodată."
+
+#: assets/build/index.js:117
+msgid "Start analysis"
+msgstr "Începe analiza"
+
+#: assets/build/index.js:117 assets/build/index.js:127
+msgid "Could not load the settings."
+msgstr "Nu am putut încărca setările."
+
+#: assets/build/index.js:117
+msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
+msgstr "Am salvat setările. Ce citește Magic Linking s-a schimbat, deci site-ul tău este analizat din nou."
+
+#: assets/build/index.js:117
+msgid "Settings saved."
+msgstr "Am salvat setările."
+
+#: assets/build/index.js:117 assets/build/index.js:130
+msgid "The settings could not be saved."
+msgstr "Nu am putut salva setările."
+
+#: assets/build/index.js:117
+msgid "Ignore"
+msgstr "Ignoră"
+
+#: assets/build/index.js:117
+msgid "Take into account (a small boost if they share it)"
+msgstr "Ia în considerare (un mic avantaj dacă o au în comun)"
+
+#: assets/build/index.js:117
+msgid "Require (only entries that share it)"
+msgstr "Cere (doar intrările care o au în comun)"
+
+#. translators: 1: minimum, 2: maximum.
+#: assets/build/index.js:118
+msgid "Enter a whole number from %1$s to %2$s; otherwise it is adjusted when you leave the field."
+msgstr "Introdu un număr întreg de la %1$s la %2$s; în caz contrar, se ajustează când părăsești câmpul."
+
+#: assets/build/index.js:118 assets/build/index.js:130
+msgid "Choose at least one content type."
+msgstr "Alege cel puțin un tip de conținut."
+
+#: assets/build/index.js:118
+msgid "Unsaved changes"
+msgstr "Modificări nesalvate"
+
+#: assets/build/index.js:118
+msgid "(needs attention)"
+msgstr "(necesită atenție)"
+
+#: assets/build/index.js:118
+msgid "(unsaved changes)"
+msgstr "(modificări nesalvate)"
+
+#: assets/build/index.js:118
+msgid "General"
+msgstr "General"
+
+#: assets/build/index.js:118
+msgid "Suggestions"
+msgstr "Sugestii"
+
+#: assets/build/index.js:118
+msgid "Links"
+msgstr "Legături"
+
+#: assets/build/index.js:118
+msgid "AI"
+msgstr "IA"
+
+#: assets/build/index.js:118
+msgid "History and data"
+msgstr "Istoric și date"
+
+#: assets/build/index.js:118
+msgid "Outbound suggestions in the editor"
+msgstr "Sugestii de ieșire în editor"
+
+#: assets/build/index.js:118
+msgid "The most useful links to add from the entry you are editing."
+msgstr "Cele mai utile legături de adăugat din intrarea pe care o editezi."
+
+#: assets/build/index.js:118
+msgid "Alternative sentences per suggestion"
+msgstr "Propoziții alternative pe sugestie"
+
+#: assets/build/index.js:118
+msgid "0 shows one sentence per suggestion. With 1 or 2, each card offers “More sentences” to link from another sentence of the same entry."
+msgstr "Cu 0 se afișează o singură propoziție pe sugestie. Cu 1 sau 2, fiecare card oferă „Mai multe propoziții” pentru a lega dintr-o altă propoziție din aceeași intrare."
+
+#: assets/build/index.js:118
+msgid "Inbound suggestions per page in the editor"
+msgstr "Sugestii primite pe pagină în editor"
+
+#: assets/build/index.js:118
+msgid "Entries that could link to the one you are editing, shown this many at a time."
+msgstr "Intrări care ar putea face legătură la cea pe care o editezi, afișate în atâtea câte sunt setate odată."
+
+#: assets/build/index.js:118
+msgid "Words per internal link"
+msgstr "Cuvinte pe legătură internă"
+
+#: assets/build/index.js:118
+msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed). Automatic rules never add a link to an entry that already has that many."
+msgstr "O intrare cu mai multe legături interne decât una la fiecare atâtea cuvinte este afișată ca având prea multe legături (este permisă întotdeauna cel puțin o legătură). Regulile automate nu adaugă niciodată o legătură la o intrare care are deja atâtea."
+
+#: assets/build/index.js:118
+msgid "Links to the same target from one entry"
+msgstr "Legături către aceeași țintă dintr-o intrare"
+
+#: assets/build/index.js:118
+msgid "Automatic rules add at most this many links from an entry to the same target. Existing links are never removed."
+msgstr "Regulile automate adaugă cel mult atâtea legături dintr-o intrare către aceeași țintă. Legăturile existente nu sunt eliminate niciodată."
+
+#: assets/build/index.js:118
+msgid "Entries that can use the same anchor text for the same target"
+msgstr "Intrări care pot folosi același text de ancoră pentru aceeași țintă"
+
+#: assets/build/index.js:118
+msgid "Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries."
+msgstr "Peste atâtea intrări, același text de ancoră către aceeași țintă este sugerat mai rar, iar regulile automate nu îl mai folosesc în intrări noi."
+
+#: assets/build/index.js:118
+msgid "For example, suggest links from posts only to posts."
+msgstr "De exemplu, sugerează legături din articole doar către articole."
+
+#: assets/build/index.js:118
+msgid "Category"
+msgstr "Categorie"
+
+#: assets/build/index.js:118
+msgid "In a custom content type, its main hierarchical taxonomy is used instead."
+msgstr "Într-un tip de conținut personalizat se folosește în schimb taxonomia lui ierarhică principală."
+
+#: assets/build/index.js:118
+msgid "Tag"
+msgstr "Etichetă"
+
+#: assets/build/index.js:118
+msgid "In a custom content type, its main non-hierarchical taxonomy is used instead."
+msgstr "Într-un tip de conținut personalizat se folosește în schimb taxonomia lui neierarhică principală."
+
+#: assets/build/index.js:118
+msgid "Under-linked below this many inbound links"
+msgstr "Puține legături sub atâtea legături primite"
+
+#: assets/build/index.js:118
+msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
+msgstr "O intrare cu cel puțin o legătură primită, dar cu mai puține decât acest număr, este afișată ca având puține legături."
+
+#: assets/build/index.js:118
+msgid "Show advanced settings"
+msgstr "Afișează setările avansate"
+
+#: assets/build/index.js:118
+msgid "Key terms per entry"
+msgstr "Termeni-cheie pe intrare"
+
+#: assets/build/index.js:118
+msgid "How many of the most important terms of each entry are kept to find related entries (20 to 80). Changing it makes Magic Linking analyze your site again."
+msgstr "Câți dintre cei mai importanți termeni ai fiecărei intrări sunt păstrați pentru a găsi intrări înrudite (de la 20 la 80). Dacă îl schimbi, Magic Linking îți analizează din nou site-ul."
+
+#: assets/build/index.js:118
+msgid "Score threshold (%)"
+msgstr "Pragul scorului (%)"
+
+#: assets/build/index.js:118
+msgid "A suggestion is shown only if its score reaches this percentage. Higher shows fewer, surer suggestions; lower shows more. It does not analyze your site again."
+msgstr "O sugestie este afișată doar dacă scorul ei atinge acest procent. Mai mare afișează mai puține sugestii, dar mai sigure; mai mic afișează mai multe. Nu îți analizează din nou site-ul."
+
+#: assets/build/index.js:118
+msgid "Headings"
+msgstr "Titluri"
+
+#: assets/build/index.js:118
+msgid "Quotes"
+msgstr "Citate"
+
+#: assets/build/index.js:118
+msgid "Tables"
+msgstr "Tabele"
+
+#: assets/build/index.js:118
+msgid "Changing these makes Magic Linking read your entries again."
+msgstr "Schimbarea acestora face ca Magic Linking să citească din nou intrările tale."
+
+#: assets/build/index.js:118
+msgid "Open links in a new tab"
+msgstr "Deschide legăturile într-o filă nouă"
+
+#: assets/build/index.js:118
+msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
+msgstr "Dezactivat implicit. Adaugă target=\"_blank\" și rel=\"noopener\" la legăturile inserate de Magic Linking; legăturile deja existente în conținutul tău nu sunt modificate."
+
+#: assets/build/index.js:118
+msgid "Additional rel values"
+msgstr "Valori rel suplimentare"
+
+#: assets/build/index.js:118
+msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
+msgstr "Opțional, separate prin spații (de exemplu: nofollow). Se adaugă la legăturile inserate de Magic Linking."
+
+#: assets/build/index.js:118
+msgid "Ignored addresses"
+msgstr "Adrese ignorate"
+
+#: assets/build/index.js:118
+msgid "One address per line. These entries are never suggested as a target, and never suggested to link to others."
+msgstr "O adresă pe rând. Aceste intrări nu sunt sugerate niciodată ca țintă și nici nu sunt sugerate să facă legătură la altele."
+
+#: assets/build/index.js:118
+msgid "Ignored words"
+msgstr "Cuvinte ignorate"
+
+#: assets/build/index.js:118
+msgid "One word or phrase per line. Suggestions whose anchor text contains one of them are not shown."
+msgstr "Un cuvânt sau o expresie pe rând. Sugestiile al căror text de ancoră conține unul dintre ele nu sunt afișate."
+
+#: assets/build/index.js:118
+msgid "Daily AI limit (tokens)"
+msgstr "Limita zilnică de IA (tokeni)"
+
+#: assets/build/index.js:118
+msgid "The most tokens Magic Linking may use through your connector in a day. 0 turns AI off. When the limit is reached, AI pauses until tomorrow and the suggestions use the lexical engine."
+msgstr "Cel mai mare număr de tokeni pe care Magic Linking îi poate folosi într-o zi prin conectorul tău. 0 dezactivează IA. Când limita este atinsă, IA este în pauză până mâine, iar sugestiile folosesc motorul lexical."
+
+#: assets/build/index.js:118
+msgid "Keep the history of changes for"
+msgstr "Păstrează istoricul modificărilor timp de"
+
+#: assets/build/index.js:118
+msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
+msgstr "Loturile mai vechi sunt șterse de sarcina de noapte, așa că nu le mai poți anula. Legăturile rămân în conținutul tău. Nu există nicio limită pentru numărul de modificări păstrate."
+
+#: assets/build/index.js:118
+msgid "30 days"
+msgstr "30 de zile"
+
+#: assets/build/index.js:118
+msgid "90 days"
+msgstr "90 de zile"
+
+#: assets/build/index.js:118
+msgid "365 days"
+msgstr "365 de zile"
+
+#: assets/build/index.js:118
+msgid "No expiry date"
+msgstr "Fără dată de expirare"
+
+#: assets/build/index.js:118
+msgid "Delete all Magic Linking data when the plugin is deleted"
+msgstr "Șterge toate datele Magic Linking la ștergerea modulului"
+
+#: assets/build/index.js:118
+msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
+msgstr "Elimină tabelele, istoricul și setările lui. Legăturile deja existente în intrările tale rămân așa cum sunt; conținutul tău nu este atins."
+
+#: assets/build/index.js:118 assets/build/index.js:129
+msgid "Content types to analyze"
+msgstr "Tipuri de conținut de analizat"
+
+#: assets/build/index.js:118
+msgid "Detect the language of each entry from its text"
+msgstr "Detectează limba fiecărei intrări după text"
+
+#: assets/build/index.js:118
+msgid "WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active."
+msgstr "WPML sau Polylang îi spun deja lui Magic Linking limba fiecărei intrări, deci această opțiune nu face nimic cât timp unul dintre ele este activ."
+
+#. translators: %d: minimum number of words an entry needs for its language to be detected.
+#: assets/build/index.js:119
+msgid "Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least %d words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again."
+msgstr "Util când site-ul tău este într-o limbă, dar unele intrări sunt scrise în alta. Este o estimare pe baza celor mai frecvente cuvinte, deci are nevoie de cel puțin %d cuvinte; când nu este sigură, se folosește limba site-ului. La salvare, Magic Linking îți analizează din nou site-ul."
+
+#: assets/build/index.js:119
+msgid "The content types you analyze have no categories."
+msgstr "Tipurile de conținut pe care le analizezi nu au categorii."
+
+#. translators: %d: maximum number of categories.
+#: assets/build/index.js:120
+msgid "You have reached the limit of %d categories. Untick one to choose another."
+msgstr "Ai atins limita de %d categorii. Debifează una pentru a alege alta."
+
+#: assets/build/index.js:120
+msgid "Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones."
+msgstr "Contează doar categoria exactă: subcategoriile ei nu sunt excluse odată cu ea. La salvare, Magic Linking îți analizează din nou site-ul. Lista urmează tipurile de conținut salvate mai sus, așa că salvează mai întâi dacă tocmai ai ales altele noi."
+
+#: assets/build/index.js:120
+msgid "Save settings"
+msgstr "Salvează setările"
+
+#. translators: %s: number of milliseconds.
+#: assets/build/index.js:121
+msgctxt "milliseconds"
+msgid "%s ms"
+msgstr "%s ms"
+
+#. translators: %s: target time, e.g. "500 ms".
+#: assets/build/index.js:122
+msgid "target under %s"
+msgstr "țintă: sub %s"
+
+#. translators: %s: the target, e.g. "target under 500.0 ms".
+#: assets/build/index.js:123
+msgid "Within budget (%s)"
+msgstr "În buget (%s)"
+
+#. translators: %s: the target, e.g. "target under 500.0 ms".
+#: assets/build/index.js:124
+msgid "Over budget (%s)"
+msgstr "Peste buget (%s)"
+
+#: assets/build/index.js:124
+msgid "Could not read the index status."
+msgstr "Nu am putut citi starea indexului."
+
+#: assets/build/index.js:124
+msgid "Could not read the engine times."
+msgstr "Nu am putut citi timpii motorului."
+
+#: assets/build/index.js:124
+msgid "Engine times refreshed."
+msgstr "Timpii motorului au fost actualizați."
+
+#: assets/build/index.js:124
+msgid "Outgoing"
+msgstr "Ieșire"
+
+#: assets/build/index.js:124
+msgid "Incoming"
+msgstr "Intrare"
+
+#: assets/build/index.js:124
+msgid "Index"
+msgstr "Index"
+
+#. translators: 1: entries in the index, 2: entries that can be analyzed.
+#: assets/build/index.js:125
+msgid "%1$s of %2$s entries are in the index."
+msgstr "%1$s din %2$s intrări sunt în index."
+
+#: assets/build/index.js:126
+msgid "Engine time"
+msgstr "Timpul motorului"
+
+#. translators: %s: number of requests kept per direction.
+#: assets/build/index.js:127
+msgid "Measured on the last %s suggestions request recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
+msgid_plural "Measured on the last %s suggestions requests recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
+msgstr[0] "Măsurat pe ultima solicitare de sugestii înregistrată pentru fiecare direcție. Pentru a nu scrie la fiecare tastă apăsată în editor, se păstrează cel mult o scriere la câteva secunde, deci unele solicitări nu sunt înregistrate. Timpii se stochează doar pe acest site și nu sunt trimiși nicăieri."
+msgstr[1] "Măsurat pe ultimele %s solicitări de sugestii înregistrate pentru fiecare direcție. Pentru a nu scrie la fiecare tastă apăsată în editor, se păstrează cel mult o scriere la câteva secunde, deci unele solicitări nu sunt înregistrate. Timpii se stochează doar pe acest site și nu sunt trimiși nicăieri."
+msgstr[2] "Măsurat pe ultimele %s de solicitări de sugestii înregistrate pentru fiecare direcție. Pentru a nu scrie la fiecare tastă apăsată în editor, se păstrează cel mult o scriere la câteva secunde, deci unele solicitări nu sunt înregistrate. Timpii se stochează doar pe acest site și nu sunt trimiși nicăieri."
+
+#: assets/build/index.js:127
+msgid "No suggestions have been calculated yet. Open an entry in the editor or the Report to see the times here."
+msgstr "Încă nu s-a calculat nicio sugestie. Deschide o intrare în editor sau raportul pentru a vedea aici timpii."
+
+#: assets/build/index.js:127
+msgid "Time of the suggestions engine, in milliseconds"
+msgstr "Timpul motorului de sugestii, în milisecunde"
+
+#: assets/build/index.js:127
+msgid "Direction"
+msgstr "Direcție"
+
+#: assets/build/index.js:127
+msgid "Median"
+msgstr "Mediană"
+
+#: assets/build/index.js:127
+msgid "95th percentile"
+msgstr "Percentila 95"
+
+#: assets/build/index.js:127
+msgid "Budget"
+msgstr "Buget"
+
+#: assets/build/index.js:127
+msgid "From cache"
+msgstr "Din cache"
+
+#: assets/build/index.js:127
+msgid "Candidates"
+msgstr "Candidate"
+
+#: assets/build/index.js:127
+msgid "Retrieval"
+msgstr "Regăsire"
+
+#: assets/build/index.js:127
+msgid "Loading"
+msgstr "Încărcare"
+
+#: assets/build/index.js:127
+msgid "Scoring"
+msgstr "Scor"
+
+#: assets/build/index.js:127
+msgid "No requests yet."
+msgstr "Încă nu există solicitări."
+
+#: assets/build/index.js:127
+msgid "Median and 95th percentile cover every recorded request, including those answered from the cache. Candidates and phases cover only the requests the engine calculated. Retrieval is analyzing the entry and finding candidate targets; loading is reading the targets or sources; phrases is looking for where to place the anchor; scoring is rating each one. Sorting, reasons and removing ignored words are not in any phase, and the phases are medians, so they do not have to add up to the total."
+msgstr "Mediana și percentila 95 acoperă toate solicitările înregistrate, inclusiv pe cele servite din cache. Candidatele și fazele acoperă doar solicitările calculate de motor. Regăsirea înseamnă analizarea intrării și găsirea destinațiilor candidate; încărcarea, citirea destinațiilor sau a surselor; expresiile, căutarea locului unde se pune ancora; scorul, evaluarea fiecăreia. Sortarea, motivele și eliminarea cuvintelor ignorate nu fac parte din nicio fază, iar fazele sunt mediane, deci nu trebuie să se adune la total."
+
+#: assets/build/index.js:127
+msgid "Could not load the setup information."
+msgstr "Nu am putut încărca informațiile de configurare."
+
+#. translators: 1: current step, 2: number of steps.
+#: assets/build/index.js:128
+msgid "Step %1$s of %2$s"
+msgstr "Pasul %1$s din %2$s"
+
+#: assets/build/index.js:128
+msgid "What do we link?"
+msgstr "Ce legăm?"
+
+#: assets/build/index.js:128
+msgid "Artificial intelligence"
+msgstr "Inteligență artificială"
+
+#: assets/build/index.js:128
+msgid "All set"
+msgstr "Totul este gata"
+
+#. translators: 1: current step, 2: number of steps.
+#: assets/build/index.js:129
+msgid "Setup · step %1$s of %2$s"
+msgstr "Configurare · pasul %1$s din %2$s"
+
+#. translators: %s: language name.
+#: assets/build/index.js:130
+msgid "Language detected: %s."
+msgstr "Limbă detectată: %s."
+
+#: assets/build/index.js:130
+msgid "Your site is multilingual: we will link each language separately."
+msgstr "Site-ul tău este multilingv: vom lega fiecare limbă separat."
+
+#: assets/build/index.js:130
+msgid "Entries are only linked to others in the same language."
+msgstr "Intrările sunt legate doar de alte intrări din aceeași limbă."
+
+#: assets/build/index.js:130
+msgid "Your WordPress has an AI connector. This version of Magic Linking does not use it yet: suggestions come from its own engine, which needs no AI. When AI features arrive they will use that connector, and nothing will be spent without showing you an estimate first."
+msgstr "WordPress-ul tău are un conector IA. Această versiune de Magic Linking nu îl folosește încă: sugestiile vin de la propriul motor, care nu are nevoie de IA. Când vor sosi funcțiile de IA, vor folosi acel conector și nu se va cheltui nimic fără a-ți arăta mai întâi o estimare."
+
+#: assets/build/index.js:130
+msgid "No AI connected: Magic Linking works with its own engine, which needs no AI. You can connect one whenever you like in Settings → Connectors."
+msgstr "Nicio IA conectată: Magic Linking lucrează cu propriul motor, care nu are nevoie de IA. Poți conecta una oricând vrei în Setări → Conectori."
+
+#: assets/build/index.js:130
+msgid "Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "Analiza doar citește conținutul tău; nu îl modifică niciodată. Legăturile se adaugă doar când apeși Leagă."
+
+#: assets/build/index.js:130
+msgid "The analysis is running. You can close this screen: it continues in the background."
+msgstr "Analiza rulează. Poți închide acest ecran: continuă în fundal."
+
+#: assets/build/index.js:130
+msgid "Start"
+msgstr "Începe"
+
+#: assets/build/index.js:130
+msgid "Back"
+msgstr "Înapoi"
+
+#: assets/build/index.js:130
+msgid "Skip setup"
+msgstr "Omite configurarea"
+
+#: assets/build/index.js:130
+msgid "You can open this assistant again from Settings."
+msgstr "Poți deschide din nou acest asistent din Setări."
+
+#. translators: 1: entries analyzed, 2: orphan entries, 3: internal links.
+#: assets/build/index.js:131
+msgid "%1$s entries analyzed · %2$s orphans · %3$s internal links"
+msgstr "%1$s intrări analizate · %2$s orfane · %3$s legături interne"
+
+#: assets/build/index.js:131
+msgid "See orphans"
+msgstr "Vezi orfanele"
+
+#: assets/build/index.js:131
+msgid "Open an entry"
+msgstr "Deschide o intrare"
+
+#. translators: %s: section name (Report, Broken links, Settings).
+#: assets/build/index.js:132
+msgid "Magic Linking · %s"
+msgstr "Magic Linking · %s"
+
+#: assets/build/index.js:132
+msgid "Orphan entries"
+msgstr "Intrări orfane"
+
+#: assets/build/index.js:132
+msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
+msgstr "Se numără doar legăturile scrise în conținutul fiecărei intrări. Legăturile din meniuri, piese și șabloane de temă nu se numără."
+
+#. translators: %s: WP-CLI command.
+#: assets/build/index.js:133
+msgid "You can also run the analysis from the terminal: %s"
+msgstr "Poți rula analiza și din terminal: %s"

@@ -1,0 +1,4036 @@
+# Dutch (Nederlands) translation of Magic Linking.
+# Copyright (C) 2026 Color Vivo
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Magic Linking 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
+"POT-Creation-Date: 2026-11-01T12:23:59+00:00\n"
+"PO-Revision-Date: 2026-11-01 12:00+0000\n"
+"Last-Translator: Color Vivo\n"
+"Language-Team: Dutch\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: magic-linking\n"
+
+#. Plugin Name of the plugin
+#: magic-linking.php
+msgid "Magic Linking – Internal Links"
+msgstr "Magic Linking – interne links"
+
+#. Plugin URI of the plugin
+#: magic-linking.php
+msgid "https://magiclinking.com"
+msgstr "https://magiclinking.com"
+
+#. Description of the plugin
+#: magic-linking.php
+msgid "Internal link suggestions in the editor. Link in one click, check that nothing else changes, undo from History. Plus orphan and broken link reports."
+msgstr "Interne linksuggesties in de editor. Link met één klik, controleer dat er verder niets verandert en maak ongedaan via Geschiedenis. Plus rapporten over weesitems en defecte links."
+
+#. Author of the plugin
+#: magic-linking.php
+msgid "Color Vivo"
+msgstr "Color Vivo"
+
+#. Author URI of the plugin
+#: magic-linking.php
+msgid "https://colorvivo.com"
+msgstr "https://colorvivo.com"
+
+#. translators: 1: minimum PHP version, 2: PHP version in use.
+#: magic-linking.php:53
+#, php-format
+msgid "PHP %1$s or later (this site runs PHP %2$s)"
+msgstr "PHP %1$s of nieuwer (deze site draait op PHP %2$s)"
+
+#. translators: 1: minimum WordPress version, 2: WordPress version in use.
+#: magic-linking.php:58
+#, php-format
+msgid "WordPress %1$s or later (this site runs WordPress %2$s)"
+msgstr "WordPress %1$s of nieuwer (deze site draait op WordPress %2$s)"
+
+#: magic-linking.php:62
+msgid "the PHP mbstring extension"
+msgstr "de PHP-extensie mbstring"
+
+#. translators: %s: list of missing requirements, separated by commas.
+#: magic-linking.php:75
+#, php-format
+msgid "Magic Linking needs %s. It has not been loaded."
+msgstr "Magic Linking heeft %s nodig. De plugin is niet geladen."
+
+#: magic-linking.php:104
+msgid "Plugin not activated"
+msgstr "Plugin niet geactiveerd"
+
+#: magic-linking.php:125
+msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
+msgstr "Magic Linking mist de meegeleverde bibliotheken (de map vendor). Installeer de plugin opnieuw vanaf wordpress.org. De plugin is niet geladen."
+
+#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:312
+#: assets/build/editor.js:46 assets/build/index.js:132
+msgid "Internal links"
+msgstr "Interne links"
+
+#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:313
+#: assets/build/index.js:7 assets/build/index.js:23 assets/build/index.js:35
+#: assets/build/index.js:53 assets/build/index.js:108 assets/build/index.js:117
+#: assets/build/index.js:130
+msgid "Loading…"
+msgstr "Laden…"
+
+#: src/Admin/EditorPanel.php:98
+msgid "This box needs JavaScript to show the link suggestions."
+msgstr "Voor dit vak is JavaScript nodig om de linksuggesties te tonen."
+
+#: src/Admin/Notices.php:174
+msgid "Do not show again"
+msgstr "Niet meer tonen"
+
+#: src/Admin/Notices.php:260
+msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
+msgstr "Je hebt al heel wat links toegevoegd met Magic Linking. Als het je tijd bespaart, helpt een beoordeling op wordpress.org andere mensen om het te vinden."
+
+#: src/Admin/Notices.php:262
+msgid "Write a review"
+msgstr "Een beoordeling schrijven"
+
+#: src/Admin/Notices.php:265
+msgid "No, thanks"
+msgstr "Nee, bedankt"
+
+#: src/Admin/Notices.php:278
+msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
+msgstr "Op deze site is geen AI gekoppeld. Je kunt die van jou koppelen via Instellingen → Connectoren (OpenAI, Google, Ollama lokaal…). Intussen gebruiken suggesties de lexicale engine."
+
+#: src/Admin/Notices.php:280 assets/build/index.js:111
+#: assets/build/index.js:112
+msgid "Go to Connectors"
+msgstr "Naar Connectoren"
+
+#: src/Admin/Screen.php:105
+msgid "Open report"
+msgstr "Rapport openen"
+
+#: src/Admin/Screen.php:151
+msgid "Magic Linking"
+msgstr "Magic Linking"
+
+#: src/Admin/Screen.php:156 assets/build/index.js:131
+msgid "Report"
+msgstr "Rapport"
+
+#: src/Admin/Screen.php:162 assets/build/index.js:131 assets/build/index.js:132
+msgid "Broken links"
+msgstr "Defecte links"
+
+#: src/Admin/Screen.php:166 assets/build/index.js:131
+msgid "History"
+msgstr "Geschiedenis"
+
+#: src/Admin/Screen.php:170 assets/build/index.js:131
+msgid "Rules"
+msgstr "Regels"
+
+#: src/Admin/Screen.php:174 assets/build/index.js:23 assets/build/index.js:44
+#: assets/build/index.js:50 assets/build/index.js:53 assets/build/index.js:88
+#: assets/build/index.js:101 assets/build/index.js:131
+msgid "Status"
+msgstr "Status"
+
+#: src/Admin/Screen.php:178 assets/build/index.js:131
+msgid "Settings"
+msgstr "Instellingen"
+
+#: src/Admin/Screen.php:225
+msgid "Items per page"
+msgstr "Items per pagina"
+
+#: src/Admin/Screen.php:307
+msgid "You do not have permission to see this page."
+msgstr "Je hebt geen toestemming om deze pagina te bekijken."
+
+#: src/Admin/Screen.php:314
+msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
+msgstr "Voor dit scherm is JavaScript nodig. Hetzelfde rapport krijg je met WP-CLI: wp magic-linking report"
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:176
+#, php-format
+msgid "Process %1$d is paused. Resume it with: wp magic-linking job resume %2$d"
+msgstr "Proces %1$d is gepauzeerd. Hervat het met: wp magic-linking job resume %2$d"
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:187
+#, php-format
+msgid "Process %d queued. It will run in the background with Action Scheduler."
+msgstr "Proces %d staat in de wachtrij. Het draait op de achtergrond met Action Scheduler."
+
+#: src/Cli/Command.php:194
+msgid "Analyzing entries"
+msgstr "Items analyseren"
+
+#. translators: 1: new or modified entries, 2: unchanged entries skipped.
+#: src/Cli/Command.php:210
+#, php-format
+msgid "%1$d new or modified, %2$d unchanged and skipped."
+msgstr "%1$d nieuw of gewijzigd, %2$d ongewijzigd en overgeslagen."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:218
+#, php-format
+msgid "%d entry analyzed."
+msgid_plural "%d entries analyzed."
+msgstr[0] "%d item geanalyseerd."
+msgstr[1] "%d items geanalyseerd."
+
+#: src/Cli/Command.php:228
+msgid "The process did not finish. Check its state with: wp magic-linking status"
+msgstr "Het proces is niet voltooid. Controleer de status met: wp magic-linking status"
+
+#: src/Cli/Command.php:361
+msgid "Invalid filter. Use: all, orphans, low, over, broken or excluded."
+msgstr "Ongeldig filter. Gebruik: all, orphans, low, over, broken of excluded."
+
+#: src/Cli/Command.php:364
+msgid "Invalid column for --orderby."
+msgstr "Ongeldige kolom voor --orderby."
+
+#: src/Cli/Command.php:487
+msgid "Unknown action. Use: list, pause, resume or cancel."
+msgstr "Onbekende actie. Gebruik: list, pause, resume of cancel."
+
+#: src/Cli/Command.php:492
+msgid "There is no such process."
+msgstr "Dit proces bestaat niet."
+
+#: src/Cli/Command.php:507 src/Rest/HistoryController.php:478
+#: src/Rest/JobsController.php:205 src/Rest/JobsController.php:220
+msgid "That process cannot be changed in its current state."
+msgstr "Dit proces kan in de huidige status niet worden gewijzigd."
+
+#. translators: 1: process ID, 2: new state.
+#: src/Cli/Command.php:513
+#, php-format
+msgid "Process %1$d is now %2$s."
+msgstr "Proces %1$d is nu %2$s."
+
+#. translators: %s: batch ID.
+#: src/Cli/Command.php:610
+#, php-format
+msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
+msgstr "Er zijn meer batches. Ga verder met: wp magic-linking history list --before=%s"
+
+#: src/Cli/Command.php:635
+msgid "Unknown action. Use: list, undo, redo, purge or export."
+msgstr "Onbekende actie. Gebruik: list, undo, redo, purge of export."
+
+#: src/Cli/Command.php:685 src/Cli/Command.php:719
+#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
+#: src/Rest/SuggestionsController.php:705
+msgid "You do not have permission to edit one of the entries involved."
+msgstr "Je hebt geen toestemming om een van de betrokken items te bewerken."
+
+#: src/Cli/Command.php:690 src/History/Redo.php:65 src/History/Undo.php:165
+#: src/Rest/HistoryController.php:788
+msgid "That change does not exist."
+msgstr "Deze wijziging bestaat niet."
+
+#: src/Cli/Command.php:694 src/Cli/Command.php:714
+#: src/Rest/HistoryController.php:774
+msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
+msgstr "Deze batch wordt op de achtergrond verwerkt. Wacht tot hij klaar is of annuleer hem."
+
+#: src/Cli/Command.php:710
+msgid "There is no such group in the history (or you cannot edit all of its entries)."
+msgstr "Deze groep bestaat niet in de geschiedenis (of je kunt niet alle bijbehorende items bewerken)."
+
+#. translators: %d: number of changes.
+#: src/Cli/Command.php:755
+#, php-format
+msgid "%d change could not be applied by itself."
+msgid_plural "%d changes could not be applied by themselves."
+msgstr[0] "%d wijziging kon niet vanzelf worden toegepast."
+msgstr[1] "%d wijzigingen konden niet vanzelf worden toegepast."
+
+#: src/Cli/Command.php:762
+msgid "Group redone."
+msgstr "Groep opnieuw uitgevoerd."
+
+#: src/Cli/Command.php:762
+msgid "Group undone."
+msgstr "Groep ongedaan gemaakt."
+
+#: src/Cli/Command.php:773
+msgid "The history never expires with the current setting; nothing to delete."
+msgstr "Met de huidige instelling verloopt de geschiedenis nooit; er valt niets te verwijderen."
+
+#. translators: %d: number of history rows.
+#: src/Cli/Command.php:782
+#, php-format
+msgid "%d history row has expired."
+msgid_plural "%d history rows have expired."
+msgstr[0] "%d geschiedenisregel is verlopen."
+msgstr[1] "%d geschiedenisregels zijn verlopen."
+
+#: src/Cli/Command.php:791
+msgid "Nothing has expired."
+msgstr "Er is niets verlopen."
+
+#. translators: %d: number of history rows.
+#: src/Cli/Command.php:801
+#, php-format
+msgid "%d history row deleted."
+msgid_plural "%d history rows deleted."
+msgstr[0] "%d geschiedenisregel verwijderd."
+msgstr[1] "%d geschiedenisregels verwijderd."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:836
+#, php-format
+msgid "%d entry excluded from the analysis."
+msgid_plural "%d entries excluded from the analysis."
+msgstr[0] "%d item uitgesloten van de analyse."
+msgstr[1] "%d items uitgesloten van de analyse."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:870
+#, php-format
+msgid "%d entry included in the analysis again."
+msgid_plural "%d entries included in the analysis again."
+msgstr[0] "%d item weer opgenomen in de analyse."
+msgstr[1] "%d items weer opgenomen in de analyse."
+
+#: src/Cli/Command.php:888
+msgid "That entry does not exist or is not of a chosen content type."
+msgstr "Dat item bestaat niet of hoort niet bij een gekozen inhoudstype."
+
+#: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
+#: src/Rest/AiController.php:196 src/Rest/AnalyzedEntry.php:43
+#: src/Rest/DismissalsController.php:141
+#: src/Rest/EditorHistoryController.php:95
+#: src/Rest/SuggestionsController.php:1030
+msgid "That entry does not exist."
+msgstr "Dit item bestaat niet."
+
+#: src/Cli/Command.php:911
+msgid "Entry analyzed."
+msgstr "Item geanalyseerd."
+
+#: src/Cli/Command.php:914
+msgid "Nothing changed since the last analysis. Use --force to analyze it again."
+msgstr "Sinds de laatste analyse is er niets gewijzigd. Gebruik --force om het opnieuw te analyseren."
+
+#: src/Cli/Command.php:917
+msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
+msgstr "Het item is niet gepubliceerd of hoort niet bij een gekozen contenttype: het is uit het rapport gehaald."
+
+#: src/Cli/Command.php:920
+msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
+msgstr "Het item is niet gepubliceerd of hoort niet bij een gekozen contenttype, dus wordt het niet geanalyseerd."
+
+#: src/Cli/Command.php:933
+msgid "Could not open the output."
+msgstr "Kon de uitvoer niet openen."
+
+#: src/Cli/RulesCommand.php:152
+msgid "The rule could not be saved."
+msgstr "De regel kon niet worden opgeslagen."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:155
+#, php-format
+msgid "Rule %d created."
+msgstr "Regel %d aangemaakt."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:174
+#, php-format
+msgid "Rule %d does not exist."
+msgstr "Regel %d bestaat niet."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:177
+#, php-format
+msgid "Rule %d deleted."
+msgstr "Regel %d verwijderd."
+
+#: src/Cli/RulesCommand.php:203
+msgid "That rule does not exist."
+msgstr "Deze regel bestaat niet."
+
+#: src/Cli/RulesCommand.php:225
+msgid "No entry found using the index, which can miss some matches. Run it again with --full to check every entry."
+msgstr "Geen item gevonden via de index, die sommige treffers kan missen. Voer het opnieuw uit met --full om alle items te controleren."
+
+#. translators: %d: number of entries.
+#: src/Cli/RulesCommand.php:227
+#, php-format
+msgid "%d entry where the rule fits."
+msgid_plural "%d entries where the rule fits."
+msgstr[0] "%d item waarop de regel past."
+msgstr[1] "%d items waarop de regel past."
+
+#. translators: 1: number of entries shown, 2: entry ID to continue after.
+#: src/Cli/RulesCommand.php:230
+#, php-format
+msgid "%1$d entries shown. Continue with --after=%2$d"
+msgstr "%1$d items getoond. Ga verder met --after=%2$d"
+
+#: src/Cli/RulesCommand.php:254 src/Rest/RulesController.php:646
+msgid "That rule or entry does not exist."
+msgstr "Deze regel of dit item bestaat niet."
+
+#: src/Cli/RulesCommand.php:260
+msgid "Nothing to link."
+msgstr "Niets om te linken."
+
+#: src/Cli/RulesCommand.php:267
+msgid "Nothing was written. Add --yes to add these links."
+msgstr "Er is niets geschreven. Voeg --yes toe om deze links toe te voegen."
+
+#: src/Cli/RulesCommand.php:278 src/Cli/RulesCommand.php:319
+#: assets/build/index.js:94
+msgid "Nothing was added."
+msgstr "Er is niets toegevoegd."
+
+#. translators: 1: number of links added, 2: history batch ID.
+#: src/Cli/RulesCommand.php:282
+#, php-format
+msgid "%1$d link added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
+msgid_plural "%1$d links added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
+msgstr[0] "%1$d link toegevoegd (batch %2$s). Maak ongedaan met: wp magic-linking history undo %2$s"
+msgstr[1] "%1$d links toegevoegd (batch %2$s). Maak ongedaan met: wp magic-linking history undo %2$s"
+
+#. translators: 1: rule ID, 2: reason.
+#: src/Cli/RulesCommand.php:311 src/Cli/RulesCommand.php:315
+#, php-format
+msgid "Rule %1$d: %2$s"
+msgstr "Regel %1$d: %2$s"
+
+#. translators: %d: number of links added.
+#: src/Cli/RulesCommand.php:322 assets/build/index.js:94
+#, php-format
+msgid "%d link added."
+msgid_plural "%d links added."
+msgstr[0] "%d link toegevoegd."
+msgstr[1] "%d links toegevoegd."
+
+#: src/Content/BlockEditor.php:57 src/Content/LinkFixer.php:58
+msgid "The block structure of this post could not be read, so it was left untouched."
+msgstr "De blokstructuur van dit bericht kon niet worden gelezen, dus is het ongemoeid gelaten."
+
+#: src/Content/BlockEditor.php:82
+msgid "The block contains markup (script, styles…) that cannot be scanned safely."
+msgstr "Het blok bevat markup (script, stijlen…) die niet veilig kan worden doorzocht."
+
+#: src/Content/BlockEditor.php:102 src/Content/BlockEditor.php:199
+#: src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:211
+msgid "The text has changed."
+msgstr "De tekst is gewijzigd."
+
+#: src/Content/BlockEditor.php:108 src/Content/LinkFixer.php:167
+msgid "The text of this block comes from another source (data binding) and cannot be edited here."
+msgstr "De tekst van dit blok komt uit een andere bron (data binding) en kan hier niet worden bewerkt."
+
+#: src/Content/BlockEditor.php:283
+msgid "This text belongs to a reusable block: edit the original pattern."
+msgstr "Deze tekst hoort bij een herbruikbaar blok: bewerk het oorspronkelijke patroon."
+
+#: src/Content/BlockEditor.php:286
+msgid "This text is in a block where links are not inserted automatically."
+msgstr "Deze tekst staat in een blok waarin links niet automatisch worden ingevoegd."
+
+#: src/Content/ClassicEditor.php:45
+msgid "The post contains markup (script, styles…) that cannot be scanned safely."
+msgstr "Het bericht bevat markup (script, stijlen…) die niet veilig kan worden doorzocht."
+
+#: src/Content/Destination.php:43 src/Content/Destination.php:51
+#: src/Rest/FixController.php:253 src/Rules/RuleService.php:107
+msgid "The destination is not a published entry that can be linked."
+msgstr "De bestemming is geen gepubliceerd item waar naar gelinkt kan worden."
+
+#: src/Content/Destination.php:46
+msgid "The destination is in a different language, so no link is added."
+msgstr "De bestemming heeft een andere taal, dus er wordt geen link toegevoegd."
+
+#: src/Content/Inserter.php:126
+msgid "All the links of one write must be for the same post and the same user."
+msgstr "Alle links van één schrijfactie moeten voor hetzelfde bericht en dezelfde gebruiker zijn."
+
+#: src/Content/Inserter.php:140 src/Content/Repairer.php:58
+#: src/Rules/RuleService.php:103
+msgid "This content type is not one that Magic Linking analyzes."
+msgstr "Dit contenttype wordt niet door Magic Linking geanalyseerd."
+
+#: src/Content/Inserter.php:202 src/Content/Repairer.php:110
+#: src/History/Redo.php:267
+msgid "The change could not be confirmed as only the link; nothing was written."
+msgstr "Het was niet te bevestigen dat alleen de link is gewijzigd; er is niets geschreven."
+
+#: src/Content/Inserter.php:226 src/Content/Repairer.php:117
+#: src/History/Redo.php:273 src/History/Undo.php:254
+msgid "The change history could not be saved; nothing was written."
+msgstr "De wijzigingsgeschiedenis kon niet worden opgeslagen; er is niets geschreven."
+
+#: src/Content/InsertRequest.php:115
+msgid "The anchor is not part of the sentence."
+msgstr "De ankertekst maakt geen deel uit van de zin."
+
+#: src/Content/Linker.php:56
+msgid "The anchor cannot be empty or start or end with a space."
+msgstr "De ankertekst mag niet leeg zijn of met een spatie beginnen of eindigen."
+
+#: src/Content/Linker.php:96
+msgid "That text is already linked."
+msgstr "Deze tekst is al gelinkt."
+
+#: src/Content/Linker.php:99
+msgid "This text is a heading and links in headings are not allowed."
+msgstr "Deze tekst is een koptekst en links in kopteksten zijn niet toegestaan."
+
+#: src/Content/Linker.php:103
+msgid "This text is the citation of a quote and is not linked."
+msgstr "Deze tekst is de bronvermelding van een citaat en wordt niet gelinkt."
+
+#: src/Content/Linker.php:106
+msgid "This text is in a quote and links in quotes are not allowed."
+msgstr "Deze tekst staat in een citaat en links in citaten zijn niet toegestaan."
+
+#: src/Content/Linker.php:109
+msgid "This text is in a table and links in tables are not allowed."
+msgstr "Deze tekst staat in een tabel en links in tabellen zijn niet toegestaan."
+
+#: src/Content/Linker.php:112
+msgid "The anchor includes a shortcode, code or a line break and cannot be linked safely."
+msgstr "De ankertekst bevat een shortcode, code of regeleinde en kan niet veilig worden gelinkt."
+
+#: src/Content/Linker.php:133
+msgid "The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it."
+msgstr "De ankertekst loopt over tekstopmaak heen (vet, cursief…) en kan niet worden gelinkt zonder die te verstoren."
+
+#: src/Content/Linker.php:155 src/Content/LinkFixer.php:52
+msgid "The link address is not valid."
+msgstr "Het linkadres is niet geldig."
+
+#: src/Content/LinkFixer.php:93
+msgid "The post contains markup (nested links, scripts, styles…) that cannot be scanned safely, so it was left untouched."
+msgstr "Het bericht bevat markup (geneste links, scripts, stijlen…) die niet veilig kan worden doorzocht, dus is het ongemoeid gelaten."
+
+#: src/Content/LinkFixer.php:110
+msgid "The post no longer matches the list (the link was moved, edited or is not stored in its content). Nothing was changed; reload the list."
+msgstr "Het bericht komt niet meer overeen met de lijst (de link is verplaatst, bewerkt of staat niet in de content). Er is niets gewijzigd; laad de lijst opnieuw."
+
+#: src/Content/LinkFixer.php:128
+msgid "The link address could not be changed safely, so the post was left untouched."
+msgstr "Het linkadres kon niet veilig worden gewijzigd, dus is het bericht ongemoeid gelaten."
+
+#: src/Content/LinkFixer.php:173
+msgid "Removing the link would break this block (a button, an image…). Change its destination instead, or edit the entry."
+msgstr "Als je de link verwijdert, gaat dit blok kapot (een knop, een afbeelding…). Wijzig in plaats daarvan de bestemming, of bewerk het item."
+
+#: src/Content/LinkFixer.php:182
+msgid "The address of this link is also stored in the settings of its block, so it is not changed here. Edit the entry instead."
+msgstr "Het adres van deze link staat ook in de instellingen van het blok, dus wordt het hier niet gewijzigd. Bewerk in plaats daarvan het item."
+
+#: src/Content/PostWriter.php:115
+msgid "The post does not exist or is in the trash."
+msgstr "Het bericht bestaat niet of staat in de prullenbak."
+
+#: src/Content/PostWriter.php:120
+msgid "You do not have permission to edit this post."
+msgstr "Je hebt geen toestemming om dit bericht te bewerken."
+
+#: src/Content/PostWriter.php:163
+msgid "Another change is being applied to this post; try again in a moment."
+msgstr "Er wordt al een andere wijziging op dit bericht toegepast; probeer het zo opnieuw."
+
+#: src/Content/PostWriter.php:247 src/History/BatchJob.php:384
+#: src/History/BatchJob.php:454 src/History/Redo.php:193
+#: src/History/Undo.php:117
+msgid "WordPress could not save the post; nothing was changed."
+msgstr "WordPress kon het bericht niet opslaan; er is niets gewijzigd."
+
+#: src/Content/PostWriter.php:328
+msgid "This post is open in your editor (maybe in another tab); add the link from there or close it and try again."
+msgstr "Dit bericht is geopend in je editor (misschien in een ander tabblad); voeg de link van daaruit toe, of sluit het bericht en probeer het opnieuw."
+
+#: src/Content/PostWriter.php:332
+msgid "someone else"
+msgstr "iemand anders"
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:338
+#, php-format
+msgid "This post has just been opened by %s; try again later."
+msgstr "Dit bericht is zojuist geopend door %s; probeer het later opnieuw."
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:340
+#, php-format
+msgid "This post is being edited by %s; try again later."
+msgstr "Dit bericht wordt bewerkt door %s; probeer het later opnieuw."
+
+#: src/Content/PostWriter.php:353
+msgid "WordPress altered the content when saving it (security filters); the original was restored and the link was not inserted."
+msgstr "WordPress heeft de content bij het opslaan gewijzigd (beveiligingsfilters); het origineel is hersteld en de link is niet ingevoegd."
+
+#: src/Content/PostWriter.php:354
+msgid "WordPress would alter the content when saving it (security filters); nothing was written and the link was not inserted."
+msgstr "WordPress zou de content bij het opslaan wijzigen (beveiligingsfilters); er is niets geschreven en de link is niet ingevoegd."
+
+#: src/Graph/BrokenReason.php:31
+msgid "No entry exists with this URL."
+msgstr "Er bestaat geen item met deze URL."
+
+#: src/Graph/BrokenReason.php:33
+msgid "The destination entry is in the trash."
+msgstr "Het bestemmingsitem staat in de prullenbak."
+
+#: src/Graph/BrokenReason.php:35
+msgid "The destination entry is not published (draft, pending or scheduled)."
+msgstr "Het bestemmingsitem is niet gepubliceerd (concept, in afwachting van beoordeling of ingepland)."
+
+#: src/Graph/BrokenReason.php:37
+msgid "The destination entry is private."
+msgstr "Het bestemmingsitem is privé."
+
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:484
+#: src/Rest/FixController.php:208 assets/build/classic.js:12
+#: assets/build/classic.js:22 assets/build/editor.js:12
+#: assets/build/editor.js:22 assets/build/index.js:15 assets/build/index.js:65
+#: assets/build/index.js:83
+msgid "(no title)"
+msgstr "(geen titel)"
+
+#: src/Graph/LinkStatus.php:69 assets/build/index.js:86
+msgid "Orphan"
+msgstr "Wees"
+
+#: src/Graph/LinkStatus.php:71 assets/build/index.js:86
+#: assets/build/index.js:87
+msgid "Under-linked"
+msgstr "Te weinig links"
+
+#: src/Graph/LinkStatus.php:73 assets/build/index.js:86
+#: assets/build/index.js:87
+msgid "Over-linked"
+msgstr "Te veel links"
+
+#: src/Graph/LinkStatus.php:75 assets/build/index.js:86
+msgid "OK"
+msgstr "OK"
+
+#: src/History/Reader.php:833
+msgid "Automatic"
+msgstr "Automatisch"
+
+#: src/History/Reader.php:838
+msgid "Deleted user"
+msgstr "Verwijderde gebruiker"
+
+#: src/History/Redo.php:70
+msgid "This link has not been undone, so there is nothing to redo."
+msgstr "Deze link is niet ongedaan gemaakt, dus er valt niets opnieuw uit te voeren."
+
+#: src/History/Redo.php:74
+msgid "This link was already added again."
+msgstr "Deze link is al opnieuw toegevoegd."
+
+#: src/History/Redo.php:93
+msgid "This post was edited afterwards; add the link again by hand."
+msgstr "Dit bericht is daarna bewerkt; voeg de link opnieuw handmatig toe."
+
+#: src/History/Redo.php:94
+msgid "This post was edited afterwards; fix the link again by hand."
+msgstr "Dit bericht is daarna bewerkt; herstel de link opnieuw handmatig."
+
+#: src/History/Redo.php:113
+msgid "Destination changed again."
+msgstr "Bestemming opnieuw gewijzigd."
+
+#: src/History/Redo.php:114
+msgid "Link removed again."
+msgstr "Link opnieuw verwijderd."
+
+#: src/History/Redo.php:117
+msgid "Link added again."
+msgstr "Link opnieuw toegevoegd."
+
+#: src/History/Undo.php:170
+msgid "This change was already undone."
+msgstr "Deze wijziging is al ongedaan gemaakt."
+
+#: src/History/Undo.php:192
+msgid "The post was edited afterwards: only the link was removed."
+msgstr "Het bericht is daarna bewerkt: alleen de link is verwijderd."
+
+#: src/History/Undo.php:193
+msgid "The post was edited afterwards: only this link was put back as it was."
+msgstr "Het bericht is daarna bewerkt: alleen deze link is teruggezet zoals hij was."
+
+#: src/History/Undo.php:194
+msgid "The link is no longer in the post."
+msgstr "De link staat niet meer in het bericht."
+
+#: src/History/Undo.php:237
+msgid "The change could not be confirmed as only removing the link; nothing was written."
+msgstr "Het was niet te bevestigen dat alleen de link is verwijderd; er is niets geschreven."
+
+#: src/History/Undo.php:238
+msgid "The change could not be confirmed as only restoring the link; nothing was written."
+msgstr "Het was niet te bevestigen dat alleen de link is hersteld; er is niets geschreven."
+
+#: src/History/Undo.php:395
+msgid "Destination restored."
+msgstr "Bestemming hersteld."
+
+#: src/History/Undo.php:397
+msgid "Link put back."
+msgstr "Link teruggezet."
+
+#: src/History/Undo.php:399
+msgid "Link undone."
+msgstr "Link ongedaan gemaakt."
+
+#: src/History/Undo.php:411
+msgid "This post was edited afterwards; restore the link address by hand."
+msgstr "Dit bericht is daarna bewerkt; herstel het linkadres handmatig."
+
+#: src/History/Undo.php:413
+msgid "This post was edited afterwards; put the link back by hand."
+msgstr "Dit bericht is daarna bewerkt; zet de link handmatig terug."
+
+#: src/History/Undo.php:415
+msgid "This post was edited afterwards; remove the link by hand."
+msgstr "Dit bericht is daarna bewerkt; verwijder de link handmatig."
+
+#: src/Report/ExportHandler.php:80
+msgid "You are not allowed to export this data."
+msgstr "Je mag deze gegevens niet exporteren."
+
+#: src/Rest/AiController.php:214 src/Rest/SuggestionsController.php:412
+#: src/Rest/SuggestionsController.php:440
+msgid "The content is too long to analyze."
+msgstr "De content is te lang om te analyseren."
+
+#. translators: %s: tokens one AI request needs, formatted.
+#: src/Rest/AiController.php:274
+#, php-format
+msgid "The daily AI limit you set is lower than what one request needs (about %s tokens); raise it in Settings → AI. Showing suggestions without AI."
+msgstr "Het dagelijkse AI-limiet dat je hebt ingesteld is lager dan wat één verzoek nodig heeft (ongeveer %s tokens); verhoog het via Instellingen → AI. Suggesties worden zonder AI getoond."
+
+#: src/Rest/AiController.php:278
+msgid "You are asking for AI too often; wait a minute and try again. Showing suggestions without AI."
+msgstr "Je vraagt te vaak om AI; wacht een minuut en probeer het opnieuw. Suggesties worden zonder AI getoond."
+
+#: src/Rest/AiController.php:280
+msgid "There is no AI connected on this site, so the suggestions are shown without AI."
+msgstr "Op deze site is geen AI gekoppeld, dus de suggesties worden zonder AI getoond."
+
+#: src/Rest/AiController.php:282
+msgid "AI is turned off for this action on this site; showing suggestions without AI."
+msgstr "AI is op deze site uitgeschakeld voor deze actie; suggesties worden zonder AI getoond."
+
+#: src/Rest/AiController.php:284
+msgid "The daily AI limit you set has been reached; showing suggestions without AI. It will be available again tomorrow."
+msgstr "Het dagelijkse AI-limiet dat je hebt ingesteld is bereikt; suggesties worden zonder AI getoond. Morgen is AI weer beschikbaar."
+
+#: src/Rest/AiController.php:286
+msgid "The AI provider took too long to answer; showing suggestions without AI. Try again, or pick a faster model in Settings → AI."
+msgstr "De AI-provider deed er te lang over om te antwoorden; suggesties worden zonder AI getoond. Probeer het opnieuw, of kies een sneller model via Instellingen → AI."
+
+#: src/Rest/AiController.php:288
+msgid "The AI provider had a problem on its side; showing suggestions without AI. Try again in a moment."
+msgstr "De AI-provider had een probleem aan zijn kant; suggesties worden zonder AI getoond. Probeer het zo opnieuw."
+
+#: src/Rest/AiController.php:290
+msgid "Your AI provider is limiting requests right now; showing suggestions without AI. Try again in a moment."
+msgstr "Je AI-provider beperkt op dit moment het aantal verzoeken; suggesties worden zonder AI getoond. Probeer het zo opnieuw."
+
+#: src/Rest/AiController.php:292
+msgid "None of these suggestions can be sent to AI; showing them as they are."
+msgstr "Geen van deze suggesties kan naar AI worden gestuurd; ze worden getoond zoals ze zijn."
+
+#: src/Rest/AiController.php:294 assets/build/classic.js:4
+#: assets/build/editor.js:4
+msgid "The AI did not respond; showing suggestions without AI."
+msgstr "De AI reageerde niet; suggesties worden zonder AI getoond."
+
+#: src/Rest/AnchorMessages.php:28
+msgid "The anchor has to be a literal part of the sentence."
+msgstr "De ankertekst moet een letterlijk stuk van de zin zijn."
+
+#: src/Rest/AnchorMessages.php:30
+msgid "The anchor has to start and end at the edge of a word."
+msgstr "De ankertekst moet beginnen en eindigen aan de rand van een woord."
+
+#: src/Rest/AnchorMessages.php:32
+msgid "The anchor contains a word or phrase you chose to ignore in the settings."
+msgstr "De ankertekst bevat een woord of woordgroep die je in de instellingen hebt gekozen om te negeren."
+
+#: src/Rest/AnchorMessages.php:34
+msgid "This anchor already links to a different entry from this one. Use another anchor."
+msgstr "Deze ankertekst linkt vanuit dit item al naar een ander item. Gebruik een andere ankertekst."
+
+#: src/Rest/AnchorMessages.php:36
+msgid "The anchor cannot start or end with a space."
+msgstr "De ankertekst mag niet beginnen of eindigen met een spatie."
+
+#: src/Rest/AnchorMessages.php:38
+msgid "The anchor is too short."
+msgstr "De ankertekst is te kort."
+
+#. translators: %d: maximum number of words of an anchor.
+#: src/Rest/AnchorMessages.php:41
+#, php-format
+msgid "The anchor has more than %d words."
+msgstr "De ankertekst bevat meer dan %d woorden."
+
+#: src/Rest/AnchorMessages.php:43
+msgid "The anchor needs at least one meaningful word, not only filler words."
+msgstr "De ankertekst heeft minstens één betekenisvol woord nodig, niet alleen stopwoorden."
+
+#: src/Rest/AnchorMessages.php:45
+msgid "The anchor cannot start with a filler word or a number."
+msgstr "De ankertekst mag niet beginnen met een stopwoord of een getal."
+
+#: src/Rest/AnchorMessages.php:47
+msgid "The anchor cannot end with a unit, a magnitude or a month."
+msgstr "De ankertekst mag niet eindigen op een eenheid, een grootheid of een maand."
+
+#: src/Rest/AnchorMessages.php:49
+msgid "The anchor starts with a verb form. It usually reads better starting with a noun."
+msgstr "De ankertekst begint met een werkwoordsvorm. Meestal leest het beter als hij met een zelfstandig naamwoord begint."
+
+#: src/Rest/AnchorMessages.php:51
+msgid "The anchor ends with a verb form. It usually reads better ending with a noun."
+msgstr "De ankertekst eindigt op een werkwoordsvorm. Meestal leest het beter als hij op een zelfstandig naamwoord eindigt."
+
+#: src/Rest/AnchorMessages.php:53
+msgid "The anchor ends with a filler word."
+msgstr "De ankertekst eindigt op een stopwoord."
+
+#: src/Rest/AnchorMessages.php:55
+msgid "This anchor is too generic: it says nothing about the destination."
+msgstr "Deze ankertekst is te algemeen: hij zegt niets over de bestemming."
+
+#: src/Rest/AnchorMessages.php:57
+msgid "The anchor is not valid."
+msgstr "De ankertekst is niet geldig."
+
+#. translators: 1: title of the destination the anchor already links to, 2: number of entries that use it.
+#: src/Rest/AnchorNotes.php:138
+#, php-format
+msgid "This anchor already links to “%1$s” in %2$d entry."
+msgid_plural "This anchor already links to “%1$s” in %2$d entries."
+msgstr[0] "Deze ankertekst linkt al naar “%1$s” in %2$d item."
+msgstr[1] "Deze ankertekst linkt al naar “%1$s” in %2$d items."
+
+#. translators: %d: number of other destinations the same anchor links to.
+#: src/Rest/AnchorNotes.php:141
+#, php-format
+msgid "It also links to %d other destination."
+msgid_plural "It also links to %d other destinations."
+msgstr[0] "Hij linkt ook naar %d andere bestemming."
+msgstr[1] "Hij linkt ook naar %d andere bestemmingen."
+
+#. translators: %d: number of entries that already use this anchor for this destination.
+#: src/Rest/AnchorNotes.php:153
+#, php-format
+msgid "This anchor is already used in %d entry for this destination."
+msgid_plural "This anchor is already used in %d entries for this destination."
+msgstr[0] "Deze ankertekst wordt al gebruikt in %d item voor deze bestemming."
+msgstr[1] "Deze ankertekst wordt al gebruikt in %d items voor deze bestemming."
+
+#: src/Rest/DismissalsController.php:137
+msgid "An entry cannot link to itself."
+msgstr "Een item kan niet naar zichzelf linken."
+
+#: src/Rest/DismissalsController.php:212
+msgid "The change could not be saved. Try again."
+msgstr "De wijziging kon niet worden opgeslagen. Probeer het opnieuw."
+
+#: src/Rest/FixController.php:242
+msgid "This link is no longer broken. Reload the list."
+msgstr "Deze link is niet meer defect. Laad de lijst opnieuw."
+
+#: src/Rest/FixController.php:266 assets/build/index.js:7
+msgid "The link could not be fixed; nothing was changed."
+msgstr "De link kon niet worden hersteld; er is niets gewijzigd."
+
+#: src/Rest/FixController.php:335
+msgid "That link does not exist."
+msgstr "Deze link bestaat niet."
+
+#: src/Rest/HistoryController.php:608 src/Rest/HistoryController.php:688
+msgid "Another large undo is already running. Wait for it to finish."
+msgstr "Er loopt al een andere grote ongedaanmaking. Wacht tot die klaar is."
+
+#: src/Rest/HistoryController.php:781
+msgid "Send either a group or a single change."
+msgstr "Stuur een groep of een enkele wijziging."
+
+#: src/Rest/JobsController.php:200
+msgid "That process does not exist."
+msgstr "Dat proces bestaat niet."
+
+#: src/Rest/NoticesController.php:87 src/Rest/NoticesController.php:103
+msgid "That notice does not exist."
+msgstr "Die melding bestaat niet."
+
+#: src/Rest/RulesController.php:653
+msgid "You do not have permission to edit this entry."
+msgstr "Je hebt geen toestemming om dit item te bewerken."
+
+#: src/Rest/RulesController.php:660
+msgid "The rule could not be saved. Try again."
+msgstr "De regel kon niet worden opgeslagen. Probeer het opnieuw."
+
+#: src/Rest/SettingsController.php:219
+msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
+msgstr "Dat model werkt in batches, niet live, en kan dus niet in de editor worden gebruikt. Kies een ander model of laat het op automatisch staan."
+
+#. translators: %s: comma-separated list of shared terms.
+#: src/Rest/SuggestionPresenter.php:235
+#, php-format
+msgid "They share: %s"
+msgstr "Ze delen: %s"
+
+#: src/Rest/SuggestionPresenter.php:238
+msgid "The anchor matches the title of the destination"
+msgstr "De ankertekst komt overeen met de titel van de bestemming"
+
+#: src/Rest/SuggestionPresenter.php:241
+msgid "The anchor matches the focus keyword of the destination"
+msgstr "De ankertekst komt overeen met het focus keyword van de bestemming"
+
+#: src/Rest/SuggestionPresenter.php:244
+msgid "The destination is an orphan (0 inbound links)"
+msgstr "De bestemming is een weesitem (0 inkomende links)"
+
+#: src/Rest/SuggestionPresenter.php:247
+msgid "Very similar in meaning"
+msgstr "Lijkt qua betekenis erg veel op elkaar"
+
+#: src/Rest/SuggestionsController.php:697
+msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
+msgstr "Elke link heeft het bericht, de bestemming, de zin, de offset en de ankertekst nodig."
+
+#: src/Rest/SuggestionsController.php:936
+msgid "The link could not be saved; nothing was changed."
+msgstr "De link kon niet worden opgeslagen; er is niets gewijzigd."
+
+#: src/Rest/TargetPhrasesController.php:100
+msgid "The phrases must be a list."
+msgstr "De woordgroepen moeten een lijst zijn."
+
+#: src/Rest/TargetPhrasesController.php:108
+msgid "Each phrase needs its text, and its variants must be text."
+msgstr "Elke woordgroep heeft zijn tekst nodig, en de varianten moeten tekst zijn."
+
+#. translators: %d: maximum number of phrases.
+#: src/Rest/TargetPhrasesController.php:115
+#, php-format
+msgid "You can add up to %d phrase."
+msgid_plural "You can add up to %d phrases."
+msgstr[0] "Je kunt maximaal %d woordgroep toevoegen."
+msgstr[1] "Je kunt maximaal %d woordgroepen toevoegen."
+
+#. translators: %d: maximum number of variants per phrase.
+#: src/Rest/TargetPhrasesController.php:122 assets/build/classic.js:15
+#: assets/build/editor.js:15
+#, php-format
+msgid "Each phrase can have up to %d variant."
+msgid_plural "Each phrase can have up to %d variants."
+msgstr[0] "Elke woordgroep kan maximaal %d variant hebben."
+msgstr[1] "Elke woordgroep kan maximaal %d varianten hebben."
+
+#. translators: 1: the start of the phrase, 2: maximum number of characters.
+#: src/Rest/TargetPhrasesController.php:127 assets/build/classic.js:16
+#: assets/build/editor.js:16
+#, php-format
+msgid "“%1$s…” is too long: a phrase can have up to %2$d characters."
+msgstr "“%1$s…” is te lang: een woordgroep mag maximaal %2$d tekens bevatten."
+
+#. translators: %s: the phrase.
+#: src/Rest/TargetPhrasesController.php:131
+#, php-format
+msgid "“%s” has no content word: add a word that is not an article, a preposition or a number, or the engine will never use it."
+msgstr "“%s” bevat geen inhoudelijk woord: voeg een woord toe dat geen lidwoord, voorzetsel of getal is, anders gebruikt de engine het nooit."
+
+#. translators: 1: the phrase, 2: maximum number of words.
+#: src/Rest/TargetPhrasesController.php:135
+#, php-format
+msgid "“%1$s” is too long: a phrase can have up to %2$d words."
+msgstr "“%1$s” is te lang: een woordgroep mag maximaal %2$d woorden bevatten."
+
+#: src/Rules/RuleService.php:102
+msgid "The entry is not published."
+msgstr "Het item is niet gepubliceerd."
+
+#: src/Rules/RuleService.php:104
+msgid "The rule excludes this content type."
+msgstr "De regel sluit dit contenttype uit."
+
+#: src/Rules/RuleService.php:105
+msgid "The rule excludes a category of this entry."
+msgstr "De regel sluit een categorie van dit item uit."
+
+#: src/Rules/RuleService.php:106
+msgid "The entry is in a different language than the destination."
+msgstr "Het item heeft een andere taal dan de bestemming."
+
+#: src/Rules/RuleService.php:108
+msgid "This rule was already applied to the entry (or undone there), so it is not applied again by itself."
+msgstr "Deze regel is al op het item toegepast (of daar ongedaan gemaakt), dus wordt hij niet vanzelf opnieuw toegepast."
+
+#: src/Rules/RuleService.php:109
+msgid "The entry or the destination is in your list of ignored URLs."
+msgstr "Het item of de bestemming staat in je lijst met genegeerde URL’s."
+
+#: src/Rules/RuleService.php:110
+msgid "The entry or the destination is excluded from the analysis."
+msgstr "Het item of de bestemming is uitgesloten van de analyse."
+
+#: src/Rules/RuleService.php:111
+msgid "The person who created the rule can no longer manage the site or edit this entry."
+msgstr "De maker van de regel kan de site niet meer beheren of dit item niet meer bewerken."
+
+#: src/Rules/RuleService.php:112
+msgid "Someone has the entry open in the editor."
+msgstr "Iemand heeft het item geopend in de editor."
+
+#: src/Rules/RuleService.php:113
+msgid "The entry is the destination itself."
+msgstr "Het item is zelf de bestemming."
+
+#: src/Rules/RuleService.php:114
+msgid "The entry already has as many internal links as its length allows."
+msgstr "Het item heeft al zoveel interne links als de lengte toestaat."
+
+#: src/Rules/RuleService.php:115
+msgid "The entry already links to the destination as many times as allowed."
+msgstr "Het item linkt al zo vaak naar de bestemming als is toegestaan."
+
+#: src/Rules/RuleService.php:116
+msgid "That anchor already points to the destination from as many entries as allowed."
+msgstr "Die ankertekst verwijst al vanuit zoveel items naar de bestemming als is toegestaan."
+
+#: src/Rules/RuleService.php:117
+msgid "No phrase of the rule fits in the text."
+msgstr "Geen enkele woordgroep van de regel past in de tekst."
+
+#: src/Rules/RuleValidator.php:64
+msgid "The destination must be a published entry of a content type that Magic Linking analyzes."
+msgstr "De bestemming moet een gepubliceerd item zijn van een contenttype dat Magic Linking analyseert."
+
+#: src/Rules/RuleValidator.php:67
+msgid "That entry is in your list of ignored URLs, so it cannot be a destination."
+msgstr "Dat item staat in je lijst met genegeerde URL’s en kan dus geen bestemming zijn."
+
+#: src/Rules/RuleValidator.php:70
+msgid "That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first."
+msgstr "Dat item is uitgesloten van de analyse en kan geen bestemming zijn. Neem het eerst weer op via het rapport."
+
+#: src/Rules/RuleValidator.php:73
+msgid "That entry is in a category excluded from the analysis, so it cannot be a destination. Change the excluded categories in Settings → General first."
+msgstr "Dat item zit in een categorie die is uitgesloten van de analyse en kan dus geen bestemming zijn. Wijzig eerst de uitgesloten categorieën onder Instellingen → Algemeen."
+
+#: src/Rules/RuleValidator.php:89
+msgid "Write at least one phrase to link."
+msgstr "Schrijf minstens één woordgroep om te linken."
+
+#. translators: %d: maximum number of links a rule can add to one entry.
+#: src/Rules/RuleValidator.php:94
+#, php-format
+msgid "Links per entry must be between 1 and %d."
+msgstr "Links per item moet tussen 1 en %d liggen."
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: src/Rules/RuleValidator.php:101
+#, php-format
+msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgstr[0] "Volgens je instellingen is %d link naar hetzelfde doel vanuit één item toegestaan, dus een regel kan er niet meer toevoegen. Verhoog “Links naar hetzelfde doel vanuit één item” in Instellingen om een hogere waarde te gebruiken."
+msgstr[1] "Volgens je instellingen zijn %d links naar hetzelfde doel vanuit één item toegestaan, dus een regel kan er niet meer toevoegen. Verhoog “Links naar hetzelfde doel vanuit één item” in Instellingen om een hogere waarde te gebruiken."
+
+#. translators: %d: maximum characters of a phrase.
+#: src/Rules/RuleValidator.php:154
+#, php-format
+msgid "A phrase can have at most %d characters."
+msgstr "Een woordgroep mag maximaal %d tekens bevatten."
+
+#. translators: 1: the phrase, 2: maximum number of words.
+#: src/Rules/RuleValidator.php:158
+#, php-format
+msgid "“%1$s” is not a usable phrase: it needs between 1 and %2$d words."
+msgstr "“%1$s” is geen bruikbare woordgroep: die moet uit 1 tot %2$d woorden bestaan."
+
+#. translators: %s: the phrase.
+#: src/Rules/RuleValidator.php:165
+#, php-format
+msgid "“%s” has no meaningful word to link (only articles, prepositions or numbers)."
+msgstr "“%s” bevat geen betekenisvol woord om te linken (alleen lidwoorden, voorzetsels of getallen)."
+
+#. translators: %d: maximum number of phrases in one rule.
+#: src/Rules/RuleValidator.php:175
+#, php-format
+msgid "A rule can have at most %d phrases."
+msgstr "Een regel mag maximaal %d woordgroepen bevatten."
+
+#. translators: 1: tokens used, 2: model name.
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "Used %1$s tokens with %2$s (local model, no cost)."
+msgstr "%1$s tokens gebruikt met %2$s (lokaal model, geen kosten)."
+
+#. translators: 1: tokens used, 2: model name.
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgid "Used %1$s tokens with %2$s."
+msgstr "%1$s tokens gebruikt met %2$s."
+
+#. translators: 1: tokens used, 2: estimated cost in dollars, 3: model name.
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgctxt "cost of one AI request"
+msgid "Used %1$s tokens (~%2$s) with %3$s."
+msgstr "%1$s tokens gebruikt (~%2$s) met %3$s."
+
+#. translators: %d: maximum number of seconds the wait can last.
+#: assets/build/classic.js:5 assets/build/editor.js:5
+msgid "Asking the AI… it can take up to %d seconds."
+msgstr "De AI wordt gevraagd… dit kan tot %d seconden duren."
+
+#: assets/build/classic.js:5 assets/build/editor.js:5
+msgid "Asking the AI…"
+msgstr "De AI wordt gevraagd…"
+
+#. translators: %d: number of suggestions the AI does not recommend.
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "Suggestions improved with AI. %d is not recommended."
+msgid_plural "Suggestions improved with AI. %d are not recommended."
+msgstr[0] "Suggesties verbeterd met AI. %d wordt niet aanbevolen."
+msgstr[1] "Suggesties verbeterd met AI. %d worden niet aanbevolen."
+
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "Back to the original order."
+msgstr "Terug naar de oorspronkelijke volgorde."
+
+#. translators: %s: new anchor text.
+#: assets/build/classic.js:7 assets/build/classic.js:35
+#: assets/build/editor.js:7 assets/build/editor.js:35 assets/build/index.js:78
+msgid "Anchor changed to “%s”."
+msgstr "Ankertekst gewijzigd in “%s”."
+
+#. translators: 1: AI provider and model, 2: estimated tokens.
+#: assets/build/classic.js:8 assets/build/editor.js:8
+msgid "%1$s · local, no cost · ~%2$s tokens"
+msgstr "%1$s · lokaal, geen kosten · ~%2$s tokens"
+
+#. translators: 1: AI provider and model, 2: estimated tokens.
+#: assets/build/classic.js:9 assets/build/editor.js:9
+msgid "%1$s · ~%2$s tokens"
+msgstr "%1$s · ~%2$s tokens"
+
+#. translators: 1: AI provider and model, 2: estimated tokens, 3: estimated cost in dollars.
+#: assets/build/classic.js:10 assets/build/editor.js:10
+msgid "%1$s · ~%2$s tokens · ~%3$s"
+msgstr "%1$s · ~%2$s tokens · ~%3$s"
+
+#: assets/build/classic.js:10 assets/build/editor.js:10
+msgid "The daily AI limit you set is reached. It will be available again tomorrow."
+msgstr "Het dagelijkse AI-limiet dat je hebt ingesteld is bereikt. Morgen is AI weer beschikbaar."
+
+#. translators: 1: daily limit in tokens, 2: tokens one AI request needs.
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "The daily AI limit you set (%1$s tokens) is lower than what one request needs (about %2$s). Raise it in Settings → AI."
+msgstr "Het dagelijkse AI-limiet dat je hebt ingesteld (%1$s tokens) is lager dan wat één verzoek nodig heeft (ongeveer %2$s). Verhoog het via Instellingen → AI."
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Improving…"
+msgstr "Verbeteren…"
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Improve with AI"
+msgstr "Verbeter met AI"
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Ordered by AI."
+msgstr "Gerangschikt door AI."
+
+#. translators: %d: number of suggestions the AI does not recommend.
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "%d suggestion is marked as not recommended."
+msgid_plural "%d suggestions are marked as not recommended."
+msgstr[0] "%d suggestie is gemarkeerd als niet aanbevolen."
+msgstr[1] "%d suggesties zijn gemarkeerd als niet aanbevolen."
+
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "Back to the original order"
+msgstr "Terug naar de oorspronkelijke volgorde"
+
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "Internal link (no access)"
+msgstr "Interne link (geen toegang)"
+
+#: assets/build/classic.js:12 assets/build/classic.js:29
+#: assets/build/editor.js:12 assets/build/editor.js:29 assets/build/index.js:72
+msgid "(opens in a new tab)"
+msgstr "(opent in een nieuw tabblad)"
+
+#. translators: %d: number of entries this one already links to.
+#: assets/build/classic.js:13 assets/build/editor.js:13
+msgid "Current links (%d)"
+msgstr "Huidige links (%d)"
+
+#: assets/build/classic.js:13 assets/build/editor.js:13
+msgid "Already linked"
+msgstr "Al gelinkt"
+
+#: assets/build/classic.js:13 assets/build/editor.js:13
+#: assets/build/index.js:62
+msgid "Previous"
+msgstr "Vorige"
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/classic.js:14 assets/build/classic.js:42
+#: assets/build/editor.js:14 assets/build/editor.js:42 assets/build/index.js:2
+#: assets/build/index.js:63 assets/build/index.js:81
+msgid "Page %1$s of %2$s"
+msgstr "Pagina %1$s van %2$s"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+#: assets/build/index.js:63 assets/build/index.js:130
+msgid "Next"
+msgstr "Volgende"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Could not load the pillar content mark."
+msgstr "Kon de markering voor pijlercontent niet laden."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Also marked as cornerstone content in Yoast SEO. Change that mark there."
+msgstr "Ook gemarkeerd als cornerstone-content in Yoast SEO. Wijzig die markering daar."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Also marked as pillar content in Rank Math. Change that mark there."
+msgstr "Ook gemarkeerd als pijlercontent in Rank Math. Wijzig die markering daar."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Counts as pillar content."
+msgstr "Telt als pijlercontent."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Counts as pillar content because of that mark, whatever this box says."
+msgstr "Telt als pijlercontent vanwege die markering, wat dit vak ook zegt."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Pillar content"
+msgstr "Pijlercontent"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Suggestions that link to this entry rank a little higher. Nothing else changes."
+msgstr "Suggesties die naar dit item linken, komen iets hoger te staan. Verder verandert er niets."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Marked as pillar content."
+msgstr "Gemarkeerd als pijlercontent."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Pillar content mark removed."
+msgstr "Markering voor pijlercontent verwijderd."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "The pillar content mark could not be saved."
+msgstr "De markering voor pijlercontent kon niet worden opgeslagen."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Could not load the target phrases."
+msgstr "De doelwoordgroepen konden niet worden geladen."
+
+#: assets/build/classic.js:16 assets/build/editor.js:16
+msgid "Target phrases"
+msgstr "Doelwoordgroepen"
+
+#: assets/build/classic.js:16 assets/build/editor.js:16
+msgid "Optional. The engine finds phrases on its own; this helps with the ones you care about."
+msgstr "Optioneel. De engine vindt zelf woordgroepen; dit helpt bij de woordgroepen die jij belangrijk vindt."
+
+#. translators: %d: position of the phrase in the list.
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Phrase %d"
+msgstr "Woordgroep %d"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Phrase"
+msgstr "Woordgroep"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Variants (one per line)"
+msgstr "Varianten (één per regel)"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Allow one word in between"
+msgstr "Eén woord ertussen toestaan"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words."
+msgstr "“keuken verbouwen” komt ook overeen met “keuken helemaal verbouwen”, maar niet met twee extra woorden."
+
+#. translators: %d: position of the phrase in the list.
+#: assets/build/classic.js:18 assets/build/editor.js:18
+msgid "Remove phrase %d"
+msgstr "Woordgroep %d verwijderen"
+
+#: assets/build/classic.js:18 assets/build/editor.js:18
+msgid "Add phrase"
+msgstr "Woordgroep toevoegen"
+
+#. translators: %d: number of target phrases saved.
+#: assets/build/classic.js:19 assets/build/editor.js:19
+msgid "Target phrases saved: %d phrase."
+msgid_plural "Target phrases saved: %d phrases."
+msgstr[0] "Doelwoordgroepen opgeslagen: %d woordgroep."
+msgstr[1] "Doelwoordgroepen opgeslagen: %d woordgroepen."
+
+#. translators: %s: list of repeated phrases the server did not keep.
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "Not kept because they were repeated: %s."
+msgstr "Niet bewaard omdat ze dubbel waren: %s."
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "The target phrases could not be saved."
+msgstr "De doelwoordgroepen konden niet worden opgeslagen."
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "Save phrases"
+msgstr "Woordgroepen opslaan"
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+#: assets/build/index.js:63
+msgid "The anchor could not be checked. Try again."
+msgstr "De ankertekst kon niet worden gecontroleerd. Probeer het opnieuw."
+
+#. translators: 1: anchor text, 2: number of words.
+#: assets/build/classic.js:21 assets/build/classic.js:22
+#: assets/build/editor.js:21 assets/build/editor.js:22 assets/build/index.js:64
+#: assets/build/index.js:65
+msgid "Anchor: %1$s, %2$d word"
+msgid_plural "Anchor: %1$s, %2$d words"
+msgstr[0] "Ankertekst: %1$s, %2$d woord"
+msgstr[1] "Ankertekst: %1$s, %2$d woorden"
+
+#: assets/build/classic.js:21 assets/build/editor.js:21
+#: assets/build/index.js:64
+msgid "Right arrow extends the anchor, left arrow shortens it. Shift with the arrows does the same on the left. Enter confirms and Escape cancels."
+msgstr "Pijl-rechts verlengt de ankertekst, pijl-links verkort hem. Met Shift doen de pijlen hetzelfde aan de linkerkant. Enter bevestigt en Escape annuleert."
+
+#: assets/build/classic.js:21 assets/build/classic.js:28
+#: assets/build/editor.js:21 assets/build/editor.js:28 assets/build/index.js:64
+#: assets/build/index.js:71
+msgid "Adjust anchor"
+msgstr "Ankertekst aanpassen"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Checking the anchor…"
+msgstr "Ankertekst controleren…"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Apply anchor"
+msgstr "Ankertekst toepassen"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22 assets/build/index.js:7
+#: assets/build/index.js:59 assets/build/index.js:65 assets/build/index.js:98
+#: assets/build/index.js:117
+msgid "Cancel"
+msgstr "Annuleren"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Link from this sentence"
+msgstr "Linken vanuit deze zin"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "recommended"
+msgstr "aanbevolen"
+
+#: assets/build/classic.js:22 assets/build/classic.js:41
+#: assets/build/editor.js:22 assets/build/editor.js:41 assets/build/index.js:65
+#: assets/build/index.js:83
+msgid "Suggestion dismissed. It will not be proposed again."
+msgstr "Suggestie genegeerd. Deze wordt niet opnieuw voorgesteld."
+
+#. translators: %s: title of the entry that got the link.
+#: assets/build/classic.js:23 assets/build/editor.js:23
+#: assets/build/index.js:66
+msgid "Undo the link in “%s”"
+msgstr "Maak de link in “%s” ongedaan"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:24 assets/build/editor.js:24
+#: assets/build/index.js:67
+msgid "Undo the link to “%s”"
+msgstr "Maak de link naar “%s” ongedaan"
+
+#. translators: %s: title of the entry the suggestion is about.
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgid "Undo dismissing the suggestion for “%s”"
+msgstr "Maak het negeren van de suggestie voor “%s” ongedaan"
+
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgctxt "state of a suggestion that has been linked"
+msgid "Linked"
+msgstr "Gelinkt"
+
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgctxt "state of a suggestion that has been dismissed"
+msgid "Dismissed"
+msgstr "Genegeerd"
+
+#: assets/build/classic.js:25 assets/build/classic.js:26
+#: assets/build/editor.js:25 assets/build/editor.js:26 assets/build/index.js:68
+#: assets/build/index.js:69
+msgid "In:"
+msgstr "In:"
+
+#. translators: %s: title of the entry that would get the link.
+#: assets/build/classic.js:26 assets/build/classic.js:27
+#: assets/build/editor.js:26 assets/build/editor.js:27 assets/build/index.js:69
+#: assets/build/index.js:70
+msgid "In: %s"
+msgstr "In: %s"
+
+#: assets/build/classic.js:26 assets/build/classic.js:29
+#: assets/build/editor.js:26 assets/build/editor.js:29 assets/build/index.js:69
+#: assets/build/index.js:72
+msgid "Links to:"
+msgstr "Linkt naar:"
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+#: assets/build/index.js:10 assets/build/index.js:52 assets/build/index.js:69
+#: assets/build/index.js:94
+msgid "Undo"
+msgstr "Ongedaan maken"
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+#: assets/build/index.js:69
+msgid "See in History"
+msgstr "Bekijken in Geschiedenis"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:28 assets/build/editor.js:28
+#: assets/build/index.js:71
+msgid "Adjust anchor, link to “%s”"
+msgstr "Ankertekst aanpassen, link naar “%s”"
+
+#. translators: %d: number of sentences to choose from.
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "More sentences (%d)"
+msgstr "Meer zinnen (%d)"
+
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "Anchor notices"
+msgstr "Meldingen over de ankertekst"
+
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "You cannot edit this entry, so the link cannot be added from here."
+msgstr "Je kunt dit item niet bewerken, dus de link kan hier niet worden toegevoegd."
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:30 assets/build/editor.js:30
+#: assets/build/index.js:73
+msgid "Link to “%s”"
+msgstr "Link naar “%s”"
+
+#: assets/build/classic.js:30 assets/build/editor.js:30
+#: assets/build/index.js:73
+msgctxt "button: add the link to the text"
+msgid "Link"
+msgstr "Link"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "Dismiss the suggestion for “%s”"
+msgstr "Negeer de suggestie voor “%s”"
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74 assets/build/index.js:103
+msgid "Dismiss"
+msgstr "Negeren"
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "The AI does not see this as a good link."
+msgstr "De AI ziet dit niet als een goede link."
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "Recommended by the AI."
+msgstr "Aanbevolen door de AI."
+
+#. translators: %d: confidence of the AI, from 0 to 100.
+#: assets/build/classic.js:32 assets/build/editor.js:32
+#: assets/build/index.js:75
+msgid "Recommended by the AI (confidence %d%%)."
+msgstr "Aanbevolen door de AI (zekerheid %d%%)."
+
+#. translators: %s: anchor text the AI proposes.
+#: assets/build/classic.js:33 assets/build/editor.js:33
+#: assets/build/index.js:76
+msgid "The AI suggests this anchor: “%s”."
+msgstr "De AI stelt deze ankertekst voor: “%s”."
+
+#. translators: %s: anchor text the AI proposes.
+#: assets/build/classic.js:34 assets/build/editor.js:34
+#: assets/build/index.js:77
+msgid "Use the anchor “%s”"
+msgstr "Gebruik de ankertekst “%s”"
+
+#: assets/build/classic.js:34 assets/build/editor.js:34
+#: assets/build/index.js:77
+msgid "Use this anchor"
+msgstr "Gebruik deze ankertekst"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "content type"
+msgstr "contenttype"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "category"
+msgstr "categorie"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "tag"
+msgstr "tag"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "The site has not been analyzed yet, so there are no suggestions. Analyze it from the report and come back."
+msgstr "De site is nog niet geanalyseerd, dus er zijn geen suggesties. Analyseer de site vanuit het rapport en kom terug."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Open the report"
+msgstr "Het rapport openen"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is not analyzed yet. Save it and refresh in a moment, or check that its content type is analyzed in Settings."
+msgstr "Dit item is nog niet geanalyseerd. Sla het op en ververs over een moment, of controleer in Instellingen of het contenttype wordt geanalyseerd."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is excluded from the analysis, so it has no suggestions and is not suggested anywhere. Include it again from the report."
+msgstr "Dit item is uitgesloten van de analyse, dus het heeft geen suggesties en wordt nergens voorgesteld. Neem het weer op via het rapport."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is in a category that is excluded from the analysis, so it has no suggestions and is not suggested anywhere. You can change the excluded categories in Settings."
+msgstr "Dit item zit in een categorie die is uitgesloten van de analyse, dus het heeft geen suggesties en wordt nergens voorgesteld. Je kunt de uitgesloten categorieën wijzigen bij Instellingen."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Open the settings"
+msgstr "De instellingen openen"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Other entries can only link to this one once it is published."
+msgstr "Andere items kunnen pas naar dit item linken als het is gepubliceerd."
+
+#. translators: %s: the filters that are required, such as "category" or "category and tag".
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "There are no suggestions: only entries that match this one in %s are searched."
+msgstr "Er zijn geen suggesties: er wordt alleen gezocht naar items die in %s met dit item overeenkomen."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "If you want more, change the filter in <a>Settings → Suggestions</a>."
+msgstr "Wil je meer? Wijzig het filter in <a>Instellingen → Suggesties</a>."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "If you want more, ask an administrator to change the filter in Settings → Suggestions."
+msgstr "Wil je meer? Vraag een beheerder om het filter te wijzigen in Instellingen → Suggesties."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "There are no suggestions with enough confidence. This usually happens with very short entries or on a topic that has no other content on the site yet."
+msgstr "Er zijn geen suggesties met voldoende zekerheid. Dit gebeurt meestal bij zeer korte items of bij een onderwerp waarover er nog geen andere content op de site staat."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "No other entry has a sentence that fits a link to this one yet."
+msgstr "Nog geen enkel ander item heeft een zin waarin een link naar dit item past."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "Try again"
+msgstr "Probeer het opnieuw"
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "Looking for suggestions…"
+msgstr "Suggesties zoeken…"
+
+#. translators: 1: position of the sentence, 2: number of sentences, 3: anchor text.
+#: assets/build/classic.js:37 assets/build/editor.js:37
+msgid "Sentence %1$d of %2$d selected. Anchor: %3$s."
+msgstr "Zin %1$d van %2$d geselecteerd. Ankertekst: %3$s."
+
+#. translators: %s: anchor text.
+#: assets/build/classic.js:38 assets/build/editor.js:38
+msgid "Anchor set: %s."
+msgstr "Ankertekst ingesteld: %s."
+
+#. translators: %d: number of suggestions.
+#: assets/build/classic.js:39 assets/build/editor.js:39
+#: assets/build/editor.js:47
+msgid "%d outbound suggestion"
+msgid_plural "%d outbound suggestions"
+msgstr[0] "%d uitgaande suggestie"
+msgstr[1] "%d uitgaande suggesties"
+
+#. translators: %s: title of the entry that got the link.
+#: assets/build/classic.js:40 assets/build/editor.js:40
+#: assets/build/index.js:82
+msgid "Link added in “%s”."
+msgstr "Link toegevoegd in “%s”."
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Link to “%s” added."
+msgstr "Link naar “%s” toegevoegd."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Link removed."
+msgstr "Link verwijderd."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be added."
+msgstr "De link kon niet worden toegevoegd."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be added. Check your connection and try again."
+msgstr "De link kon niet worden toegevoegd. Controleer je verbinding en probeer het opnieuw."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be removed."
+msgstr "De link kon niet worden verwijderd."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The suggestion could not be dismissed. Check your connection and try again."
+msgstr "De suggestie kon niet worden genegeerd. Controleer je verbinding en probeer het opnieuw."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The dismissal could not be undone. Check your connection and try again."
+msgstr "Het negeren kon niet ongedaan worden gemaakt. Controleer je verbinding en probeer het opnieuw."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Suggestion restored."
+msgstr "Suggestie hersteld."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The text has changed since the link was added. Use Undo in the editor or remove the link by hand."
+msgstr "De tekst is gewijzigd sinds de link is toegevoegd. Gebruik Ongedaan maken in de editor of verwijder de link handmatig."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Outbound"
+msgstr "Uitgaand"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:87
+msgid "Inbound"
+msgstr "Inkomend"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:85 assets/build/index.js:127
+msgid "Refresh"
+msgstr "Verversen"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Analyzes what you have in the editor now, saved or not."
+msgstr "Analyseert wat je nu in de editor hebt, opgeslagen of niet."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Link added."
+msgstr "Link toegevoegd."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The text has changed since the suggestion was made. Refresh the suggestions and try again."
+msgstr "De tekst is gewijzigd sinds de suggestie is gedaan. Ververs de suggesties en probeer het opnieuw."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This sentence appears more than once, so the right place is unclear. Add the link by hand."
+msgstr "Deze zin komt meer dan eens voor, dus het is onduidelijk waar de link moet komen. Voeg de link handmatig toe."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This text is already a link."
+msgstr "Deze tekst is al een link."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This sentence is somewhere the panel cannot add a link (a block it does not edit, or a heading, quote, table or shortcode). Add the link by hand."
+msgstr "Deze zin staat op een plek waar het paneel geen link kan toevoegen (een blok dat het niet bewerkt, of een koptekst, citaat, tabel of shortcode). Voeg de link handmatig toe."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The anchor crosses bold, italics or other formatting, so the link would break it. Add the link by hand."
+msgstr "De ankertekst loopt over vet, cursief of andere opmaak heen, waardoor de link die zou verstoren. Voeg de link handmatig toe."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand."
+msgstr "De link kon niet worden toegevoegd zonder de rest van het blok in gevaar te brengen, dus er is niets gewijzigd. Voeg hem handmatig toe."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The address of the destination is not valid, so the link was not added."
+msgstr "Het adres van de bestemming is niet geldig, dus de link is niet toegevoegd."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The Classic block has changes that are not applied yet. Save or leave the block and try again."
+msgstr "Het blok Klassiek bevat wijzigingen die nog niet zijn toegepast. Sla het blok op of verlaat het en probeer het opnieuw."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Switch to the Visual tab to add the link, or add it by hand."
+msgstr "Schakel over naar het tabblad Visueel om de link toe te voegen, of voeg hem handmatig toe."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Sentences in other entries where a link to this one fits."
+msgstr "Zinnen in andere items waarin een link naar dit item past."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:86
+msgid "Inbound suggestions pages"
+msgstr "Paginering van inkomende suggesties"
+
+#: assets/build/classic.js:42 assets/build/editor.js:42
+msgid "The suggestions could not be loaded. Check your connection and try again."
+msgstr "De suggesties konden niet worden geladen. Controleer je verbinding en probeer het opnieuw."
+
+#. translators: %s: title of the entry where the link would go.
+#: assets/build/classic.js:43 assets/build/editor.js:43
+msgid "The suggestion in “%s” has changed sentence."
+msgstr "De suggestie in “%s” heeft een andere zin gekregen."
+
+#. translators: %s: title of the entry where the link would go.
+#: assets/build/classic.js:44 assets/build/editor.js:44
+msgid "The suggestion in “%s” was removed because its sentence is now used by another one."
+msgstr "De suggestie in “%s” is verwijderd omdat de zin nu door een andere suggestie wordt gebruikt."
+
+#. translators: %s: title of the destination of the suggestion.
+#: assets/build/classic.js:45 assets/build/editor.js:45
+msgid "The suggestion to “%s” has changed sentence."
+msgstr "De suggestie naar “%s” heeft een andere zin gekregen."
+
+#. translators: %s: title of the destination of the suggestion.
+#: assets/build/classic.js:46 assets/build/editor.js:46
+msgid "The suggestion to “%s” was removed because its sentence is now used by another one."
+msgstr "De suggestie naar “%s” is verwijderd omdat de zin nu door een andere suggestie wordt gebruikt."
+
+#: assets/build/classic.js:46 assets/build/editor.js:46
+msgid "That sentence cannot be used: a link you added or dismissed already takes it."
+msgstr "Die zin kan niet worden gebruikt: een link die je hebt toegevoegd of genegeerd neemt hem al in beslag."
+
+#: assets/build/index.js:1
+msgid "Notice closed."
+msgstr "Bericht gesloten."
+
+#: assets/build/index.js:1
+msgid "The notice could not be closed. Try again."
+msgstr "De melding kon niet worden gesloten. Probeer het opnieuw."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:3 assets/build/index.js:23
+msgid "%s entry"
+msgid_plural "%s entries"
+msgstr[0] "%s item"
+msgstr[1] "%s items"
+
+#. translators: %s: number of rules.
+#: assets/build/index.js:4
+msgid "%s rule"
+msgid_plural "%s rules"
+msgstr[0] "%s regel"
+msgstr[1] "%s regels"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:5
+msgid "%s link"
+msgid_plural "%s links"
+msgstr[0] "%s link"
+msgstr[1] "%s links"
+
+#: assets/build/index.js:5
+msgid "First page"
+msgstr "Eerste pagina"
+
+#: assets/build/index.js:5
+msgid "Previous page"
+msgstr "Vorige pagina"
+
+#: assets/build/index.js:5 assets/build/index.js:6
+msgid "Current page"
+msgstr "Huidige pagina"
+
+#. translators: %s: total number of pages.
+#: assets/build/index.js:6
+msgid "of %s"
+msgstr "van %s"
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/index.js:7
+msgid "%1$s of %2$s"
+msgstr "%1$s van %2$s"
+
+#: assets/build/index.js:7
+msgid "Next page"
+msgstr "Volgende pagina"
+
+#: assets/build/index.js:7
+msgid "Last page"
+msgstr "Laatste pagina"
+
+#: assets/build/index.js:7
+msgid "Sorted descending."
+msgstr "Aflopend gesorteerd."
+
+#: assets/build/index.js:7
+msgid "Sorted ascending."
+msgstr "Oplopend gesorteerd."
+
+#: assets/build/index.js:7
+msgid "Show more details"
+msgstr "Meer details tonen"
+
+#: assets/build/index.js:7
+msgid "Search"
+msgstr "Zoeken"
+
+#: assets/build/index.js:7 assets/build/index.js:91 assets/build/index.js:94
+msgid "Could not search the entries."
+msgstr "Kon de items niet doorzoeken."
+
+#: assets/build/index.js:7 assets/build/index.js:10 assets/build/index.js:12
+#: assets/build/index.js:13
+msgid "(no text)"
+msgstr "(geen tekst)"
+
+#: assets/build/index.js:7 assets/build/index.js:11 assets/build/index.js:94
+msgid "Change destination"
+msgstr "Bestemming wijzigen"
+
+#: assets/build/index.js:7 assets/build/index.js:11
+msgid "Remove link"
+msgstr "Link verwijderen"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:8
+msgid "The link “%1$s” in “%2$s” leads nowhere."
+msgstr "De link “%1$s” in “%2$s” leidt nergens heen."
+
+#: assets/build/index.js:8
+msgid "Pick the entry it should lead to. Only the address changes: the text and the rest of the entry stay as they are, and you can undo it from the history."
+msgstr "Kies het item waar de link naartoe moet leiden. Alleen het adres verandert: de tekst en de rest van het item blijven zoals ze zijn, en je kunt het ongedaan maken via de geschiedenis."
+
+#: assets/build/index.js:8 assets/build/index.js:53 assets/build/index.js:88
+#: assets/build/index.js:94
+msgid "Search entries by title"
+msgstr "Items zoeken op titel"
+
+#. translators: %d: number of entries found.
+#: assets/build/index.js:9 assets/build/index.js:91 assets/build/index.js:95
+msgid "%d entry found"
+msgid_plural "%d entries found"
+msgstr[0] "%d item gevonden"
+msgstr[1] "%d items gevonden"
+
+#: assets/build/index.js:9
+msgid "New destination"
+msgstr "Nieuwe bestemming"
+
+#: assets/build/index.js:9 assets/build/index.js:95
+msgid "No published entries match."
+msgstr "Geen gepubliceerde items gevonden."
+
+#: assets/build/index.js:9
+msgid "The link is taken out and its text stays exactly as it is. You can undo it from the history."
+msgstr "De link wordt weggehaald en de tekst blijft precies zoals hij is. Je kunt het ongedaan maken via de geschiedenis."
+
+#: assets/build/index.js:9
+msgid "Could not load the broken links."
+msgstr "Kon de defecte links niet laden."
+
+#: assets/build/index.js:9
+msgid "No broken links found."
+msgstr "Geen defecte links gevonden."
+
+#. translators: %d: number of broken links.
+#: assets/build/index.js:10
+msgid "%d broken link"
+msgid_plural "%d broken links"
+msgstr[0] "%d defecte link"
+msgstr[1] "%d defecte links"
+
+#: assets/build/index.js:10 assets/build/index.js:23 assets/build/index.js:53
+msgid "Entry"
+msgstr "Item"
+
+#: assets/build/index.js:10
+msgid "Broken URL"
+msgstr "Defecte URL"
+
+#: assets/build/index.js:10 assets/build/index.js:23 assets/build/index.js:44
+#: assets/build/index.js:49 assets/build/index.js:53
+msgid "Anchor text"
+msgstr "Ankertekst"
+
+#: assets/build/index.js:10
+msgid "Reason"
+msgstr "Reden"
+
+#: assets/build/index.js:10
+msgid "Internal links that lead nowhere: the destination is in the trash, is not published, is private or does not exist. Nothing is checked over the network. Fix each one by changing its destination or removing the link, or by editing the entry."
+msgstr "Interne links die nergens heen leiden: de bestemming staat in de prullenbak, is niet gepubliceerd, is privé of bestaat niet. Er wordt niets via het netwerk gecontroleerd. Herstel elke link door de bestemming te wijzigen of de link te verwijderen, of door het item te bewerken."
+
+#: assets/build/index.js:10 assets/build/index.js:94
+msgid "The link could not be put back automatically. Open the history to see why."
+msgstr "De link kon niet automatisch worden teruggezet. Open de geschiedenis om te zien waarom."
+
+#: assets/build/index.js:10
+msgid "Done: the link is back as it was."
+msgstr "Klaar: de link staat weer zoals hij was."
+
+#: assets/build/index.js:10 assets/build/index.js:94
+msgid "The change could not be undone."
+msgstr "De wijziging kon niet ongedaan worden gemaakt."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:11
+msgid "Showing only the broken links in “%s”."
+msgstr "Alleen de defecte links in “%s” worden getoond."
+
+#: assets/build/index.js:11
+msgid "Show all"
+msgstr "Alles tonen"
+
+#: assets/build/index.js:11
+msgid "Search broken links"
+msgstr "Defecte links zoeken"
+
+#: assets/build/index.js:11
+msgid "Broken internal links"
+msgstr "Defecte interne links"
+
+#: assets/build/index.js:11 assets/build/index.js:21 assets/build/index.js:93
+msgid "Edit entry"
+msgstr "Item bewerken"
+
+#: assets/build/index.js:11
+msgid "There are no broken internal links. Well done."
+msgstr "Er zijn geen defecte interne links. Goed gedaan."
+
+#: assets/build/index.js:11 assets/build/index.js:53 assets/build/index.js:90
+msgid "Export CSV"
+msgstr "CSV exporteren"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:12
+msgid "Destination changed for “%1$s” in “%2$s”."
+msgstr "Bestemming gewijzigd voor “%1$s” in “%2$s”."
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:13
+msgid "Link removed from “%1$s” in “%2$s”; its text stays."
+msgstr "Link verwijderd uit “%1$s” in “%2$s”; de tekst blijft staan."
+
+#. translators: %s: number of seconds.
+#: assets/build/index.js:14
+msgid "%s s"
+msgstr "%s s"
+
+#. translators: 1: minutes, 2: seconds.
+#: assets/build/index.js:15
+msgid "%1$s min %2$s s"
+msgstr "%1$s min %2$s s"
+
+#: assets/build/index.js:15
+msgid "(deleted entry)"
+msgstr "(verwijderd item)"
+
+#: assets/build/index.js:15
+msgid "Destination changed"
+msgstr "Bestemming gewijzigd"
+
+#: assets/build/index.js:15 assets/build/index.js:16
+msgid "Link removed"
+msgstr "Link verwijderd"
+
+#: assets/build/index.js:15
+msgid "Added"
+msgstr "Toegevoegd"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Editor panel · AI"
+msgstr "Editorpaneel · AI"
+
+#: assets/build/index.js:15 assets/build/index.js:53
+msgctxt "history origin"
+msgid "Editor panel"
+msgstr "Editorpaneel"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Another entry's panel · AI"
+msgstr "Paneel van een ander item · AI"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Another entry's panel"
+msgstr "Paneel van een ander item"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Automatic rule · AI"
+msgstr "Automatische regel · AI"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Automatic rule"
+msgstr "Automatische regel"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Broken links"
+msgstr "Defecte links"
+
+#. translators: %s: exact identifier of the AI model that recommended the link.
+#: assets/build/index.js:16
+msgid "AI model: %s"
+msgstr "AI-model: %s"
+
+#: assets/build/index.js:16
+msgid "Anchor suggested by the AI"
+msgstr "Ankertekst voorgesteld door de AI"
+
+#: assets/build/index.js:16
+msgid "Added from the editor panel"
+msgstr "Toegevoegd vanuit het editorpaneel"
+
+#: assets/build/index.js:16
+msgid "Added from another entry's panel"
+msgstr "Toegevoegd vanuit het paneel van een ander item"
+
+#: assets/build/index.js:16
+msgid "Added by an automatic rule"
+msgstr "Toegevoegd door een automatische regel"
+
+#: assets/build/index.js:16
+msgid "Fixed from Broken links"
+msgstr "Hersteld via Defecte links"
+
+#: assets/build/index.js:16 assets/build/index.js:22 assets/build/index.js:23
+#: assets/build/index.js:50
+msgid "Undone"
+msgstr "Ongedaan gemaakt"
+
+#: assets/build/index.js:16
+msgid "Link put back"
+msgstr "Link teruggezet"
+
+#: assets/build/index.js:16
+msgid "Already gone"
+msgstr "Al weg"
+
+#: assets/build/index.js:16
+msgid "Already undone"
+msgstr "Al ongedaan gemaakt"
+
+#: assets/build/index.js:16
+msgid "Added again"
+msgstr "Opnieuw toegevoegd"
+
+#: assets/build/index.js:16
+msgid "Needs your attention"
+msgstr "Heeft je aandacht nodig"
+
+#: assets/build/index.js:16
+msgid "Not changed"
+msgstr "Niet gewijzigd"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:17
+msgid "%s link added again."
+msgid_plural "%s links added again."
+msgstr[0] "%s link opnieuw toegevoegd."
+msgstr[1] "%s links opnieuw toegevoegd."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:18
+msgid "%s link undone."
+msgid_plural "%s links undone."
+msgstr[0] "%s link ongedaan gemaakt."
+msgstr[1] "%s links ongedaan gemaakt."
+
+#. translators: 1: links added again, 2: links that need attention.
+#: assets/build/index.js:19
+msgid "Added again: %1$s. Need your attention: %2$s."
+msgstr "Opnieuw toegevoegd: %1$s. Aandacht nodig: %2$s."
+
+#. translators: 1: links undone, 2: links that need attention.
+#: assets/build/index.js:20
+msgid "Undone: %1$s. Need your attention: %2$s."
+msgstr "Ongedaan gemaakt: %1$s. Aandacht nodig: %2$s."
+
+#. translators: 1: changes done, 2: total changes.
+#: assets/build/index.js:21
+msgid "Working in the background: %1$s of %2$s."
+msgstr "Bezig op de achtergrond: %1$s van %2$s."
+
+#: assets/build/index.js:21
+msgid "This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running."
+msgstr "Dit duurt langer dan verwacht. Achtergrondtaken hebben WP-Cron of Action Scheduler nodig om te kunnen draaien."
+
+#: assets/build/index.js:21 assets/build/index.js:59
+msgid "Resume"
+msgstr "Hervatten"
+
+#: assets/build/index.js:21
+msgid "Cancel process"
+msgstr "Proces annuleren"
+
+#: assets/build/index.js:21
+msgid "Could not read the progress of the process."
+msgstr "Kon de voortgang van het proces niet lezen."
+
+#: assets/build/index.js:21 assets/build/index.js:26 assets/build/index.js:36
+#: assets/build/index.js:57 assets/build/index.js:117 assets/build/index.js:128
+#: assets/build/index.js:130
+msgid "That did not work. Try again."
+msgstr "Dat is niet gelukt. Probeer het opnieuw."
+
+#. translators: 1: number of links in the batch that the AI recommended, 2: number of links in the batch.
+#: assets/build/index.js:22
+msgid "%1$s of %2$s link recommended by the AI"
+msgid_plural "%1$s of %2$s links recommended by the AI"
+msgstr[0] "%1$s van %2$s link aanbevolen door de AI"
+msgstr[1] "%1$s van %2$s links aanbevolen door de AI"
+
+#: assets/build/index.js:22
+msgid "Could not load the links of this batch."
+msgstr "Kon de links van deze batch niet laden."
+
+#: assets/build/index.js:22
+msgid "Could not refresh this batch."
+msgstr "Kon deze batch niet verversen."
+
+#: assets/build/index.js:22 assets/build/index.js:23 assets/build/index.js:50
+msgid "In place"
+msgstr "Aanwezig"
+
+#: assets/build/index.js:22
+msgid "Partly undone"
+msgstr "Gedeeltelijk ongedaan gemaakt"
+
+#: assets/build/index.js:23
+msgid "Progress of undoing the batch"
+msgstr "Voortgang van het ongedaan maken van de batch"
+
+#: assets/build/index.js:23
+msgid "Progress of redoing the batch"
+msgstr "Voortgang van het opnieuw uitvoeren van de batch"
+
+#: assets/build/index.js:23 assets/build/index.js:26
+msgid "Undo batch"
+msgstr "Batch ongedaan maken"
+
+#: assets/build/index.js:23 assets/build/index.js:26
+msgid "Redo batch"
+msgstr "Batch opnieuw uitvoeren"
+
+#: assets/build/index.js:23
+msgid "Hide links"
+msgstr "Links verbergen"
+
+#: assets/build/index.js:23
+msgid "Show links"
+msgstr "Links tonen"
+
+#: assets/build/index.js:23
+msgid "Links in this batch"
+msgstr "Links in deze batch"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:48
+#: assets/build/index.js:53
+msgid "Date"
+msgstr "Datum"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:49
+#: assets/build/index.js:53
+msgid "Links to"
+msgstr "Linkt naar"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:50
+#: assets/build/index.js:53
+msgid "Source"
+msgstr "Bron"
+
+#: assets/build/index.js:23 assets/build/index.js:44
+msgid "Actions"
+msgstr "Acties"
+
+#: assets/build/index.js:23
+msgid "No links to show."
+msgstr "Geen links om te tonen."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:24
+msgid "Redo change in %s"
+msgstr "Wijziging in %s opnieuw uitvoeren"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:25
+msgid "Undo change in %s"
+msgstr "Wijziging in %s ongedaan maken"
+
+#: assets/build/index.js:25 assets/build/index.js:26
+msgid "Redo change"
+msgstr "Wijziging opnieuw uitvoeren"
+
+#: assets/build/index.js:25 assets/build/index.js:26
+msgid "Undo change"
+msgstr "Wijziging ongedaan maken"
+
+#. translators: 1: links shown, 2: total links.
+#: assets/build/index.js:26
+msgid "Show more links (%1$s of %2$s)"
+msgstr "Meer links tonen (%1$s van %2$s)"
+
+#: assets/build/index.js:26
+msgid "Undo this batch?"
+msgstr "Deze batch ongedaan maken?"
+
+#: assets/build/index.js:26
+msgid "Redo this batch?"
+msgstr "Deze batch opnieuw uitvoeren?"
+
+#: assets/build/index.js:26
+msgid "Undo this change?"
+msgstr "Deze wijziging ongedaan maken?"
+
+#: assets/build/index.js:26
+msgid "Redo this change?"
+msgstr "Deze wijziging opnieuw uitvoeren?"
+
+#: assets/build/index.js:26
+msgid "The link will be put back around its text, as it was."
+msgstr "De link wordt weer rond de tekst geplaatst, zoals hij was."
+
+#: assets/build/index.js:26
+msgid "The link will point to its previous address again, and nothing else changes."
+msgstr "De link verwijst weer naar het vorige adres en verder verandert er niets."
+
+#: assets/build/index.js:26
+msgid "If the entry was edited afterwards, only this link is touched; if that cannot be done safely, nothing is changed and you are told."
+msgstr "Als het item daarna is bewerkt, wordt alleen deze link aangeraakt; als dat niet veilig kan, wordt er niets gewijzigd en krijg je een melding."
+
+#: assets/build/index.js:26
+msgid "The link will be removed again."
+msgstr "De link wordt opnieuw verwijderd."
+
+#: assets/build/index.js:26
+msgid "The new destination will be applied again."
+msgstr "De nieuwe bestemming wordt opnieuw toegepast."
+
+#: assets/build/index.js:26 assets/build/index.js:28
+msgid "Any entry edited in that spot since is left alone and listed."
+msgstr "Een item dat sindsdien op die plek is bewerkt, blijft ongemoeid en wordt vermeld."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:27
+msgid "%s link will be taken out."
+msgid_plural "%s links will be taken out."
+msgstr[0] "%s link wordt weggehaald."
+msgstr[1] "%s links worden weggehaald."
+
+#: assets/build/index.js:27
+msgid "Where an entry was edited afterwards, only the link is removed; anything that cannot be undone safely is left alone and listed so you can fix it by hand."
+msgstr "Waar een item daarna is bewerkt, wordt alleen de link verwijderd; wat niet veilig ongedaan kan worden gemaakt, blijft ongemoeid en wordt vermeld, zodat je het handmatig kunt herstellen."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:28
+msgid "%s undone link will be added again, as it was."
+msgid_plural "%s undone links will be added again, as they were."
+msgstr[0] "%s ongedaan gemaakte link wordt opnieuw toegevoegd, zoals hij was."
+msgstr[1] "%s ongedaan gemaakte links worden opnieuw toegevoegd, zoals ze waren."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:29
+msgid "The link in “%s” will be taken out. If the entry was edited afterwards, only this link is removed."
+msgstr "De link in “%s” wordt weggehaald. Als het item daarna is bewerkt, wordt alleen deze link verwijderd."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:30
+msgid "The link will be added again in “%s”, as it was."
+msgstr "De link wordt opnieuw toegevoegd in “%s”, zoals hij was."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:31
+msgid "%s link destination changed"
+msgid_plural "%s link destinations changed"
+msgstr[0] "%s linkbestemming gewijzigd"
+msgstr[1] "%s linkbestemmingen gewijzigd"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:32
+msgid "%s link removed"
+msgid_plural "%s links removed"
+msgstr[0] "%s link verwijderd"
+msgstr[1] "%s links verwijderd"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:33
+msgid "%s link added"
+msgid_plural "%s links added"
+msgstr[0] "%s link toegevoegd"
+msgstr[1] "%s links toegevoegd"
+
+#. translators: %s: address the removed link pointed to.
+#: assets/build/index.js:34
+msgid "%s (link removed)"
+msgstr "%s (link verwijderd)"
+
+#: assets/build/index.js:34
+msgid "There are no changes in the history."
+msgstr "Er zijn geen wijzigingen in de geschiedenis."
+
+#. translators: %s: number of batches.
+#: assets/build/index.js:35
+msgid "%s batch in the history."
+msgid_plural "%s batches in the history."
+msgstr[0] "%s batch in de geschiedenis."
+msgstr[1] "%s batches in de geschiedenis."
+
+#: assets/build/index.js:35 assets/build/index.js:36 assets/build/index.js:52
+msgid "Could not load the history."
+msgstr "Kon de geschiedenis niet laden."
+
+#: assets/build/index.js:35 assets/build/index.js:53
+msgid "No changes yet. When you add a link with Magic Linking it will appear here, and you will be able to undo it."
+msgstr "Nog geen wijzigingen. Als je een link toevoegt met Magic Linking, verschijnt die hier en kun je hem ongedaan maken."
+
+#. translators: %s: number of batches.
+#: assets/build/index.js:36
+msgid "%s older batch shown."
+msgid_plural "%s older batches shown."
+msgstr[0] "%s oudere batch getoond."
+msgstr[1] "%s oudere batches getoond."
+
+#: assets/build/index.js:36
+msgid "Show older batches"
+msgstr "Oudere batches tonen"
+
+#: assets/build/index.js:36
+msgid "Could not refresh this entry."
+msgstr "Kon dit item niet verversen."
+
+#. translators: 1: active changes, 2: total changes.
+#: assets/build/index.js:37
+msgid "%1$s of %2$s change active"
+msgid_plural "%1$s of %2$s changes active"
+msgstr[0] "%1$s van %2$s wijziging actief"
+msgstr[1] "%1$s van %2$s wijzigingen actief"
+
+#: assets/build/index.js:37
+msgid "Last change"
+msgstr "Laatste wijziging"
+
+#: assets/build/index.js:37 assets/build/index.js:88 assets/build/index.js:105
+msgid "Edit"
+msgstr "Bewerken"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:38
+msgid "Edit “%s”"
+msgstr "“%s” bewerken"
+
+#: assets/build/index.js:38 assets/build/index.js:88
+msgid "View"
+msgstr "Bekijken"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:39
+msgid "View “%s”"
+msgstr "“%s” bekijken"
+
+#. translators: 1: number of active changes, 2: entry title.
+#: assets/build/index.js:40
+msgid "Undo all (%1$s) in %2$s"
+msgstr "Alles (%1$s) in %2$s ongedaan maken"
+
+#. translators: %s: number of active changes.
+#: assets/build/index.js:41
+msgid "Undo all (%s)"
+msgstr "Alles ongedaan maken (%s)"
+
+#. translators: 1: number of undone changes, 2: entry title.
+#: assets/build/index.js:42
+msgid "Redo all (%1$s) in %2$s"
+msgstr "Alles (%1$s) in %2$s opnieuw uitvoeren"
+
+#. translators: %s: number of undone changes.
+#: assets/build/index.js:43
+msgid "Redo all (%s)"
+msgstr "Alles opnieuw uitvoeren (%s)"
+
+#: assets/build/index.js:43
+msgid "Progress of undoing the changes"
+msgstr "Voortgang van het ongedaan maken van de wijzigingen"
+
+#: assets/build/index.js:43
+msgid "Progress of redoing the changes"
+msgstr "Voortgang van het opnieuw uitvoeren van de wijzigingen"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:44
+msgid "Changes in “%s”, newest first"
+msgstr "Wijzigingen in “%s”, nieuwste eerst"
+
+#: assets/build/index.js:44 assets/build/index.js:48 assets/build/index.js:53
+msgid "Change"
+msgstr "Wijziging"
+
+#: assets/build/index.js:44 assets/build/index.js:50 assets/build/index.js:53
+msgid "User"
+msgstr "Gebruiker"
+
+#. translators: %s: number of changes.
+#: assets/build/index.js:45
+msgid "%s more change shown."
+msgid_plural "%s more changes shown."
+msgstr[0] "%s extra wijziging getoond."
+msgstr[1] "%s extra wijzigingen getoond."
+
+#: assets/build/index.js:45
+msgid "Could not load more changes."
+msgstr "Kon niet meer wijzigingen laden."
+
+#. translators: 1: changes shown, 2: total changes.
+#: assets/build/index.js:46
+msgid "Show more changes (%1$s of %2$s)"
+msgstr "Meer wijzigingen tonen (%1$s van %2$s)"
+
+#: assets/build/index.js:46
+msgid "Undo all changes in this entry?"
+msgstr "Alle wijzigingen in dit item ongedaan maken?"
+
+#: assets/build/index.js:46
+msgid "Redo all changes in this entry?"
+msgstr "Alle wijzigingen in dit item opnieuw uitvoeren?"
+
+#: assets/build/index.js:46
+msgid "Undo all"
+msgstr "Alles ongedaan maken"
+
+#: assets/build/index.js:46
+msgid "Redo all"
+msgstr "Alles opnieuw uitvoeren"
+
+#. translators: 1: number of links, 2: entry title.
+#: assets/build/index.js:47
+msgid "%1$s change will be undone in “%2$s”, newest first."
+msgid_plural "%1$s changes will be undone in “%2$s”, newest first."
+msgstr[0] "%1$s wijziging wordt ongedaan gemaakt in “%2$s”, nieuwste eerst."
+msgstr[1] "%1$s wijzigingen worden ongedaan gemaakt in “%2$s”, nieuwste eerst."
+
+#: assets/build/index.js:47
+msgid "If the entry was edited afterwards, only the link is touched; anything that cannot be undone safely is left alone and listed so you can fix it by hand."
+msgstr "Als het item daarna is bewerkt, wordt alleen de link aangeraakt; wat niet veilig ongedaan kan worden gemaakt, blijft ongemoeid en wordt vermeld, zodat je het handmatig kunt herstellen."
+
+#. translators: 1: number of links, 2: entry title.
+#: assets/build/index.js:48
+msgid "%1$s undone change will be applied again in “%2$s”, as it was."
+msgid_plural "%1$s undone changes will be applied again in “%2$s”, as they were."
+msgstr[0] "%1$s ongedaan gemaakte wijziging wordt opnieuw toegepast in “%2$s”, zoals ze was."
+msgstr[1] "%1$s ongedaan gemaakte wijzigingen worden opnieuw toegepast in “%2$s”, zoals ze waren."
+
+#: assets/build/index.js:48
+msgid "Any spot edited since is left alone and listed."
+msgstr "Elke plek die sindsdien is bewerkt, blijft ongemoeid en wordt vermeld."
+
+#: assets/build/index.js:48
+msgid "(unknown)"
+msgstr "(onbekend)"
+
+#. translators: %s: number of entries in the batch.
+#: assets/build/index.js:49
+msgid "Part of a batch of %s entries"
+msgstr "Onderdeel van een batch van %s items"
+
+#. translators: %s: address the link pointed to before.
+#: assets/build/index.js:50
+msgid "Was: %s"
+msgstr "Was: %s"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:51
+msgid "Redo “%1$s” in %2$s"
+msgstr "“%1$s” in %2$s opnieuw uitvoeren"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:52
+msgid "Undo “%1$s” in %2$s"
+msgstr "“%1$s” in %2$s ongedaan maken"
+
+#: assets/build/index.js:52
+msgid "Redo"
+msgstr "Opnieuw uitvoeren"
+
+#: assets/build/index.js:52 assets/build/index.js:86
+msgid "No entries found."
+msgstr "Geen items gevonden."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:53
+msgid "%s entry with changes."
+msgid_plural "%s entries with changes."
+msgstr[0] "%s item met wijzigingen."
+msgstr[1] "%s items met wijzigingen."
+
+#: assets/build/index.js:53
+msgid "Show entries with"
+msgstr "Items tonen met"
+
+#: assets/build/index.js:53
+msgid "All changes"
+msgstr "Alle wijzigingen"
+
+#: assets/build/index.js:53
+msgid "With changes in place"
+msgstr "Met wijzigingen die aanwezig zijn"
+
+#: assets/build/index.js:53
+msgid "With undone changes"
+msgstr "Met ongedaan gemaakte wijzigingen"
+
+#: assets/build/index.js:53
+msgid "All sources"
+msgstr "Alle bronnen"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Another entry's panel and broken links"
+msgstr "Paneel van een ander item en defecte links"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Automatic rules"
+msgstr "Automatische regels"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Recommended by the AI"
+msgstr "Aanbevolen door de AI"
+
+#: assets/build/index.js:53
+msgid "Search entries…"
+msgstr "Items zoeken…"
+
+#: assets/build/index.js:53 assets/build/index.js:90
+msgid "No entries match these filters."
+msgstr "Geen items komen overeen met deze filters."
+
+#: assets/build/index.js:53
+msgid "Showing changes by entry."
+msgstr "Wijzigingen per item worden getoond."
+
+#: assets/build/index.js:53
+msgid "Showing changes by batch."
+msgstr "Wijzigingen per batch worden getoond."
+
+#: assets/build/index.js:53
+msgid "View by:"
+msgstr "Weergeven per:"
+
+#: assets/build/index.js:53
+msgid "Batch"
+msgstr "Batch"
+
+#: assets/build/index.js:53
+msgid "Every link Magic Linking changes is listed here so you can undo it. Links you add in the editor panel appear here once you save the entry. Links added to other entries from the panel appear right away."
+msgstr "Elke link die Magic Linking wijzigt, staat hier zodat je hem ongedaan kunt maken. Links die je in het editorpaneel toevoegt, verschijnen hier zodra je het item opslaat. Links die je vanuit het paneel aan andere items toevoegt, verschijnen meteen."
+
+#. translators: %s: number of days.
+#: assets/build/index.js:54
+msgid "Changes are kept for %s day."
+msgid_plural "Changes are kept for %s days."
+msgstr[0] "Wijzigingen worden %s dag bewaard."
+msgstr[1] "Wijzigingen worden %s dagen bewaard."
+
+#: assets/build/index.js:54
+msgid "Changes are kept with no expiry date."
+msgstr "Wijzigingen worden zonder vervaldatum bewaard."
+
+#: assets/build/index.js:54
+msgid "Change how long they are kept"
+msgstr "Wijzig hoe lang ze worden bewaard"
+
+#: assets/build/index.js:54
+msgid "Less than a minute left."
+msgstr "Minder dan een minuut te gaan."
+
+#. translators: %s: number of minutes.
+#: assets/build/index.js:55
+msgid "About %s minute left."
+msgid_plural "About %s minutes left."
+msgstr[0] "Nog ongeveer %s minuut."
+msgstr[1] "Nog ongeveer %s minuten."
+
+#. translators: %s: number of hours.
+#: assets/build/index.js:56
+msgid "About %s hour left."
+msgid_plural "About %s hours left."
+msgstr[0] "Nog ongeveer %s uur."
+msgstr[1] "Nog ongeveer %s uur."
+
+#. translators: 1: new or modified entries analyzed, 2: unchanged entries skipped.
+#: assets/build/index.js:57
+msgid "Analysis finished: %1$s new or modified, %2$s unchanged and skipped."
+msgstr "Analyse voltooid: %1$s nieuw of gewijzigd, %2$s ongewijzigd en overgeslagen."
+
+#: assets/build/index.js:57
+msgid "Analysis finished."
+msgstr "Analyse voltooid."
+
+#: assets/build/index.js:57
+msgid "Could not read the analysis status."
+msgstr "Kon de status van de analyse niet lezen."
+
+#: assets/build/index.js:57 assets/build/index.js:117 assets/build/index.js:130
+msgid "Analysis started."
+msgstr "Analyse gestart."
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:58
+msgid "Analysis paused: %1$s of %2$s entries."
+msgstr "Analyse gepauzeerd: %1$s van %2$s items."
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:59
+msgid "Analyzing your entries: %1$s of %2$s."
+msgstr "Je items worden geanalyseerd: %1$s van %2$s."
+
+#: assets/build/index.js:59
+msgid "The analysis seems to have stopped. Resume it, or check that WP-Cron or Action Scheduler is running."
+msgstr "De analyse lijkt te zijn gestopt. Hervat hem, of controleer of WP-Cron of Action Scheduler draait."
+
+#: assets/build/index.js:59
+msgid "Analysis resumed."
+msgstr "Analyse hervat."
+
+#: assets/build/index.js:59
+msgid "Analysis paused."
+msgstr "Analyse gepauzeerd."
+
+#: assets/build/index.js:59 assets/build/index.js:105
+msgid "Pause"
+msgstr "Pauzeren"
+
+#: assets/build/index.js:59
+msgid "Analysis cancelled."
+msgstr "Analyse geannuleerd."
+
+#: assets/build/index.js:59 assets/build/index.js:128
+msgid "Analyze your site"
+msgstr "Analyseer je site"
+
+#: assets/build/index.js:59
+msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "Magic Linking leest de interne links die al in je items staan en laat zien welke items geen links hebben die ernaar verwijzen, welke te weinig, welke te veel en welke defecte links hebben. Analyseren leest alleen je content; het verandert niets. Links worden pas toegevoegd als je op Link drukt."
+
+#: assets/build/index.js:59
+msgid "Analyze my site"
+msgstr "Mijn site analyseren"
+
+#: assets/build/index.js:59
+msgid "An administrator has to run the first analysis."
+msgstr "Een beheerder moet de eerste analyse uitvoeren."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:60
+msgid "%s new or modified entry pending."
+msgid_plural "%s new or modified entries pending."
+msgstr[0] "%s nieuw of gewijzigd item in afwachting."
+msgstr[1] "%s nieuwe of gewijzigde items in afwachting."
+
+#: assets/build/index.js:60 assets/build/index.js:62
+msgid "Analyze changes"
+msgstr "Wijzigingen analyseren"
+
+#. translators: %s: error message.
+#: assets/build/index.js:61
+msgid "The last analysis failed: %s"
+msgstr "De laatste analyse is mislukt: %s"
+
+#: assets/build/index.js:61
+msgid "unknown error"
+msgstr "onbekende fout"
+
+#. translators: %s: date and time of the last analysis.
+#: assets/build/index.js:62 assets/build/index.js:126
+msgid "Last analysis: %s"
+msgstr "Laatste analyse: %s"
+
+#: assets/build/index.js:79
+msgid "The suggestions could not be loaded."
+msgstr "De suggesties konden niet worden geladen."
+
+#. translators: %d: number of suggestions.
+#: assets/build/index.js:80 assets/build/index.js:86
+msgid "%d suggestion"
+msgid_plural "%d suggestions"
+msgstr[0] "%d suggestie"
+msgstr[1] "%d suggesties"
+
+#: assets/build/index.js:83
+msgid "The text has changed since the link was added, so it could not be removed automatically. Open the history to see why."
+msgstr "De tekst is gewijzigd sinds de link is toegevoegd, dus hij kon niet automatisch worden verwijderd. Open de geschiedenis om te zien waarom."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:84
+msgid "Inbound suggestions: %s"
+msgstr "Inkomende suggesties: %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:85
+msgid "Outbound suggestions: %s"
+msgstr "Uitgaande suggesties: %s"
+
+#: assets/build/index.js:85
+msgid "Sentences in other entries where a link to this one fits. Each link is added right away, one at a time, without opening the editor of that entry, and you can undo it."
+msgstr "Zinnen in andere items waarin een link naar dit item past. Elke link wordt meteen en één voor één toegevoegd, zonder de editor van dat item te openen, en je kunt hem ongedaan maken."
+
+#: assets/build/index.js:85
+msgid "Sentences in this entry where a link to another entry fits. Each link is added right away, one at a time, without opening the editor, and you can undo it."
+msgstr "Zinnen in dit item waarin een link naar een ander item past. Elke link wordt meteen en één voor één toegevoegd, zonder de editor te openen, en je kunt hem ongedaan maken."
+
+#: assets/build/index.js:86
+msgid "Outbound suggestions pages"
+msgstr "Paginering van uitgaande suggesties"
+
+#: assets/build/index.js:86
+msgid "Not analyzed"
+msgstr "Niet geanalyseerd"
+
+#: assets/build/index.js:86 assets/build/index.js:87
+msgid "Excluded"
+msgstr "Uitgesloten"
+
+#: assets/build/index.js:86 assets/build/index.js:130
+msgid "Could not load the report."
+msgstr "Kon het rapport niet laden."
+
+#. translators: %d: number of entries.
+#: assets/build/index.js:87
+msgid "%d entry"
+msgid_plural "%d entries"
+msgstr[0] "%d item"
+msgstr[1] "%d items"
+
+#: assets/build/index.js:87
+msgid "All"
+msgstr "Alle"
+
+#: assets/build/index.js:87
+msgid "Orphans"
+msgstr "Weesitems"
+
+#: assets/build/index.js:87
+msgid "With broken links"
+msgstr "Met defecte links"
+
+#: assets/build/index.js:87
+msgid "Title"
+msgstr "Titel"
+
+#: assets/build/index.js:87
+msgid "Type · Language"
+msgstr "Type · Taal"
+
+#: assets/build/index.js:87
+msgid "Type"
+msgstr "Type"
+
+#: assets/build/index.js:87
+msgid "Internal outbound"
+msgstr "Intern uitgaand"
+
+#: assets/build/index.js:87
+msgid "External"
+msgstr "Extern"
+
+#: assets/build/index.js:87
+msgid "Broken"
+msgstr "Defect"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:88
+msgid "broken links in %s"
+msgstr "defecte links in %s"
+
+#: assets/build/index.js:88
+msgid "category excluded"
+msgstr "categorie uitgesloten"
+
+#: assets/build/index.js:88
+msgid "Analyzed"
+msgstr "Geanalyseerd"
+
+#: assets/build/index.js:88
+msgid "Internal links by entry"
+msgstr "Interne links per item"
+
+#: assets/build/index.js:88
+msgid "Inbound suggestions"
+msgstr "Inkomende suggesties"
+
+#: assets/build/index.js:88
+msgid "Outbound suggestions"
+msgstr "Uitgaande suggesties"
+
+#: assets/build/index.js:88
+msgid "Change excluded categories"
+msgstr "Uitgesloten categorieën wijzigen"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:89
+msgid "%s excluded from the analysis."
+msgstr "%s uitgesloten van de analyse."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:90
+msgid "%s included in the analysis again."
+msgstr "%s weer opgenomen in de analyse."
+
+#: assets/build/index.js:90
+msgid "Could not exclude the entry from the analysis."
+msgstr "Het item kon niet van de analyse worden uitgesloten."
+
+#: assets/build/index.js:90
+msgid "Could not include the entry in the analysis again."
+msgstr "Het item kon niet weer in de analyse worden opgenomen."
+
+#: assets/build/index.js:90
+msgid "Include in the analysis"
+msgstr "Weer opnemen in de analyse"
+
+#: assets/build/index.js:90
+msgid "Exclude from the analysis"
+msgstr "Uitsluiten van de analyse"
+
+#: assets/build/index.js:90
+msgid "View broken links"
+msgstr "Defecte links bekijken"
+
+#: assets/build/index.js:90
+msgid "No entries are excluded from the analysis."
+msgstr "Geen enkel item is uitgesloten van de analyse."
+
+#: assets/build/index.js:90 assets/build/index.js:118
+msgid "Content type"
+msgstr "Contenttype"
+
+#: assets/build/index.js:90
+msgid "All types"
+msgstr "Alle types"
+
+#: assets/build/index.js:90
+msgid "Language"
+msgstr "Taal"
+
+#: assets/build/index.js:90
+msgid "All languages"
+msgstr "Alle talen"
+
+#: assets/build/index.js:90
+msgid "No more entries fit this rule."
+msgstr "Er passen geen items meer bij deze regel."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:92
+msgid "Apply “%s” to existing entries"
+msgstr "“%s” toepassen op bestaande items"
+
+#: assets/build/index.js:92
+msgid "These are the entries where the rule fits. Check the link that would be added and add it entry by entry. Each one is written safely, shown in the history and can be undone."
+msgstr "Dit zijn de items waarop de regel past. Controleer de link die zou worden toegevoegd en voeg de links item voor item toe. Elke link wordt veilig geschreven, staat in de geschiedenis en kan ongedaan worden gemaakt."
+
+#: assets/build/index.js:92
+msgid "Searching…"
+msgstr "Zoeken…"
+
+#. translators: 1: number of entries where the rule fits, 2: number of entries checked.
+#: assets/build/index.js:93
+msgid "%1$s where it fits, %2$s checked."
+msgstr "%1$s waar het past, %2$s gecontroleerd."
+
+#: assets/build/index.js:93
+msgid "Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower)."
+msgstr "Gezocht met de index: alleen items die het eerste woord van een woordgroep onder hun belangrijkste termen hebben. “Elk item doorzoeken” controleert ze allemaal (langzamer)."
+
+#: assets/build/index.js:93
+msgid "No entry needs this rule right now."
+msgstr "Geen enkel item heeft deze regel nu nodig."
+
+#: assets/build/index.js:93
+msgid "The link would be added here:"
+msgstr "De link zou hier worden toegevoegd:"
+
+#: assets/build/index.js:94
+msgid "The link could not be added; nothing was changed."
+msgstr "De link kon niet worden toegevoegd; er is niets gewijzigd."
+
+#: assets/build/index.js:94
+msgid "Add link"
+msgstr "Link toevoegen"
+
+#: assets/build/index.js:94
+msgid "Undone: the entry is back as it was."
+msgstr "Ongedaan gemaakt: het item is weer zoals het was."
+
+#: assets/build/index.js:94
+msgid "Search every entry"
+msgstr "Elk item doorzoeken"
+
+#: assets/build/index.js:94
+msgid "Keep searching"
+msgstr "Blijven zoeken"
+
+#: assets/build/index.js:94
+msgid "Find more entries"
+msgstr "Meer items zoeken"
+
+#: assets/build/index.js:94 assets/build/index.js:130
+msgid "Close"
+msgstr "Sluiten"
+
+#: assets/build/index.js:94
+msgid "Pick the entry the rule should link to."
+msgstr "Kies het item waar de regel naartoe moet linken."
+
+#: assets/build/index.js:94
+msgid "The rule could not be saved. Nothing was changed."
+msgstr "De regel kon niet worden opgeslagen. Er is niets gewijzigd."
+
+#: assets/build/index.js:94
+msgid "Edit rule"
+msgstr "Regel bewerken"
+
+#: assets/build/index.js:94
+msgid "Add a rule"
+msgstr "Een regel toevoegen"
+
+#: assets/build/index.js:94
+msgid "Phrases to link"
+msgstr "Woordgroepen om te linken"
+
+#: assets/build/index.js:94
+msgid "(required)"
+msgstr "(verplicht)"
+
+#: assets/build/index.js:94
+msgid "One phrase per line: the first is the main one and the rest are variants. Plurals and similar forms are matched too, so “heat pump” also finds “heat pumps”. The text is linked exactly as it is written in the entry."
+msgstr "Eén woordgroep per regel: de eerste is de hoofdgroep en de rest zijn varianten. Meervouden en vergelijkbare vormen worden ook herkend, dus “warmtepomp” vindt ook “warmtepompen”. De tekst wordt precies gelinkt zoals hij in het item staat."
+
+#: assets/build/index.js:94 assets/build/index.js:98
+msgid "Destination"
+msgstr "Bestemming"
+
+#: assets/build/index.js:95
+msgid "Type part of the title of the entry the links should lead to."
+msgstr "Typ een deel van de titel van het item waar de links naartoe moeten leiden."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:96
+msgid "Destination: %s"
+msgstr "Bestemming: %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:97
+msgid "Selected: %s"
+msgstr "Geselecteerd: %s"
+
+#: assets/build/index.js:97
+msgid "Keep the current one"
+msgstr "Behoud de huidige"
+
+#: assets/build/index.js:97
+msgid "Links per entry"
+msgstr "Links per item"
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: assets/build/index.js:98
+msgid "The most links this rule adds to one entry. Your settings allow %d link to the same target from one entry, so that is the real maximum."
+msgid_plural "The most links this rule adds to one entry. Your settings allow %d links to the same target from one entry, so that is the real maximum."
+msgstr[0] "Het maximale aantal links dat deze regel aan één item toevoegt. Volgens je instellingen is %d link naar hetzelfde doel vanuit één item toegestaan, dus dat is het werkelijke maximum."
+msgstr[1] "Het maximale aantal links dat deze regel aan één item toevoegt. Volgens je instellingen zijn %d links naar hetzelfde doel vanuit één item toegestaan, dus dat is het werkelijke maximum."
+
+#: assets/build/index.js:98
+msgid "The most links this rule adds to one entry."
+msgstr "Het maximale aantal links dat deze regel aan één item toevoegt."
+
+#: assets/build/index.js:98
+msgid "Only the first appearance of each phrase"
+msgstr "Alleen de eerste keer dat elke woordgroep voorkomt"
+
+#: assets/build/index.js:98
+msgid "Allow one extra word inside a phrase"
+msgstr "Eén extra woord binnen een woordgroep toestaan"
+
+#: assets/build/index.js:98
+msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words, and never across punctuation."
+msgstr "“keuken verbouwen” komt ook overeen met “keuken helemaal verbouwen”, maar niet met twee extra woorden, en nooit over leestekens heen."
+
+#: assets/build/index.js:98
+msgid "Do not apply to"
+msgstr "Niet toepassen op"
+
+#: assets/build/index.js:98
+msgid "Skip entries in these categories"
+msgstr "Items in deze categorieën overslaan"
+
+#: assets/build/index.js:98
+msgid "Categories to skip"
+msgstr "Categorieën om over te slaan"
+
+#: assets/build/index.js:98
+msgid "Active: apply it when an entry is saved"
+msgstr "Actief: toepassen wanneer een item wordt opgeslagen"
+
+#: assets/build/index.js:98
+msgid "Save rule"
+msgstr "Regel opslaan"
+
+#: assets/build/index.js:98 assets/build/index.js:105
+msgid "Add rule"
+msgstr "Regel toevoegen"
+
+#: assets/build/index.js:98
+msgid "Could not load the rules."
+msgstr "Kon de regels niet laden."
+
+#: assets/build/index.js:98
+msgid "Could not load the options."
+msgstr "Kon de opties niet laden."
+
+#: assets/build/index.js:98 assets/build/index.js:127
+msgid "Phrases"
+msgstr "Woordgroepen"
+
+#: assets/build/index.js:98
+msgid "(missing entry)"
+msgstr "(ontbrekend item)"
+
+#: assets/build/index.js:98
+msgid "not published"
+msgstr "niet gepubliceerd"
+
+#: assets/build/index.js:98
+msgid "Options"
+msgstr "Opties"
+
+#. translators: %d: links per entry.
+#: assets/build/index.js:99
+msgid "%d link per entry"
+msgid_plural "%d links per entry"
+msgstr[0] "%d link per item"
+msgstr[1] "%d links per item"
+
+#: assets/build/index.js:99
+msgid "first appearance only"
+msgstr "alleen eerste keer"
+
+#: assets/build/index.js:99
+msgid "one extra word allowed"
+msgstr "één extra woord toegestaan"
+
+#. translators: %s: content types, comma separated.
+#: assets/build/index.js:100
+msgid "skips %s"
+msgstr "slaat %s over"
+
+#. translators: %d: number of categories.
+#: assets/build/index.js:101
+msgid "skips %d category"
+msgid_plural "skips %d categories"
+msgstr[0] "slaat %d categorie over"
+msgstr[1] "slaat %d categorieën over"
+
+#: assets/build/index.js:101
+msgid "Active"
+msgstr "Actief"
+
+#: assets/build/index.js:101
+msgid "Paused"
+msgstr "Gepauzeerd"
+
+#: assets/build/index.js:101
+msgid "A rule turns a phrase into a link to an entry. It is applied when a published entry is saved (never when a page is shown) and it only adds links: it never removes or changes one that exists, and everything it writes can be undone from the history. If someone has the entry open in the editor, the rule waits until it is closed."
+msgstr "Een regel verandert een woordgroep in een link naar een item. Hij wordt toegepast wanneer een gepubliceerd item wordt opgeslagen (nooit wanneer een pagina wordt getoond) en voegt alleen links toe: hij verwijdert of wijzigt nooit een bestaande link, en alles wat hij schrijft kan ongedaan worden gemaakt via de geschiedenis. Als iemand het item geopend heeft in de editor, wacht de regel tot het is gesloten."
+
+#. translators: 1: words per link, 2: links to the same target per entry, 3: entries with the same anchor.
+#: assets/build/index.js:102
+msgid "Limits that rules never exceed (change them in Settings): one internal link for every %1$d words of an entry, %2$d to the same target from one entry, and %3$d entries using the same anchor text for the same target."
+msgstr "Limieten die regels nooit overschrijden (wijzig ze in Instellingen): één interne link per %1$d woorden van een item, %2$d naar hetzelfde doel vanuit één item, en %3$d items die dezelfde ankertekst voor hetzelfde doel gebruiken."
+
+#: assets/build/index.js:102
+msgid "Open Settings"
+msgstr "Instellingen openen"
+
+#: assets/build/index.js:102
+msgid "Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed."
+msgstr "Sommige items stonden een dag lang open in de editor, dus de regels konden er niet op worden toegepast. Sla ze opnieuw op zodra ze gesloten zijn."
+
+#. translators: %s: main phrase of a rule.
+#: assets/build/index.js:103
+msgid "The rule “%s” is not being applied: the person who created it can no longer manage the site."
+msgstr "De regel “%s” wordt niet toegepast: de maker ervan kan de site niet meer beheren."
+
+#: assets/build/index.js:103
+msgid "Notice dismissed."
+msgstr "Bericht genegeerd."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:104
+msgid "Rule “%s” added. It will be applied the next time a published entry is saved. To use it on existing entries, choose “Apply to existing entries”."
+msgstr "Regel “%s” toegevoegd. Hij wordt toegepast zodra het eerstvolgende gepubliceerde item wordt opgeslagen. Kies “Toepassen op bestaande items” om hem op bestaande items te gebruiken."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:105
+msgid "Rule “%s” saved."
+msgstr "Regel “%s” opgeslagen."
+
+#: assets/build/index.js:105
+msgid "Automatic rules"
+msgstr "Automatische regels"
+
+#: assets/build/index.js:105
+msgid "Apply to existing entries"
+msgstr "Toepassen op bestaande items"
+
+#: assets/build/index.js:105
+msgid "Rule paused."
+msgstr "Regel gepauzeerd."
+
+#: assets/build/index.js:105
+msgid "Rule activated."
+msgstr "Regel geactiveerd."
+
+#: assets/build/index.js:105
+msgid "The rule could not be changed."
+msgstr "De regel kon niet worden gewijzigd."
+
+#: assets/build/index.js:105
+msgid "Activate"
+msgstr "Activeren"
+
+#: assets/build/index.js:105
+msgid "Delete"
+msgstr "Verwijderen"
+
+#: assets/build/index.js:105
+msgid "There are no rules yet. Add one to link a phrase to an entry automatically."
+msgstr "Er zijn nog geen regels. Voeg er een toe om een woordgroep automatisch naar een item te linken."
+
+#: assets/build/index.js:105
+msgid "Delete rule"
+msgstr "Regel verwijderen"
+
+#: assets/build/index.js:105
+msgid "Rule deleted. The links it already added stay in your entries; you can undo them from the history."
+msgstr "Regel verwijderd. De links die hij al heeft toegevoegd, blijven in je items staan; je kunt ze ongedaan maken via de geschiedenis."
+
+#: assets/build/index.js:105
+msgid "The rule could not be deleted."
+msgstr "De regel kon niet worden verwijderd."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:106
+msgid "Delete the rule “%s”? The links it already added stay in your entries; you can undo them from the history."
+msgstr "De regel “%s” verwijderen? De links die hij al heeft toegevoegd, blijven in je items staan; je kunt ze ongedaan maken via de geschiedenis."
+
+#. translators: %s: name of the taxonomy, e.g. Categories.
+#: assets/build/index.js:107
+msgid "Filter %s by name"
+msgstr "%s filteren op naam"
+
+#. translators: %d: number of categories not shown.
+#: assets/build/index.js:108
+msgid "%d more not shown. Type in the filter to find them."
+msgstr "%d meer niet getoond. Typ in het filter om ze te vinden."
+
+#: assets/build/index.js:108
+msgid "Content analyzed"
+msgstr "Geanalyseerde content"
+
+#: assets/build/index.js:108
+msgid "Magic Linking reads these content types to find links between them."
+msgstr "Magic Linking leest deze contenttypen om links ertussen te vinden."
+
+#: assets/build/index.js:108
+msgid "Categories left out"
+msgstr "Uitgesloten categorieën"
+
+#: assets/build/index.js:108
+msgid "Entries in the categories you tick are not analyzed, like an entry you exclude yourself: they get no suggestions and are not suggested anywhere."
+msgstr "Items in de categorieën die je aanvinkt worden niet geanalyseerd, net als een item dat je zelf uitsluit: ze krijgen geen suggesties en worden nergens voorgesteld."
+
+#: assets/build/index.js:108
+msgid "Maintenance"
+msgstr "Onderhoud"
+
+#: assets/build/index.js:108
+msgid "Run the analysis again and go back through the first steps."
+msgstr "Voer de analyse opnieuw uit en doorloop de eerste stappen nog een keer."
+
+#: assets/build/index.js:108
+msgid "Suggestions shown"
+msgstr "Getoonde suggesties"
+
+#: assets/build/index.js:108
+msgid "How many suggestions you see in the editor."
+msgstr "Hoeveel suggesties je in de editor ziet."
+
+#: assets/build/index.js:108
+msgid "To avoid overloading your texts"
+msgstr "Om te voorkomen dat je teksten overladen raken"
+
+#: assets/build/index.js:108
+msgid "These are quality settings, not limits: you can always insert any link yourself."
+msgstr "Dit zijn kwaliteitsinstellingen, geen limieten: je kunt altijd zelf elke link invoegen."
+
+#: assets/build/index.js:108
+msgid "Which entries are suggested"
+msgstr "Welke items worden voorgesteld"
+
+#: assets/build/index.js:108
+msgid "Quality settings, not limits: you can always insert any link yourself. Suggestions never mix languages."
+msgstr "Kwaliteitsinstellingen, geen limieten: je kunt altijd zelf elke link invoegen. Suggesties mengen nooit talen."
+
+#: assets/build/index.js:108
+msgid "Under-linked entries"
+msgstr "Items met te weinig links"
+
+#: assets/build/index.js:108
+msgid "When an entry is shown as linked too little."
+msgstr "Wanneer een item wordt weergegeven als te weinig gelinkt."
+
+#: assets/build/index.js:108
+msgid "Advanced"
+msgstr "Geavanceerd"
+
+#: assets/build/index.js:108
+msgid "The defaults suit almost every site. Change them only if you know what they do."
+msgstr "De standaardwaarden zijn geschikt voor bijna elke site. Wijzig ze alleen als je weet wat ze doen."
+
+#: assets/build/index.js:108
+msgid "Where links can be inserted"
+msgstr "Waar links kunnen worden ingevoegd"
+
+#: assets/build/index.js:108
+msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
+msgstr "Alinea’s en lijsten worden altijd gebruikt. Deze opties staan standaard uit; zet ze aan als je er ook suggesties en links wilt."
+
+#: assets/build/index.js:108
+msgid "How links are inserted"
+msgstr "Hoe links worden ingevoegd"
+
+#: assets/build/index.js:108
+msgid "What the links Magic Linking inserts look like."
+msgstr "Hoe de links eruitzien die Magic Linking invoegt."
+
+#: assets/build/index.js:108
+msgid "Exclusions"
+msgstr "Uitsluitingen"
+
+#: assets/build/index.js:108
+msgid "Entries and words that Magic Linking should leave alone."
+msgstr "Items en woorden die Magic Linking met rust moet laten."
+
+#: assets/build/index.js:108
+msgid "AI connector"
+msgstr "AI-connector"
+
+#: assets/build/index.js:108
+msgid "Magic Linking uses the AI you connect in WordPress. It never asks for a key of its own."
+msgstr "Magic Linking gebruikt de AI die je in WordPress koppelt. Er wordt nooit om een eigen sleutel gevraagd."
+
+#: assets/build/index.js:108
+msgid "Daily limit and model"
+msgstr "Dagelijks limiet en model"
+
+#: assets/build/index.js:108
+msgid "You decide how much AI can be used each day and, if you want, which model."
+msgstr "Jij bepaalt hoeveel AI per dag mag worden gebruikt en, als je wilt, welk model."
+
+#: assets/build/index.js:108
+msgid "AI use in the last 30 days"
+msgstr "AI-gebruik in de afgelopen 30 dagen"
+
+#: assets/build/index.js:108
+msgid "What Magic Linking has used through your connector. Your provider is the one that charges you."
+msgstr "Wat Magic Linking via je connector heeft gebruikt. Je provider is degene die je kosten in rekening brengt."
+
+#: assets/build/index.js:108
+msgid "History of changes"
+msgstr "Geschiedenis van wijzigingen"
+
+#: assets/build/index.js:108
+msgid "How long you can undo changes."
+msgstr "Hoe lang je wijzigingen ongedaan kunt maken."
+
+#: assets/build/index.js:108
+msgid "When the plugin is deleted"
+msgstr "Wanneer de plugin wordt verwijderd"
+
+#: assets/build/index.js:108
+msgid "What happens to the data of Magic Linking."
+msgstr "Wat er gebeurt met de gegevens van Magic Linking."
+
+#: assets/build/index.js:108
+msgid "Could not load the AI status."
+msgstr "Kon de AI-status niet laden."
+
+#: assets/build/index.js:108
+msgid "Preferred model"
+msgstr "Voorkeursmodel"
+
+#: assets/build/index.js:108
+msgid "Automatic picks a small, fast model from your connector, the cheapest one when it can. Pick another if you prefer."
+msgstr "Automatisch kiest een klein, snel model van je connector, zo mogelijk het goedkoopste. Kies een ander model als je dat liever hebt."
+
+#: assets/build/index.js:108
+msgid "no cost (local)"
+msgstr "geen kosten (lokaal)"
+
+#. translators: 1: dollars per million input tokens, 2: dollars per million output tokens.
+#: assets/build/index.js:109
+msgid "%1$s in / %2$s out per million"
+msgstr "%1$s in / %2$s uit per miljoen"
+
+#: assets/build/index.js:109
+msgid "Automatic (recommended)"
+msgstr "Automatisch (aanbevolen)"
+
+#: assets/build/index.js:109
+msgid "Recommended"
+msgstr "Aanbevolen"
+
+#: assets/build/index.js:109
+msgid "All models"
+msgstr "Alle modellen"
+
+#. translators: %s: model name.
+#: assets/build/index.js:110
+msgid "%s (not available now)"
+msgstr "%s (nu niet beschikbaar)"
+
+#: assets/build/index.js:110
+msgid "AI is turned off: the daily limit is 0 tokens. Suggestions use the built-in engine."
+msgstr "AI staat uit: het dagelijkse limiet is 0 tokens. Suggesties gebruiken de ingebouwde engine."
+
+#. translators: 1: tokens used today, 2: daily limit in tokens.
+#: assets/build/index.js:111
+msgid "Today: %1$s of %2$s tokens used."
+msgstr "Vandaag: %1$s van %2$s tokens gebruikt."
+
+#: assets/build/index.js:111
+msgid "The limit is reached: AI is paused until tomorrow and suggestions use the built-in engine."
+msgstr "Het limiet is bereikt: AI is gepauzeerd tot morgen en suggesties gebruiken de ingebouwde engine."
+
+#: assets/build/index.js:111
+msgid "AI needs WordPress 7.0 or later. This site runs an earlier version, so Magic Linking works with its own engine and the AI options are turned off."
+msgstr "Voor AI is WordPress 7.0 of nieuwer nodig. Deze site draait op een oudere versie, dus Magic Linking werkt met zijn eigen engine en de AI-opties zijn uitgeschakeld."
+
+#: assets/build/index.js:111
+msgid "This site has no AI connected. Magic Linking works fully without it: suggestions use its own engine."
+msgstr "Op deze site is geen AI gekoppeld. Magic Linking werkt er volledig zonder: suggesties gebruiken de eigen engine."
+
+#: assets/build/index.js:111
+msgid "You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…)."
+msgstr "Je kunt die van jou koppelen via Instellingen → Connectoren (OpenAI, Google, Ollama lokaal…)."
+
+#: assets/build/index.js:111 assets/build/index.js:112
+msgid "Check again"
+msgstr "Opnieuw controleren"
+
+#: assets/build/index.js:111
+msgid "Provider"
+msgstr "Provider"
+
+#: assets/build/index.js:111
+msgid "Model it will use"
+msgstr "Model dat wordt gebruikt"
+
+#: assets/build/index.js:111
+msgid "Where it runs"
+msgstr "Waar het draait"
+
+#: assets/build/index.js:111
+msgid "Local, on your own server"
+msgstr "Lokaal, op je eigen server"
+
+#: assets/build/index.js:111
+msgid "Remote, at your provider"
+msgstr "Extern, bij je provider"
+
+#: assets/build/index.js:111
+msgid "The AI on this site is local: the text does not leave your server."
+msgstr "De AI op deze site is lokaal: de tekst verlaat je server niet."
+
+#. translators: %s: name of the AI provider.
+#: assets/build/index.js:112
+msgid "To use the AI suggestions, the text of the entries involved is sent to %s through your WordPress connector."
+msgstr "Om de AI-suggesties te gebruiken, wordt de tekst van de betrokken items via je WordPress-connector naar %s gestuurd."
+
+#: assets/build/index.js:112
+msgid "No AI requests in the last 30 days."
+msgstr "Geen AI-verzoeken in de afgelopen 30 dagen."
+
+#. translators: %s: estimated cost in dollars.
+#: assets/build/index.js:113
+msgid "%s (only models with a known price)"
+msgstr "%s (alleen modellen met een bekende prijs)"
+
+#. translators: 1: number of AI requests, 2: tokens used, 3: estimated cost.
+#: assets/build/index.js:114
+msgid "%1$s requests, %2$s tokens, about %3$s."
+msgstr "%1$s verzoeken, %2$s tokens, ongeveer %3$s."
+
+#. translators: %s: number of AI requests that got no usable answer.
+#: assets/build/index.js:115
+msgid "Requests without an answer: %s."
+msgstr "Verzoeken zonder antwoord: %s."
+
+#: assets/build/index.js:115
+msgid "AI use by model"
+msgstr "AI-gebruik per model"
+
+#: assets/build/index.js:115
+msgid "Model"
+msgstr "Model"
+
+#: assets/build/index.js:115 assets/build/index.js:127
+msgid "Requests"
+msgstr "Verzoeken"
+
+#: assets/build/index.js:115
+msgid "Tokens"
+msgstr "Tokens"
+
+#: assets/build/index.js:115
+msgid "Estimated cost"
+msgstr "Geschatte kosten"
+
+#. translators: %s: date of the price list, like 2026-10-15.
+#: assets/build/index.js:116
+msgid "Costs are estimates with public list prices as of %s. What your provider charges is what counts. A local model costs nothing."
+msgstr "Kosten zijn schattingen op basis van openbare lijstprijzen per %s. Wat je provider in rekening brengt, is wat telt. Een lokaal model kost niets."
+
+#: assets/build/index.js:116
+msgid "No cost (local)"
+msgstr "Geen kosten (lokaal)"
+
+#: assets/build/index.js:116
+msgid "Price unknown"
+msgstr "Prijs onbekend"
+
+#: assets/build/index.js:116
+msgid "Last failed request"
+msgstr "Laatste mislukte verzoek"
+
+#. translators: 1: date and time, 2: model name (may be empty), 3: error code.
+#: assets/build/index.js:117
+msgid "%1$s · %2$s · code: %3$s"
+msgstr "%1$s · %2$s · code: %3$s"
+
+#: assets/build/index.js:117
+msgid "unknown model"
+msgstr "onbekend model"
+
+#: assets/build/index.js:117
+msgid "Last full analysis"
+msgstr "Laatste volledige analyse"
+
+#: assets/build/index.js:117
+msgid "Duration"
+msgstr "Duur"
+
+#: assets/build/index.js:117 assets/build/index.js:132
+msgid "Entries analyzed"
+msgstr "Geanalyseerde items"
+
+#: assets/build/index.js:117
+msgid "There is no completed analysis yet."
+msgstr "Er is nog geen voltooide analyse."
+
+#: assets/build/index.js:117
+msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background. Analyzing only reads your content; it never changes it."
+msgstr "Analyseer elk item opnieuw vanaf nul, ook de items die niet zijn gewijzigd. Gebruik “Wijzigingen analyseren” in het Rapport om alleen wat nieuw of gewijzigd is te analyseren. Het draait op de achtergrond. Analyseren leest alleen je content; het verandert niets."
+
+#: assets/build/index.js:117
+msgid "Analyze everything again from scratch"
+msgstr "Alles opnieuw analyseren vanaf nul"
+
+#: assets/build/index.js:117
+msgid "An analysis is already running; its progress is shown above."
+msgstr "Er loopt al een analyse; de voortgang staat hierboven."
+
+#: assets/build/index.js:117
+msgid "Setup assistant"
+msgstr "Setupassistent"
+
+#: assets/build/index.js:117
+msgid "Go through the first steps again: content types, AI and the first analysis."
+msgstr "Doorloop de eerste stappen opnieuw: contenttypen, AI en de eerste analyse."
+
+#: assets/build/index.js:117
+msgid "Open the setup assistant"
+msgstr "De setupassistent openen"
+
+#: assets/build/index.js:117
+msgid "Analyze everything again from scratch?"
+msgstr "Alles opnieuw analyseren vanaf nul?"
+
+#: assets/build/index.js:117
+msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it."
+msgstr "Magic Linking leest elk item opnieuw. Het draait op de achtergrond, dus je kunt gewoon doorwerken. Analyseren leest alleen je content; het verandert niets."
+
+#: assets/build/index.js:117
+msgid "Start analysis"
+msgstr "Analyse starten"
+
+#: assets/build/index.js:117 assets/build/index.js:127
+msgid "Could not load the settings."
+msgstr "Kon de instellingen niet laden."
+
+#: assets/build/index.js:117
+msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
+msgstr "Instellingen opgeslagen. Wat Magic Linking leest is gewijzigd, dus je site wordt opnieuw geanalyseerd."
+
+#: assets/build/index.js:117
+msgid "Settings saved."
+msgstr "Instellingen opgeslagen."
+
+#: assets/build/index.js:117 assets/build/index.js:130
+msgid "The settings could not be saved."
+msgstr "De instellingen konden niet worden opgeslagen."
+
+#: assets/build/index.js:117
+msgid "Ignore"
+msgstr "Negeren"
+
+#: assets/build/index.js:117
+msgid "Take into account (a small boost if they share it)"
+msgstr "Meenemen (een kleine boost als ze dit delen)"
+
+#: assets/build/index.js:117
+msgid "Require (only entries that share it)"
+msgstr "Vereisen (alleen items die dit delen)"
+
+#. translators: 1: minimum, 2: maximum.
+#: assets/build/index.js:118
+msgid "Enter a whole number from %1$s to %2$s; otherwise it is adjusted when you leave the field."
+msgstr "Voer een geheel getal in van %1$s tot %2$s; anders wordt het aangepast wanneer je het veld verlaat."
+
+#: assets/build/index.js:118 assets/build/index.js:130
+msgid "Choose at least one content type."
+msgstr "Kies minstens één contenttype."
+
+#: assets/build/index.js:118
+msgid "Unsaved changes"
+msgstr "Niet-opgeslagen wijzigingen"
+
+#: assets/build/index.js:118
+msgid "(needs attention)"
+msgstr "(heeft aandacht nodig)"
+
+#: assets/build/index.js:118
+msgid "(unsaved changes)"
+msgstr "(niet-opgeslagen wijzigingen)"
+
+#: assets/build/index.js:118
+msgid "General"
+msgstr "Algemeen"
+
+#: assets/build/index.js:118
+msgid "Suggestions"
+msgstr "Suggesties"
+
+#: assets/build/index.js:118
+msgid "Links"
+msgstr "Links"
+
+#: assets/build/index.js:118
+msgid "AI"
+msgstr "AI"
+
+#: assets/build/index.js:118
+msgid "History and data"
+msgstr "Geschiedenis en gegevens"
+
+#: assets/build/index.js:118
+msgid "Outbound suggestions in the editor"
+msgstr "Uitgaande suggesties in de editor"
+
+#: assets/build/index.js:118
+msgid "The most useful links to add from the entry you are editing."
+msgstr "De nuttigste links om toe te voegen vanuit het item dat je bewerkt."
+
+#: assets/build/index.js:118
+msgid "Alternative sentences per suggestion"
+msgstr "Alternatieve zinnen per suggestie"
+
+#: assets/build/index.js:118
+msgid "0 shows one sentence per suggestion. With 1 or 2, each card offers “More sentences” to link from another sentence of the same entry."
+msgstr "Bij 0 wordt één zin per suggestie getoond. Bij 1 of 2 biedt elke kaart “Meer zinnen” om te linken vanuit een andere zin van hetzelfde item."
+
+#: assets/build/index.js:118
+msgid "Inbound suggestions per page in the editor"
+msgstr "Inkomende suggesties per pagina in de editor"
+
+#: assets/build/index.js:118
+msgid "Entries that could link to the one you are editing, shown this many at a time."
+msgstr "Items die kunnen linken naar het item dat je bewerkt, zoveel tegelijk getoond."
+
+#: assets/build/index.js:118
+msgid "Words per internal link"
+msgstr "Woorden per interne link"
+
+#: assets/build/index.js:118
+msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed). Automatic rules never add a link to an entry that already has that many."
+msgstr "Een item met meer interne links dan één per zoveel woorden wordt weergegeven als te veel gelinkt (minstens één link is altijd toegestaan). Automatische regels voegen nooit een link toe aan een item dat er al zoveel heeft."
+
+#: assets/build/index.js:118
+msgid "Links to the same target from one entry"
+msgstr "Links naar hetzelfde doel vanuit één item"
+
+#: assets/build/index.js:118
+msgid "Automatic rules add at most this many links from an entry to the same target. Existing links are never removed."
+msgstr "Automatische regels voegen maximaal zoveel links van een item naar hetzelfde doel toe. Bestaande links worden nooit verwijderd."
+
+#: assets/build/index.js:118
+msgid "Entries that can use the same anchor text for the same target"
+msgstr "Items die dezelfde ankertekst voor hetzelfde doel mogen gebruiken"
+
+#: assets/build/index.js:118
+msgid "Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries."
+msgstr "Boven dit aantal items wordt dezelfde ankertekst naar hetzelfde doel minder vaak voorgesteld, en gebruiken automatische regels hem niet meer in nieuwe items."
+
+#: assets/build/index.js:118
+msgid "For example, suggest links from posts only to posts."
+msgstr "Stel bijvoorbeeld alleen links van berichten naar berichten voor."
+
+#: assets/build/index.js:118
+msgid "Category"
+msgstr "Categorie"
+
+#: assets/build/index.js:118
+msgid "In a custom content type, its main hierarchical taxonomy is used instead."
+msgstr "Bij een eigen contenttype wordt in plaats daarvan de belangrijkste hiërarchische taxonomie gebruikt."
+
+#: assets/build/index.js:118
+msgid "Tag"
+msgstr "Tag"
+
+#: assets/build/index.js:118
+msgid "In a custom content type, its main non-hierarchical taxonomy is used instead."
+msgstr "Bij een eigen contenttype wordt in plaats daarvan de belangrijkste niet-hiërarchische taxonomie gebruikt."
+
+#: assets/build/index.js:118
+msgid "Under-linked below this many inbound links"
+msgstr "Te weinig links onder dit aantal inkomende links"
+
+#: assets/build/index.js:118
+msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
+msgstr "Een item met minstens één inkomende link maar minder dan dit aantal wordt weergegeven als te weinig gelinkt."
+
+#: assets/build/index.js:118
+msgid "Show advanced settings"
+msgstr "Geavanceerde instellingen tonen"
+
+#: assets/build/index.js:118
+msgid "Key terms per entry"
+msgstr "Kernbegrippen per item"
+
+#: assets/build/index.js:118
+msgid "How many of the most important terms of each entry are kept to find related entries (20 to 80). Changing it makes Magic Linking analyze your site again."
+msgstr "Hoeveel van de belangrijkste begrippen van elk item worden bewaard om verwante items te vinden (20 tot 80). Als je dit wijzigt, analyseert Magic Linking je site opnieuw."
+
+#: assets/build/index.js:118
+msgid "Score threshold (%)"
+msgstr "Drempel voor de score (%)"
+
+#: assets/build/index.js:118
+msgid "A suggestion is shown only if its score reaches this percentage. Higher shows fewer, surer suggestions; lower shows more. It does not analyze your site again."
+msgstr "Een suggestie wordt alleen getoond als de score dit percentage haalt. Hoger toont minder, maar zekerdere suggesties; lager toont er meer. Je site wordt hierdoor niet opnieuw geanalyseerd."
+
+#: assets/build/index.js:118
+msgid "Headings"
+msgstr "Kopteksten"
+
+#: assets/build/index.js:118
+msgid "Quotes"
+msgstr "Citaten"
+
+#: assets/build/index.js:118
+msgid "Tables"
+msgstr "Tabellen"
+
+#: assets/build/index.js:118
+msgid "Changing these makes Magic Linking read your entries again."
+msgstr "Als je deze wijzigt, leest Magic Linking je items opnieuw."
+
+#: assets/build/index.js:118
+msgid "Open links in a new tab"
+msgstr "Links openen in een nieuw tabblad"
+
+#: assets/build/index.js:118
+msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
+msgstr "Standaard uit. Voegt target=\"_blank\" en rel=\"noopener\" toe aan de links die Magic Linking invoegt; links die al in je content staan, worden niet gewijzigd."
+
+#: assets/build/index.js:118
+msgid "Additional rel values"
+msgstr "Extra rel-waarden"
+
+#: assets/build/index.js:118
+msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
+msgstr "Optioneel, gescheiden door spaties (bijvoorbeeld: nofollow). Toegevoegd aan de links die Magic Linking invoegt."
+
+#: assets/build/index.js:118
+msgid "Ignored addresses"
+msgstr "Genegeerde adressen"
+
+#: assets/build/index.js:118
+msgid "One address per line. These entries are never suggested as a target, and never suggested to link to others."
+msgstr "Eén adres per regel. Deze items worden nooit als doel voorgesteld en nooit voorgesteld om naar andere te linken."
+
+#: assets/build/index.js:118
+msgid "Ignored words"
+msgstr "Genegeerde woorden"
+
+#: assets/build/index.js:118
+msgid "One word or phrase per line. Suggestions whose anchor text contains one of them are not shown."
+msgstr "Eén woord of woordgroep per regel. Suggesties waarvan de ankertekst een van deze bevat, worden niet getoond."
+
+#: assets/build/index.js:118
+msgid "Daily AI limit (tokens)"
+msgstr "Dagelijks AI-limiet (tokens)"
+
+#: assets/build/index.js:118
+msgid "The most tokens Magic Linking may use through your connector in a day. 0 turns AI off. When the limit is reached, AI pauses until tomorrow and the suggestions use the lexical engine."
+msgstr "Het maximale aantal tokens dat Magic Linking per dag via je connector mag gebruiken. 0 schakelt AI uit. Als het limiet is bereikt, pauzeert AI tot morgen en gebruiken de suggesties de lexicale engine."
+
+#: assets/build/index.js:118
+msgid "Keep the history of changes for"
+msgstr "Geschiedenis van wijzigingen bewaren gedurende"
+
+#: assets/build/index.js:118
+msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
+msgstr "Oudere batches worden door de nachtelijke taak verwijderd, dus je kunt ze niet meer ongedaan maken. De links blijven in je content staan. Er is geen limiet op het aantal bewaarde wijzigingen."
+
+#: assets/build/index.js:118
+msgid "30 days"
+msgstr "30 dagen"
+
+#: assets/build/index.js:118
+msgid "90 days"
+msgstr "90 dagen"
+
+#: assets/build/index.js:118
+msgid "365 days"
+msgstr "365 dagen"
+
+#: assets/build/index.js:118
+msgid "No expiry date"
+msgstr "Geen vervaldatum"
+
+#: assets/build/index.js:118
+msgid "Delete all Magic Linking data when the plugin is deleted"
+msgstr "Alle gegevens van Magic Linking verwijderen wanneer de plugin wordt verwijderd"
+
+#: assets/build/index.js:118
+msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
+msgstr "Verwijdert de tabellen, de geschiedenis en de instellingen. De links die al in je items staan, blijven zoals ze zijn; je content wordt niet aangeraakt."
+
+#: assets/build/index.js:118 assets/build/index.js:129
+msgid "Content types to analyze"
+msgstr "Te analyseren contenttypen"
+
+#: assets/build/index.js:118
+msgid "Detect the language of each entry from its text"
+msgstr "De taal van elk item bepalen aan de hand van de tekst"
+
+#: assets/build/index.js:118
+msgid "WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active."
+msgstr "WPML of Polylang geven Magic Linking al de taal van elk item door, dus deze optie doet niets zolang een van beide actief is."
+
+#. translators: %d: minimum number of words an entry needs for its language to be detected.
+#: assets/build/index.js:119
+msgid "Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least %d words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again."
+msgstr "Handig als je site in één taal is, maar sommige items in een andere taal zijn geschreven. Het is een schatting op basis van de meest voorkomende woorden, dus er zijn minstens %d woorden nodig; als het niet zeker is, wordt de taal van de site gebruikt. Bij het opslaan analyseert Magic Linking je site opnieuw."
+
+#: assets/build/index.js:119
+msgid "The content types you analyze have no categories."
+msgstr "De inhoudstypen die je analyseert hebben geen categorieën."
+
+#. translators: %d: maximum number of categories.
+#: assets/build/index.js:120
+msgid "You have reached the limit of %d categories. Untick one to choose another."
+msgstr "Je hebt de limiet van %d categorieën bereikt. Vink er een uit om een andere te kiezen."
+
+#: assets/build/index.js:120
+msgid "Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones."
+msgstr "Alleen de exacte categorie telt: de subcategorieën worden niet met haar uitgesloten. Bij het opslaan analyseert Magic Linking je site opnieuw. De lijst volgt de hierboven opgeslagen inhoudstypen, dus sla eerst op als je net nieuwe hebt gekozen."
+
+#: assets/build/index.js:120
+msgid "Save settings"
+msgstr "Instellingen opslaan"
+
+#. translators: %s: number of milliseconds.
+#: assets/build/index.js:121
+msgctxt "milliseconds"
+msgid "%s ms"
+msgstr "%s ms"
+
+#. translators: %s: target time, e.g. "500 ms".
+#: assets/build/index.js:122
+msgid "target under %s"
+msgstr "doel: minder dan %s"
+
+#. translators: %s: the target, e.g. "target under 500.0 ms".
+#: assets/build/index.js:123
+msgid "Within budget (%s)"
+msgstr "Binnen het budget (%s)"
+
+#. translators: %s: the target, e.g. "target under 500.0 ms".
+#: assets/build/index.js:124
+msgid "Over budget (%s)"
+msgstr "Boven het budget (%s)"
+
+#: assets/build/index.js:124
+msgid "Could not read the index status."
+msgstr "De status van de index kon niet worden gelezen."
+
+#: assets/build/index.js:124
+msgid "Could not read the engine times."
+msgstr "De tijden van de engine konden niet worden gelezen."
+
+#: assets/build/index.js:124
+msgid "Engine times refreshed."
+msgstr "Tijden van de engine vernieuwd."
+
+#: assets/build/index.js:124
+msgid "Outgoing"
+msgstr "Uitgaand"
+
+#: assets/build/index.js:124
+msgid "Incoming"
+msgstr "Inkomend"
+
+#: assets/build/index.js:124
+msgid "Index"
+msgstr "Index"
+
+#. translators: 1: entries in the index, 2: entries that can be analyzed.
+#: assets/build/index.js:125
+msgid "%1$s of %2$s entries are in the index."
+msgstr "%1$s van de %2$s items staan in de index."
+
+#: assets/build/index.js:126
+msgid "Engine time"
+msgstr "Tijd van de engine"
+
+#. translators: %s: number of requests kept per direction.
+#: assets/build/index.js:127
+msgid "Measured on the last %s suggestions request recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
+msgid_plural "Measured on the last %s suggestions requests recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
+msgstr[0] "Gemeten aan de laatste geregistreerde suggestieaanvraag per richting. Om niet bij elke toetsaanslag in de editor te schrijven, wordt hooguit om de paar seconden één schrijfactie bewaard, dus sommige aanvragen worden niet geregistreerd. De tijden worden alleen op deze site opgeslagen en nergens naartoe gestuurd."
+msgstr[1] "Gemeten aan de laatste %s geregistreerde suggestieaanvragen per richting. Om niet bij elke toetsaanslag in de editor te schrijven, wordt hooguit om de paar seconden één schrijfactie bewaard, dus sommige aanvragen worden niet geregistreerd. De tijden worden alleen op deze site opgeslagen en nergens naartoe gestuurd."
+
+#: assets/build/index.js:127
+msgid "No suggestions have been calculated yet. Open an entry in the editor or the Report to see the times here."
+msgstr "Er zijn nog geen suggesties berekend. Open een item in de editor of het rapport om hier de tijden te zien."
+
+#: assets/build/index.js:127
+msgid "Time of the suggestions engine, in milliseconds"
+msgstr "Tijd van de suggestie-engine, in milliseconden"
+
+#: assets/build/index.js:127
+msgid "Direction"
+msgstr "Richting"
+
+#: assets/build/index.js:127
+msgid "Median"
+msgstr "Mediaan"
+
+#: assets/build/index.js:127
+msgid "95th percentile"
+msgstr "95e percentiel"
+
+#: assets/build/index.js:127
+msgid "Budget"
+msgstr "Budget"
+
+#: assets/build/index.js:127
+msgid "From cache"
+msgstr "Uit de cache"
+
+#: assets/build/index.js:127
+msgid "Candidates"
+msgstr "Kandidaten"
+
+#: assets/build/index.js:127
+msgid "Retrieval"
+msgstr "Ophalen"
+
+#: assets/build/index.js:127
+msgid "Loading"
+msgstr "Laden"
+
+#: assets/build/index.js:127
+msgid "Scoring"
+msgstr "Scoren"
+
+#: assets/build/index.js:127
+msgid "No requests yet."
+msgstr "Nog geen aanvragen."
+
+#: assets/build/index.js:127
+msgid "Median and 95th percentile cover every recorded request, including those answered from the cache. Candidates and phases cover only the requests the engine calculated. Retrieval is analyzing the entry and finding candidate targets; loading is reading the targets or sources; phrases is looking for where to place the anchor; scoring is rating each one. Sorting, reasons and removing ignored words are not in any phase, and the phases are medians, so they do not have to add up to the total."
+msgstr "De mediaan en het 95e percentiel omvatten alle geregistreerde aanvragen, ook die uit de cache zijn beantwoord. Kandidaten en fasen omvatten alleen de aanvragen die de engine heeft berekend. Ophalen is het item analyseren en kandidaat-bestemmingen vinden; laden is de bestemmingen of bronnen lezen; woordgroepen is zoeken waar de ankertekst komt; scoren is elke kandidaat beoordelen. Sorteren, redenen en het verwijderen van genegeerde woorden zitten in geen enkele fase, en de fasen zijn medianen, dus ze hoeven niet op te tellen tot het totaal."
+
+#: assets/build/index.js:127
+msgid "Could not load the setup information."
+msgstr "Kon de setupgegevens niet laden."
+
+#. translators: 1: current step, 2: number of steps.
+#: assets/build/index.js:128
+msgid "Step %1$s of %2$s"
+msgstr "Stap %1$s van %2$s"
+
+#: assets/build/index.js:128
+msgid "What do we link?"
+msgstr "Wat linken we?"
+
+#: assets/build/index.js:128
+msgid "Artificial intelligence"
+msgstr "Kunstmatige intelligentie"
+
+#: assets/build/index.js:128
+msgid "All set"
+msgstr "Alles klaar"
+
+#. translators: 1: current step, 2: number of steps.
+#: assets/build/index.js:129
+msgid "Setup · step %1$s of %2$s"
+msgstr "Setup · stap %1$s van %2$s"
+
+#. translators: %s: language name.
+#: assets/build/index.js:130
+msgid "Language detected: %s."
+msgstr "Gedetecteerde taal: %s."
+
+#: assets/build/index.js:130
+msgid "Your site is multilingual: we will link each language separately."
+msgstr "Je site is meertalig: we linken elke taal apart."
+
+#: assets/build/index.js:130
+msgid "Entries are only linked to others in the same language."
+msgstr "Items worden alleen gelinkt aan andere items in dezelfde taal."
+
+#: assets/build/index.js:130
+msgid "Your WordPress has an AI connector. This version of Magic Linking does not use it yet: suggestions come from its own engine, which needs no AI. When AI features arrive they will use that connector, and nothing will be spent without showing you an estimate first."
+msgstr "Je WordPress heeft een AI-connector. Deze versie van Magic Linking gebruikt hem nog niet: suggesties komen van de eigen engine, die geen AI nodig heeft. Wanneer er AI-functies komen, gebruiken ze die connector en wordt er niets uitgegeven zonder dat je eerst een schatting ziet."
+
+#: assets/build/index.js:130
+msgid "No AI connected: Magic Linking works with its own engine, which needs no AI. You can connect one whenever you like in Settings → Connectors."
+msgstr "Geen AI gekoppeld: Magic Linking werkt met de eigen engine, die geen AI nodig heeft. Je kunt er op elk moment een koppelen via Instellingen → Connectoren."
+
+#: assets/build/index.js:130
+msgid "Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "Analyseren leest alleen je content; het verandert niets. Links worden pas toegevoegd als je op Link drukt."
+
+#: assets/build/index.js:130
+msgid "The analysis is running. You can close this screen: it continues in the background."
+msgstr "De analyse loopt. Je kunt dit scherm sluiten: het gaat door op de achtergrond."
+
+#: assets/build/index.js:130
+msgid "Start"
+msgstr "Starten"
+
+#: assets/build/index.js:130
+msgid "Back"
+msgstr "Terug"
+
+#: assets/build/index.js:130
+msgid "Skip setup"
+msgstr "Setup overslaan"
+
+#: assets/build/index.js:130
+msgid "You can open this assistant again from Settings."
+msgstr "Je kunt deze assistent opnieuw openen via Instellingen."
+
+#. translators: 1: entries analyzed, 2: orphan entries, 3: internal links.
+#: assets/build/index.js:131
+msgid "%1$s entries analyzed · %2$s orphans · %3$s internal links"
+msgstr "%1$s items geanalyseerd · %2$s weesitems · %3$s interne links"
+
+#: assets/build/index.js:131
+msgid "See orphans"
+msgstr "Weesitems bekijken"
+
+#: assets/build/index.js:131
+msgid "Open an entry"
+msgstr "Een item openen"
+
+#. translators: %s: section name (Report, Broken links, Settings).
+#: assets/build/index.js:132
+msgid "Magic Linking · %s"
+msgstr "Magic Linking · %s"
+
+#: assets/build/index.js:132
+msgid "Orphan entries"
+msgstr "Weesitems"
+
+#: assets/build/index.js:132
+msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
+msgstr "Alleen de links die in de content van elk item zijn geschreven, worden meegeteld. Links in menu’s, widgets en themasjablonen niet."
+
+#. translators: %s: WP-CLI command.
+#: assets/build/index.js:133
+msgid "You can also run the analysis from the terminal: %s"
+msgstr "Je kunt de analyse ook vanuit de terminal uitvoeren: %s"

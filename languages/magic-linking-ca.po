@@ -1,0 +1,4037 @@
+# Catalan translation of Magic Linking.
+# Copyright (C) 2026 Color Vivo
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Magic Linking 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
+"POT-Creation-Date: 2026-11-01T12:23:59+00:00\n"
+"PO-Revision-Date: 2026-11-01 12:00+0000\n"
+"Last-Translator: Color Vivo\n"
+"Language-Team: Catalan\n"
+"Language: ca\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: magic-linking\n"
+"X-Generator: Poedit\n"
+
+#. Plugin Name of the plugin
+#: magic-linking.php
+msgid "Magic Linking – Internal Links"
+msgstr "Magic Linking – Internal Links"
+
+#. Plugin URI of the plugin
+#: magic-linking.php
+msgid "https://magiclinking.com"
+msgstr "https://magiclinking.com"
+
+#. Description of the plugin
+#: magic-linking.php
+msgid "Internal link suggestions in the editor. Link in one click, check that nothing else changes, undo from History. Plus orphan and broken link reports."
+msgstr "Suggeriments d’enllaços interns a l’editor. Enllaça amb un clic, comprova que no canvia res més i desfés des de l’Historial. A més, informes d’entrades òrfenes i d’enllaços trencats."
+
+#. Author of the plugin
+#: magic-linking.php
+msgid "Color Vivo"
+msgstr "Color Vivo"
+
+#. Author URI of the plugin
+#: magic-linking.php
+msgid "https://colorvivo.com"
+msgstr "https://colorvivo.com"
+
+#. translators: 1: minimum PHP version, 2: PHP version in use.
+#: magic-linking.php:53
+#, php-format
+msgid "PHP %1$s or later (this site runs PHP %2$s)"
+msgstr "PHP %1$s o posterior (aquest lloc executa PHP %2$s)"
+
+#. translators: 1: minimum WordPress version, 2: WordPress version in use.
+#: magic-linking.php:58
+#, php-format
+msgid "WordPress %1$s or later (this site runs WordPress %2$s)"
+msgstr "WordPress %1$s o posterior (aquest lloc executa WordPress %2$s)"
+
+#: magic-linking.php:62
+msgid "the PHP mbstring extension"
+msgstr "l’extensió mbstring de PHP"
+
+#. translators: %s: list of missing requirements, separated by commas.
+#: magic-linking.php:75
+#, php-format
+msgid "Magic Linking needs %s. It has not been loaded."
+msgstr "Magic Linking necessita %s. No s’ha carregat."
+
+#: magic-linking.php:104
+msgid "Plugin not activated"
+msgstr "Extensió no activada"
+
+#: magic-linking.php:125
+msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
+msgstr "A Magic Linking li falten les biblioteques incloses (la carpeta vendor). Torna a instal·lar l’extensió des de wordpress.org. No s’ha carregat."
+
+#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:312
+#: assets/build/editor.js:46 assets/build/index.js:132
+msgid "Internal links"
+msgstr "Enllaços interns"
+
+#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:313
+#: assets/build/index.js:7 assets/build/index.js:23 assets/build/index.js:35
+#: assets/build/index.js:53 assets/build/index.js:108 assets/build/index.js:117
+#: assets/build/index.js:130
+msgid "Loading…"
+msgstr "S’està carregant…"
+
+#: src/Admin/EditorPanel.php:98
+msgid "This box needs JavaScript to show the link suggestions."
+msgstr "Aquest quadre necessita JavaScript per mostrar els suggeriments d’enllaços."
+
+#: src/Admin/Notices.php:174
+msgid "Do not show again"
+msgstr "No ho tornis a mostrar"
+
+#: src/Admin/Notices.php:260
+msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
+msgstr "Has afegit força enllaços amb Magic Linking. Si t’estalvia temps, una ressenya a wordpress.org ajuda altres persones a trobar-lo."
+
+#: src/Admin/Notices.php:262
+msgid "Write a review"
+msgstr "Escriu una ressenya"
+
+#: src/Admin/Notices.php:265
+msgid "No, thanks"
+msgstr "No, gràcies"
+
+#: src/Admin/Notices.php:278
+msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
+msgstr "Aquest lloc no té cap IA connectada. Pots connectar la teva a Paràmetres → Connectors (OpenAI, Google, Ollama local…). Mentrestant, els suggeriments utilitzen el motor lèxic."
+
+#: src/Admin/Notices.php:280 assets/build/index.js:111
+#: assets/build/index.js:112
+msgid "Go to Connectors"
+msgstr "Ves als Connectors"
+
+#: src/Admin/Screen.php:105
+msgid "Open report"
+msgstr "Obre l’informe"
+
+#: src/Admin/Screen.php:151
+msgid "Magic Linking"
+msgstr "Magic Linking"
+
+#: src/Admin/Screen.php:156 assets/build/index.js:131
+msgid "Report"
+msgstr "Informe"
+
+#: src/Admin/Screen.php:162 assets/build/index.js:131 assets/build/index.js:132
+msgid "Broken links"
+msgstr "Enllaços trencats"
+
+#: src/Admin/Screen.php:166 assets/build/index.js:131
+msgid "History"
+msgstr "Historial"
+
+#: src/Admin/Screen.php:170 assets/build/index.js:131
+msgid "Rules"
+msgstr "Regles"
+
+#: src/Admin/Screen.php:174 assets/build/index.js:23 assets/build/index.js:44
+#: assets/build/index.js:50 assets/build/index.js:53 assets/build/index.js:88
+#: assets/build/index.js:101 assets/build/index.js:131
+msgid "Status"
+msgstr "Estat"
+
+#: src/Admin/Screen.php:178 assets/build/index.js:131
+msgid "Settings"
+msgstr "Paràmetres"
+
+#: src/Admin/Screen.php:225
+msgid "Items per page"
+msgstr "Elements per pàgina"
+
+#: src/Admin/Screen.php:307
+msgid "You do not have permission to see this page."
+msgstr "No tens permís per veure aquesta pàgina."
+
+#: src/Admin/Screen.php:314
+msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
+msgstr "Aquesta pantalla necessita JavaScript. Pots obtenir el mateix informe amb WP-CLI: wp magic-linking report"
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:176
+#, php-format
+msgid "Process %1$d is paused. Resume it with: wp magic-linking job resume %2$d"
+msgstr "El procés %1$d està en pausa. Reprèn-lo amb: wp magic-linking job resume %2$d"
+
+#. translators: %d: process ID.
+#: src/Cli/Command.php:187
+#, php-format
+msgid "Process %d queued. It will run in the background with Action Scheduler."
+msgstr "S’ha posat en cua el procés %d. S’executarà en segon pla amb Action Scheduler."
+
+#: src/Cli/Command.php:194
+msgid "Analyzing entries"
+msgstr "S’estan analitzant les entrades"
+
+#. translators: 1: new or modified entries, 2: unchanged entries skipped.
+#: src/Cli/Command.php:210
+#, php-format
+msgid "%1$d new or modified, %2$d unchanged and skipped."
+msgstr "%1$d noves o modificades; %2$d sense canvis, que s’han omès."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:218
+#, php-format
+msgid "%d entry analyzed."
+msgid_plural "%d entries analyzed."
+msgstr[0] "S’ha analitzat %d entrada."
+msgstr[1] "S’han analitzat %d entrades."
+
+#: src/Cli/Command.php:228
+msgid "The process did not finish. Check its state with: wp magic-linking status"
+msgstr "El procés no ha acabat. Consulta’n l’estat amb: wp magic-linking status"
+
+#: src/Cli/Command.php:361
+msgid "Invalid filter. Use: all, orphans, low, over, broken or excluded."
+msgstr "Filtre no vàlid. Utilitza: all, orphans, low, over, broken o excluded."
+
+#: src/Cli/Command.php:364
+msgid "Invalid column for --orderby."
+msgstr "La columna de --orderby no és vàlida."
+
+#: src/Cli/Command.php:487
+msgid "Unknown action. Use: list, pause, resume or cancel."
+msgstr "Acció desconeguda. Utilitza: list, pause, resume o cancel."
+
+#: src/Cli/Command.php:492
+msgid "There is no such process."
+msgstr "No existeix aquest procés."
+
+#: src/Cli/Command.php:507 src/Rest/HistoryController.php:478
+#: src/Rest/JobsController.php:205 src/Rest/JobsController.php:220
+msgid "That process cannot be changed in its current state."
+msgstr "Aquest procés no es pot canviar en el seu estat actual."
+
+#. translators: 1: process ID, 2: new state.
+#: src/Cli/Command.php:513
+#, php-format
+msgid "Process %1$d is now %2$s."
+msgstr "L’estat del procés %1$d ara és %2$s."
+
+#. translators: %s: batch ID.
+#: src/Cli/Command.php:610
+#, php-format
+msgid "There are more batches. Continue with: wp magic-linking history list --before=%s"
+msgstr "Hi ha més lots. Continua amb: wp magic-linking history list --before=%s"
+
+#: src/Cli/Command.php:635
+msgid "Unknown action. Use: list, undo, redo, purge or export."
+msgstr "Acció desconeguda. Utilitza: list, undo, redo, purge o export."
+
+#: src/Cli/Command.php:685 src/Cli/Command.php:719
+#: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
+#: src/Rest/SuggestionsController.php:705
+msgid "You do not have permission to edit one of the entries involved."
+msgstr "No tens permís per editar una de les entrades implicades."
+
+#: src/Cli/Command.php:690 src/History/Redo.php:65 src/History/Undo.php:165
+#: src/Rest/HistoryController.php:788
+msgid "That change does not exist."
+msgstr "Aquest canvi no existeix."
+
+#: src/Cli/Command.php:694 src/Cli/Command.php:714
+#: src/Rest/HistoryController.php:774
+msgid "This batch is being processed in the background. Wait for it to finish or cancel it."
+msgstr "Aquest lot s’està processant en segon pla. Espera que acabi o cancel·la’l."
+
+#: src/Cli/Command.php:710
+msgid "There is no such group in the history (or you cannot edit all of its entries)."
+msgstr "No existeix aquest grup a l’historial (o no pots editar-ne totes les entrades)."
+
+#. translators: %d: number of changes.
+#: src/Cli/Command.php:755
+#, php-format
+msgid "%d change could not be applied by itself."
+msgid_plural "%d changes could not be applied by themselves."
+msgstr[0] "%d canvi no s’ha pogut aplicar per si sol."
+msgstr[1] "%d canvis no s’han pogut aplicar per si sols."
+
+#: src/Cli/Command.php:762
+msgid "Group redone."
+msgstr "S’ha refet el grup."
+
+#: src/Cli/Command.php:762
+msgid "Group undone."
+msgstr "S’ha desfet el grup."
+
+#: src/Cli/Command.php:773
+msgid "The history never expires with the current setting; nothing to delete."
+msgstr "Amb el paràmetre actual l’historial no caduca mai; no hi ha res a suprimir."
+
+#. translators: %d: number of history rows.
+#: src/Cli/Command.php:782
+#, php-format
+msgid "%d history row has expired."
+msgid_plural "%d history rows have expired."
+msgstr[0] "%d fila de l’historial ha caducat."
+msgstr[1] "%d files de l’historial han caducat."
+
+#: src/Cli/Command.php:791
+msgid "Nothing has expired."
+msgstr "No ha caducat res."
+
+#. translators: %d: number of history rows.
+#: src/Cli/Command.php:801
+#, php-format
+msgid "%d history row deleted."
+msgid_plural "%d history rows deleted."
+msgstr[0] "S’ha suprimit %d fila de l’historial."
+msgstr[1] "S’han suprimit %d files de l’historial."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:836
+#, php-format
+msgid "%d entry excluded from the analysis."
+msgid_plural "%d entries excluded from the analysis."
+msgstr[0] "%d entrada exclosa de l’anàlisi."
+msgstr[1] "%d entrades excloses de l’anàlisi."
+
+#. translators: %d: number of entries.
+#: src/Cli/Command.php:870
+#, php-format
+msgid "%d entry included in the analysis again."
+msgid_plural "%d entries included in the analysis again."
+msgstr[0] "%d entrada tornada a incloure a l’anàlisi."
+msgstr[1] "%d entrades tornades a incloure a l’anàlisi."
+
+#: src/Cli/Command.php:888
+msgid "That entry does not exist or is not of a chosen content type."
+msgstr "Aquesta entrada no existeix o no és d’un tipus de contingut triat."
+
+#: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
+#: src/Rest/AiController.php:196 src/Rest/AnalyzedEntry.php:43
+#: src/Rest/DismissalsController.php:141
+#: src/Rest/EditorHistoryController.php:95
+#: src/Rest/SuggestionsController.php:1030
+msgid "That entry does not exist."
+msgstr "Aquesta entrada no existeix."
+
+#: src/Cli/Command.php:911
+msgid "Entry analyzed."
+msgstr "S’ha analitzat l’entrada."
+
+#: src/Cli/Command.php:914
+msgid "Nothing changed since the last analysis. Use --force to analyze it again."
+msgstr "No ha canviat res des de l’última anàlisi. Utilitza --force per tornar-la a analitzar."
+
+#: src/Cli/Command.php:917
+msgid "The entry is not published or is not of a chosen content type: it was taken out of the report."
+msgstr "L’entrada no està publicada o no és d’un tipus de contingut triat: s’ha tret de l’informe."
+
+#: src/Cli/Command.php:920
+msgid "The entry is not published or is not of a chosen content type, so it is not analyzed."
+msgstr "L’entrada no està publicada o no és d’un tipus de contingut triat, per això no s’analitza."
+
+#: src/Cli/Command.php:933
+msgid "Could not open the output."
+msgstr "No s’ha pogut obrir la sortida."
+
+#: src/Cli/RulesCommand.php:152
+msgid "The rule could not be saved."
+msgstr "No s’ha pogut desar la regla."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:155
+#, php-format
+msgid "Rule %d created."
+msgstr "S’ha creat la regla %d."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:174
+#, php-format
+msgid "Rule %d does not exist."
+msgstr "La regla %d no existeix."
+
+#. translators: %d: rule ID.
+#: src/Cli/RulesCommand.php:177
+#, php-format
+msgid "Rule %d deleted."
+msgstr "S’ha suprimit la regla %d."
+
+#: src/Cli/RulesCommand.php:203
+msgid "That rule does not exist."
+msgstr "Aquesta regla no existeix."
+
+#: src/Cli/RulesCommand.php:225
+msgid "No entry found using the index, which can miss some matches. Run it again with --full to check every entry."
+msgstr "No s’ha trobat cap entrada amb l’índex, que pot deixar-se coincidències. Torna-ho a executar amb --full per revisar totes les entrades."
+
+#. translators: %d: number of entries.
+#: src/Cli/RulesCommand.php:227
+#, php-format
+msgid "%d entry where the rule fits."
+msgid_plural "%d entries where the rule fits."
+msgstr[0] "%d entrada on encaixa la regla."
+msgstr[1] "%d entrades on encaixa la regla."
+
+#. translators: 1: number of entries shown, 2: entry ID to continue after.
+#: src/Cli/RulesCommand.php:230
+#, php-format
+msgid "%1$d entries shown. Continue with --after=%2$d"
+msgstr "S’han mostrat %1$d entrades. Continua amb --after=%2$d"
+
+#: src/Cli/RulesCommand.php:254 src/Rest/RulesController.php:646
+msgid "That rule or entry does not exist."
+msgstr "Aquesta regla o entrada no existeix."
+
+#: src/Cli/RulesCommand.php:260
+msgid "Nothing to link."
+msgstr "No hi ha res a enllaçar."
+
+#: src/Cli/RulesCommand.php:267
+msgid "Nothing was written. Add --yes to add these links."
+msgstr "No s’ha escrit res. Afegeix --yes per afegir aquests enllaços."
+
+#: src/Cli/RulesCommand.php:278 src/Cli/RulesCommand.php:319
+#: assets/build/index.js:94
+msgid "Nothing was added."
+msgstr "No s’ha afegit res."
+
+#. translators: 1: number of links added, 2: history batch ID.
+#: src/Cli/RulesCommand.php:282
+#, php-format
+msgid "%1$d link added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
+msgid_plural "%1$d links added (batch %2$s). Undo with: wp magic-linking history undo %2$s"
+msgstr[0] "S’ha afegit %1$d enllaç (lot %2$s). Desfés-ho amb: wp magic-linking history undo %2$s"
+msgstr[1] "S’han afegit %1$d enllaços (lot %2$s). Desfés-ho amb: wp magic-linking history undo %2$s"
+
+#. translators: 1: rule ID, 2: reason.
+#: src/Cli/RulesCommand.php:311 src/Cli/RulesCommand.php:315
+#, php-format
+msgid "Rule %1$d: %2$s"
+msgstr "Regla %1$d: %2$s"
+
+#. translators: %d: number of links added.
+#: src/Cli/RulesCommand.php:322 assets/build/index.js:94
+#, php-format
+msgid "%d link added."
+msgid_plural "%d links added."
+msgstr[0] "S’ha afegit %d enllaç."
+msgstr[1] "S’han afegit %d enllaços."
+
+#: src/Content/BlockEditor.php:57 src/Content/LinkFixer.php:58
+msgid "The block structure of this post could not be read, so it was left untouched."
+msgstr "No s’ha pogut llegir l’estructura de blocs d’aquesta entrada, de manera que s’ha deixat intacta."
+
+#: src/Content/BlockEditor.php:82
+msgid "The block contains markup (script, styles…) that cannot be scanned safely."
+msgstr "El bloc conté marcatge (script, estils…) que no es pot analitzar de manera segura."
+
+#: src/Content/BlockEditor.php:102 src/Content/BlockEditor.php:199
+#: src/Content/ClassicEditor.php:59 src/Content/PostWriter.php:211
+msgid "The text has changed."
+msgstr "El text ha canviat."
+
+#: src/Content/BlockEditor.php:108 src/Content/LinkFixer.php:167
+msgid "The text of this block comes from another source (data binding) and cannot be edited here."
+msgstr "El text d’aquest bloc ve d’una altra font (vinculació de dades) i no es pot editar aquí."
+
+#: src/Content/BlockEditor.php:283
+msgid "This text belongs to a reusable block: edit the original pattern."
+msgstr "Aquest text pertany a un bloc reutilitzable: edita el patró original."
+
+#: src/Content/BlockEditor.php:286
+msgid "This text is in a block where links are not inserted automatically."
+msgstr "Aquest text es troba en un bloc on els enllaços no s’insereixen automàticament."
+
+#: src/Content/ClassicEditor.php:45
+msgid "The post contains markup (script, styles…) that cannot be scanned safely."
+msgstr "L’entrada conté marcatge (script, estils…) que no es pot analitzar de manera segura."
+
+#: src/Content/Destination.php:43 src/Content/Destination.php:51
+#: src/Rest/FixController.php:253 src/Rules/RuleService.php:107
+msgid "The destination is not a published entry that can be linked."
+msgstr "La destinació no és una entrada publicada que es pugui enllaçar."
+
+#: src/Content/Destination.php:46
+msgid "The destination is in a different language, so no link is added."
+msgstr "La destinació és en un altre idioma, de manera que no s’afegeix cap enllaç."
+
+#: src/Content/Inserter.php:126
+msgid "All the links of one write must be for the same post and the same user."
+msgstr "Tots els enllaços d’una mateixa escriptura han de ser de la mateixa entrada i del mateix usuari."
+
+#: src/Content/Inserter.php:140 src/Content/Repairer.php:58
+#: src/Rules/RuleService.php:103
+msgid "This content type is not one that Magic Linking analyzes."
+msgstr "Aquest tipus de contingut no és un dels que analitza Magic Linking."
+
+#: src/Content/Inserter.php:202 src/Content/Repairer.php:110
+#: src/History/Redo.php:267
+msgid "The change could not be confirmed as only the link; nothing was written."
+msgstr "No s’ha pogut confirmar que el canvi sigui només l’enllaç; no s’ha escrit res."
+
+#: src/Content/Inserter.php:226 src/Content/Repairer.php:117
+#: src/History/Redo.php:273 src/History/Undo.php:254
+msgid "The change history could not be saved; nothing was written."
+msgstr "No s’ha pogut desar l’historial de canvis; no s’ha escrit res."
+
+#: src/Content/InsertRequest.php:115
+msgid "The anchor is not part of the sentence."
+msgstr "L’àncora no forma part de la frase."
+
+#: src/Content/Linker.php:56
+msgid "The anchor cannot be empty or start or end with a space."
+msgstr "L’àncora no pot estar buida ni començar o acabar amb un espai."
+
+#: src/Content/Linker.php:96
+msgid "That text is already linked."
+msgstr "Aquest text ja està enllaçat."
+
+#: src/Content/Linker.php:99
+msgid "This text is a heading and links in headings are not allowed."
+msgstr "Aquest text és un encapçalament i no es permeten enllaços als encapçalaments."
+
+#: src/Content/Linker.php:103
+msgid "This text is the citation of a quote and is not linked."
+msgstr "Aquest text és la font d’una cita i no s’enllaça."
+
+#: src/Content/Linker.php:106
+msgid "This text is in a quote and links in quotes are not allowed."
+msgstr "Aquest text es troba en una cita i no es permeten enllaços a les cites."
+
+#: src/Content/Linker.php:109
+msgid "This text is in a table and links in tables are not allowed."
+msgstr "Aquest text es troba en una taula i no es permeten enllaços a les taules."
+
+#: src/Content/Linker.php:112
+msgid "The anchor includes a shortcode, code or a line break and cannot be linked safely."
+msgstr "L’àncora inclou un codi de substitució, codi o un salt de línia i no es pot enllaçar de manera segura."
+
+#: src/Content/Linker.php:133
+msgid "The anchor crosses text formatting (bold, italics…) and cannot be linked without breaking it."
+msgstr "L’àncora travessa el format del text (negreta, cursiva…) i no es pot enllaçar sense trencar-lo."
+
+#: src/Content/Linker.php:155 src/Content/LinkFixer.php:52
+msgid "The link address is not valid."
+msgstr "L’adreça de l’enllaç no és vàlida."
+
+#: src/Content/LinkFixer.php:93
+msgid "The post contains markup (nested links, scripts, styles…) that cannot be scanned safely, so it was left untouched."
+msgstr "L’entrada conté marcatge (enllaços imbricats, scripts, estils…) que no es pot analitzar de manera segura, de manera que s’ha deixat intacta."
+
+#: src/Content/LinkFixer.php:110
+msgid "The post no longer matches the list (the link was moved, edited or is not stored in its content). Nothing was changed; reload the list."
+msgstr "L’entrada ja no coincideix amb la llista (l’enllaç s’ha mogut, s’ha editat o no es desa al contingut). No s’ha canviat res; torna a carregar la llista."
+
+#: src/Content/LinkFixer.php:128
+msgid "The link address could not be changed safely, so the post was left untouched."
+msgstr "L’adreça de l’enllaç no s’ha pogut canviar de manera segura, de manera que s’ha deixat intacta l’entrada."
+
+#: src/Content/LinkFixer.php:173
+msgid "Removing the link would break this block (a button, an image…). Change its destination instead, or edit the entry."
+msgstr "Eliminar l’enllaç trencaria aquest bloc (un botó, una imatge…). Canvia’n la destinació o edita l’entrada."
+
+#: src/Content/LinkFixer.php:182
+msgid "The address of this link is also stored in the settings of its block, so it is not changed here. Edit the entry instead."
+msgstr "L’adreça d’aquest enllaç també es desa als paràmetres del bloc, de manera que no es canvia aquí. Edita l’entrada."
+
+#: src/Content/PostWriter.php:115
+msgid "The post does not exist or is in the trash."
+msgstr "L’entrada no existeix o és a la paperera."
+
+#: src/Content/PostWriter.php:120
+msgid "You do not have permission to edit this post."
+msgstr "No tens permís per editar aquesta entrada."
+
+#: src/Content/PostWriter.php:163
+msgid "Another change is being applied to this post; try again in a moment."
+msgstr "S’està aplicant un altre canvi a aquesta entrada; torna-ho a provar d’aquí a un moment."
+
+#: src/Content/PostWriter.php:247 src/History/BatchJob.php:384
+#: src/History/BatchJob.php:454 src/History/Redo.php:193
+#: src/History/Undo.php:117
+msgid "WordPress could not save the post; nothing was changed."
+msgstr "WordPress no ha pogut desar l’entrada; no s’ha canviat res."
+
+#: src/Content/PostWriter.php:328
+msgid "This post is open in your editor (maybe in another tab); add the link from there or close it and try again."
+msgstr "Aquesta entrada és oberta a l’editor (potser en una altra pestanya); afegeix-hi l’enllaç des d’allà o tanca-la i torna-ho a provar."
+
+#: src/Content/PostWriter.php:332
+msgid "someone else"
+msgstr "algú altre"
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:338
+#, php-format
+msgid "This post has just been opened by %s; try again later."
+msgstr "%s acaba d’obrir aquesta entrada; torna-ho a provar més tard."
+
+#. translators: %s: name of the person who has the post open.
+#: src/Content/PostWriter.php:340
+#, php-format
+msgid "This post is being edited by %s; try again later."
+msgstr "%s està editant aquesta entrada; torna-ho a provar més tard."
+
+#: src/Content/PostWriter.php:353
+msgid "WordPress altered the content when saving it (security filters); the original was restored and the link was not inserted."
+msgstr "WordPress ha alterat el contingut en desar-lo (filtres de seguretat); s’ha restaurat l’original i no s’ha inserit l’enllaç."
+
+#: src/Content/PostWriter.php:354
+msgid "WordPress would alter the content when saving it (security filters); nothing was written and the link was not inserted."
+msgstr "WordPress alteraria el contingut en desar-lo (filtres de seguretat); no s’ha escrit res i no s’ha inserit l’enllaç."
+
+#: src/Graph/BrokenReason.php:31
+msgid "No entry exists with this URL."
+msgstr "No existeix cap entrada amb aquest URL."
+
+#: src/Graph/BrokenReason.php:33
+msgid "The destination entry is in the trash."
+msgstr "L’entrada de destinació és a la paperera."
+
+#: src/Graph/BrokenReason.php:35
+msgid "The destination entry is not published (draft, pending or scheduled)."
+msgstr "L’entrada de destinació no està publicada (esborrany, pendent o programada)."
+
+#: src/Graph/BrokenReason.php:37
+msgid "The destination entry is private."
+msgstr "L’entrada de destinació és privada."
+
+#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:484
+#: src/Rest/FixController.php:208 assets/build/classic.js:12
+#: assets/build/classic.js:22 assets/build/editor.js:12
+#: assets/build/editor.js:22 assets/build/index.js:15 assets/build/index.js:65
+#: assets/build/index.js:83
+msgid "(no title)"
+msgstr "(sense títol)"
+
+#: src/Graph/LinkStatus.php:69 assets/build/index.js:86
+msgid "Orphan"
+msgstr "Òrfena"
+
+#: src/Graph/LinkStatus.php:71 assets/build/index.js:86
+#: assets/build/index.js:87
+msgid "Under-linked"
+msgstr "Poc enllaçada"
+
+#: src/Graph/LinkStatus.php:73 assets/build/index.js:86
+#: assets/build/index.js:87
+msgid "Over-linked"
+msgstr "Massa enllaçada"
+
+#: src/Graph/LinkStatus.php:75 assets/build/index.js:86
+msgid "OK"
+msgstr "Correcta"
+
+#: src/History/Reader.php:833
+msgid "Automatic"
+msgstr "Automàtica"
+
+#: src/History/Reader.php:838
+msgid "Deleted user"
+msgstr "Usuari suprimit"
+
+#: src/History/Redo.php:70
+msgid "This link has not been undone, so there is nothing to redo."
+msgstr "Aquest enllaç no s’ha desfet, de manera que no hi ha res a refer."
+
+#: src/History/Redo.php:74
+msgid "This link was already added again."
+msgstr "Aquest enllaç ja s’ha tornat a afegir."
+
+#: src/History/Redo.php:93
+msgid "This post was edited afterwards; add the link again by hand."
+msgstr "Aquesta entrada s’ha editat després; torna a afegir l’enllaç manualment."
+
+#: src/History/Redo.php:94
+msgid "This post was edited afterwards; fix the link again by hand."
+msgstr "Aquesta entrada s’ha editat després; torna a corregir l’enllaç manualment."
+
+#: src/History/Redo.php:113
+msgid "Destination changed again."
+msgstr "La destinació ha tornat a canviar."
+
+#: src/History/Redo.php:114
+msgid "Link removed again."
+msgstr "L’enllaç s’ha tornat a eliminar."
+
+#: src/History/Redo.php:117
+msgid "Link added again."
+msgstr "L’enllaç s’ha tornat a afegir."
+
+#: src/History/Undo.php:170
+msgid "This change was already undone."
+msgstr "Aquest canvi ja s’ha desfet."
+
+#: src/History/Undo.php:192
+msgid "The post was edited afterwards: only the link was removed."
+msgstr "L’entrada s’ha editat després: només s’ha eliminat l’enllaç."
+
+#: src/History/Undo.php:193
+msgid "The post was edited afterwards: only this link was put back as it was."
+msgstr "L’entrada s’ha editat després: només s’ha tornat aquest enllaç com estava."
+
+#: src/History/Undo.php:194
+msgid "The link is no longer in the post."
+msgstr "L’enllaç ja no és a l’entrada."
+
+#: src/History/Undo.php:237
+msgid "The change could not be confirmed as only removing the link; nothing was written."
+msgstr "No s’ha pogut confirmar que el canvi sigui només l’eliminació de l’enllaç; no s’ha escrit res."
+
+#: src/History/Undo.php:238
+msgid "The change could not be confirmed as only restoring the link; nothing was written."
+msgstr "No s’ha pogut confirmar que el canvi sigui només la restauració de l’enllaç; no s’ha escrit res."
+
+#: src/History/Undo.php:395
+msgid "Destination restored."
+msgstr "S’ha restaurat la destinació."
+
+#: src/History/Undo.php:397
+msgid "Link put back."
+msgstr "S’ha tornat a posar l’enllaç."
+
+#: src/History/Undo.php:399
+msgid "Link undone."
+msgstr "S’ha desfet l’enllaç."
+
+#: src/History/Undo.php:411
+msgid "This post was edited afterwards; restore the link address by hand."
+msgstr "Aquesta entrada s’ha editat després; restaura l’adreça de l’enllaç manualment."
+
+#: src/History/Undo.php:413
+msgid "This post was edited afterwards; put the link back by hand."
+msgstr "Aquesta entrada s’ha editat després; torna a posar l’enllaç manualment."
+
+#: src/History/Undo.php:415
+msgid "This post was edited afterwards; remove the link by hand."
+msgstr "Aquesta entrada s’ha editat després; elimina l’enllaç manualment."
+
+#: src/Report/ExportHandler.php:80
+msgid "You are not allowed to export this data."
+msgstr "No tens permís per exportar aquestes dades."
+
+#: src/Rest/AiController.php:214 src/Rest/SuggestionsController.php:412
+#: src/Rest/SuggestionsController.php:440
+msgid "The content is too long to analyze."
+msgstr "El contingut és massa llarg per analitzar-lo."
+
+#. translators: %s: tokens one AI request needs, formatted.
+#: src/Rest/AiController.php:274
+#, php-format
+msgid "The daily AI limit you set is lower than what one request needs (about %s tokens); raise it in Settings → AI. Showing suggestions without AI."
+msgstr "El límit diari d’IA que has definit és inferior al que necessita una sol·licitud (uns %s tokens); augmenta’l a Paràmetres → IA. Es mostren els suggeriments sense IA."
+
+#: src/Rest/AiController.php:278
+msgid "You are asking for AI too often; wait a minute and try again. Showing suggestions without AI."
+msgstr "Estàs demanant IA massa sovint; espera un minut i torna-ho a provar. Es mostren els suggeriments sense IA."
+
+#: src/Rest/AiController.php:280
+msgid "There is no AI connected on this site, so the suggestions are shown without AI."
+msgstr "En aquest lloc no hi ha cap IA connectada, de manera que els suggeriments es mostren sense IA."
+
+#: src/Rest/AiController.php:282
+msgid "AI is turned off for this action on this site; showing suggestions without AI."
+msgstr "La IA està desactivada per a aquesta acció en aquest lloc; es mostren els suggeriments sense IA."
+
+#: src/Rest/AiController.php:284
+msgid "The daily AI limit you set has been reached; showing suggestions without AI. It will be available again tomorrow."
+msgstr "S’ha assolit el límit diari d’IA que has definit; es mostren els suggeriments sense IA. Tornarà a estar disponible demà."
+
+#: src/Rest/AiController.php:286
+msgid "The AI provider took too long to answer; showing suggestions without AI. Try again, or pick a faster model in Settings → AI."
+msgstr "El proveïdor d’IA ha trigat massa a respondre; es mostren els suggeriments sense IA. Torna-ho a provar o tria un model més ràpid a Paràmetres → IA."
+
+#: src/Rest/AiController.php:288
+msgid "The AI provider had a problem on its side; showing suggestions without AI. Try again in a moment."
+msgstr "El proveïdor d’IA ha tingut un problema per part seva; es mostren els suggeriments sense IA. Torna-ho a provar d’aquí a un moment."
+
+#: src/Rest/AiController.php:290
+msgid "Your AI provider is limiting requests right now; showing suggestions without AI. Try again in a moment."
+msgstr "El teu proveïdor d’IA està limitant les sol·licituds ara mateix; es mostren els suggeriments sense IA. Torna-ho a provar d’aquí a un moment."
+
+#: src/Rest/AiController.php:292
+msgid "None of these suggestions can be sent to AI; showing them as they are."
+msgstr "Cap d’aquests suggeriments es pot enviar a la IA; es mostren tal com són."
+
+#: src/Rest/AiController.php:294 assets/build/classic.js:4
+#: assets/build/editor.js:4
+msgid "The AI did not respond; showing suggestions without AI."
+msgstr "La IA no ha respost; es mostren els suggeriments sense IA."
+
+#: src/Rest/AnchorMessages.php:28
+msgid "The anchor has to be a literal part of the sentence."
+msgstr "L’àncora ha de ser un tros literal de la frase."
+
+#: src/Rest/AnchorMessages.php:30
+msgid "The anchor has to start and end at the edge of a word."
+msgstr "L’àncora ha de començar i acabar al límit d’una paraula."
+
+#: src/Rest/AnchorMessages.php:32
+msgid "The anchor contains a word or phrase you chose to ignore in the settings."
+msgstr "L’àncora conté una paraula o una frase que has triat ignorar als paràmetres."
+
+#: src/Rest/AnchorMessages.php:34
+msgid "This anchor already links to a different entry from this one. Use another anchor."
+msgstr "Aquesta àncora ja enllaça amb una altra entrada des d’aquesta. Utilitza una altra àncora."
+
+#: src/Rest/AnchorMessages.php:36
+msgid "The anchor cannot start or end with a space."
+msgstr "L’àncora no pot començar ni acabar amb un espai."
+
+#: src/Rest/AnchorMessages.php:38
+msgid "The anchor is too short."
+msgstr "L’àncora és massa curta."
+
+#. translators: %d: maximum number of words of an anchor.
+#: src/Rest/AnchorMessages.php:41
+#, php-format
+msgid "The anchor has more than %d words."
+msgstr "L’àncora té més de %d paraules."
+
+#: src/Rest/AnchorMessages.php:43
+msgid "The anchor needs at least one meaningful word, not only filler words."
+msgstr "L’àncora necessita almenys una paraula amb significat, no només paraules buides."
+
+#: src/Rest/AnchorMessages.php:45
+msgid "The anchor cannot start with a filler word or a number."
+msgstr "L’àncora no pot començar amb una paraula buida ni amb un número."
+
+#: src/Rest/AnchorMessages.php:47
+msgid "The anchor cannot end with a unit, a magnitude or a month."
+msgstr "L’àncora no pot acabar amb una unitat, una magnitud o un mes."
+
+#: src/Rest/AnchorMessages.php:49
+msgid "The anchor starts with a verb form. It usually reads better starting with a noun."
+msgstr "L’àncora comença amb una forma verbal. Normalment queda millor si comença amb un nom."
+
+#: src/Rest/AnchorMessages.php:51
+msgid "The anchor ends with a verb form. It usually reads better ending with a noun."
+msgstr "L’àncora acaba amb una forma verbal. Normalment queda millor si acaba amb un nom."
+
+#: src/Rest/AnchorMessages.php:53
+msgid "The anchor ends with a filler word."
+msgstr "L’àncora acaba amb una paraula buida."
+
+#: src/Rest/AnchorMessages.php:55
+msgid "This anchor is too generic: it says nothing about the destination."
+msgstr "Aquesta àncora és massa genèrica: no diu res de la destinació."
+
+#: src/Rest/AnchorMessages.php:57
+msgid "The anchor is not valid."
+msgstr "L’àncora no és vàlida."
+
+#. translators: 1: title of the destination the anchor already links to, 2: number of entries that use it.
+#: src/Rest/AnchorNotes.php:138
+#, php-format
+msgid "This anchor already links to “%1$s” in %2$d entry."
+msgid_plural "This anchor already links to “%1$s” in %2$d entries."
+msgstr[0] "Aquesta àncora ja enllaça amb «%1$s» en %2$d entrada."
+msgstr[1] "Aquesta àncora ja enllaça amb «%1$s» en %2$d entrades."
+
+#. translators: %d: number of other destinations the same anchor links to.
+#: src/Rest/AnchorNotes.php:141
+#, php-format
+msgid "It also links to %d other destination."
+msgid_plural "It also links to %d other destinations."
+msgstr[0] "També enllaça amb %d destinació més."
+msgstr[1] "També enllaça amb %d destinacions més."
+
+#. translators: %d: number of entries that already use this anchor for this destination.
+#: src/Rest/AnchorNotes.php:153
+#, php-format
+msgid "This anchor is already used in %d entry for this destination."
+msgid_plural "This anchor is already used in %d entries for this destination."
+msgstr[0] "Aquesta àncora ja s’utilitza en %d entrada per a aquesta destinació."
+msgstr[1] "Aquesta àncora ja s’utilitza en %d entrades per a aquesta destinació."
+
+#: src/Rest/DismissalsController.php:137
+msgid "An entry cannot link to itself."
+msgstr "Una entrada no pot enllaçar-se a si mateixa."
+
+#: src/Rest/DismissalsController.php:212
+msgid "The change could not be saved. Try again."
+msgstr "No s’ha pogut desar el canvi. Torna-ho a provar."
+
+#: src/Rest/FixController.php:242
+msgid "This link is no longer broken. Reload the list."
+msgstr "Aquest enllaç ja no està trencat. Torna a carregar la llista."
+
+#: src/Rest/FixController.php:266 assets/build/index.js:7
+msgid "The link could not be fixed; nothing was changed."
+msgstr "No s’ha pogut corregir l’enllaç; no s’ha canviat res."
+
+#: src/Rest/FixController.php:335
+msgid "That link does not exist."
+msgstr "Aquest enllaç no existeix."
+
+#: src/Rest/HistoryController.php:608 src/Rest/HistoryController.php:688
+msgid "Another large undo is already running. Wait for it to finish."
+msgstr "Ja s’està executant una altra operació de desfer gran. Espera que acabi."
+
+#: src/Rest/HistoryController.php:781
+msgid "Send either a group or a single change."
+msgstr "Envia un grup o un sol canvi."
+
+#: src/Rest/JobsController.php:200
+msgid "That process does not exist."
+msgstr "Aquest procés no existeix."
+
+#: src/Rest/NoticesController.php:87 src/Rest/NoticesController.php:103
+msgid "That notice does not exist."
+msgstr "Aquest avís no existeix."
+
+#: src/Rest/RulesController.php:653
+msgid "You do not have permission to edit this entry."
+msgstr "No tens permís per editar aquesta entrada."
+
+#: src/Rest/RulesController.php:660
+msgid "The rule could not be saved. Try again."
+msgstr "No s’ha pogut desar la regla. Torna-ho a provar."
+
+#: src/Rest/SettingsController.php:219
+msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
+msgstr "Aquest model treballa per lots, no en directe, de manera que no es pot utilitzar a l’editor. Tria’n un altre o deixa’l en automàtic."
+
+#. translators: %s: comma-separated list of shared terms.
+#: src/Rest/SuggestionPresenter.php:235
+#, php-format
+msgid "They share: %s"
+msgstr "Comparteixen: %s"
+
+#: src/Rest/SuggestionPresenter.php:238
+msgid "The anchor matches the title of the destination"
+msgstr "L’àncora coincideix amb el títol de la destinació"
+
+#: src/Rest/SuggestionPresenter.php:241
+msgid "The anchor matches the focus keyword of the destination"
+msgstr "L’àncora coincideix amb la paraula clau principal de la destinació"
+
+#: src/Rest/SuggestionPresenter.php:244
+msgid "The destination is an orphan (0 inbound links)"
+msgstr "La destinació és una entrada òrfena (0 enllaços entrants)"
+
+#: src/Rest/SuggestionPresenter.php:247
+msgid "Very similar in meaning"
+msgstr "Significat molt semblant"
+
+#: src/Rest/SuggestionsController.php:697
+msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
+msgstr "Cada enllaç necessita l’entrada, la destinació, la frase, el desplaçament i l’àncora."
+
+#: src/Rest/SuggestionsController.php:936
+msgid "The link could not be saved; nothing was changed."
+msgstr "No s’ha pogut desar l’enllaç; no s’ha canviat res."
+
+#: src/Rest/TargetPhrasesController.php:100
+msgid "The phrases must be a list."
+msgstr "Les frases han de ser una llista."
+
+#: src/Rest/TargetPhrasesController.php:108
+msgid "Each phrase needs its text, and its variants must be text."
+msgstr "Cada frase necessita el seu text, i les seves variants han de ser text."
+
+#. translators: %d: maximum number of phrases.
+#: src/Rest/TargetPhrasesController.php:115
+#, php-format
+msgid "You can add up to %d phrase."
+msgid_plural "You can add up to %d phrases."
+msgstr[0] "Pots afegir fins a %d frase."
+msgstr[1] "Pots afegir fins a %d frases."
+
+#. translators: %d: maximum number of variants per phrase.
+#: src/Rest/TargetPhrasesController.php:122 assets/build/classic.js:15
+#: assets/build/editor.js:15
+#, php-format
+msgid "Each phrase can have up to %d variant."
+msgid_plural "Each phrase can have up to %d variants."
+msgstr[0] "Cada frase pot tenir fins a %d variant."
+msgstr[1] "Cada frase pot tenir fins a %d variants."
+
+#. translators: 1: the start of the phrase, 2: maximum number of characters.
+#: src/Rest/TargetPhrasesController.php:127 assets/build/classic.js:16
+#: assets/build/editor.js:16
+#, php-format
+msgid "“%1$s…” is too long: a phrase can have up to %2$d characters."
+msgstr "«%1$s…» és massa llarga: una frase pot tenir fins a %2$d caràcters."
+
+#. translators: %s: the phrase.
+#: src/Rest/TargetPhrasesController.php:131
+#, php-format
+msgid "“%s” has no content word: add a word that is not an article, a preposition or a number, or the engine will never use it."
+msgstr "«%s» no té cap paraula amb contingut: afegeix una paraula que no sigui article, preposició ni número, o el motor no l’utilitzarà mai."
+
+#. translators: 1: the phrase, 2: maximum number of words.
+#: src/Rest/TargetPhrasesController.php:135
+#, php-format
+msgid "“%1$s” is too long: a phrase can have up to %2$d words."
+msgstr "«%1$s» és massa llarga: una frase pot tenir fins a %2$d paraules."
+
+#: src/Rules/RuleService.php:102
+msgid "The entry is not published."
+msgstr "L’entrada no està publicada."
+
+#: src/Rules/RuleService.php:104
+msgid "The rule excludes this content type."
+msgstr "La regla exclou aquest tipus de contingut."
+
+#: src/Rules/RuleService.php:105
+msgid "The rule excludes a category of this entry."
+msgstr "La regla exclou una categoria d’aquesta entrada."
+
+#: src/Rules/RuleService.php:106
+msgid "The entry is in a different language than the destination."
+msgstr "L’entrada és en un idioma diferent del de la destinació."
+
+#: src/Rules/RuleService.php:108
+msgid "This rule was already applied to the entry (or undone there), so it is not applied again by itself."
+msgstr "Aquesta regla ja s’havia aplicat a l’entrada (o s’hi havia desfet), de manera que no es torna a aplicar per si sola."
+
+#: src/Rules/RuleService.php:109
+msgid "The entry or the destination is in your list of ignored URLs."
+msgstr "L’entrada o la destinació és a la llista d’URL ignorats."
+
+#: src/Rules/RuleService.php:110
+msgid "The entry or the destination is excluded from the analysis."
+msgstr "L’entrada o la destinació està exclosa de l’anàlisi."
+
+#: src/Rules/RuleService.php:111
+msgid "The person who created the rule can no longer manage the site or edit this entry."
+msgstr "La persona que ha creat la regla ja no pot gestionar el lloc ni editar aquesta entrada."
+
+#: src/Rules/RuleService.php:112
+msgid "Someone has the entry open in the editor."
+msgstr "Algú té l’entrada oberta a l’editor."
+
+#: src/Rules/RuleService.php:113
+msgid "The entry is the destination itself."
+msgstr "L’entrada és la mateixa destinació."
+
+#: src/Rules/RuleService.php:114
+msgid "The entry already has as many internal links as its length allows."
+msgstr "L’entrada ja té tants enllaços interns com permet la seva longitud."
+
+#: src/Rules/RuleService.php:115
+msgid "The entry already links to the destination as many times as allowed."
+msgstr "L’entrada ja enllaça a la destinació tantes vegades com es permet."
+
+#: src/Rules/RuleService.php:116
+msgid "That anchor already points to the destination from as many entries as allowed."
+msgstr "Aquesta àncora ja apunta a la destinació des de tantes entrades com es permet."
+
+#: src/Rules/RuleService.php:117
+msgid "No phrase of the rule fits in the text."
+msgstr "Cap frase de la regla encaixa al text."
+
+#: src/Rules/RuleValidator.php:64
+msgid "The destination must be a published entry of a content type that Magic Linking analyzes."
+msgstr "La destinació ha de ser una entrada publicada d’un tipus de contingut que analitzi Magic Linking."
+
+#: src/Rules/RuleValidator.php:67
+msgid "That entry is in your list of ignored URLs, so it cannot be a destination."
+msgstr "Aquesta entrada és a la llista d’URL ignorats, de manera que no pot ser una destinació."
+
+#: src/Rules/RuleValidator.php:70
+msgid "That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first."
+msgstr "Aquesta entrada està exclosa de l’anàlisi i no pot ser una destinació. Torna-la a incloure abans des de l’informe."
+
+#: src/Rules/RuleValidator.php:73
+msgid "That entry is in a category excluded from the analysis, so it cannot be a destination. Change the excluded categories in Settings → General first."
+msgstr "Aquesta entrada és en una categoria exclosa de l’anàlisi, així que no pot ser una destinació. Canvia abans les categories excloses a Paràmetres → General."
+
+#: src/Rules/RuleValidator.php:89
+msgid "Write at least one phrase to link."
+msgstr "Escriu almenys una frase per enllaçar."
+
+#. translators: %d: maximum number of links a rule can add to one entry.
+#: src/Rules/RuleValidator.php:94
+#, php-format
+msgid "Links per entry must be between 1 and %d."
+msgstr "Els enllaços per entrada han d’estar entre 1 i %d."
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: src/Rules/RuleValidator.php:101
+#, php-format
+msgid "Your settings allow %d link to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgid_plural "Your settings allow %d links to the same target from one entry, so a rule cannot add more than that. Raise “Links to the same target from one entry” in Settings to use a higher value."
+msgstr[0] "Els teus paràmetres permeten %d enllaç a la mateixa destinació des d’una entrada, de manera que una regla no en pot afegir més. Augmenta «Enllaços a la mateixa destinació des d’una entrada» a Paràmetres per utilitzar un valor més alt."
+msgstr[1] "Els teus paràmetres permeten %d enllaços a la mateixa destinació des d’una entrada, de manera que una regla no en pot afegir més. Augmenta «Enllaços a la mateixa destinació des d’una entrada» a Paràmetres per utilitzar un valor més alt."
+
+#. translators: %d: maximum characters of a phrase.
+#: src/Rules/RuleValidator.php:154
+#, php-format
+msgid "A phrase can have at most %d characters."
+msgstr "Una frase pot tenir com a màxim %d caràcters."
+
+#. translators: 1: the phrase, 2: maximum number of words.
+#: src/Rules/RuleValidator.php:158
+#, php-format
+msgid "“%1$s” is not a usable phrase: it needs between 1 and %2$d words."
+msgstr "«%1$s» no és una frase utilitzable: necessita entre 1 i %2$d paraules."
+
+#. translators: %s: the phrase.
+#: src/Rules/RuleValidator.php:165
+#, php-format
+msgid "“%s” has no meaningful word to link (only articles, prepositions or numbers)."
+msgstr "«%s» no té cap paraula significativa per enllaçar (només articles, preposicions o números)."
+
+#. translators: %d: maximum number of phrases in one rule.
+#: src/Rules/RuleValidator.php:175
+#, php-format
+msgid "A rule can have at most %d phrases."
+msgstr "Una regla pot tenir com a màxim %d frases."
+
+#. translators: 1: tokens used, 2: model name.
+#: assets/build/classic.js:2 assets/build/editor.js:2
+msgid "Used %1$s tokens with %2$s (local model, no cost)."
+msgstr "S’han utilitzat %1$s tokens amb %2$s (model local, sense cost)."
+
+#. translators: 1: tokens used, 2: model name.
+#: assets/build/classic.js:3 assets/build/editor.js:3
+msgid "Used %1$s tokens with %2$s."
+msgstr "S’han utilitzat %1$s tokens amb %2$s."
+
+#. translators: 1: tokens used, 2: estimated cost in dollars, 3: model name.
+#: assets/build/classic.js:4 assets/build/editor.js:4
+msgctxt "cost of one AI request"
+msgid "Used %1$s tokens (~%2$s) with %3$s."
+msgstr "S’han utilitzat %1$s tokens (~%2$s) amb %3$s."
+
+#. translators: %d: maximum number of seconds the wait can last.
+#: assets/build/classic.js:5 assets/build/editor.js:5
+msgid "Asking the AI… it can take up to %d seconds."
+msgstr "Consultant la IA… pot trigar fins a %d segons."
+
+#: assets/build/classic.js:5 assets/build/editor.js:5
+msgid "Asking the AI…"
+msgstr "Consultant la IA…"
+
+#. translators: %d: number of suggestions the AI does not recommend.
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "Suggestions improved with AI. %d is not recommended."
+msgid_plural "Suggestions improved with AI. %d are not recommended."
+msgstr[0] "Suggeriments millorats amb IA. %d no es recomana."
+msgstr[1] "Suggeriments millorats amb IA. %d no es recomanen."
+
+#: assets/build/classic.js:6 assets/build/editor.js:6
+msgid "Back to the original order."
+msgstr "S’ha tornat a l’ordre original."
+
+#. translators: %s: new anchor text.
+#: assets/build/classic.js:7 assets/build/classic.js:35
+#: assets/build/editor.js:7 assets/build/editor.js:35 assets/build/index.js:78
+msgid "Anchor changed to “%s”."
+msgstr "L’àncora s’ha canviat a «%s»."
+
+#. translators: 1: AI provider and model, 2: estimated tokens.
+#: assets/build/classic.js:8 assets/build/editor.js:8
+msgid "%1$s · local, no cost · ~%2$s tokens"
+msgstr "%1$s · local, sense cost · ~%2$s tokens"
+
+#. translators: 1: AI provider and model, 2: estimated tokens.
+#: assets/build/classic.js:9 assets/build/editor.js:9
+msgid "%1$s · ~%2$s tokens"
+msgstr "%1$s · ~%2$s tokens"
+
+#. translators: 1: AI provider and model, 2: estimated tokens, 3: estimated cost in dollars.
+#: assets/build/classic.js:10 assets/build/editor.js:10
+msgid "%1$s · ~%2$s tokens · ~%3$s"
+msgstr "%1$s · ~%2$s tokens · ~%3$s"
+
+#: assets/build/classic.js:10 assets/build/editor.js:10
+msgid "The daily AI limit you set is reached. It will be available again tomorrow."
+msgstr "S’ha assolit el límit diari d’IA que has definit. Tornarà a estar disponible demà."
+
+#. translators: 1: daily limit in tokens, 2: tokens one AI request needs.
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "The daily AI limit you set (%1$s tokens) is lower than what one request needs (about %2$s). Raise it in Settings → AI."
+msgstr "El límit diari d’IA que has definit (%1$s tokens) és inferior al que necessita una sol·licitud (uns %2$s). Augmenta’l a Paràmetres → IA."
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Improving…"
+msgstr "S’està millorant…"
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Improve with AI"
+msgstr "Millora amb IA"
+
+#: assets/build/classic.js:11 assets/build/editor.js:11
+msgid "Ordered by AI."
+msgstr "Ordenat per la IA."
+
+#. translators: %d: number of suggestions the AI does not recommend.
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "%d suggestion is marked as not recommended."
+msgid_plural "%d suggestions are marked as not recommended."
+msgstr[0] "%d suggeriment està marcat com a no recomanat."
+msgstr[1] "%d suggeriments estan marcats com a no recomanats."
+
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "Back to the original order"
+msgstr "Torna a l’ordre original"
+
+#: assets/build/classic.js:12 assets/build/editor.js:12
+msgid "Internal link (no access)"
+msgstr "Enllaç intern (sense accés)"
+
+#: assets/build/classic.js:12 assets/build/classic.js:29
+#: assets/build/editor.js:12 assets/build/editor.js:29 assets/build/index.js:72
+msgid "(opens in a new tab)"
+msgstr "(s’obre en una pestanya nova)"
+
+#. translators: %d: number of entries this one already links to.
+#: assets/build/classic.js:13 assets/build/editor.js:13
+msgid "Current links (%d)"
+msgstr "Enllaços actuals (%d)"
+
+#: assets/build/classic.js:13 assets/build/editor.js:13
+msgid "Already linked"
+msgstr "Ja enllaçat"
+
+#: assets/build/classic.js:13 assets/build/editor.js:13
+#: assets/build/index.js:62
+msgid "Previous"
+msgstr "Anterior"
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/classic.js:14 assets/build/classic.js:42
+#: assets/build/editor.js:14 assets/build/editor.js:42 assets/build/index.js:2
+#: assets/build/index.js:63 assets/build/index.js:81
+msgid "Page %1$s of %2$s"
+msgstr "Pàgina %1$s de %2$s"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+#: assets/build/index.js:63 assets/build/index.js:130
+msgid "Next"
+msgstr "Següent"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Could not load the pillar content mark."
+msgstr "No s’ha pogut carregar la marca de contingut pilar."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Also marked as cornerstone content in Yoast SEO. Change that mark there."
+msgstr "També està marcat com a contingut fonamental a Yoast SEO. Canvia aquesta marca allà."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Also marked as pillar content in Rank Math. Change that mark there."
+msgstr "També està marcat com a contingut pilar a Rank Math. Canvia aquesta marca allà."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Counts as pillar content."
+msgstr "Compta com a contingut pilar."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Counts as pillar content because of that mark, whatever this box says."
+msgstr "Compta com a contingut pilar a causa d’aquesta marca, independentment del que indiqui aquest quadre."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Pillar content"
+msgstr "Contingut pilar"
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Suggestions that link to this entry rank a little higher. Nothing else changes."
+msgstr "Els suggeriments que enllacen amb aquesta entrada es posicionen una mica més amunt. No canvia res més."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Marked as pillar content."
+msgstr "Marcat com a contingut pilar."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Pillar content mark removed."
+msgstr "S’ha eliminat la marca de contingut pilar."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "The pillar content mark could not be saved."
+msgstr "No s’ha pogut desar la marca de contingut pilar."
+
+#: assets/build/classic.js:14 assets/build/editor.js:14
+msgid "Could not load the target phrases."
+msgstr "No s’han pogut carregar les frases objectiu."
+
+#: assets/build/classic.js:16 assets/build/editor.js:16
+msgid "Target phrases"
+msgstr "Frases objectiu"
+
+#: assets/build/classic.js:16 assets/build/editor.js:16
+msgid "Optional. The engine finds phrases on its own; this helps with the ones you care about."
+msgstr "Opcional. El motor troba frases tot sol; això l’ajuda amb les que t’importen."
+
+#. translators: %d: position of the phrase in the list.
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Phrase %d"
+msgstr "Frase %d"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Phrase"
+msgstr "Frase"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Variants (one per line)"
+msgstr "Variants (una per línia)"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "Allow one word in between"
+msgstr "Permet una paraula pel mig"
+
+#: assets/build/classic.js:17 assets/build/editor.js:17
+msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words."
+msgstr "«reforma de cuina» també coincideix amb «reforma integral de cuina», però no amb dues paraules addicionals."
+
+#. translators: %d: position of the phrase in the list.
+#: assets/build/classic.js:18 assets/build/editor.js:18
+msgid "Remove phrase %d"
+msgstr "Elimina la frase %d"
+
+#: assets/build/classic.js:18 assets/build/editor.js:18
+msgid "Add phrase"
+msgstr "Afegeix una frase"
+
+#. translators: %d: number of target phrases saved.
+#: assets/build/classic.js:19 assets/build/editor.js:19
+msgid "Target phrases saved: %d phrase."
+msgid_plural "Target phrases saved: %d phrases."
+msgstr[0] "Frases objectiu desades: %d frase."
+msgstr[1] "Frases objectiu desades: %d frases."
+
+#. translators: %s: list of repeated phrases the server did not keep.
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "Not kept because they were repeated: %s."
+msgstr "No s’han conservat perquè estaven repetides: %s."
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "The target phrases could not be saved."
+msgstr "No s’han pogut desar les frases objectiu."
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+msgid "Save phrases"
+msgstr "Desa les frases"
+
+#: assets/build/classic.js:20 assets/build/editor.js:20
+#: assets/build/index.js:63
+msgid "The anchor could not be checked. Try again."
+msgstr "No s’ha pogut comprovar l’àncora. Torna-ho a provar."
+
+#. translators: 1: anchor text, 2: number of words.
+#: assets/build/classic.js:21 assets/build/classic.js:22
+#: assets/build/editor.js:21 assets/build/editor.js:22 assets/build/index.js:64
+#: assets/build/index.js:65
+msgid "Anchor: %1$s, %2$d word"
+msgid_plural "Anchor: %1$s, %2$d words"
+msgstr[0] "Àncora: %1$s, %2$d paraula"
+msgstr[1] "Àncora: %1$s, %2$d paraules"
+
+#: assets/build/classic.js:21 assets/build/editor.js:21
+#: assets/build/index.js:64
+msgid "Right arrow extends the anchor, left arrow shortens it. Shift with the arrows does the same on the left. Enter confirms and Escape cancels."
+msgstr "La fletxa dreta allarga l’àncora i l’esquerra l’escurça. Amb Maj, les fletxes fan el mateix per l’esquerra. Retorn confirma i Escape cancel·la."
+
+#: assets/build/classic.js:21 assets/build/classic.js:28
+#: assets/build/editor.js:21 assets/build/editor.js:28 assets/build/index.js:64
+#: assets/build/index.js:71
+msgid "Adjust anchor"
+msgstr "Ajusta l’àncora"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Checking the anchor…"
+msgstr "S’està comprovant l’àncora…"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Apply anchor"
+msgstr "Aplica l’àncora"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22 assets/build/index.js:7
+#: assets/build/index.js:59 assets/build/index.js:65 assets/build/index.js:98
+#: assets/build/index.js:117
+msgid "Cancel"
+msgstr "Cancel·la"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "Link from this sentence"
+msgstr "Enllaça des d’aquesta frase"
+
+#: assets/build/classic.js:22 assets/build/editor.js:22
+#: assets/build/index.js:65
+msgid "recommended"
+msgstr "recomanada"
+
+#: assets/build/classic.js:22 assets/build/classic.js:41
+#: assets/build/editor.js:22 assets/build/editor.js:41 assets/build/index.js:65
+#: assets/build/index.js:83
+msgid "Suggestion dismissed. It will not be proposed again."
+msgstr "S’ha descartat el suggeriment. No es tornarà a proposar."
+
+#. translators: %s: title of the entry that got the link.
+#: assets/build/classic.js:23 assets/build/editor.js:23
+#: assets/build/index.js:66
+msgid "Undo the link in “%s”"
+msgstr "Desfés l’enllaç a «%s»"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:24 assets/build/editor.js:24
+#: assets/build/index.js:67
+msgid "Undo the link to “%s”"
+msgstr "Desfés l’enllaç cap a «%s»"
+
+#. translators: %s: title of the entry the suggestion is about.
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgid "Undo dismissing the suggestion for “%s”"
+msgstr "Desfés el descart del suggeriment per a «%s»"
+
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgctxt "state of a suggestion that has been linked"
+msgid "Linked"
+msgstr "Enllaçat"
+
+#: assets/build/classic.js:25 assets/build/editor.js:25
+#: assets/build/index.js:68
+msgctxt "state of a suggestion that has been dismissed"
+msgid "Dismissed"
+msgstr "Descartat"
+
+#: assets/build/classic.js:25 assets/build/classic.js:26
+#: assets/build/editor.js:25 assets/build/editor.js:26 assets/build/index.js:68
+#: assets/build/index.js:69
+msgid "In:"
+msgstr "A:"
+
+#. translators: %s: title of the entry that would get the link.
+#: assets/build/classic.js:26 assets/build/classic.js:27
+#: assets/build/editor.js:26 assets/build/editor.js:27 assets/build/index.js:69
+#: assets/build/index.js:70
+msgid "In: %s"
+msgstr "A: %s"
+
+#: assets/build/classic.js:26 assets/build/classic.js:29
+#: assets/build/editor.js:26 assets/build/editor.js:29 assets/build/index.js:69
+#: assets/build/index.js:72
+msgid "Links to:"
+msgstr "Enllaça cap a:"
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+#: assets/build/index.js:10 assets/build/index.js:52 assets/build/index.js:69
+#: assets/build/index.js:94
+msgid "Undo"
+msgstr "Desfés"
+
+#: assets/build/classic.js:26 assets/build/editor.js:26
+#: assets/build/index.js:69
+msgid "See in History"
+msgstr "Mostra a l’Historial"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:28 assets/build/editor.js:28
+#: assets/build/index.js:71
+msgid "Adjust anchor, link to “%s”"
+msgstr "Ajusta l’àncora, enllaç cap a «%s»"
+
+#. translators: %d: number of sentences to choose from.
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "More sentences (%d)"
+msgstr "Més frases (%d)"
+
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "Anchor notices"
+msgstr "Avisos de l’àncora"
+
+#: assets/build/classic.js:29 assets/build/editor.js:29
+#: assets/build/index.js:72
+msgid "You cannot edit this entry, so the link cannot be added from here."
+msgstr "No pots editar aquesta entrada, de manera que l’enllaç no es pot afegir des d’aquí."
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:30 assets/build/editor.js:30
+#: assets/build/index.js:73
+msgid "Link to “%s”"
+msgstr "Enllaça amb «%s»"
+
+#: assets/build/classic.js:30 assets/build/editor.js:30
+#: assets/build/index.js:73
+msgctxt "button: add the link to the text"
+msgid "Link"
+msgstr "Enllaça"
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "Dismiss the suggestion for “%s”"
+msgstr "Descarta el suggeriment per a «%s»"
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74 assets/build/index.js:103
+msgid "Dismiss"
+msgstr "Descarta"
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "The AI does not see this as a good link."
+msgstr "La IA no considera que sigui un bon enllaç."
+
+#: assets/build/classic.js:31 assets/build/editor.js:31
+#: assets/build/index.js:74
+msgid "Recommended by the AI."
+msgstr "Recomanat per la IA."
+
+#. translators: %d: confidence of the AI, from 0 to 100.
+#: assets/build/classic.js:32 assets/build/editor.js:32
+#: assets/build/index.js:75
+msgid "Recommended by the AI (confidence %d%%)."
+msgstr "Recomanat per la IA (confiança %d%%)."
+
+#. translators: %s: anchor text the AI proposes.
+#: assets/build/classic.js:33 assets/build/editor.js:33
+#: assets/build/index.js:76
+msgid "The AI suggests this anchor: “%s”."
+msgstr "La IA suggereix aquesta àncora: «%s»."
+
+#. translators: %s: anchor text the AI proposes.
+#: assets/build/classic.js:34 assets/build/editor.js:34
+#: assets/build/index.js:77
+msgid "Use the anchor “%s”"
+msgstr "Utilitza l’àncora «%s»"
+
+#: assets/build/classic.js:34 assets/build/editor.js:34
+#: assets/build/index.js:77
+msgid "Use this anchor"
+msgstr "Utilitza aquesta àncora"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "content type"
+msgstr "tipus de contingut"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "category"
+msgstr "categoria"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "tag"
+msgstr "etiqueta"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "The site has not been analyzed yet, so there are no suggestions. Analyze it from the report and come back."
+msgstr "El lloc encara no s’ha analitzat, de manera que no hi ha suggeriments. Analitza’l des de l’informe i torna-hi."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Open the report"
+msgstr "Obre l’informe"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is not analyzed yet. Save it and refresh in a moment, or check that its content type is analyzed in Settings."
+msgstr "Aquesta entrada encara no s’ha analitzat. Desa-la i actualitza d’aquí a un moment, o comprova que el seu tipus de contingut s’analitza a Paràmetres."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is excluded from the analysis, so it has no suggestions and is not suggested anywhere. Include it again from the report."
+msgstr "Aquesta entrada està exclosa de l’anàlisi: no té suggeriments i no se suggereix enlloc. Torna-la a incloure des de l’informe."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "This entry is in a category that is excluded from the analysis, so it has no suggestions and is not suggested anywhere. You can change the excluded categories in Settings."
+msgstr "Aquesta entrada és en una categoria exclosa de l’anàlisi, així que no té suggeriments i no se suggereix enlloc. Pots canviar les categories excloses als Paràmetres."
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Open the settings"
+msgstr "Obre els paràmetres"
+
+#: assets/build/classic.js:35 assets/build/editor.js:35
+#: assets/build/index.js:78
+msgid "Other entries can only link to this one once it is published."
+msgstr "Les altres entrades només poden enllaçar amb aquesta quan estigui publicada."
+
+#. translators: %s: the filters that are required, such as "category" or "category and tag".
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "There are no suggestions: only entries that match this one in %s are searched."
+msgstr "No hi ha suggeriments: només se cerquen les entrades que coincideixen amb aquesta en %s."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "If you want more, change the filter in <a>Settings → Suggestions</a>."
+msgstr "Si en vols més, canvia el filtre a <a>Paràmetres → Suggeriments</a>."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "If you want more, ask an administrator to change the filter in Settings → Suggestions."
+msgstr "Si en vols més, demana a un administrador que canviï el filtre a Paràmetres → Suggeriments."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "There are no suggestions with enough confidence. This usually happens with very short entries or on a topic that has no other content on the site yet."
+msgstr "No hi ha suggeriments amb prou confiança. Això sol passar amb entrades molt curtes o amb un tema que encara no té cap altre contingut al lloc."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "No other entry has a sentence that fits a link to this one yet."
+msgstr "Cap altra entrada té encara una frase que encaixi amb un enllaç cap a aquesta."
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "Try again"
+msgstr "Torna-ho a provar"
+
+#: assets/build/classic.js:36 assets/build/editor.js:36
+#: assets/build/index.js:79
+msgid "Looking for suggestions…"
+msgstr "S’estan cercant suggeriments…"
+
+#. translators: 1: position of the sentence, 2: number of sentences, 3: anchor text.
+#: assets/build/classic.js:37 assets/build/editor.js:37
+msgid "Sentence %1$d of %2$d selected. Anchor: %3$s."
+msgstr "Frase %1$d de %2$d triada. Àncora: %3$s."
+
+#. translators: %s: anchor text.
+#: assets/build/classic.js:38 assets/build/editor.js:38
+msgid "Anchor set: %s."
+msgstr "Àncora establerta: %s."
+
+#. translators: %d: number of suggestions.
+#: assets/build/classic.js:39 assets/build/editor.js:39
+#: assets/build/editor.js:47
+msgid "%d outbound suggestion"
+msgid_plural "%d outbound suggestions"
+msgstr[0] "%d suggeriment sortint"
+msgstr[1] "%d suggeriments sortints"
+
+#. translators: %s: title of the entry that got the link.
+#: assets/build/classic.js:40 assets/build/editor.js:40
+#: assets/build/index.js:82
+msgid "Link added in “%s”."
+msgstr "S’ha afegit l’enllaç a «%s»."
+
+#. translators: %s: title of the destination.
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Link to “%s” added."
+msgstr "S’ha afegit l’enllaç cap a «%s»."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Link removed."
+msgstr "S’ha eliminat l’enllaç."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be added."
+msgstr "No s’ha pogut afegir l’enllaç."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be added. Check your connection and try again."
+msgstr "No s’ha pogut afegir l’enllaç. Comprova la connexió i torna-ho a provar."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The link could not be removed."
+msgstr "No s’ha pogut eliminar l’enllaç."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The suggestion could not be dismissed. Check your connection and try again."
+msgstr "No s’ha pogut descartar el suggeriment. Comprova la connexió i torna-ho a provar."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "The dismissal could not be undone. Check your connection and try again."
+msgstr "No s’ha pogut desfer el descart. Comprova la connexió i torna-ho a provar."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:83
+msgid "Suggestion restored."
+msgstr "S’ha restaurat el suggeriment."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The text has changed since the link was added. Use Undo in the editor or remove the link by hand."
+msgstr "El text ha canviat des que s’ha afegit l’enllaç. Utilitza Desfés a l’editor o elimina l’enllaç manualment."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Outbound"
+msgstr "Sortints"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:87
+msgid "Inbound"
+msgstr "Entrants"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:85 assets/build/index.js:127
+msgid "Refresh"
+msgstr "Actualitza"
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Analyzes what you have in the editor now, saved or not."
+msgstr "Analitza el que tens ara a l’editor, desat o no."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Link added."
+msgstr "S’ha afegit l’enllaç."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The text has changed since the suggestion was made. Refresh the suggestions and try again."
+msgstr "El text ha canviat des que s’ha fet el suggeriment. Actualitza els suggeriments i torna-ho a provar."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This sentence appears more than once, so the right place is unclear. Add the link by hand."
+msgstr "Aquesta frase apareix més d’una vegada, de manera que no es veu clar on cal posar l’enllaç. Afegeix-lo manualment."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This text is already a link."
+msgstr "Aquest text ja és un enllaç."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "This sentence is somewhere the panel cannot add a link (a block it does not edit, or a heading, quote, table or shortcode). Add the link by hand."
+msgstr "Aquesta frase és en un lloc on el quadre no pot afegir un enllaç (un bloc que no edita, o un encapçalament, una cita, una taula o un codi de substitució). Afegeix l’enllaç manualment."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The anchor crosses bold, italics or other formatting, so the link would break it. Add the link by hand."
+msgstr "L’àncora travessa negreta, cursiva o un altre format, de manera que l’enllaç el trencaria. Afegeix l’enllaç manualment."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The link could not be added without risking the rest of the block, so nothing was changed. Add it by hand."
+msgstr "No s’ha pogut afegir l’enllaç sense posar en risc la resta del bloc, de manera que no s’ha canviat res. Afegeix-lo manualment."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The address of the destination is not valid, so the link was not added."
+msgstr "L’adreça de la destinació no és vàlida, de manera que no s’ha afegit l’enllaç."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "The Classic block has changes that are not applied yet. Save or leave the block and try again."
+msgstr "El bloc Clàssic té canvis que encara no s’han aplicat. Desa o deixa el bloc i torna-ho a provar."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Switch to the Visual tab to add the link, or add it by hand."
+msgstr "Canvia a la pestanya Visual per afegir l’enllaç, o afegeix-lo manualment."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+msgid "Sentences in other entries where a link to this one fits."
+msgstr "Frases d’altres entrades on encaixa un enllaç cap a aquesta."
+
+#: assets/build/classic.js:41 assets/build/editor.js:41
+#: assets/build/index.js:86
+msgid "Inbound suggestions pages"
+msgstr "Pàgines de suggeriments entrants"
+
+#: assets/build/classic.js:42 assets/build/editor.js:42
+msgid "The suggestions could not be loaded. Check your connection and try again."
+msgstr "No s’han pogut carregar els suggeriments. Comprova la connexió i torna-ho a provar."
+
+#. translators: %s: title of the entry where the link would go.
+#: assets/build/classic.js:43 assets/build/editor.js:43
+msgid "The suggestion in “%s” has changed sentence."
+msgstr "El suggeriment a «%s» ha canviat de frase."
+
+#. translators: %s: title of the entry where the link would go.
+#: assets/build/classic.js:44 assets/build/editor.js:44
+msgid "The suggestion in “%s” was removed because its sentence is now used by another one."
+msgstr "El suggeriment a «%s» s’ha eliminat perquè ara la seva frase l’utilitza un altre."
+
+#. translators: %s: title of the destination of the suggestion.
+#: assets/build/classic.js:45 assets/build/editor.js:45
+msgid "The suggestion to “%s” has changed sentence."
+msgstr "El suggeriment cap a «%s» ha canviat de frase."
+
+#. translators: %s: title of the destination of the suggestion.
+#: assets/build/classic.js:46 assets/build/editor.js:46
+msgid "The suggestion to “%s” was removed because its sentence is now used by another one."
+msgstr "El suggeriment cap a «%s» s’ha eliminat perquè ara la seva frase l’utilitza un altre."
+
+#: assets/build/classic.js:46 assets/build/editor.js:46
+msgid "That sentence cannot be used: a link you added or dismissed already takes it."
+msgstr "No es pot utilitzar aquesta frase: un enllaç que has afegit o descartat ja l’ocupa."
+
+#: assets/build/index.js:1
+msgid "Notice closed."
+msgstr "S’ha tancat l’avís."
+
+#: assets/build/index.js:1
+msgid "The notice could not be closed. Try again."
+msgstr "No s’ha pogut tancar l’avís. Torna-ho a provar."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:3 assets/build/index.js:23
+msgid "%s entry"
+msgid_plural "%s entries"
+msgstr[0] "%s entrada"
+msgstr[1] "%s entrades"
+
+#. translators: %s: number of rules.
+#: assets/build/index.js:4
+msgid "%s rule"
+msgid_plural "%s rules"
+msgstr[0] "%s regla"
+msgstr[1] "%s regles"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:5
+msgid "%s link"
+msgid_plural "%s links"
+msgstr[0] "%s enllaç"
+msgstr[1] "%s enllaços"
+
+#: assets/build/index.js:5
+msgid "First page"
+msgstr "Primera pàgina"
+
+#: assets/build/index.js:5
+msgid "Previous page"
+msgstr "Pàgina anterior"
+
+#: assets/build/index.js:5 assets/build/index.js:6
+msgid "Current page"
+msgstr "Pàgina actual"
+
+#. translators: %s: total number of pages.
+#: assets/build/index.js:6
+msgid "of %s"
+msgstr "de %s"
+
+#. translators: 1: current page, 2: total pages.
+#: assets/build/index.js:7
+msgid "%1$s of %2$s"
+msgstr "%1$s de %2$s"
+
+#: assets/build/index.js:7
+msgid "Next page"
+msgstr "Pàgina següent"
+
+#: assets/build/index.js:7
+msgid "Last page"
+msgstr "Darrera pàgina"
+
+#: assets/build/index.js:7
+msgid "Sorted descending."
+msgstr "Ordenat de manera descendent."
+
+#: assets/build/index.js:7
+msgid "Sorted ascending."
+msgstr "Ordenat de manera ascendent."
+
+#: assets/build/index.js:7
+msgid "Show more details"
+msgstr "Mostra més detalls"
+
+#: assets/build/index.js:7
+msgid "Search"
+msgstr "Cerca"
+
+#: assets/build/index.js:7 assets/build/index.js:91 assets/build/index.js:94
+msgid "Could not search the entries."
+msgstr "No s’han pogut cercar les entrades."
+
+#: assets/build/index.js:7 assets/build/index.js:10 assets/build/index.js:12
+#: assets/build/index.js:13
+msgid "(no text)"
+msgstr "(sense text)"
+
+#: assets/build/index.js:7 assets/build/index.js:11 assets/build/index.js:94
+msgid "Change destination"
+msgstr "Canvia la destinació"
+
+#: assets/build/index.js:7 assets/build/index.js:11
+msgid "Remove link"
+msgstr "Elimina l’enllaç"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:8
+msgid "The link “%1$s” in “%2$s” leads nowhere."
+msgstr "L’enllaç «%1$s» a «%2$s» no porta enlloc."
+
+#: assets/build/index.js:8
+msgid "Pick the entry it should lead to. Only the address changes: the text and the rest of the entry stay as they are, and you can undo it from the history."
+msgstr "Tria l’entrada a la qual ha de portar. Només canvia l’adreça: el text i la resta de l’entrada es queden tal com són, i ho pots desfer des de l’historial."
+
+#: assets/build/index.js:8 assets/build/index.js:53 assets/build/index.js:88
+#: assets/build/index.js:94
+msgid "Search entries by title"
+msgstr "Cerca entrades pel títol"
+
+#. translators: %d: number of entries found.
+#: assets/build/index.js:9 assets/build/index.js:91 assets/build/index.js:95
+msgid "%d entry found"
+msgid_plural "%d entries found"
+msgstr[0] "S’ha trobat %d entrada"
+msgstr[1] "S’han trobat %d entrades"
+
+#: assets/build/index.js:9
+msgid "New destination"
+msgstr "Nova destinació"
+
+#: assets/build/index.js:9 assets/build/index.js:95
+msgid "No published entries match."
+msgstr "No hi ha cap entrada publicada que coincideixi."
+
+#: assets/build/index.js:9
+msgid "The link is taken out and its text stays exactly as it is. You can undo it from the history."
+msgstr "S’elimina l’enllaç i el text es queda exactament tal com és. Ho pots desfer des de l’historial."
+
+#: assets/build/index.js:9
+msgid "Could not load the broken links."
+msgstr "No s’han pogut carregar els enllaços trencats."
+
+#: assets/build/index.js:9
+msgid "No broken links found."
+msgstr "No s’ha trobat cap enllaç trencat."
+
+#. translators: %d: number of broken links.
+#: assets/build/index.js:10
+msgid "%d broken link"
+msgid_plural "%d broken links"
+msgstr[0] "%d enllaç trencat"
+msgstr[1] "%d enllaços trencats"
+
+#: assets/build/index.js:10 assets/build/index.js:23 assets/build/index.js:53
+msgid "Entry"
+msgstr "Entrada"
+
+#: assets/build/index.js:10
+msgid "Broken URL"
+msgstr "URL trencat"
+
+#: assets/build/index.js:10 assets/build/index.js:23 assets/build/index.js:44
+#: assets/build/index.js:49 assets/build/index.js:53
+msgid "Anchor text"
+msgstr "Text de l’àncora"
+
+#: assets/build/index.js:10
+msgid "Reason"
+msgstr "Motiu"
+
+#: assets/build/index.js:10
+msgid "Internal links that lead nowhere: the destination is in the trash, is not published, is private or does not exist. Nothing is checked over the network. Fix each one by changing its destination or removing the link, or by editing the entry."
+msgstr "Enllaços interns que no porten enlloc: la destinació és a la paperera, no està publicada, és privada o no existeix. No es comprova res per la xarxa. Corregeix-los un a un canviant-ne la destinació o eliminant l’enllaç, o bé editant l’entrada."
+
+#: assets/build/index.js:10 assets/build/index.js:94
+msgid "The link could not be put back automatically. Open the history to see why."
+msgstr "No s’ha pogut tornar a posar l’enllaç automàticament. Obre l’historial per veure’n el motiu."
+
+#: assets/build/index.js:10
+msgid "Done: the link is back as it was."
+msgstr "Fet: l’enllaç torna a ser com estava."
+
+#: assets/build/index.js:10 assets/build/index.js:94
+msgid "The change could not be undone."
+msgstr "No s’ha pogut desfer el canvi."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:11
+msgid "Showing only the broken links in “%s”."
+msgstr "Només es mostren els enllaços trencats a «%s»."
+
+#: assets/build/index.js:11
+msgid "Show all"
+msgstr "Mostra-ho tot"
+
+#: assets/build/index.js:11
+msgid "Search broken links"
+msgstr "Cerca enllaços trencats"
+
+#: assets/build/index.js:11
+msgid "Broken internal links"
+msgstr "Enllaços interns trencats"
+
+#: assets/build/index.js:11 assets/build/index.js:21 assets/build/index.js:93
+msgid "Edit entry"
+msgstr "Edita l’entrada"
+
+#: assets/build/index.js:11
+msgid "There are no broken internal links. Well done."
+msgstr "No hi ha enllaços interns trencats. Bona feina."
+
+#: assets/build/index.js:11 assets/build/index.js:53 assets/build/index.js:90
+msgid "Export CSV"
+msgstr "Exporta el CSV"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:12
+msgid "Destination changed for “%1$s” in “%2$s”."
+msgstr "S’ha canviat la destinació de «%1$s» a «%2$s»."
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:13
+msgid "Link removed from “%1$s” in “%2$s”; its text stays."
+msgstr "S’ha eliminat l’enllaç de «%1$s» a «%2$s»; el text es queda."
+
+#. translators: %s: number of seconds.
+#: assets/build/index.js:14
+msgid "%s s"
+msgstr "%s s"
+
+#. translators: 1: minutes, 2: seconds.
+#: assets/build/index.js:15
+msgid "%1$s min %2$s s"
+msgstr "%1$s min %2$s s"
+
+#: assets/build/index.js:15
+msgid "(deleted entry)"
+msgstr "(entrada suprimida)"
+
+#: assets/build/index.js:15
+msgid "Destination changed"
+msgstr "Destinació canviada"
+
+#: assets/build/index.js:15 assets/build/index.js:16
+msgid "Link removed"
+msgstr "Enllaç eliminat"
+
+#: assets/build/index.js:15
+msgid "Added"
+msgstr "Afegit"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Editor panel · AI"
+msgstr "Quadre de l’editor · IA"
+
+#: assets/build/index.js:15 assets/build/index.js:53
+msgctxt "history origin"
+msgid "Editor panel"
+msgstr "Quadre de l’editor"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Another entry's panel · AI"
+msgstr "Quadre d’una altra entrada · IA"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Another entry's panel"
+msgstr "Quadre d’una altra entrada"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Automatic rule · AI"
+msgstr "Regla automàtica · IA"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Automatic rule"
+msgstr "Regla automàtica"
+
+#: assets/build/index.js:15
+msgctxt "history origin"
+msgid "Broken links"
+msgstr "Enllaços trencats"
+
+#. translators: %s: exact identifier of the AI model that recommended the link.
+#: assets/build/index.js:16
+msgid "AI model: %s"
+msgstr "Model d’IA: %s"
+
+#: assets/build/index.js:16
+msgid "Anchor suggested by the AI"
+msgstr "Àncora suggerida per la IA"
+
+#: assets/build/index.js:16
+msgid "Added from the editor panel"
+msgstr "Afegit des del quadre de l’editor"
+
+#: assets/build/index.js:16
+msgid "Added from another entry's panel"
+msgstr "Afegit des del quadre d’una altra entrada"
+
+#: assets/build/index.js:16
+msgid "Added by an automatic rule"
+msgstr "Afegit per una regla automàtica"
+
+#: assets/build/index.js:16
+msgid "Fixed from Broken links"
+msgstr "Corregit des d’Enllaços trencats"
+
+#: assets/build/index.js:16 assets/build/index.js:22 assets/build/index.js:23
+#: assets/build/index.js:50
+msgid "Undone"
+msgstr "Desfet"
+
+#: assets/build/index.js:16
+msgid "Link put back"
+msgstr "Enllaç tornat a posar"
+
+#: assets/build/index.js:16
+msgid "Already gone"
+msgstr "Ja no hi és"
+
+#: assets/build/index.js:16
+msgid "Already undone"
+msgstr "Ja desfet"
+
+#: assets/build/index.js:16
+msgid "Added again"
+msgstr "Afegit de nou"
+
+#: assets/build/index.js:16
+msgid "Needs your attention"
+msgstr "Requereix la teva atenció"
+
+#: assets/build/index.js:16
+msgid "Not changed"
+msgstr "Sense canvis"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:17
+msgid "%s link added again."
+msgid_plural "%s links added again."
+msgstr[0] "S’ha tornat a afegir %s enllaç."
+msgstr[1] "S’han tornat a afegir %s enllaços."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:18
+msgid "%s link undone."
+msgid_plural "%s links undone."
+msgstr[0] "S’ha desfet %s enllaç."
+msgstr[1] "S’han desfet %s enllaços."
+
+#. translators: 1: links added again, 2: links that need attention.
+#: assets/build/index.js:19
+msgid "Added again: %1$s. Need your attention: %2$s."
+msgstr "Tornats a afegir: %1$s. Requereixen la teva atenció: %2$s."
+
+#. translators: 1: links undone, 2: links that need attention.
+#: assets/build/index.js:20
+msgid "Undone: %1$s. Need your attention: %2$s."
+msgstr "Desfets: %1$s. Requereixen la teva atenció: %2$s."
+
+#. translators: 1: changes done, 2: total changes.
+#: assets/build/index.js:21
+msgid "Working in the background: %1$s of %2$s."
+msgstr "Treballant en segon pla: %1$s de %2$s."
+
+#: assets/build/index.js:21
+msgid "This is taking longer than expected. Background tasks need WP-Cron or Action Scheduler to be running."
+msgstr "Això està trigant més del previst. Les tasques en segon pla necessiten que WP-Cron o Action Scheduler s’estiguin executant."
+
+#: assets/build/index.js:21 assets/build/index.js:59
+msgid "Resume"
+msgstr "Reprèn"
+
+#: assets/build/index.js:21
+msgid "Cancel process"
+msgstr "Cancel·la el procés"
+
+#: assets/build/index.js:21
+msgid "Could not read the progress of the process."
+msgstr "No s’ha pogut llegir el progrés del procés."
+
+#: assets/build/index.js:21 assets/build/index.js:26 assets/build/index.js:36
+#: assets/build/index.js:57 assets/build/index.js:117 assets/build/index.js:128
+#: assets/build/index.js:130
+msgid "That did not work. Try again."
+msgstr "No ha funcionat. Torna-ho a provar."
+
+#. translators: 1: number of links in the batch that the AI recommended, 2: number of links in the batch.
+#: assets/build/index.js:22
+msgid "%1$s of %2$s link recommended by the AI"
+msgid_plural "%1$s of %2$s links recommended by the AI"
+msgstr[0] "%1$s de %2$s enllaç recomanat per la IA"
+msgstr[1] "%1$s de %2$s enllaços recomanats per la IA"
+
+#: assets/build/index.js:22
+msgid "Could not load the links of this batch."
+msgstr "No s’han pogut carregar els enllaços d’aquest lot."
+
+#: assets/build/index.js:22
+msgid "Could not refresh this batch."
+msgstr "No s’ha pogut actualitzar aquest lot."
+
+#: assets/build/index.js:22 assets/build/index.js:23 assets/build/index.js:50
+msgid "In place"
+msgstr "Al seu lloc"
+
+#: assets/build/index.js:22
+msgid "Partly undone"
+msgstr "Desfet en part"
+
+#: assets/build/index.js:23
+msgid "Progress of undoing the batch"
+msgstr "Progrés de desfer el lot"
+
+#: assets/build/index.js:23
+msgid "Progress of redoing the batch"
+msgstr "Progrés de refer el lot"
+
+#: assets/build/index.js:23 assets/build/index.js:26
+msgid "Undo batch"
+msgstr "Desfés el lot"
+
+#: assets/build/index.js:23 assets/build/index.js:26
+msgid "Redo batch"
+msgstr "Refés el lot"
+
+#: assets/build/index.js:23
+msgid "Hide links"
+msgstr "Amaga els enllaços"
+
+#: assets/build/index.js:23
+msgid "Show links"
+msgstr "Mostra els enllaços"
+
+#: assets/build/index.js:23
+msgid "Links in this batch"
+msgstr "Enllaços d’aquest lot"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:48
+#: assets/build/index.js:53
+msgid "Date"
+msgstr "Data"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:49
+#: assets/build/index.js:53
+msgid "Links to"
+msgstr "Enllaça cap a"
+
+#: assets/build/index.js:23 assets/build/index.js:44 assets/build/index.js:50
+#: assets/build/index.js:53
+msgid "Source"
+msgstr "Origen"
+
+#: assets/build/index.js:23 assets/build/index.js:44
+msgid "Actions"
+msgstr "Accions"
+
+#: assets/build/index.js:23
+msgid "No links to show."
+msgstr "No hi ha enllaços per mostrar."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:24
+msgid "Redo change in %s"
+msgstr "Refés el canvi a %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:25
+msgid "Undo change in %s"
+msgstr "Desfés el canvi a %s"
+
+#: assets/build/index.js:25 assets/build/index.js:26
+msgid "Redo change"
+msgstr "Refés el canvi"
+
+#: assets/build/index.js:25 assets/build/index.js:26
+msgid "Undo change"
+msgstr "Desfés el canvi"
+
+#. translators: 1: links shown, 2: total links.
+#: assets/build/index.js:26
+msgid "Show more links (%1$s of %2$s)"
+msgstr "Mostra més enllaços (%1$s de %2$s)"
+
+#: assets/build/index.js:26
+msgid "Undo this batch?"
+msgstr "Vols desfer aquest lot?"
+
+#: assets/build/index.js:26
+msgid "Redo this batch?"
+msgstr "Vols refer aquest lot?"
+
+#: assets/build/index.js:26
+msgid "Undo this change?"
+msgstr "Vols desfer aquest canvi?"
+
+#: assets/build/index.js:26
+msgid "Redo this change?"
+msgstr "Vols refer aquest canvi?"
+
+#: assets/build/index.js:26
+msgid "The link will be put back around its text, as it was."
+msgstr "L’enllaç es tornarà a posar al voltant del seu text, tal com era."
+
+#: assets/build/index.js:26
+msgid "The link will point to its previous address again, and nothing else changes."
+msgstr "L’enllaç tornarà a apuntar a la seva adreça anterior, i no canvia res més."
+
+#: assets/build/index.js:26
+msgid "If the entry was edited afterwards, only this link is touched; if that cannot be done safely, nothing is changed and you are told."
+msgstr "Si l’entrada s’ha editat després, només es toca aquest enllaç; si no es pot fer de manera segura, no es canvia res i se t’avisa."
+
+#: assets/build/index.js:26
+msgid "The link will be removed again."
+msgstr "L’enllaç es tornarà a eliminar."
+
+#: assets/build/index.js:26
+msgid "The new destination will be applied again."
+msgstr "Es tornarà a aplicar la nova destinació."
+
+#: assets/build/index.js:26 assets/build/index.js:28
+msgid "Any entry edited in that spot since is left alone and listed."
+msgstr "Qualsevol entrada editada en aquest punt des d’aleshores es deixa estar i es mostra en una llista."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:27
+msgid "%s link will be taken out."
+msgid_plural "%s links will be taken out."
+msgstr[0] "S’eliminarà %s enllaç."
+msgstr[1] "S’eliminaran %s enllaços."
+
+#: assets/build/index.js:27
+msgid "Where an entry was edited afterwards, only the link is removed; anything that cannot be undone safely is left alone and listed so you can fix it by hand."
+msgstr "Quan una entrada s’ha editat després, només s’elimina l’enllaç; tot el que no es pot desfer de manera segura es deixa estar i es mostra en una llista perquè ho corregeix manualment."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:28
+msgid "%s undone link will be added again, as it was."
+msgid_plural "%s undone links will be added again, as they were."
+msgstr[0] "Es tornarà a afegir %s enllaç desfet, tal com era."
+msgstr[1] "Es tornaran a afegir %s enllaços desfets, tal com eren."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:29
+msgid "The link in “%s” will be taken out. If the entry was edited afterwards, only this link is removed."
+msgstr "S’eliminarà l’enllaç de «%s». Si l’entrada s’ha editat després, només s’elimina aquest enllaç."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:30
+msgid "The link will be added again in “%s”, as it was."
+msgstr "Es tornarà a afegir l’enllaç a «%s», tal com era."
+
+#. translators: %s: number of links.
+#: assets/build/index.js:31
+msgid "%s link destination changed"
+msgid_plural "%s link destinations changed"
+msgstr[0] "S’ha canviat la destinació de %s enllaç"
+msgstr[1] "S’ha canviat la destinació de %s enllaços"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:32
+msgid "%s link removed"
+msgid_plural "%s links removed"
+msgstr[0] "S’ha eliminat %s enllaç"
+msgstr[1] "S’han eliminat %s enllaços"
+
+#. translators: %s: number of links.
+#: assets/build/index.js:33
+msgid "%s link added"
+msgid_plural "%s links added"
+msgstr[0] "S’ha afegit %s enllaç"
+msgstr[1] "S’han afegit %s enllaços"
+
+#. translators: %s: address the removed link pointed to.
+#: assets/build/index.js:34
+msgid "%s (link removed)"
+msgstr "%s (enllaç eliminat)"
+
+#: assets/build/index.js:34
+msgid "There are no changes in the history."
+msgstr "No hi ha canvis a l’historial."
+
+#. translators: %s: number of batches.
+#: assets/build/index.js:35
+msgid "%s batch in the history."
+msgid_plural "%s batches in the history."
+msgstr[0] "%s lot a l’historial."
+msgstr[1] "%s lots a l’historial."
+
+#: assets/build/index.js:35 assets/build/index.js:36 assets/build/index.js:52
+msgid "Could not load the history."
+msgstr "No s’ha pogut carregar l’historial."
+
+#: assets/build/index.js:35 assets/build/index.js:53
+msgid "No changes yet. When you add a link with Magic Linking it will appear here, and you will be able to undo it."
+msgstr "Encara no hi ha canvis. Quan afegeixes un enllaç amb Magic Linking apareixerà aquí, i el podràs desfer."
+
+#. translators: %s: number of batches.
+#: assets/build/index.js:36
+msgid "%s older batch shown."
+msgid_plural "%s older batches shown."
+msgstr[0] "Es mostra %s lot més antic."
+msgstr[1] "Es mostren %s lots més antics."
+
+#: assets/build/index.js:36
+msgid "Show older batches"
+msgstr "Mostra els lots més antics"
+
+#: assets/build/index.js:36
+msgid "Could not refresh this entry."
+msgstr "No s’ha pogut actualitzar aquesta entrada."
+
+#. translators: 1: active changes, 2: total changes.
+#: assets/build/index.js:37
+msgid "%1$s of %2$s change active"
+msgid_plural "%1$s of %2$s changes active"
+msgstr[0] "%1$s de %2$s canvi actiu"
+msgstr[1] "%1$s de %2$s canvis actius"
+
+#: assets/build/index.js:37
+msgid "Last change"
+msgstr "Darrer canvi"
+
+#: assets/build/index.js:37 assets/build/index.js:88 assets/build/index.js:105
+msgid "Edit"
+msgstr "Edita"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:38
+msgid "Edit “%s”"
+msgstr "Edita «%s»"
+
+#: assets/build/index.js:38 assets/build/index.js:88
+msgid "View"
+msgstr "Visualitza"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:39
+msgid "View “%s”"
+msgstr "Visualitza «%s»"
+
+#. translators: 1: number of active changes, 2: entry title.
+#: assets/build/index.js:40
+msgid "Undo all (%1$s) in %2$s"
+msgstr "Desfés-ho tot (%1$s) a %2$s"
+
+#. translators: %s: number of active changes.
+#: assets/build/index.js:41
+msgid "Undo all (%s)"
+msgstr "Desfés-ho tot (%s)"
+
+#. translators: 1: number of undone changes, 2: entry title.
+#: assets/build/index.js:42
+msgid "Redo all (%1$s) in %2$s"
+msgstr "Refés-ho tot (%1$s) a %2$s"
+
+#. translators: %s: number of undone changes.
+#: assets/build/index.js:43
+msgid "Redo all (%s)"
+msgstr "Refés-ho tot (%s)"
+
+#: assets/build/index.js:43
+msgid "Progress of undoing the changes"
+msgstr "Progrés de desfer els canvis"
+
+#: assets/build/index.js:43
+msgid "Progress of redoing the changes"
+msgstr "Progrés de refer els canvis"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:44
+msgid "Changes in “%s”, newest first"
+msgstr "Canvis a «%s», els més recents primer"
+
+#: assets/build/index.js:44 assets/build/index.js:48 assets/build/index.js:53
+msgid "Change"
+msgstr "Canvi"
+
+#: assets/build/index.js:44 assets/build/index.js:50 assets/build/index.js:53
+msgid "User"
+msgstr "Usuari"
+
+#. translators: %s: number of changes.
+#: assets/build/index.js:45
+msgid "%s more change shown."
+msgid_plural "%s more changes shown."
+msgstr[0] "Es mostra %s canvi més."
+msgstr[1] "Es mostren %s canvis més."
+
+#: assets/build/index.js:45
+msgid "Could not load more changes."
+msgstr "No s’han pogut carregar més canvis."
+
+#. translators: 1: changes shown, 2: total changes.
+#: assets/build/index.js:46
+msgid "Show more changes (%1$s of %2$s)"
+msgstr "Mostra més canvis (%1$s de %2$s)"
+
+#: assets/build/index.js:46
+msgid "Undo all changes in this entry?"
+msgstr "Vols desfer tots els canvis d’aquesta entrada?"
+
+#: assets/build/index.js:46
+msgid "Redo all changes in this entry?"
+msgstr "Vols refer tots els canvis d’aquesta entrada?"
+
+#: assets/build/index.js:46
+msgid "Undo all"
+msgstr "Desfés-ho tot"
+
+#: assets/build/index.js:46
+msgid "Redo all"
+msgstr "Refés-ho tot"
+
+#. translators: 1: number of links, 2: entry title.
+#: assets/build/index.js:47
+msgid "%1$s change will be undone in “%2$s”, newest first."
+msgid_plural "%1$s changes will be undone in “%2$s”, newest first."
+msgstr[0] "Es desfarà %1$s canvi a «%2$s», el més recent primer."
+msgstr[1] "Es desfaran %1$s canvis a «%2$s», els més recents primer."
+
+#: assets/build/index.js:47
+msgid "If the entry was edited afterwards, only the link is touched; anything that cannot be undone safely is left alone and listed so you can fix it by hand."
+msgstr "Si l’entrada s’ha editat després, només es toca l’enllaç; tot el que no es pot desfer de manera segura es deixa estar i es mostra en una llista perquè ho corregeix manualment."
+
+#. translators: 1: number of links, 2: entry title.
+#: assets/build/index.js:48
+msgid "%1$s undone change will be applied again in “%2$s”, as it was."
+msgid_plural "%1$s undone changes will be applied again in “%2$s”, as they were."
+msgstr[0] "Es tornarà a aplicar %1$s canvi desfet a «%2$s», tal com era."
+msgstr[1] "Es tornaran a aplicar %1$s canvis desfets a «%2$s», tal com eren."
+
+#: assets/build/index.js:48
+msgid "Any spot edited since is left alone and listed."
+msgstr "Qualsevol punt editat des d’aleshores es deixa estar i es mostra en una llista."
+
+#: assets/build/index.js:48
+msgid "(unknown)"
+msgstr "(desconegut)"
+
+#. translators: %s: number of entries in the batch.
+#: assets/build/index.js:49
+msgid "Part of a batch of %s entries"
+msgstr "Part d’un lot de %s entrades"
+
+#. translators: %s: address the link pointed to before.
+#: assets/build/index.js:50
+msgid "Was: %s"
+msgstr "Abans: %s"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:51
+msgid "Redo “%1$s” in %2$s"
+msgstr "Refés «%1$s» a %2$s"
+
+#. translators: 1: anchor text, 2: entry title.
+#: assets/build/index.js:52
+msgid "Undo “%1$s” in %2$s"
+msgstr "Desfés «%1$s» a %2$s"
+
+#: assets/build/index.js:52
+msgid "Redo"
+msgstr "Refés"
+
+#: assets/build/index.js:52 assets/build/index.js:86
+msgid "No entries found."
+msgstr "No s’ha trobat cap entrada."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:53
+msgid "%s entry with changes."
+msgid_plural "%s entries with changes."
+msgstr[0] "%s entrada amb canvis."
+msgstr[1] "%s entrades amb canvis."
+
+#: assets/build/index.js:53
+msgid "Show entries with"
+msgstr "Mostra les entrades amb"
+
+#: assets/build/index.js:53
+msgid "All changes"
+msgstr "Tots els canvis"
+
+#: assets/build/index.js:53
+msgid "With changes in place"
+msgstr "Amb canvis vigents"
+
+#: assets/build/index.js:53
+msgid "With undone changes"
+msgstr "Amb canvis desfets"
+
+#: assets/build/index.js:53
+msgid "All sources"
+msgstr "Tots els orígens"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Another entry's panel and broken links"
+msgstr "Quadre d’una altra entrada i enllaços trencats"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Automatic rules"
+msgstr "Regles automàtiques"
+
+#: assets/build/index.js:53
+msgctxt "history origin filter"
+msgid "Recommended by the AI"
+msgstr "Recomanats per la IA"
+
+#: assets/build/index.js:53
+msgid "Search entries…"
+msgstr "Cerca entrades…"
+
+#: assets/build/index.js:53 assets/build/index.js:90
+msgid "No entries match these filters."
+msgstr "Cap entrada coincideix amb aquests filtres."
+
+#: assets/build/index.js:53
+msgid "Showing changes by entry."
+msgstr "Es mostren els canvis per entrada."
+
+#: assets/build/index.js:53
+msgid "Showing changes by batch."
+msgstr "Es mostren els canvis per lot."
+
+#: assets/build/index.js:53
+msgid "View by:"
+msgstr "Visualitza per:"
+
+#: assets/build/index.js:53
+msgid "Batch"
+msgstr "Lot"
+
+#: assets/build/index.js:53
+msgid "Every link Magic Linking changes is listed here so you can undo it. Links you add in the editor panel appear here once you save the entry. Links added to other entries from the panel appear right away."
+msgstr "Aquí es llisten tots els enllaços que canvia Magic Linking perquè els puguis desfer. Els enllaços que afegeixes al quadre de l’editor apareixen aquí quan desa l’entrada. Els enllaços afegits a altres entrades des del quadre apareixen a l’instant."
+
+#. translators: %s: number of days.
+#: assets/build/index.js:54
+msgid "Changes are kept for %s day."
+msgid_plural "Changes are kept for %s days."
+msgstr[0] "Els canvis es conserven durant %s dia."
+msgstr[1] "Els canvis es conserven durant %s dies."
+
+#: assets/build/index.js:54
+msgid "Changes are kept with no expiry date."
+msgstr "Els canvis es conserven sense data de caducitat."
+
+#: assets/build/index.js:54
+msgid "Change how long they are kept"
+msgstr "Canvia el temps que es conserven"
+
+#: assets/build/index.js:54
+msgid "Less than a minute left."
+msgstr "Falta menys d’un minut."
+
+#. translators: %s: number of minutes.
+#: assets/build/index.js:55
+msgid "About %s minute left."
+msgid_plural "About %s minutes left."
+msgstr[0] "Falta aproximadament %s minut."
+msgstr[1] "Falten aproximadament %s minuts."
+
+#. translators: %s: number of hours.
+#: assets/build/index.js:56
+msgid "About %s hour left."
+msgid_plural "About %s hours left."
+msgstr[0] "Falta aproximadament %s hora."
+msgstr[1] "Falten aproximadament %s hores."
+
+#. translators: 1: new or modified entries analyzed, 2: unchanged entries skipped.
+#: assets/build/index.js:57
+msgid "Analysis finished: %1$s new or modified, %2$s unchanged and skipped."
+msgstr "Anàlisi acabada: %1$s noves o modificades, %2$s sense canvis i omeses."
+
+#: assets/build/index.js:57
+msgid "Analysis finished."
+msgstr "Anàlisi acabada."
+
+#: assets/build/index.js:57
+msgid "Could not read the analysis status."
+msgstr "No s’ha pogut llegir l’estat de l’anàlisi."
+
+#: assets/build/index.js:57 assets/build/index.js:117 assets/build/index.js:130
+msgid "Analysis started."
+msgstr "Anàlisi iniciada."
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:58
+msgid "Analysis paused: %1$s of %2$s entries."
+msgstr "Anàlisi en pausa: %1$s de %2$s entrades."
+
+#. translators: 1: entries done, 2: total entries.
+#: assets/build/index.js:59
+msgid "Analyzing your entries: %1$s of %2$s."
+msgstr "S’estan analitzant les entrades: %1$s de %2$s."
+
+#: assets/build/index.js:59
+msgid "The analysis seems to have stopped. Resume it, or check that WP-Cron or Action Scheduler is running."
+msgstr "Sembla que l’anàlisi s’ha aturat. Reprèn-la o comprova que WP-Cron o Action Scheduler s’estigui executant."
+
+#: assets/build/index.js:59
+msgid "Analysis resumed."
+msgstr "Anàlisi represa."
+
+#: assets/build/index.js:59
+msgid "Analysis paused."
+msgstr "Anàlisi en pausa."
+
+#: assets/build/index.js:59 assets/build/index.js:105
+msgid "Pause"
+msgstr "Posa en pausa"
+
+#: assets/build/index.js:59
+msgid "Analysis cancelled."
+msgstr "Anàlisi cancel·lada."
+
+#: assets/build/index.js:59 assets/build/index.js:128
+msgid "Analyze your site"
+msgstr "Analitza el lloc"
+
+#: assets/build/index.js:59
+msgid "Magic Linking reads the internal links already written in your entries and shows which ones have no links pointing to them, which have too few, which have too many and which are broken. Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "Magic Linking llegeix els enllaços interns que ja hi ha a les entrades i et mostra quines no tenen cap enllaç que hi apunti, quines en tenen massa pocs, quines en tenen massa i quins estan trencats. L’anàlisi només llegeix el contingut; mai no el canvia. Els enllaços només s’afegeixen quan prems Enllaça."
+
+#: assets/build/index.js:59
+msgid "Analyze my site"
+msgstr "Analitza el meu lloc"
+
+#: assets/build/index.js:59
+msgid "An administrator has to run the first analysis."
+msgstr "Un administrador ha d’executar la primera anàlisi."
+
+#. translators: %s: number of entries.
+#: assets/build/index.js:60
+msgid "%s new or modified entry pending."
+msgid_plural "%s new or modified entries pending."
+msgstr[0] "%s entrada nova o modificada pendent."
+msgstr[1] "%s entrades noves o modificades pendents."
+
+#: assets/build/index.js:60 assets/build/index.js:62
+msgid "Analyze changes"
+msgstr "Analitza els canvis"
+
+#. translators: %s: error message.
+#: assets/build/index.js:61
+msgid "The last analysis failed: %s"
+msgstr "L’última anàlisi ha fallat: %s"
+
+#: assets/build/index.js:61
+msgid "unknown error"
+msgstr "error desconegut"
+
+#. translators: %s: date and time of the last analysis.
+#: assets/build/index.js:62 assets/build/index.js:126
+msgid "Last analysis: %s"
+msgstr "Última anàlisi: %s"
+
+#: assets/build/index.js:79
+msgid "The suggestions could not be loaded."
+msgstr "No s’han pogut carregar els suggeriments."
+
+#. translators: %d: number of suggestions.
+#: assets/build/index.js:80 assets/build/index.js:86
+msgid "%d suggestion"
+msgid_plural "%d suggestions"
+msgstr[0] "%d suggeriment"
+msgstr[1] "%d suggeriments"
+
+#: assets/build/index.js:83
+msgid "The text has changed since the link was added, so it could not be removed automatically. Open the history to see why."
+msgstr "El text ha canviat des que s’ha afegit l’enllaç, de manera que no s’ha pogut eliminar automàticament. Obre l’historial per veure’n el motiu."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:84
+msgid "Inbound suggestions: %s"
+msgstr "Suggeriments entrants: %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:85
+msgid "Outbound suggestions: %s"
+msgstr "Suggeriments sortints: %s"
+
+#: assets/build/index.js:85
+msgid "Sentences in other entries where a link to this one fits. Each link is added right away, one at a time, without opening the editor of that entry, and you can undo it."
+msgstr "Frases d’altres entrades on encaixa un enllaç cap a aquesta. Cada enllaç s’afegeix a l’instant, un a un, sense obrir l’editor d’aquella entrada, i el pots desfer."
+
+#: assets/build/index.js:85
+msgid "Sentences in this entry where a link to another entry fits. Each link is added right away, one at a time, without opening the editor, and you can undo it."
+msgstr "Frases d’aquesta entrada on encaixa un enllaç cap a una altra entrada. Cada enllaç s’afegeix a l’instant, un a un, sense obrir l’editor, i el pots desfer."
+
+#: assets/build/index.js:86
+msgid "Outbound suggestions pages"
+msgstr "Pàgines de suggeriments sortints"
+
+#: assets/build/index.js:86
+msgid "Not analyzed"
+msgstr "Sense analitzar"
+
+#: assets/build/index.js:86 assets/build/index.js:87
+msgid "Excluded"
+msgstr "Excloses"
+
+#: assets/build/index.js:86 assets/build/index.js:130
+msgid "Could not load the report."
+msgstr "No s’ha pogut carregar l’informe."
+
+#. translators: %d: number of entries.
+#: assets/build/index.js:87
+msgid "%d entry"
+msgid_plural "%d entries"
+msgstr[0] "%d entrada"
+msgstr[1] "%d entrades"
+
+#: assets/build/index.js:87
+msgid "All"
+msgstr "Totes"
+
+#: assets/build/index.js:87
+msgid "Orphans"
+msgstr "Òrfenes"
+
+#: assets/build/index.js:87
+msgid "With broken links"
+msgstr "Amb enllaços trencats"
+
+#: assets/build/index.js:87
+msgid "Title"
+msgstr "Títol"
+
+#: assets/build/index.js:87
+msgid "Type · Language"
+msgstr "Tipus · Idioma"
+
+#: assets/build/index.js:87
+msgid "Type"
+msgstr "Tipus"
+
+#: assets/build/index.js:87
+msgid "Internal outbound"
+msgstr "Sortints interns"
+
+#: assets/build/index.js:87
+msgid "External"
+msgstr "Externs"
+
+#: assets/build/index.js:87
+msgid "Broken"
+msgstr "Trencats"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:88
+msgid "broken links in %s"
+msgstr "enllaços trencats a %s"
+
+#: assets/build/index.js:88
+msgid "category excluded"
+msgstr "categoria exclosa"
+
+#: assets/build/index.js:88
+msgid "Analyzed"
+msgstr "Analitzada"
+
+#: assets/build/index.js:88
+msgid "Internal links by entry"
+msgstr "Enllaços interns per entrada"
+
+#: assets/build/index.js:88
+msgid "Inbound suggestions"
+msgstr "Suggeriments entrants"
+
+#: assets/build/index.js:88
+msgid "Outbound suggestions"
+msgstr "Suggeriments sortints"
+
+#: assets/build/index.js:88
+msgid "Change excluded categories"
+msgstr "Canvia les categories excloses"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:89
+msgid "%s excluded from the analysis."
+msgstr "%s s’ha exclòs de l’anàlisi."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:90
+msgid "%s included in the analysis again."
+msgstr "%s s’ha tornat a incloure a l’anàlisi."
+
+#: assets/build/index.js:90
+msgid "Could not exclude the entry from the analysis."
+msgstr "No s’ha pogut excloure l’entrada de l’anàlisi."
+
+#: assets/build/index.js:90
+msgid "Could not include the entry in the analysis again."
+msgstr "No s’ha pogut tornar a incloure l’entrada a l’anàlisi."
+
+#: assets/build/index.js:90
+msgid "Include in the analysis"
+msgstr "Torna a incloure a l’anàlisi"
+
+#: assets/build/index.js:90
+msgid "Exclude from the analysis"
+msgstr "Exclou de l’anàlisi"
+
+#: assets/build/index.js:90
+msgid "View broken links"
+msgstr "Mostra els enllaços trencats"
+
+#: assets/build/index.js:90
+msgid "No entries are excluded from the analysis."
+msgstr "Cap entrada no està exclosa de l’anàlisi."
+
+#: assets/build/index.js:90 assets/build/index.js:118
+msgid "Content type"
+msgstr "Tipus de contingut"
+
+#: assets/build/index.js:90
+msgid "All types"
+msgstr "Tots els tipus"
+
+#: assets/build/index.js:90
+msgid "Language"
+msgstr "Idioma"
+
+#: assets/build/index.js:90
+msgid "All languages"
+msgstr "Tots els idiomes"
+
+#: assets/build/index.js:90
+msgid "No more entries fit this rule."
+msgstr "Cap altra entrada encaixa amb aquesta regla."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:92
+msgid "Apply “%s” to existing entries"
+msgstr "Aplica «%s» a les entrades existents"
+
+#: assets/build/index.js:92
+msgid "These are the entries where the rule fits. Check the link that would be added and add it entry by entry. Each one is written safely, shown in the history and can be undone."
+msgstr "Aquestes són les entrades on encaixa la regla. Comprova l’enllaç que s’afegiria i afegeix-lo entrada per entrada. Cada enllaç s’escriu de manera segura, es mostra a l’historial i es pot desfer."
+
+#: assets/build/index.js:92
+msgid "Searching…"
+msgstr "S’està cercant…"
+
+#. translators: 1: number of entries where the rule fits, 2: number of entries checked.
+#: assets/build/index.js:93
+msgid "%1$s where it fits, %2$s checked."
+msgstr "%1$s on encaixa, %2$s comprovades."
+
+#: assets/build/index.js:93
+msgid "Searched with the index: only entries that have the first word of a phrase among their main terms. “Search every entry” checks them all (slower)."
+msgstr "Cerca amb l’índex: només les entrades que tenen la primera paraula d’una frase entre els seus termes principals. «Cerca totes les entrades» les comprova totes (més lent)."
+
+#: assets/build/index.js:93
+msgid "No entry needs this rule right now."
+msgstr "Ara mateix cap entrada necessita aquesta regla."
+
+#: assets/build/index.js:93
+msgid "The link would be added here:"
+msgstr "L’enllaç s’afegiria aquí:"
+
+#: assets/build/index.js:94
+msgid "The link could not be added; nothing was changed."
+msgstr "No s’ha pogut afegir l’enllaç; no s’ha canviat res."
+
+#: assets/build/index.js:94
+msgid "Add link"
+msgstr "Afegeix l’enllaç"
+
+#: assets/build/index.js:94
+msgid "Undone: the entry is back as it was."
+msgstr "Desfet: l’entrada torna a ser com estava."
+
+#: assets/build/index.js:94
+msgid "Search every entry"
+msgstr "Cerca totes les entrades"
+
+#: assets/build/index.js:94
+msgid "Keep searching"
+msgstr "Continua cercant"
+
+#: assets/build/index.js:94
+msgid "Find more entries"
+msgstr "Cerca més entrades"
+
+#: assets/build/index.js:94 assets/build/index.js:130
+msgid "Close"
+msgstr "Tanca"
+
+#: assets/build/index.js:94
+msgid "Pick the entry the rule should link to."
+msgstr "Tria l’entrada a la qual ha d’enllaçar la regla."
+
+#: assets/build/index.js:94
+msgid "The rule could not be saved. Nothing was changed."
+msgstr "No s’ha pogut desar la regla. No s’ha canviat res."
+
+#: assets/build/index.js:94
+msgid "Edit rule"
+msgstr "Edita la regla"
+
+#: assets/build/index.js:94
+msgid "Add a rule"
+msgstr "Afegeix una regla"
+
+#: assets/build/index.js:94
+msgid "Phrases to link"
+msgstr "Frases per enllaçar"
+
+#: assets/build/index.js:94
+msgid "(required)"
+msgstr "(obligatori)"
+
+#: assets/build/index.js:94
+msgid "One phrase per line: the first is the main one and the rest are variants. Plurals and similar forms are matched too, so “heat pump” also finds “heat pumps”. The text is linked exactly as it is written in the entry."
+msgstr "Una frase per línia: la primera és la principal i la resta són variants. També es detecten els plurals i les formes semblants, de manera que «bomba de calor» també troba «bombes de calor». El text s’enllaça exactament tal com està escrit a l’entrada."
+
+#: assets/build/index.js:94 assets/build/index.js:98
+msgid "Destination"
+msgstr "Destinació"
+
+#: assets/build/index.js:95
+msgid "Type part of the title of the entry the links should lead to."
+msgstr "Escriu una part del títol de l’entrada a la qual han de portar els enllaços."
+
+#. translators: %s: entry title.
+#: assets/build/index.js:96
+msgid "Destination: %s"
+msgstr "Destinació: %s"
+
+#. translators: %s: entry title.
+#: assets/build/index.js:97
+msgid "Selected: %s"
+msgstr "Seleccionada: %s"
+
+#: assets/build/index.js:97
+msgid "Keep the current one"
+msgstr "Mantén l’actual"
+
+#: assets/build/index.js:97
+msgid "Links per entry"
+msgstr "Enllaços per entrada"
+
+#. translators: %d: links to the same target allowed from one entry (a setting).
+#: assets/build/index.js:98
+msgid "The most links this rule adds to one entry. Your settings allow %d link to the same target from one entry, so that is the real maximum."
+msgid_plural "The most links this rule adds to one entry. Your settings allow %d links to the same target from one entry, so that is the real maximum."
+msgstr[0] "El màxim d’enllaços que aquesta regla afegeix a una entrada. Els teus paràmetres permeten %d enllaç a la mateixa destinació des d’una entrada, de manera que aquest és el màxim real."
+msgstr[1] "El màxim d’enllaços que aquesta regla afegeix a una entrada. Els teus paràmetres permeten %d enllaços a la mateixa destinació des d’una entrada, de manera que aquest és el màxim real."
+
+#: assets/build/index.js:98
+msgid "The most links this rule adds to one entry."
+msgstr "El màxim d’enllaços que aquesta regla afegeix a una entrada."
+
+#: assets/build/index.js:98
+msgid "Only the first appearance of each phrase"
+msgstr "Només la primera aparició de cada frase"
+
+#: assets/build/index.js:98
+msgid "Allow one extra word inside a phrase"
+msgstr "Permet una paraula addicional dins d’una frase"
+
+#: assets/build/index.js:98
+msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words, and never across punctuation."
+msgstr "«reforma de cuina» també coincideix amb «reforma integral de cuina», però no amb dues paraules addicionals, i mai a través de signes de puntuació."
+
+#: assets/build/index.js:98
+msgid "Do not apply to"
+msgstr "No ho apliquis a"
+
+#: assets/build/index.js:98
+msgid "Skip entries in these categories"
+msgstr "Omet les entrades d’aquestes categories"
+
+#: assets/build/index.js:98
+msgid "Categories to skip"
+msgstr "Categories que s’han d’ometre"
+
+#: assets/build/index.js:98
+msgid "Active: apply it when an entry is saved"
+msgstr "Activa: aplica-la quan es desi una entrada"
+
+#: assets/build/index.js:98
+msgid "Save rule"
+msgstr "Desa la regla"
+
+#: assets/build/index.js:98 assets/build/index.js:105
+msgid "Add rule"
+msgstr "Afegeix la regla"
+
+#: assets/build/index.js:98
+msgid "Could not load the rules."
+msgstr "No s’han pogut carregar les regles."
+
+#: assets/build/index.js:98
+msgid "Could not load the options."
+msgstr "No s’han pogut carregar les opcions."
+
+#: assets/build/index.js:98 assets/build/index.js:127
+msgid "Phrases"
+msgstr "Frases"
+
+#: assets/build/index.js:98
+msgid "(missing entry)"
+msgstr "(entrada que falta)"
+
+#: assets/build/index.js:98
+msgid "not published"
+msgstr "no publicada"
+
+#: assets/build/index.js:98
+msgid "Options"
+msgstr "Opcions"
+
+#. translators: %d: links per entry.
+#: assets/build/index.js:99
+msgid "%d link per entry"
+msgid_plural "%d links per entry"
+msgstr[0] "%d enllaç per entrada"
+msgstr[1] "%d enllaços per entrada"
+
+#: assets/build/index.js:99
+msgid "first appearance only"
+msgstr "només la primera aparició"
+
+#: assets/build/index.js:99
+msgid "one extra word allowed"
+msgstr "es permet una paraula addicional"
+
+#. translators: %s: content types, comma separated.
+#: assets/build/index.js:100
+msgid "skips %s"
+msgstr "omet %s"
+
+#. translators: %d: number of categories.
+#: assets/build/index.js:101
+msgid "skips %d category"
+msgid_plural "skips %d categories"
+msgstr[0] "omet %d categoria"
+msgstr[1] "omet %d categories"
+
+#: assets/build/index.js:101
+msgid "Active"
+msgstr "Activa"
+
+#: assets/build/index.js:101
+msgid "Paused"
+msgstr "En pausa"
+
+#: assets/build/index.js:101
+msgid "A rule turns a phrase into a link to an entry. It is applied when a published entry is saved (never when a page is shown) and it only adds links: it never removes or changes one that exists, and everything it writes can be undone from the history. If someone has the entry open in the editor, the rule waits until it is closed."
+msgstr "Una regla converteix una frase en un enllaç cap a una entrada. S’aplica quan es desa una entrada publicada (mai quan es mostra una pàgina) i només afegeix enllaços: mai no n’elimina ni en canvia cap d’existent, i tot el que escriu es pot desfer des de l’historial. Si algú té l’entrada oberta a l’editor, la regla espera fins que es tanqui."
+
+#. translators: 1: words per link, 2: links to the same target per entry, 3: entries with the same anchor.
+#: assets/build/index.js:102
+msgid "Limits that rules never exceed (change them in Settings): one internal link for every %1$d words of an entry, %2$d to the same target from one entry, and %3$d entries using the same anchor text for the same target."
+msgstr "Límits que les regles no superen mai (canvia’ls a Paràmetres): un enllaç intern cada %1$d paraules d’una entrada, %2$d a la mateixa destinació des d’una entrada i %3$d entrades que utilitzin el mateix text d’àncora per a la mateixa destinació."
+
+#: assets/build/index.js:102
+msgid "Open Settings"
+msgstr "Obre els paràmetres"
+
+#: assets/build/index.js:102
+msgid "Some entries stayed open in the editor for a day, so the rules could not be applied to them. Save them again once they are closed."
+msgstr "Algunes entrades han estat obertes a l’editor durant un dia, de manera que no s’hi han pogut aplicar les regles. Desa-les de nou quan estiguin tancades."
+
+#. translators: %s: main phrase of a rule.
+#: assets/build/index.js:103
+msgid "The rule “%s” is not being applied: the person who created it can no longer manage the site."
+msgstr "La regla «%s» no s’està aplicant: la persona que l’ha creat ja no pot gestionar el lloc."
+
+#: assets/build/index.js:103
+msgid "Notice dismissed."
+msgstr "S’ha descartat l’avís."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:104
+msgid "Rule “%s” added. It will be applied the next time a published entry is saved. To use it on existing entries, choose “Apply to existing entries”."
+msgstr "S’ha afegit la regla «%s». S’aplicarà la propera vegada que es desi una entrada publicada. Per utilitzar-la a les entrades existents, tria «Aplica a les entrades existents»."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:105
+msgid "Rule “%s” saved."
+msgstr "S’ha desat la regla «%s»."
+
+#: assets/build/index.js:105
+msgid "Automatic rules"
+msgstr "Regles automàtiques"
+
+#: assets/build/index.js:105
+msgid "Apply to existing entries"
+msgstr "Aplica a les entrades existents"
+
+#: assets/build/index.js:105
+msgid "Rule paused."
+msgstr "S’ha posat la regla en pausa."
+
+#: assets/build/index.js:105
+msgid "Rule activated."
+msgstr "S’ha activat la regla."
+
+#: assets/build/index.js:105
+msgid "The rule could not be changed."
+msgstr "No s’ha pogut canviar la regla."
+
+#: assets/build/index.js:105
+msgid "Activate"
+msgstr "Activa"
+
+#: assets/build/index.js:105
+msgid "Delete"
+msgstr "Suprimeix"
+
+#: assets/build/index.js:105
+msgid "There are no rules yet. Add one to link a phrase to an entry automatically."
+msgstr "Encara no hi ha regles. Afegeix-ne una per enllaçar automàticament una frase amb una entrada."
+
+#: assets/build/index.js:105
+msgid "Delete rule"
+msgstr "Suprimeix la regla"
+
+#: assets/build/index.js:105
+msgid "Rule deleted. The links it already added stay in your entries; you can undo them from the history."
+msgstr "S’ha suprimit la regla. Els enllaços que ja havia afegit es queden a les entrades; els pots desfer des de l’historial."
+
+#: assets/build/index.js:105
+msgid "The rule could not be deleted."
+msgstr "No s’ha pogut suprimir la regla."
+
+#. translators: %s: main phrase of the rule.
+#: assets/build/index.js:106
+msgid "Delete the rule “%s”? The links it already added stay in your entries; you can undo them from the history."
+msgstr "Vols suprimir la regla «%s»? Els enllaços que ja havia afegit es queden a les entrades; els pots desfer des de l’historial."
+
+#. translators: %s: name of the taxonomy, e.g. Categories.
+#: assets/build/index.js:107
+msgid "Filter %s by name"
+msgstr "Filtra %s per nom"
+
+#. translators: %d: number of categories not shown.
+#: assets/build/index.js:108
+msgid "%d more not shown. Type in the filter to find them."
+msgstr "N’hi ha %d més sense mostrar. Escriu al filtre per trobar-les."
+
+#: assets/build/index.js:108
+msgid "Content analyzed"
+msgstr "Contingut analitzat"
+
+#: assets/build/index.js:108
+msgid "Magic Linking reads these content types to find links between them."
+msgstr "Magic Linking llegeix aquests tipus de contingut per trobar enllaços entre ells."
+
+#: assets/build/index.js:108
+msgid "Categories left out"
+msgstr "Categories excloses"
+
+#: assets/build/index.js:108
+msgid "Entries in the categories you tick are not analyzed, like an entry you exclude yourself: they get no suggestions and are not suggested anywhere."
+msgstr "Les entrades de les categories que marquis no s’analitzen, igual que una entrada que excloguis tu mateix: no tenen suggeriments i no se suggereixen enlloc."
+
+#: assets/build/index.js:108
+msgid "Maintenance"
+msgstr "Manteniment"
+
+#: assets/build/index.js:108
+msgid "Run the analysis again and go back through the first steps."
+msgstr "Torna a executar l’anàlisi i repassa els primers passos."
+
+#: assets/build/index.js:108
+msgid "Suggestions shown"
+msgstr "Suggeriments mostrats"
+
+#: assets/build/index.js:108
+msgid "How many suggestions you see in the editor."
+msgstr "Quants suggeriments veus a l’editor."
+
+#: assets/build/index.js:108
+msgid "To avoid overloading your texts"
+msgstr "Per no sobrecarregar els textos"
+
+#: assets/build/index.js:108
+msgid "These are quality settings, not limits: you can always insert any link yourself."
+msgstr "Són paràmetres de qualitat, no límits: sempre pots inserir qualsevol enllaç tu mateix."
+
+#: assets/build/index.js:108
+msgid "Which entries are suggested"
+msgstr "Quines entrades se suggereixen"
+
+#: assets/build/index.js:108
+msgid "Quality settings, not limits: you can always insert any link yourself. Suggestions never mix languages."
+msgstr "Paràmetres de qualitat, no límits: sempre pots inserir qualsevol enllaç tu mateix. Els suggeriments mai no barregen idiomes."
+
+#: assets/build/index.js:108
+msgid "Under-linked entries"
+msgstr "Entrades poc enllaçades"
+
+#: assets/build/index.js:108
+msgid "When an entry is shown as linked too little."
+msgstr "Quan una entrada es mostra com a massa poc enllaçada."
+
+#: assets/build/index.js:108
+msgid "Advanced"
+msgstr "Avançat"
+
+#: assets/build/index.js:108
+msgid "The defaults suit almost every site. Change them only if you know what they do."
+msgstr "Els valors per defecte serveixen per a gairebé qualsevol lloc. Canvia’ls només si saps què fan."
+
+#: assets/build/index.js:108
+msgid "Where links can be inserted"
+msgstr "On es poden inserir els enllaços"
+
+#: assets/build/index.js:108
+msgid "Paragraphs and lists are always used. These are off by default; turn them on if you want suggestions and links there too."
+msgstr "Els paràgrafs i les llistes sempre s’utilitzen. Aquests estan desactivats per defecte; activa’ls si també hi vols suggeriments i enllaços."
+
+#: assets/build/index.js:108
+msgid "How links are inserted"
+msgstr "Com s’insereixen els enllaços"
+
+#: assets/build/index.js:108
+msgid "What the links Magic Linking inserts look like."
+msgstr "Com són els enllaços que insereix Magic Linking."
+
+#: assets/build/index.js:108
+msgid "Exclusions"
+msgstr "Exclusions"
+
+#: assets/build/index.js:108
+msgid "Entries and words that Magic Linking should leave alone."
+msgstr "Entrades i paraules que Magic Linking ha de deixar estar."
+
+#: assets/build/index.js:108
+msgid "AI connector"
+msgstr "Connector d’IA"
+
+#: assets/build/index.js:108
+msgid "Magic Linking uses the AI you connect in WordPress. It never asks for a key of its own."
+msgstr "Magic Linking utilitza la IA que connectes a WordPress. Mai no demana una clau pròpia."
+
+#: assets/build/index.js:108
+msgid "Daily limit and model"
+msgstr "Límit diari i model"
+
+#: assets/build/index.js:108
+msgid "You decide how much AI can be used each day and, if you want, which model."
+msgstr "Decideix quanta IA es pot utilitzar cada dia i, si vols, quin model."
+
+#: assets/build/index.js:108
+msgid "AI use in the last 30 days"
+msgstr "Ús de la IA en els darrers 30 dies"
+
+#: assets/build/index.js:108
+msgid "What Magic Linking has used through your connector. Your provider is the one that charges you."
+msgstr "El que Magic Linking ha utilitzat mitjançant el teu connector. Qui et cobra és el teu proveïdor."
+
+#: assets/build/index.js:108
+msgid "History of changes"
+msgstr "Historial de canvis"
+
+#: assets/build/index.js:108
+msgid "How long you can undo changes."
+msgstr "Durant quant de temps pots desfer els canvis."
+
+#: assets/build/index.js:108
+msgid "When the plugin is deleted"
+msgstr "Quan se suprimeix l’extensió"
+
+#: assets/build/index.js:108
+msgid "What happens to the data of Magic Linking."
+msgstr "Què passa amb les dades de Magic Linking."
+
+#: assets/build/index.js:108
+msgid "Could not load the AI status."
+msgstr "No s’ha pogut carregar l’estat de la IA."
+
+#: assets/build/index.js:108
+msgid "Preferred model"
+msgstr "Model preferit"
+
+#: assets/build/index.js:108
+msgid "Automatic picks a small, fast model from your connector, the cheapest one when it can. Pick another if you prefer."
+msgstr "L’opció automàtica tria un model petit i ràpid del teu connector, el més barat quan pot. Tria’n un altre si ho prefereixes."
+
+#: assets/build/index.js:108
+msgid "no cost (local)"
+msgstr "sense cost (local)"
+
+#. translators: 1: dollars per million input tokens, 2: dollars per million output tokens.
+#: assets/build/index.js:109
+msgid "%1$s in / %2$s out per million"
+msgstr "%1$s d’entrada / %2$s de sortida per milió"
+
+#: assets/build/index.js:109
+msgid "Automatic (recommended)"
+msgstr "Automàtic (recomanat)"
+
+#: assets/build/index.js:109
+msgid "Recommended"
+msgstr "Recomanat"
+
+#: assets/build/index.js:109
+msgid "All models"
+msgstr "Tots els models"
+
+#. translators: %s: model name.
+#: assets/build/index.js:110
+msgid "%s (not available now)"
+msgstr "%s (ara no disponible)"
+
+#: assets/build/index.js:110
+msgid "AI is turned off: the daily limit is 0 tokens. Suggestions use the built-in engine."
+msgstr "La IA està desactivada: el límit diari és de 0 tokens. Els suggeriments utilitzen el motor integrat."
+
+#. translators: 1: tokens used today, 2: daily limit in tokens.
+#: assets/build/index.js:111
+msgid "Today: %1$s of %2$s tokens used."
+msgstr "Avui: %1$s de %2$s tokens utilitzats."
+
+#: assets/build/index.js:111
+msgid "The limit is reached: AI is paused until tomorrow and suggestions use the built-in engine."
+msgstr "S’ha assolit el límit: la IA està en pausa fins demà i els suggeriments utilitzen el motor integrat."
+
+#: assets/build/index.js:111
+msgid "AI needs WordPress 7.0 or later. This site runs an earlier version, so Magic Linking works with its own engine and the AI options are turned off."
+msgstr "La IA necessita WordPress 7.0 o posterior. Aquest lloc té una versió anterior, de manera que Magic Linking funciona amb el seu propi motor i les opcions d’IA estan desactivades."
+
+#: assets/build/index.js:111
+msgid "This site has no AI connected. Magic Linking works fully without it: suggestions use its own engine."
+msgstr "Aquest lloc no té cap IA connectada. Magic Linking funciona completament sense: els suggeriments utilitzen el seu propi motor."
+
+#: assets/build/index.js:111
+msgid "You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…)."
+msgstr "Pots connectar la teva a Paràmetres → Connectors (OpenAI, Google, Ollama local…)."
+
+#: assets/build/index.js:111 assets/build/index.js:112
+msgid "Check again"
+msgstr "Torna a comprovar"
+
+#: assets/build/index.js:111
+msgid "Provider"
+msgstr "Proveïdor"
+
+#: assets/build/index.js:111
+msgid "Model it will use"
+msgstr "Model que utilitzarà"
+
+#: assets/build/index.js:111
+msgid "Where it runs"
+msgstr "On s’executa"
+
+#: assets/build/index.js:111
+msgid "Local, on your own server"
+msgstr "En local, al teu servidor"
+
+#: assets/build/index.js:111
+msgid "Remote, at your provider"
+msgstr "En remot, al teu proveïdor"
+
+#: assets/build/index.js:111
+msgid "The AI on this site is local: the text does not leave your server."
+msgstr "La IA d’aquest lloc és local: el text no surt del teu servidor."
+
+#. translators: %s: name of the AI provider.
+#: assets/build/index.js:112
+msgid "To use the AI suggestions, the text of the entries involved is sent to %s through your WordPress connector."
+msgstr "Per utilitzar els suggeriments d’IA, el text de les entrades implicades s’envia a %s mitjançant el teu connector de WordPress."
+
+#: assets/build/index.js:112
+msgid "No AI requests in the last 30 days."
+msgstr "Cap sol·licitud d’IA en els darrers 30 dies."
+
+#. translators: %s: estimated cost in dollars.
+#: assets/build/index.js:113
+msgid "%s (only models with a known price)"
+msgstr "%s (només models amb preu conegut)"
+
+#. translators: 1: number of AI requests, 2: tokens used, 3: estimated cost.
+#: assets/build/index.js:114
+msgid "%1$s requests, %2$s tokens, about %3$s."
+msgstr "%1$s sol·licituds, %2$s tokens, uns %3$s."
+
+#. translators: %s: number of AI requests that got no usable answer.
+#: assets/build/index.js:115
+msgid "Requests without an answer: %s."
+msgstr "Sol·licituds sense resposta: %s."
+
+#: assets/build/index.js:115
+msgid "AI use by model"
+msgstr "Ús de la IA per model"
+
+#: assets/build/index.js:115
+msgid "Model"
+msgstr "Model"
+
+#: assets/build/index.js:115 assets/build/index.js:127
+msgid "Requests"
+msgstr "Sol·licituds"
+
+#: assets/build/index.js:115
+msgid "Tokens"
+msgstr "Tokens"
+
+#: assets/build/index.js:115
+msgid "Estimated cost"
+msgstr "Cost estimat"
+
+#. translators: %s: date of the price list, like 2026-10-15.
+#: assets/build/index.js:116
+msgid "Costs are estimates with public list prices as of %s. What your provider charges is what counts. A local model costs nothing."
+msgstr "Els costos són estimacions amb els preus de tarifa públics a %s. El que compta és el que et cobra el teu proveïdor. Un model local no costa res."
+
+#: assets/build/index.js:116
+msgid "No cost (local)"
+msgstr "Sense cost (local)"
+
+#: assets/build/index.js:116
+msgid "Price unknown"
+msgstr "Preu desconegut"
+
+#: assets/build/index.js:116
+msgid "Last failed request"
+msgstr "Darrera sol·licitud fallida"
+
+#. translators: 1: date and time, 2: model name (may be empty), 3: error code.
+#: assets/build/index.js:117
+msgid "%1$s · %2$s · code: %3$s"
+msgstr "%1$s · %2$s · codi: %3$s"
+
+#: assets/build/index.js:117
+msgid "unknown model"
+msgstr "model desconegut"
+
+#: assets/build/index.js:117
+msgid "Last full analysis"
+msgstr "Darrera anàlisi completa"
+
+#: assets/build/index.js:117
+msgid "Duration"
+msgstr "Durada"
+
+#: assets/build/index.js:117 assets/build/index.js:132
+msgid "Entries analyzed"
+msgstr "Entrades analitzades"
+
+#: assets/build/index.js:117
+msgid "There is no completed analysis yet."
+msgstr "Encara no hi ha cap anàlisi completada."
+
+#: assets/build/index.js:117
+msgid "Analyze every entry again from scratch, even those that have not changed. To analyze only what is new or modified, use “Analyze changes” in the Report. It runs in the background. Analyzing only reads your content; it never changes it."
+msgstr "Torna a analitzar totes les entrades des de zero, fins i tot les que no han canviat. Per analitzar només el que és nou o modificat, utilitza «Analitza els canvis» a l’Informe. S’executa en segon pla. L’anàlisi només llegeix el contingut; mai no el canvia."
+
+#: assets/build/index.js:117
+msgid "Analyze everything again from scratch"
+msgstr "Torna a analitzar-ho tot des de zero"
+
+#: assets/build/index.js:117
+msgid "An analysis is already running; its progress is shown above."
+msgstr "Ja hi ha una anàlisi en execució; el progrés es mostra a dalt."
+
+#: assets/build/index.js:117
+msgid "Setup assistant"
+msgstr "Assistent de configuració"
+
+#: assets/build/index.js:117
+msgid "Go through the first steps again: content types, AI and the first analysis."
+msgstr "Repassa els primers passos: tipus de contingut, IA i la primera anàlisi."
+
+#: assets/build/index.js:117
+msgid "Open the setup assistant"
+msgstr "Obre l’assistent de configuració"
+
+#: assets/build/index.js:117
+msgid "Analyze everything again from scratch?"
+msgstr "Vols tornar a analitzar-ho tot des de zero?"
+
+#: assets/build/index.js:117
+msgid "Magic Linking will read every entry again. It runs in the background, so you can keep working. Analyzing only reads your content; it never changes it."
+msgstr "Magic Linking tornarà a llegir totes les entrades. S’executa en segon pla, de manera que pots continuar treballant. L’anàlisi només llegeix el contingut; mai no el canvia."
+
+#: assets/build/index.js:117
+msgid "Start analysis"
+msgstr "Inicia l’anàlisi"
+
+#: assets/build/index.js:117 assets/build/index.js:127
+msgid "Could not load the settings."
+msgstr "No s’han pogut carregar els paràmetres."
+
+#: assets/build/index.js:117
+msgid "Settings saved. What Magic Linking reads has changed, so your site is being analyzed again."
+msgstr "S’han desat els paràmetres. El que llegeix Magic Linking ha canviat, de manera que el lloc s’està tornant a analitzar."
+
+#: assets/build/index.js:117
+msgid "Settings saved."
+msgstr "S’han desat els paràmetres."
+
+#: assets/build/index.js:117 assets/build/index.js:130
+msgid "The settings could not be saved."
+msgstr "No s’han pogut desar els paràmetres."
+
+#: assets/build/index.js:117
+msgid "Ignore"
+msgstr "Ignora"
+
+#: assets/build/index.js:117
+msgid "Take into account (a small boost if they share it)"
+msgstr "Té-ho en compte (un petit impuls si el comparteixen)"
+
+#: assets/build/index.js:117
+msgid "Require (only entries that share it)"
+msgstr "Exigeix-ho (només les entrades que el comparteixen)"
+
+#. translators: 1: minimum, 2: maximum.
+#: assets/build/index.js:118
+msgid "Enter a whole number from %1$s to %2$s; otherwise it is adjusted when you leave the field."
+msgstr "Introdueix un nombre enter de %1$s a %2$s; en cas contrari s’ajusta quan deixes el camp."
+
+#: assets/build/index.js:118 assets/build/index.js:130
+msgid "Choose at least one content type."
+msgstr "Tria com a mínim un tipus de contingut."
+
+#: assets/build/index.js:118
+msgid "Unsaved changes"
+msgstr "Canvis sense desar"
+
+#: assets/build/index.js:118
+msgid "(needs attention)"
+msgstr "(requereix atenció)"
+
+#: assets/build/index.js:118
+msgid "(unsaved changes)"
+msgstr "(canvis sense desar)"
+
+#: assets/build/index.js:118
+msgid "General"
+msgstr "General"
+
+#: assets/build/index.js:118
+msgid "Suggestions"
+msgstr "Suggeriments"
+
+#: assets/build/index.js:118
+msgid "Links"
+msgstr "Enllaços"
+
+#: assets/build/index.js:118
+msgid "AI"
+msgstr "IA"
+
+#: assets/build/index.js:118
+msgid "History and data"
+msgstr "Historial i dades"
+
+#: assets/build/index.js:118
+msgid "Outbound suggestions in the editor"
+msgstr "Suggeriments sortints a l’editor"
+
+#: assets/build/index.js:118
+msgid "The most useful links to add from the entry you are editing."
+msgstr "Els enllaços més útils per afegir des de l’entrada que estàs editant."
+
+#: assets/build/index.js:118
+msgid "Alternative sentences per suggestion"
+msgstr "Frases alternatives per suggeriment"
+
+#: assets/build/index.js:118
+msgid "0 shows one sentence per suggestion. With 1 or 2, each card offers “More sentences” to link from another sentence of the same entry."
+msgstr "Amb 0 es mostra una sola frase per suggeriment. Amb 1 o 2, cada targeta ofereix «Més frases» per enllaçar des d’una altra frase de la mateixa entrada."
+
+#: assets/build/index.js:118
+msgid "Inbound suggestions per page in the editor"
+msgstr "Suggeriments entrants per pàgina a l’editor"
+
+#: assets/build/index.js:118
+msgid "Entries that could link to the one you are editing, shown this many at a time."
+msgstr "Entrades que podrien enllaçar amb la que estàs editant, mostrades en aquesta quantitat alhora."
+
+#: assets/build/index.js:118
+msgid "Words per internal link"
+msgstr "Paraules per enllaç intern"
+
+#: assets/build/index.js:118
+msgid "An entry with more internal links than one for every this many words is shown as over-linked (always at least one link is allowed). Automatic rules never add a link to an entry that already has that many."
+msgstr "Una entrada amb més enllaços interns que un cada tantes paraules es mostra com a massa enllaçada (sempre es permet com a mínim un enllaç). Les regles automàtiques mai no afegeixen un enllaç a una entrada que ja en té tants."
+
+#: assets/build/index.js:118
+msgid "Links to the same target from one entry"
+msgstr "Enllaços a la mateixa destinació des d’una entrada"
+
+#: assets/build/index.js:118
+msgid "Automatic rules add at most this many links from an entry to the same target. Existing links are never removed."
+msgstr "Les regles automàtiques afegeixen com a màxim aquesta quantitat d’enllaços d’una entrada a la mateixa destinació. Els enllaços existents no s’eliminen mai."
+
+#: assets/build/index.js:118
+msgid "Entries that can use the same anchor text for the same target"
+msgstr "Entrades que poden utilitzar el mateix text d’àncora per a la mateixa destinació"
+
+#: assets/build/index.js:118
+msgid "Beyond this many entries, the same anchor text towards the same target is suggested less, and automatic rules stop using it in new entries."
+msgstr "Més enllà d’aquesta quantitat d’entrades, el mateix text d’àncora cap a la mateixa destinació es suggereix menys, i les regles automàtiques deixen d’utilitzar-lo a les entrades noves."
+
+#: assets/build/index.js:118
+msgid "For example, suggest links from posts only to posts."
+msgstr "Per exemple, suggereix enllaços d’entrades només cap a entrades."
+
+#: assets/build/index.js:118
+msgid "Category"
+msgstr "Categoria"
+
+#: assets/build/index.js:118
+msgid "In a custom content type, its main hierarchical taxonomy is used instead."
+msgstr "En un tipus de contingut personalitzat, s’utilitza la seva taxonomia jeràrquica principal."
+
+#: assets/build/index.js:118
+msgid "Tag"
+msgstr "Etiqueta"
+
+#: assets/build/index.js:118
+msgid "In a custom content type, its main non-hierarchical taxonomy is used instead."
+msgstr "En un tipus de contingut personalitzat, s’utilitza la seva taxonomia no jeràrquica principal."
+
+#: assets/build/index.js:118
+msgid "Under-linked below this many inbound links"
+msgstr "Poc enllaçada per sota d’aquesta quantitat d’enllaços entrants"
+
+#: assets/build/index.js:118
+msgid "An entry with at least one inbound link but fewer than this number is shown as under-linked."
+msgstr "Una entrada amb com a mínim un enllaç entrant però menys que aquest nombre es mostra com a poc enllaçada."
+
+#: assets/build/index.js:118
+msgid "Show advanced settings"
+msgstr "Mostra els paràmetres avançats"
+
+#: assets/build/index.js:118
+msgid "Key terms per entry"
+msgstr "Termes clau per entrada"
+
+#: assets/build/index.js:118
+msgid "How many of the most important terms of each entry are kept to find related entries (20 to 80). Changing it makes Magic Linking analyze your site again."
+msgstr "Quants dels termes més importants de cada entrada es guarden per trobar entrades relacionades (de 20 a 80). Si ho canvies, Magic Linking torna a analitzar el teu lloc."
+
+#: assets/build/index.js:118
+msgid "Score threshold (%)"
+msgstr "Llindar de puntuació (%)"
+
+#: assets/build/index.js:118
+msgid "A suggestion is shown only if its score reaches this percentage. Higher shows fewer, surer suggestions; lower shows more. It does not analyze your site again."
+msgstr "Un suggeriment només es mostra si la seva puntuació arriba a aquest percentatge. Més alt mostra menys suggeriments, però més segurs; més baix en mostra més. No torna a analitzar el teu lloc."
+
+#: assets/build/index.js:118
+msgid "Headings"
+msgstr "Encapçalaments"
+
+#: assets/build/index.js:118
+msgid "Quotes"
+msgstr "Cites"
+
+#: assets/build/index.js:118
+msgid "Tables"
+msgstr "Taules"
+
+#: assets/build/index.js:118
+msgid "Changing these makes Magic Linking read your entries again."
+msgstr "Canviar això fa que Magic Linking torni a llegir les entrades."
+
+#: assets/build/index.js:118
+msgid "Open links in a new tab"
+msgstr "Obre els enllaços en una pestanya nova"
+
+#: assets/build/index.js:118
+msgid "Off by default. Adds target=\"_blank\" and rel=\"noopener\" to the links Magic Linking inserts; links already in your content are not changed."
+msgstr "Desactivat per defecte. Afegeix target=\"_blank\" i rel=\"noopener\" als enllaços que insereix Magic Linking; els enllaços que ja hi ha al contingut no es canvien."
+
+#: assets/build/index.js:118
+msgid "Additional rel values"
+msgstr "Valors rel addicionals"
+
+#: assets/build/index.js:118
+msgid "Optional, separated by spaces (for example: nofollow). Added to the links Magic Linking inserts."
+msgstr "Opcional, separats per espais (per exemple: nofollow). S’afegeixen als enllaços que insereix Magic Linking."
+
+#: assets/build/index.js:118
+msgid "Ignored addresses"
+msgstr "Adreces ignorades"
+
+#: assets/build/index.js:118
+msgid "One address per line. These entries are never suggested as a target, and never suggested to link to others."
+msgstr "Una adreça per línia. Aquestes entrades no se suggereixen mai com a destinació, ni se suggereix que enllacin amb unes altres."
+
+#: assets/build/index.js:118
+msgid "Ignored words"
+msgstr "Paraules ignorades"
+
+#: assets/build/index.js:118
+msgid "One word or phrase per line. Suggestions whose anchor text contains one of them are not shown."
+msgstr "Una paraula o frase per línia. No es mostren els suggeriments el text d’àncora dels quals en contingui alguna."
+
+#: assets/build/index.js:118
+msgid "Daily AI limit (tokens)"
+msgstr "Límit diari d’IA (tokens)"
+
+#: assets/build/index.js:118
+msgid "The most tokens Magic Linking may use through your connector in a day. 0 turns AI off. When the limit is reached, AI pauses until tomorrow and the suggestions use the lexical engine."
+msgstr "El màxim de tokens que Magic Linking pot utilitzar mitjançant el teu connector en un dia. 0 desactiva la IA. Quan s’assoleix el límit, la IA es posa en pausa fins demà i els suggeriments utilitzen el motor lèxic."
+
+#: assets/build/index.js:118
+msgid "Keep the history of changes for"
+msgstr "Conserva l’historial de canvis durant"
+
+#: assets/build/index.js:118
+msgid "Older batches are deleted by the nightly task, so you can no longer undo them. The links stay in your content. There is no limit on the number of changes kept."
+msgstr "Els lots més antics se suprimeixen amb la tasca nocturna, de manera que ja no els podràs desfer. Els enllaços es queden al contingut. No hi ha cap límit al nombre de canvis que es conserven."
+
+#: assets/build/index.js:118
+msgid "30 days"
+msgstr "30 dies"
+
+#: assets/build/index.js:118
+msgid "90 days"
+msgstr "90 dies"
+
+#: assets/build/index.js:118
+msgid "365 days"
+msgstr "365 dies"
+
+#: assets/build/index.js:118
+msgid "No expiry date"
+msgstr "Sense data de caducitat"
+
+#: assets/build/index.js:118
+msgid "Delete all Magic Linking data when the plugin is deleted"
+msgstr "Suprimeix totes les dades de Magic Linking quan se suprimeixi l’extensió"
+
+#: assets/build/index.js:118
+msgid "Removes its tables, history and settings. The links already in your entries stay as they are; your content is not touched."
+msgstr "Elimina les seves taules, l’historial i els paràmetres. Els enllaços que ja hi ha a les entrades es queden tal com són; el contingut no es toca."
+
+#: assets/build/index.js:118 assets/build/index.js:129
+msgid "Content types to analyze"
+msgstr "Tipus de contingut que s’han d’analitzar"
+
+#: assets/build/index.js:118
+msgid "Detect the language of each entry from its text"
+msgstr "Detecta l’idioma de cada entrada pel seu text"
+
+#: assets/build/index.js:118
+msgid "WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active."
+msgstr "WPML o Polylang ja indiquen a Magic Linking l’idioma de cada entrada, així que aquesta opció no fa res mentre un dels dos estigui actiu."
+
+#. translators: %d: minimum number of words an entry needs for its language to be detected.
+#: assets/build/index.js:119
+msgid "Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least %d words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again."
+msgstr "Serveix quan el teu lloc és en un idioma però algunes entrades estan escrites en un altre. És una estimació a partir de les paraules més habituals, així que necessita almenys %d paraules; quan no n’està segur, s’utilitza l’idioma del lloc. En desar, Magic Linking torna a analitzar el teu lloc."
+
+#: assets/build/index.js:119
+msgid "The content types you analyze have no categories."
+msgstr "Els tipus de contingut que analitzes no tenen categories."
+
+#. translators: %d: maximum number of categories.
+#: assets/build/index.js:120
+msgid "You have reached the limit of %d categories. Untick one to choose another."
+msgstr "Has arribat al límit de %d categories. Desmarca’n una per triar-ne una altra."
+
+#: assets/build/index.js:120
+msgid "Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones."
+msgstr "Només compta la categoria exacta: les seves subcategories no s’exclouen amb ella. En desar, Magic Linking torna a analitzar el teu lloc. La llista segueix els tipus de contingut ja desats, així que desa primer si n’acabes de triar de nous."
+
+#: assets/build/index.js:120
+msgid "Save settings"
+msgstr "Desa els paràmetres"
+
+#. translators: %s: number of milliseconds.
+#: assets/build/index.js:121
+msgctxt "milliseconds"
+msgid "%s ms"
+msgstr "%s ms"
+
+#. translators: %s: target time, e.g. "500 ms".
+#: assets/build/index.js:122
+msgid "target under %s"
+msgstr "objectiu: menys de %s"
+
+#. translators: %s: the target, e.g. "target under 500.0 ms".
+#: assets/build/index.js:123
+msgid "Within budget (%s)"
+msgstr "Dins del pressupost (%s)"
+
+#. translators: %s: the target, e.g. "target under 500.0 ms".
+#: assets/build/index.js:124
+msgid "Over budget (%s)"
+msgstr "Per sobre del pressupost (%s)"
+
+#: assets/build/index.js:124
+msgid "Could not read the index status."
+msgstr "No s’ha pogut llegir l’estat de l’índex."
+
+#: assets/build/index.js:124
+msgid "Could not read the engine times."
+msgstr "No s’han pogut llegir els temps del motor."
+
+#: assets/build/index.js:124
+msgid "Engine times refreshed."
+msgstr "Temps del motor actualitzats."
+
+#: assets/build/index.js:124
+msgid "Outgoing"
+msgstr "Sortints"
+
+#: assets/build/index.js:124
+msgid "Incoming"
+msgstr "Entrants"
+
+#: assets/build/index.js:124
+msgid "Index"
+msgstr "Índex"
+
+#. translators: 1: entries in the index, 2: entries that can be analyzed.
+#: assets/build/index.js:125
+msgid "%1$s of %2$s entries are in the index."
+msgstr "%1$s de %2$s entrades són a l’índex."
+
+#: assets/build/index.js:126
+msgid "Engine time"
+msgstr "Temps del motor"
+
+#. translators: %s: number of requests kept per direction.
+#: assets/build/index.js:127
+msgid "Measured on the last %s suggestions request recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
+msgid_plural "Measured on the last %s suggestions requests recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
+msgstr[0] "Mesurat sobre l’última sol·licitud de suggeriments registrada de cada direcció. Per no escriure a cada tecla premuda a l’editor, es conserva com a màxim una escriptura cada pocs segons, així que algunes sol·licituds no es registren. Els temps es desen només en aquest lloc i no s’envien enlloc."
+msgstr[1] "Mesurat sobre les últimes %s sol·licituds de suggeriments registrades de cada direcció. Per no escriure a cada tecla premuda a l’editor, es conserva com a màxim una escriptura cada pocs segons, així que algunes sol·licituds no es registren. Els temps es desen només en aquest lloc i no s’envien enlloc."
+
+#: assets/build/index.js:127
+msgid "No suggestions have been calculated yet. Open an entry in the editor or the Report to see the times here."
+msgstr "Encara no s’ha calculat cap suggeriment. Obre una entrada a l’editor o l’informe per veure aquí els temps."
+
+#: assets/build/index.js:127
+msgid "Time of the suggestions engine, in milliseconds"
+msgstr "Temps del motor de suggeriments, en mil·lisegons"
+
+#: assets/build/index.js:127
+msgid "Direction"
+msgstr "Direcció"
+
+#: assets/build/index.js:127
+msgid "Median"
+msgstr "Mediana"
+
+#: assets/build/index.js:127
+msgid "95th percentile"
+msgstr "Percentil 95"
+
+#: assets/build/index.js:127
+msgid "Budget"
+msgstr "Pressupost"
+
+#: assets/build/index.js:127
+msgid "From cache"
+msgstr "De la memòria cau"
+
+#: assets/build/index.js:127
+msgid "Candidates"
+msgstr "Candidates"
+
+#: assets/build/index.js:127
+msgid "Retrieval"
+msgstr "Recuperació"
+
+#: assets/build/index.js:127
+msgid "Loading"
+msgstr "Càrrega"
+
+#: assets/build/index.js:127
+msgid "Scoring"
+msgstr "Puntuació"
+
+#: assets/build/index.js:127
+msgid "No requests yet."
+msgstr "Encara no hi ha sol·licituds."
+
+#: assets/build/index.js:127
+msgid "Median and 95th percentile cover every recorded request, including those answered from the cache. Candidates and phases cover only the requests the engine calculated. Retrieval is analyzing the entry and finding candidate targets; loading is reading the targets or sources; phrases is looking for where to place the anchor; scoring is rating each one. Sorting, reasons and removing ignored words are not in any phase, and the phases are medians, so they do not have to add up to the total."
+msgstr "La mediana i el percentil 95 inclouen totes les sol·licituds registrades, també les servides des de la memòria cau. Les candidates i les fases inclouen només les sol·licituds que el motor ha calculat. La recuperació és analitzar l’entrada i trobar les destinacions candidates; la càrrega és llegir les destinacions o els orígens; les frases és cercar on col·locar l’àncora; la puntuació és valorar cada una. Ordenar, els motius i treure les paraules ignorades no són a cap fase, i les fases són medianes, així que no cal que sumin el total."
+
+#: assets/build/index.js:127
+msgid "Could not load the setup information."
+msgstr "No s’ha pogut carregar la informació de configuració."
+
+#. translators: 1: current step, 2: number of steps.
+#: assets/build/index.js:128
+msgid "Step %1$s of %2$s"
+msgstr "Pas %1$s de %2$s"
+
+#: assets/build/index.js:128
+msgid "What do we link?"
+msgstr "Què enllacem?"
+
+#: assets/build/index.js:128
+msgid "Artificial intelligence"
+msgstr "Intel·ligència artificial"
+
+#: assets/build/index.js:128
+msgid "All set"
+msgstr "Tot a punt"
+
+#. translators: 1: current step, 2: number of steps.
+#: assets/build/index.js:129
+msgid "Setup · step %1$s of %2$s"
+msgstr "Configuració · pas %1$s de %2$s"
+
+#. translators: %s: language name.
+#: assets/build/index.js:130
+msgid "Language detected: %s."
+msgstr "Idioma detectat: %s."
+
+#: assets/build/index.js:130
+msgid "Your site is multilingual: we will link each language separately."
+msgstr "El lloc és multilingüe: enllaçarem cada idioma per separat."
+
+#: assets/build/index.js:130
+msgid "Entries are only linked to others in the same language."
+msgstr "Les entrades només s’enllacen amb altres del mateix idioma."
+
+#: assets/build/index.js:130
+msgid "Your WordPress has an AI connector. This version of Magic Linking does not use it yet: suggestions come from its own engine, which needs no AI. When AI features arrive they will use that connector, and nothing will be spent without showing you an estimate first."
+msgstr "El teu WordPress té un connector d’IA. Aquesta versió de Magic Linking encara no l’utilitza: els suggeriments surten del seu propi motor, que no necessita IA. Quan arribin les funcions d’IA utilitzaran aquest connector, i no es gastarà res sense mostrar-te abans una estimació."
+
+#: assets/build/index.js:130
+msgid "No AI connected: Magic Linking works with its own engine, which needs no AI. You can connect one whenever you like in Settings → Connectors."
+msgstr "Sense IA connectada: Magic Linking funciona amb el seu propi motor, que no necessita IA. En pots connectar una quan vulguis a Paràmetres → Connectors."
+
+#: assets/build/index.js:130
+msgid "Analyzing only reads your content; it never changes it. Links are only added when you press Link."
+msgstr "L’anàlisi només llegeix el contingut; mai no el canvia. Els enllaços només s’afegeixen quan prems Enllaça."
+
+#: assets/build/index.js:130
+msgid "The analysis is running. You can close this screen: it continues in the background."
+msgstr "L’anàlisi s’està executant. Pots tancar aquesta pantalla: continua en segon pla."
+
+#: assets/build/index.js:130
+msgid "Start"
+msgstr "Inicia"
+
+#: assets/build/index.js:130
+msgid "Back"
+msgstr "Enrere"
+
+#: assets/build/index.js:130
+msgid "Skip setup"
+msgstr "Omet la configuració"
+
+#: assets/build/index.js:130
+msgid "You can open this assistant again from Settings."
+msgstr "Pots tornar a obrir aquest assistent des de Paràmetres."
+
+#. translators: 1: entries analyzed, 2: orphan entries, 3: internal links.
+#: assets/build/index.js:131
+msgid "%1$s entries analyzed · %2$s orphans · %3$s internal links"
+msgstr "%1$s entrades analitzades · %2$s òrfenes · %3$s enllaços interns"
+
+#: assets/build/index.js:131
+msgid "See orphans"
+msgstr "Mostra les òrfenes"
+
+#: assets/build/index.js:131
+msgid "Open an entry"
+msgstr "Obre una entrada"
+
+#. translators: %s: section name (Report, Broken links, Settings).
+#: assets/build/index.js:132
+msgid "Magic Linking · %s"
+msgstr "Magic Linking · %s"
+
+#: assets/build/index.js:132
+msgid "Orphan entries"
+msgstr "Entrades òrfenes"
+
+#: assets/build/index.js:132
+msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
+msgstr "Només es compten els enllaços escrits dins del contingut de cada entrada. Els enllaços dels menús, dels ginys i de les plantilles del tema no es compten."
+
+#. translators: %s: WP-CLI command.
+#: assets/build/index.js:133
+msgid "You can also run the analysis from the terminal: %s"
+msgstr "També pots executar l’anàlisi des del terminal: %s"
