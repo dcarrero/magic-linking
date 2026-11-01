@@ -9,9 +9,11 @@ declare(strict_types=1);
 
 namespace MagicLinking\I18n;
 
+use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
 use MagicLinking\Engine\LanguageDetector;
 use MagicLinking\Graph\GraphRepository;
+use MagicLinking\Index\PostSource;
 use WP_Post;
 
 /**
@@ -24,7 +26,7 @@ use WP_Post;
  * al indexar y se guarda en el grafo (`magiclinking_docs.lang`), de donde lo
  * leen los demás. Sin la opción no consulta la base de datos por su cuenta.
  */
-final class Language {
+final class Language implements Module {
 
 	/**
 	 * Función de Polylang que da el idioma de una entrada.
@@ -48,6 +50,13 @@ final class Language {
 	private ?GraphRepository $graph;
 
 	/**
+	 * Relanza el análisis completo (para cuando cambia el idioma del sitio); null: no hace nada.
+	 *
+	 * @var callable|null
+	 */
+	private $reindex;
+
+	/**
 	 * Idiomas ya guardados en el grafo que se han leído en esta petición, por entrada.
 	 *
 	 * @var array<int, string>
@@ -67,11 +76,31 @@ final class Language {
 	 * @param callable|null        $polylang Sustituto de pll_get_post_language() (para pruebas); null para la función real si existe.
 	 * @param Settings|null        $settings Ajustes; con ellos se puede detectar el idioma por el texto.
 	 * @param GraphRepository|null $graph    Grafo, donde se lee el idioma ya detectado de una entrada indexada.
+	 * @param callable|null        $reindex  Relanza el análisis completo cuando cambia el idioma del sitio.
 	 */
-	public function __construct( ?callable $polylang = null, ?Settings $settings = null, ?GraphRepository $graph = null ) {
+	public function __construct( ?callable $polylang = null, ?Settings $settings = null, ?GraphRepository $graph = null, ?callable $reindex = null ) {
+		$this->reindex  = $reindex;
 		$this->polylang = $polylang;
 		$this->settings = $settings;
 		$this->graph    = $graph;
+	}
+
+	/**
+	 * Cambiar el idioma del sitio cambia el de las entradas que no se han podido detectar (se guardan con el del
+	 * sitio de cuando se indexaron, porque el índice léxico necesita un valor): con la detección activa se relee todo.
+	 */
+	public function register(): void {
+		add_action( 'update_option_WPLANG', array( $this, 'site_language_changed' ) );
+		add_action( 'add_option_WPLANG', array( $this, 'site_language_changed' ) );
+	}
+
+	/**
+	 * Hooks de `update_option_WPLANG` y `add_option_WPLANG`.
+	 */
+	public function site_language_changed(): void {
+		if ( null !== $this->reindex && $this->detects() ) {
+			( $this->reindex )();
+		}
 	}
 
 	/**
@@ -92,18 +121,54 @@ final class Language {
 
 	/**
 	 * Idioma de una entrada que se va a indexar: igual que {@see self::for_post()}, pero con la opción de detectar
-	 * por el texto activa lo calcula a partir del contenido que se indexa y no lo lee del grafo (que aún tiene el
-	 * anterior). Lo usan el indexado del grafo y el del índice léxico, y comparten el resultado.
+	 * por el texto activa lo calcula a partir del HTML que se indexa (el contenido con el filtro
+	 * `magiclinking_post_html` o el del editor) y no lo lee del grafo, que aún tiene el anterior. Lo usan el indexado
+	 * del grafo y el del índice léxico, y comparten el resultado.
 	 *
 	 * @param WP_Post $post Entrada.
+	 * @param string  $html HTML que se indexa.
 	 */
-	public function for_indexing( WP_Post $post ): string {
+	public function for_indexing( WP_Post $post, string $html ): string {
 		$explicit = $this->explicit( $post->ID );
 		if ( null !== $explicit ) {
 			return $explicit;
 		}
 
-		return $this->detects() ? $this->from_text( $post ) : $this->site();
+		return $this->detects() ? $this->from_text( $post, $html ) : $this->site();
+	}
+
+	/**
+	 * Olvida el idioma guardado que se había leído de unas entradas (el indexado acaba de reescribirlo).
+	 *
+	 * @param array<int, int> $post_ids IDs.
+	 */
+	public function forget( array $post_ids ): void {
+		foreach ( $post_ids as $id ) {
+			unset( $this->stored[ (int) $id ] );
+		}
+	}
+
+	/**
+	 * Lee de una vez, con una sola consulta, el idioma guardado de varias entradas, para que {@see self::for_post()}
+	 * no haga una consulta por entrada al recorrer una lista. No hace nada si no se detecta por el texto.
+	 *
+	 * @param array<int, int> $post_ids IDs.
+	 */
+	public function prime( array $post_ids ): void {
+		if ( null === $this->graph || ! $this->detects() ) {
+			return;
+		}
+
+		$missing = array_values( array_filter( array_unique( array_map( 'intval', $post_ids ) ), fn( int $id ): bool => $id > 0 && ! isset( $this->stored[ $id ] ) ) );
+		if ( count( $missing ) < 2 ) {
+			return;
+		}
+
+		foreach ( $this->graph->docs_by_ids( $missing ) as $id => $doc ) {
+			if ( '' !== $doc['lang'] ) {
+				$this->stored[ $id ] = $doc['lang'];
+			}
+		}
 	}
 
 	/**
@@ -174,26 +239,28 @@ final class Language {
 
 		$post = get_post( $post_id );
 
-		return $post instanceof WP_Post ? $this->from_text( $post ) : $this->site();
+		return $post instanceof WP_Post ? $this->from_text( $post, PostSource::html_of( $post ) ) : $this->site();
 	}
 
 	/**
-	 * Detecta el idioma por el título y el contenido guardado de la entrada. Se calcula una vez por entrada y texto
-	 * en cada petición; el indexado del grafo y el del índice léxico comparten el resultado.
+	 * Detecta el idioma por el título y el HTML que se indexa, sin etiquetas, shortcodes ni entidades. Se calcula una
+	 * vez por entrada y texto en cada petición.
 	 *
 	 * @param WP_Post $post Entrada.
+	 * @param string  $html HTML que se indexa.
 	 */
-	private function from_text( WP_Post $post ): string {
-		$text = wp_strip_all_tags( $post->post_title . ' ' . mb_substr( $post->post_content, 0, 4 * LanguageDetector::MAX_CHARS, 'UTF-8' ) );
+	private function from_text( WP_Post $post, string $html ): string {
+		// Tope antes de quitar etiquetas: un maquetador puede dejar cientos de KB de marcado.
+		$text = html_entity_decode( wp_strip_all_tags( strip_shortcodes( $post->post_title . ' ' . mb_substr( $html, 0, 10 * LanguageDetector::MAX_CHARS, 'UTF-8' ) ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		$seal = (string) crc32( $text );
 		$memo = $this->from_text[ $post->ID ] ?? null;
 		if ( null === $memo || $memo[0] !== $seal ) {
-			$memo                         = array( $seal, LanguageDetector::detect( $text, $this->site() ) );
+			$memo                         = array( $seal, LanguageDetector::detect( $text, '' ) );
 			$this->from_text[ $post->ID ] = $memo;
-			$this->stored[ $post->ID ]    = $memo[1];
 		}
 
-		return $memo[1];
+		// Sin confianza, el idioma del sitio de ahora (no se recuerda: puede cambiar).
+		return '' !== $memo[1] ? $memo[1] : $this->site();
 	}
 
 	/**

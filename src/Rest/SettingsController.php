@@ -14,6 +14,7 @@ use MagicLinking\AI\Models;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\LanguageDetector;
 use MagicLinking\Engine\Suggester;
 use MagicLinking\I18n\Language;
 use MagicLinking\Index\Taxonomies;
@@ -311,7 +312,8 @@ final class SettingsController implements Module {
 
 		// Detectar el idioma por el texto cambia el idioma de cada entrada, que se guarda en el grafo y en el índice
 		// léxico: hay que releer todas, por los dos (F1-37).
-		if ( $detect !== $after['detect_language'] ) {
+		// Con WPML o Polylang la opción no hace nada: no hay nada que releer.
+		if ( $detect !== $after['detect_language'] && ! ( null !== $this->language && $this->language->plugin_active() ) ) {
 			$types_changed = true;
 			$scope_changed = true;
 		}
@@ -362,11 +364,12 @@ final class SettingsController implements Module {
 		$all = $this->settings->all();
 
 		return array(
-			'settings'        => $all,
-			'post_types'      => $types,
-			'category_groups' => Taxonomies::category_groups( $all['post_types'] ),
-			'max_excluded'    => Settings::MAX_EXCLUDED_CATEGORIES,
-			'multilingual'    => null !== $this->language && $this->language->plugin_active(),
+			'settings'         => $all,
+			'post_types'       => $types,
+			'category_groups'  => Taxonomies::category_groups( $all['post_types'] ),
+			'max_excluded'     => Settings::MAX_EXCLUDED_CATEGORIES,
+			'multilingual'     => null !== $this->language && $this->language->plugin_active(),
+			'detect_min_words' => LanguageDetector::MIN_WORDS,
 		);
 	}
 }

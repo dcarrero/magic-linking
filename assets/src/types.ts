@@ -290,6 +290,8 @@ export interface SettingsResponse {
 	max_excluded: number;
 	/** Hay WPML o Polylang: ellos dan el idioma de cada entrada y la detección por el texto no actúa. */
 	multilingual: boolean;
+	/** Palabras mínimas para detectar el idioma por el texto. */
+	detect_min_words: number;
 	job?: Job | null;
 }
 

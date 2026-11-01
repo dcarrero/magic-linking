@@ -214,6 +214,7 @@ final class DetectLanguageTest extends GraphTestCase {
 		add_filter( 'wpml_post_language_details', static fn() => array( 'language_code' => 'fr' ) );
 		add_filter( 'magiclinking_is_multilingual', '__return_true' );
 		$this->save_detect( true );
+		$this->reindex_all();
 
 		$language = Plugin::container()->get( Language::class );
 		$this->assertFalse( $language->detects() );
@@ -252,6 +253,105 @@ final class DetectLanguageTest extends GraphTestCase {
 
 		$this->assertNull( $this->doc_row( $draft ) );
 		$this->assertSame( 'es', Plugin::container()->get( Language::class )->for_post( $draft ) );
+	}
+
+	public function test_it_detects_on_the_html_that_is_indexed_not_on_the_raw_content(): void {
+		$builder = self::factory()->post->create(
+			array(
+				'post_title'   => 'Maquetada',
+				'post_content' => '<!-- wp:paragraph --><p>Hola.</p><!-- /wp:paragraph -->',
+			)
+		);
+		add_filter(
+			'magiclinking_post_html',
+			static fn( string $html, $post ): string => $post->ID === $builder
+				? $html . '<p>Este fin de semana nos hemos puesto con la reforma del cuarto de baño y hemos repasado los azulejos, el plato de ducha, la mampara y la grifería antes de comprar nada para la casa, y de momento todo va bien.</p>'
+				: $html,
+			10,
+			2
+		);
+		$this->save_detect( true );
+
+		$this->assertSame( 'es', $this->doc_row( $builder )['lang'] );
+		$this->assertSame( 'es', Plugin::container()->get( Language::class )->for_post( $builder ) );
+	}
+
+	public function test_entities_shortcodes_and_decomposed_accents_do_not_break_the_words(): void {
+		$text = str_repeat( 'casa jard&iacute;n Qu&eacute; m&aacute;s as&iacute; est&aacute; tambi&eacute;n aqu&iacute; all&aacute; [gallery ids="1,2,3"] ', 5 );
+		$post = $this->make( 'Entidades', $text, \Normalizer::normalize( 'Además, según dicen, está en la plaza y también tiene más de cien años, aunque nadie sabe por qué se quedó así.', \Normalizer::FORM_D ) );
+		$this->save_detect( true );
+
+		$this->assertSame( 'es', $this->doc_row( $post )['lang'] );
+	}
+
+	public function test_prime_reads_the_languages_of_many_entries_in_one_query(): void {
+		global $wpdb;
+		$this->save_detect( true );
+		$ids = array( $this->es_target, $this->es_source, $this->en_target, $this->en_source );
+		// Una instancia nueva: la del contenedor recuerda lo que acaba de indexar.
+		$language = new Language( null, Plugin::container()->get( Settings::class ), Plugin::container()->get( \MagicLinking\Graph\GraphRepository::class ) );
+
+		$before = $wpdb->num_queries;
+		$language->prime( $ids );
+		$after_prime = $wpdb->num_queries;
+		foreach ( $ids as $id ) {
+			$language->for_post( $id );
+		}
+
+		$this->assertSame( 1, $after_prime - $before, 'Una consulta para todas.' );
+		$this->assertSame( $after_prime, $wpdb->num_queries, 'for_post() no consulta lo ya precargado.' );
+	}
+
+	public function test_unclear_entries_follow_the_site_language_when_it_changes(): void {
+		$short = self::factory()->post->create(
+			array(
+				'post_title'   => 'Corto',
+				'post_content' => '<!-- wp:paragraph --><p>Hola, esto es corto.</p><!-- /wp:paragraph -->',
+			)
+		);
+		$other = self::factory()->post->create(
+			array(
+				'post_title'   => 'Otro corto',
+				'post_content' => '<!-- wp:paragraph --><p>Adiós, esto también.</p><!-- /wp:paragraph -->',
+			)
+		);
+		$this->save_detect( true );
+		$language = Plugin::container()->get( Language::class );
+		$this->assertSame( 'en', $language->for_post( $short ) );
+
+		add_filter( 'locale', static fn(): string => 'es_ES' );
+		update_option( 'WPLANG', 'es_ES' );
+
+		$active = Plugin::container()->get( Jobs::class )->repository()->active( Jobs::TYPE_INDEX );
+		$this->assertNotNull( $active, 'Cambiar el idioma del sitio relanza el análisis.' );
+		Plugin::container()->get( Jobs::class )->run_to_completion( $active['id'] );
+
+		$language = new Language( null, Plugin::container()->get( Settings::class ), Plugin::container()->get( \MagicLinking\Graph\GraphRepository::class ) );
+		$this->assertSame( 'es', $language->for_post( $short ) );
+		$this->assertSame( 'es', $language->for_post( $other ) );
+		$resolved = ( new Destination( Plugin::container()->get( Settings::class ), $language ) )->resolve( $short, $other );
+		$this->assertIsString( $resolved, $resolved instanceof InsertionException ? $resolved->reason() : '' );
+	}
+
+	public function test_a_site_language_change_does_not_reindex_with_the_option_off(): void {
+		add_filter( 'locale', static fn(): string => 'es_ES' );
+		update_option( 'WPLANG', 'es_ES' );
+
+		$this->assertNull( Plugin::container()->get( Jobs::class )->repository()->active( Jobs::TYPE_INDEX ) );
+	}
+
+	public function test_it_does_not_reindex_when_a_multilingual_plugin_makes_the_option_useless(): void {
+		add_filter( 'magiclinking_is_multilingual', '__return_true' );
+
+		$response = $this->request( 'POST', '/settings', array( 'detect_language' => true ) );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertEmpty( $response->get_data()['job'] );
+		$this->assertTrue( $response->get_data()['settings']['detect_language'], 'Se guarda igualmente.' );
+	}
+
+	public function test_the_payload_gives_the_minimum_number_of_words(): void {
+		$this->assertSame( \MagicLinking\Engine\LanguageDetector::MIN_WORDS, $this->request( 'GET', '/settings' )->get_data()['detect_min_words'] );
 	}
 
 	public function test_an_unclear_entry_uses_the_site_language(): void {

@@ -94,7 +94,7 @@ final class LanguageDetectorTest extends TestCase {
 	 */
 	public static function natural_texts(): array {
 		return array(
-			'pt: Lisboa e Porto'  => array(
+			'pt: Lisboa e Porto' => array(
 				'Lisboa e Porto são cidades bonitas e cheias de história, e quem as visita fica com vontade de voltar. Em Lisboa há os elétricos e os miradouros, e no Porto as caves de vinho e as pontes sobre o rio. Nos dois casos, a comida é boa e os preços são justos para quem vem de fora.',
 				'pt',
 			),

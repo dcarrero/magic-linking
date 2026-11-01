@@ -133,7 +133,8 @@ final class PostSource implements DocumentSource {
 	 * @phpstan-param array{texts: list<string>, gapped: list<string>}|null $mine
 	 */
 	public function from_post( WP_Post $post, ?string $html = null, ?array $mine = null ): Document {
-		$content = $this->extractor->extract( $html ?? self::html_of( $post ) );
+		$html  ??= self::html_of( $post );
+		$content = $this->extractor->extract( $html );
 		$title   = PostTitle::of( $post );
 		$date    = strtotime( $post->post_modified_gmt . ' UTC' );
 
@@ -142,7 +143,7 @@ final class PostSource implements DocumentSource {
 		return new Document(
 			$post->ID,
 			$post->post_type,
-			$this->language->for_indexing( $post ),
+			$this->language->for_indexing( $post, $html ),
 			$title,
 			$post->post_name,
 			false === $date ? 0 : $date,
