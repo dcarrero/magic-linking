@@ -697,22 +697,16 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		$this->cache = null;
 
 		$wpdb = $this->wpdb;
-		// Solo las columnas que hacen falta para la ficha: `_prime_post_caches()` traería el `post_content` de cada candidata
-		// (unos 25 KB por entrada larga, 5 MB con 200) y la ficha no lo usa (F1-44). Los metadatos sí van a la caché. Con
-		// taxonomías, `get_the_terms()` lee cada entrada entera de la caché de WordPress: se cargan como antes, para no
-		// pasar a una consulta por entrada.
+		// Solo las columnas que hacen falta para la ficha, siempre con una consulta ligera por lote y sin pasar por la caché de
+		// entradas de WordPress: `_prime_post_caches()` traería el `post_content` de cada candidata (unos 25 KB por entrada
+		// larga, 5 MB con 200) y con una caché de objetos persistente cada `wp_cache_get()` lo leería entero (F1-44).
+		// Los metadatos sí van a la caché, y los términos (si hacen falta) se leen más abajo por lotes.
+		update_meta_cache( 'post', $ids );
 		$posts = array();
-		if ( $this->with_taxonomies ) {
-			_prime_post_caches( $ids, false, true );
-		} else {
-			update_meta_cache( 'post', $ids );
-		}
-		// Las que ya están enteras en la caché (las entrantes traen antes los orígenes) no se vuelven a leer.
-		$missing = $this->with_taxonomies ? array() : array_values( array_filter( $ids, static fn( int $id ): bool => false === wp_cache_get( $id, 'posts' ) ) );
-		foreach ( array_chunk( $missing, 500 ) as $chunk ) {
+		foreach ( array_chunk( $ids, 500 ) as $chunk ) {
 			$marks = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
 			$rows  = $wpdb->get_results(
-				$wpdb->prepare( "SELECT ID, post_title, post_name, post_modified_gmt FROM {$wpdb->posts} WHERE ID IN ({$marks})", $chunk ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
+				$wpdb->prepare( "SELECT ID, post_title, post_name, post_modified_gmt FROM %i WHERE ID IN ({$marks})", array_merge( array( $wpdb->posts ), $chunk ) ),
 				ARRAY_A
 			);
 			foreach ( (array) $rows as $row ) {
@@ -845,7 +839,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			(int) $row['doc_len'],
 			(int) $row['outbound'],
 			Fingerprint::focus( $id, $mine['texts'] ),
-			$this->with_taxonomies ? Taxonomies::of( $id, (string) $row['post_type'] ) : array(),
+			$this->with_taxonomies ? Taxonomies::cached( $id, (string) $row['post_type'] ) : array(),
 			$mine['gapped']
 		);
 	}

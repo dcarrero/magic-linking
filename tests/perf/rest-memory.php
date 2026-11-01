@@ -30,31 +30,37 @@ shuffle( $ids );
 $sample = array_slice( $ids, 0, $samples );
 
 $script = __DIR__ . '/rest-peak.php';
-$peak   = static function ( string $route, int $id ) use ( $script ): float {
-	$out  = shell_exec( 'ABSPATH_LOAD=' . escapeshellarg( ABSPATH . 'wp-load.php' ) . ' ' . escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $script ) . ' ' . escapeshellarg( $route ) . ' ' . $id . ' 2>&1' );
-	$data = json_decode( (string) $out, true );
+$peak   = static function ( string $route, int $id ) use ( $script ): array {
+	// Solo stdout: con WP_DEBUG un aviso (Deprecated, Notice) sale por stderr o delante del JSON. El JSON es la última línea.
+	$out   = (string) shell_exec( 'ABSPATH_LOAD=' . escapeshellarg( ABSPATH . 'wp-load.php' ) . ' ' . escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $script ) . ' ' . escapeshellarg( $route ) . ' ' . $id . ' 2>/dev/null' );
+	$lines = array_values( array_filter( array_map( 'trim', explode( "\n", $out ) ), static fn( string $line ): bool => '' !== $line ) );
+	$data  = json_decode( (string) end( $lines ), true );
 	if ( ! is_array( $data ) || 200 !== ( $data['status'] ?? 0 ) ) {
-		fwrite( STDERR, "rest-peak {$route} {$id}: " . substr( (string) $out, 0, 300 ) . "\n" );
+		fwrite( STDERR, "rest-peak {$route} {$id}: " . substr( $out, -300 ) . "\n" );
 		exit( 1 );
 	}
 
-	return (float) $data['peak'];
+	return array( (float) $data['peak'], (int) $data['queries'] );
 };
 
 $base = 0.0;
 for ( $i = 0; $i < 3; $i++ ) {
-	$base = max( $base, $peak( '/wp/v2/types', 0 ) );
+	$base = max( $base, $peak( '/wp/v2/types', 0 )[0] );
 }
 printf( "base de WordPress (petición REST sin cálculo del plugin)=%.1f MB\n", $base );
 
 $worst = 0.0;
 foreach ( array( 'outbound', 'inbound' ) as $direction ) {
-	$max = 0.0;
+	$max     = 0.0;
+	$queries = array();
 	foreach ( $sample as $id ) {
-		$max = max( $max, $peak( '/magic-linking/v1/suggestions/' . $direction, $id ) );
+		list( $mb, $n ) = $peak( '/magic-linking/v1/suggestions/' . $direction, $id );
+		$max            = max( $max, $mb );
+		$queries[]      = $n;
 	}
+	sort( $queries );
 	$worst = max( $worst, $max );
-	printf( "REST %-8s pico total=%.1f MB  añadido por el plugin=%.1f MB  (%d peticiones)\n", $direction, $max, $max - $base, count( $sample ) );
+	printf( "REST %-8s pico total=%.1f MB  añadido por el plugin=%.1f MB  consultas(mediana)=%d  (%d peticiones)\n", $direction, $max, $max - $base, $queries[ intdiv( count( $queries ), 2 ) ], count( $sample ) );
 }
 
 printf( "memoria por petición: pico total=%.1f MB (límite %.0f), añadido=%.1f MB (límite %.0f)\n", $worst, ML_TOTAL_BUDGET, $worst - $base, ML_OWN_BUDGET );

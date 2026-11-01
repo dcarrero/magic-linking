@@ -193,6 +193,36 @@ final class Taxonomies {
 	}
 
 	/**
+	 * Lo mismo que {@see self::of()} leyendo la caché de términos sin pasar por `get_the_terms()`, que carga la entrada
+	 * entera (con su contenido) para validarla. Si los términos no están en la caché, cae a `get_the_terms()`. Aplica el
+	 * mismo filtro `get_the_terms`, así que el resultado es el mismo.
+	 *
+	 * @param int    $post_id   ID.
+	 * @param string $post_type Tipo de contenido.
+	 *
+	 * @return array<string, list<string>>
+	 */
+	public static function cached( int $post_id, string $post_type ): array {
+		$out = array();
+		foreach ( array( 'category', 'post_tag' ) as $logical ) {
+			$taxonomy = self::primary( $post_type, $logical );
+			$terms    = null === $taxonomy ? false : get_object_term_cache( $post_id, $taxonomy );
+			if ( null !== $taxonomy && false !== $terms ) {
+				$terms = apply_filters( 'get_the_terms', $terms, $post_id, $taxonomy ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Filtro del núcleo.
+			} elseif ( null !== $taxonomy ) {
+				$terms = get_the_terms( $post_id, $taxonomy );
+			}
+			$ids = array();
+			foreach ( is_array( $terms ) ? $terms : array() as $term ) {
+				$ids[] = (string) $term->term_taxonomy_id;
+			}
+			$out[ $logical ] = $ids;
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Taxonomías de categoría (la jerárquica principal) de los tipos indicados, sin repetir.
 	 *
 	 * @param array $post_types Tipos de contenido.

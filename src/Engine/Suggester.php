@@ -493,11 +493,10 @@ final class Suggester {
 		$phrases  = $context->phrases;
 		$exclude  = array_merge( array( $target ), $this->existing ? $linking : array(), $this->excluded_origins );
 		$origins  = $this->retriever->incoming( $meta, $phrases, $exclude, $needs );
-		// Primero las entradas enteras (hacen falta para leer sus enlaces y su texto) y después la ficha, que así no las lee dos veces.
+		$this->preload( $origins );
 		if ( $this->documents instanceof PrefetchesDocuments ) {
 			$this->documents->prefetch( $origins );
 		}
-		$this->preload( $origins );
 
 		$wanted     = array_fill_keys( array_keys( $context->terms ), true );
 		$similarity = array();

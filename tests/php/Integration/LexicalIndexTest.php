@@ -17,6 +17,7 @@ use MagicLinking\Engine\Indexer;
 use MagicLinking\Engine\MemoryIndex;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\PostSource;
+use MagicLinking\Index\Suggestions;
 use MagicLinking\Index\TableRepository;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
@@ -312,31 +313,110 @@ final class LexicalIndexTest extends GraphTestCase {
 	}
 
 	/**
-	 * F1-44: precargar las candidatas no trae su `post_content` a la caché de WordPress (la ficha no lo usa) y deja la
-	 * misma ficha que la lectura suelta, sin una consulta por entrada.
+	 * Entradas de relleno con etiqueta y categoría, para que una consulta por entrada se note frente a un límite fijo.
+	 *
+	 * @return array<string, int>
 	 */
-	public function test_preload_builds_the_same_meta_without_loading_post_content(): void {
-		$ids = $this->corpus();
+	private function big_corpus( int $extra ): array {
+		$ids = array();
+		for ( $i = 1; $i <= $extra; $i++ ) {
+			$ids[ "x{$i}" ] = $this->post( "relleno-{$i}", "Otro zorrillo número {$i} cruza el bosque profundo cerca del río." . str_repeat( ' Texto largo de relleno que no debe cargarse.', 50 ), "Relleno {$i}" );
+			wp_set_post_terms( $ids[ "x{$i}" ], array( "etiqueta-{$i}" ), 'post_tag' );
+		}
+		$ids += $this->corpus();
+		$this->clear_index();
+
+		return $ids;
+	}
+
+	/**
+	 * Sentencias SQL ejecutadas por `$fn` que leen filas enteras de `wp_posts` (con `post_content`).
+	 *
+	 * @param callable $work Lo que se mide.
+	 * @return array{queries: int, full: list<string>}
+	 */
+	private function measure_queries( callable $work ): array {
+		global $wpdb;
+		$full   = array();
+		$before = get_num_queries();
+		$filter = static function ( string $sql ) use ( &$full, $wpdb ): string {
+			if ( preg_match( '/SELECT\s+\*\s+FROM\s+`?' . preg_quote( $wpdb->posts, '/' ) . '`?\s+WHERE\s+ID\s+IN/i', $sql ) ) {
+				$full[] = $sql;
+			}
+
+			return $sql;
+		};
+		add_filter( 'query', $filter );
+		$work();
+		remove_filter( 'query', $filter );
+
+		return array(
+			'queries' => get_num_queries() - $before,
+			'full'    => $full,
+		);
+	}
+
+	/**
+	 * F1-44: precargar las candidatas no trae su `post_content` (ni lo lee de la caché de objetos), deja la misma ficha que
+	 * la lectura suelta y no hace una consulta por entrada, con y sin taxonomías.
+	 *
+	 * @dataProvider taxonomy_modes
+	 *
+	 * @param bool $taxonomies Vista con filtros por categoría y etiqueta.
+	 */
+	public function test_preload_builds_the_same_meta_without_loading_post_content( bool $taxonomies ): void {
+		$ids = $this->big_corpus( 40 );
 		$this->run_job();
+		$repo = $this->repo->with_taxonomies( $taxonomies );
 
 		$expected = array();
 		foreach ( $ids as $key => $id ) {
-			$expected[ $key ] = $this->repo->meta( $id );
+			$expected[ $key ] = $repo->meta( $id );
 		}
 
 		wp_cache_flush();
-		$before = get_num_queries();
-		$this->repo->preload( array_values( $ids ) );
-		foreach ( $ids as $key => $id ) {
-			$this->assertEquals( $expected[ $key ], $this->repo->meta( $id ), "ficha de {$key}" );
-		}
-		$this->assertLessThanOrEqual( 12, get_num_queries() - $before, 'sin una consulta por entrada' );
+		$measure = $this->measure_queries( fn() => $repo->preload( array_values( $ids ) ) );
+		$this->assertSame( array(), $measure['full'], 'ninguna lectura de entradas enteras' );
+		$this->assertLessThanOrEqual( 12, $measure['queries'], 'consultas fijas, sin una por entrada (' . count( $ids ) . ' entradas)' );
 
+		$after = $this->measure_queries(
+			function () use ( $ids, $expected, $repo ): void {
+				foreach ( $ids as $key => $id ) {
+					$this->assertEquals( $expected[ $key ], $repo->meta( $id ), "ficha de {$key}" );
+				}
+			}
+		);
+		$this->assertSame( 0, $after['queries'], 'las fichas salen de lo precargado' );
 		foreach ( $ids as $id ) {
-			$cached = wp_cache_get( $id, 'posts' );
-			$this->assertFalse( $cached, 'el contenido de la candidata no se carga en la caché' );
+			$this->assertFalse( wp_cache_get( $id, 'posts' ), 'el contenido de la candidata no se carga en la caché' );
 		}
+		$repo->release();
+	}
+
+	/**
+	 * @return array<string, array{bool}>
+	 */
+	public static function taxonomy_modes(): array {
+		return array(
+			'sin taxonomías' => array( false ),
+			'con taxonomías' => array( true ),
+		);
+	}
+
+	/**
+	 * F1-44: en las entrantes las entradas de los orígenes se leen enteras una sola vez, estén o no ya en la caché, y no en
+	 * dependencia del orden entre `preload()` y `prefetch()`.
+	 */
+	public function test_incoming_reads_each_origin_post_once(): void {
+		$ids = $this->big_corpus( 30 );
+		$this->run_job();
+		$service = Plugin::container()->get( Suggestions::class );
+
+		wp_cache_flush();
 		$this->repo->release();
+		$measure = $this->measure_queries( fn() => $service->incoming( $ids['a'] ) );
+
+		$this->assertLessThanOrEqual( 1, count( $measure['full'] ), 'una sola lectura completa de los orígenes: ' . implode( ' | ', array_map( static fn( string $q ): string => substr( $q, 0, 80 ), $measure['full'] ) ) );
 	}
 
 	/**
