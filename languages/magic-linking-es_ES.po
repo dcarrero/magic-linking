@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-11-01T11:04:35+00:00\n"
+"POT-Creation-Date: 2026-11-01T12:23:59+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -232,7 +232,7 @@ msgstr "Acción desconocida. Usa: list, undo, redo, purge o export."
 
 #: src/Cli/Command.php:685 src/Cli/Command.php:719
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:702
+#: src/Rest/SuggestionsController.php:705
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "No tienes permiso para editar una de las entradas afectadas."
 
@@ -314,7 +314,7 @@ msgstr "Esa entrada no existe o no es de un tipo de contenido elegido."
 #: src/Rest/AiController.php:196 src/Rest/AnalyzedEntry.php:43
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
-#: src/Rest/SuggestionsController.php:1027
+#: src/Rest/SuggestionsController.php:1030
 msgid "That entry does not exist."
 msgstr "Esa entrada no existe."
 
@@ -897,32 +897,32 @@ msgid "That model works in batches, not live, so it cannot be used in the editor
 msgstr "Ese modelo funciona por lotes, no en directo, así que no sirve para el editor. Elige otro o déjalo en automático."
 
 #. translators: %s: comma-separated list of shared terms.
-#: src/Rest/SuggestionPresenter.php:234
+#: src/Rest/SuggestionPresenter.php:235
 #, php-format
 msgid "They share: %s"
 msgstr "Comparten: %s"
 
-#: src/Rest/SuggestionPresenter.php:237
+#: src/Rest/SuggestionPresenter.php:238
 msgid "The anchor matches the title of the destination"
 msgstr "El ancla coincide con el título del destino"
 
-#: src/Rest/SuggestionPresenter.php:240
+#: src/Rest/SuggestionPresenter.php:241
 msgid "The anchor matches the focus keyword of the destination"
 msgstr "El ancla coincide con la palabra clave principal del destino"
 
-#: src/Rest/SuggestionPresenter.php:243
+#: src/Rest/SuggestionPresenter.php:244
 msgid "The destination is an orphan (0 inbound links)"
 msgstr "El destino es huérfano (0 enlaces entrantes)"
 
-#: src/Rest/SuggestionPresenter.php:246
+#: src/Rest/SuggestionPresenter.php:247
 msgid "Very similar in meaning"
 msgstr "Muy parecidas por significado"
 
-#: src/Rest/SuggestionsController.php:694
+#: src/Rest/SuggestionsController.php:697
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Cada enlace necesita la entrada, el destino, la frase, el desplazamiento y el ancla."
 
-#: src/Rest/SuggestionsController.php:933
+#: src/Rest/SuggestionsController.php:936
 msgid "The link could not be saved; nothing was changed."
 msgstr "No se ha podido guardar el enlace; no se ha cambiado nada."
 

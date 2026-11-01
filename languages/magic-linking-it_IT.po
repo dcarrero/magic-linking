@@ -3,10 +3,10 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Magic Linking 0.24.0\n"
+"Project-Id-Version: Magic Linking 1.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-11-01T11:04:35+00:00\n"
-"PO-Revision-Date: 2026-10-31 12:00+0000\n"
+"POT-Creation-Date: 2026-11-01T12:23:59+00:00\n"
+"PO-Revision-Date: 2026-11-01 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Italiano\n"
 "Language: it_IT\n"
@@ -89,19 +89,19 @@ msgstr "Questo riquadro ha bisogno di JavaScript per mostrare i suggerimenti di 
 
 #: src/Admin/Notices.php:174
 msgid "Do not show again"
-msgstr ""
+msgstr "Non mostrare più"
 
 #: src/Admin/Notices.php:260
 msgid "You have added a good number of links with Magic Linking. If it is saving you time, a review on wordpress.org helps other people find it."
-msgstr ""
+msgstr "Hai aggiunto parecchi link con Magic Linking. Se ti sta facendo risparmiare tempo, una recensione su wordpress.org aiuta altre persone a trovarlo."
 
 #: src/Admin/Notices.php:262
 msgid "Write a review"
-msgstr ""
+msgstr "Scrivi una recensione"
 
 #: src/Admin/Notices.php:265
 msgid "No, thanks"
-msgstr ""
+msgstr "No, grazie"
 
 #: src/Admin/Notices.php:278
 msgid "This site has no AI connected. You can connect yours in Settings → Connectors (OpenAI, Google, Ollama local…). Meanwhile, suggestions use the lexical engine."
@@ -194,7 +194,7 @@ msgstr "Il processo non è terminato. Controllane lo stato con: wp magic-linking
 
 #: src/Cli/Command.php:361
 msgid "Invalid filter. Use: all, orphans, low, over, broken or excluded."
-msgstr ""
+msgstr "Filtro non valido. Usa: all, orphans, low, over, broken o excluded."
 
 #: src/Cli/Command.php:364
 msgid "Invalid column for --orderby."
@@ -231,7 +231,7 @@ msgstr "Azione sconosciuta. Usa: list, undo, redo, purge o export."
 
 #: src/Cli/Command.php:685 src/Cli/Command.php:719
 #: src/Rest/EditorHistoryController.php:98 src/Rest/HistoryController.php:795
-#: src/Rest/SuggestionsController.php:702
+#: src/Rest/SuggestionsController.php:705
 msgid "You do not have permission to edit one of the entries involved."
 msgstr "Non hai i permessi per modificare uno dei contenuti coinvolti."
 
@@ -294,26 +294,26 @@ msgstr[1] "%d righe della cronologia eliminate."
 #, php-format
 msgid "%d entry excluded from the analysis."
 msgid_plural "%d entries excluded from the analysis."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d contenuto escluso dall’analisi."
+msgstr[1] "%d contenuti esclusi dall’analisi."
 
 #. translators: %d: number of entries.
 #: src/Cli/Command.php:870
 #, php-format
 msgid "%d entry included in the analysis again."
 msgid_plural "%d entries included in the analysis again."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d contenuto incluso di nuovo nell’analisi."
+msgstr[1] "%d contenuti inclusi di nuovo nell’analisi."
 
 #: src/Cli/Command.php:888
 msgid "That entry does not exist or is not of a chosen content type."
-msgstr ""
+msgstr "Quel contenuto non esiste o non è di un tipo di contenuto scelto."
 
 #: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
 #: src/Rest/AiController.php:196 src/Rest/AnalyzedEntry.php:43
 #: src/Rest/DismissalsController.php:141
 #: src/Rest/EditorHistoryController.php:95
-#: src/Rest/SuggestionsController.php:1027
+#: src/Rest/SuggestionsController.php:1030
 msgid "That entry does not exist."
 msgstr "Quel contenuto non esiste."
 
@@ -763,89 +763,89 @@ msgstr "L’IA non ha risposto; vengono mostrati i suggerimenti senza IA."
 
 #: src/Rest/AnchorMessages.php:28
 msgid "The anchor has to be a literal part of the sentence."
-msgstr ""
+msgstr "Il testo di ancoraggio deve essere una parte letterale della frase."
 
 #: src/Rest/AnchorMessages.php:30
 msgid "The anchor has to start and end at the edge of a word."
-msgstr ""
+msgstr "Il testo di ancoraggio deve iniziare e finire al confine di una parola."
 
 #: src/Rest/AnchorMessages.php:32
 msgid "The anchor contains a word or phrase you chose to ignore in the settings."
-msgstr ""
+msgstr "Il testo di ancoraggio contiene una parola o una frase che hai scelto di ignorare nelle impostazioni."
 
 #: src/Rest/AnchorMessages.php:34
 msgid "This anchor already links to a different entry from this one. Use another anchor."
-msgstr ""
+msgstr "Questo testo di ancoraggio porta già a un altro contenuto da questo. Usa un altro testo di ancoraggio."
 
 #: src/Rest/AnchorMessages.php:36
 msgid "The anchor cannot start or end with a space."
-msgstr ""
+msgstr "Il testo di ancoraggio non può iniziare né finire con uno spazio."
 
 #: src/Rest/AnchorMessages.php:38
 msgid "The anchor is too short."
-msgstr ""
+msgstr "Il testo di ancoraggio è troppo breve."
 
 #. translators: %d: maximum number of words of an anchor.
 #: src/Rest/AnchorMessages.php:41
 #, php-format
 msgid "The anchor has more than %d words."
-msgstr ""
+msgstr "Il testo di ancoraggio ha più di %d parole."
 
 #: src/Rest/AnchorMessages.php:43
 msgid "The anchor needs at least one meaningful word, not only filler words."
-msgstr ""
+msgstr "Il testo di ancoraggio deve contenere almeno una parola significativa, non solo parole vuote."
 
 #: src/Rest/AnchorMessages.php:45
 msgid "The anchor cannot start with a filler word or a number."
-msgstr ""
+msgstr "Il testo di ancoraggio non può iniziare con una parola vuota o con un numero."
 
 #: src/Rest/AnchorMessages.php:47
 msgid "The anchor cannot end with a unit, a magnitude or a month."
-msgstr ""
+msgstr "Il testo di ancoraggio non può finire con un’unità, una grandezza o un mese."
 
 #: src/Rest/AnchorMessages.php:49
 msgid "The anchor starts with a verb form. It usually reads better starting with a noun."
-msgstr ""
+msgstr "Il testo di ancoraggio inizia con una forma verbale. Di solito suona meglio se inizia con un sostantivo."
 
 #: src/Rest/AnchorMessages.php:51
 msgid "The anchor ends with a verb form. It usually reads better ending with a noun."
-msgstr ""
+msgstr "Il testo di ancoraggio finisce con una forma verbale. Di solito suona meglio se finisce con un sostantivo."
 
 #: src/Rest/AnchorMessages.php:53
 msgid "The anchor ends with a filler word."
-msgstr ""
+msgstr "Il testo di ancoraggio finisce con una parola vuota."
 
 #: src/Rest/AnchorMessages.php:55
 msgid "This anchor is too generic: it says nothing about the destination."
-msgstr ""
+msgstr "Questo testo di ancoraggio è troppo generico: non dice nulla sulla destinazione."
 
 #: src/Rest/AnchorMessages.php:57
 msgid "The anchor is not valid."
-msgstr ""
+msgstr "Il testo di ancoraggio non è valido."
 
 #. translators: 1: title of the destination the anchor already links to, 2: number of entries that use it.
 #: src/Rest/AnchorNotes.php:138
 #, php-format
 msgid "This anchor already links to “%1$s” in %2$d entry."
 msgid_plural "This anchor already links to “%1$s” in %2$d entries."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Questo testo di ancoraggio porta già a «%1$s» in %2$d contenuto."
+msgstr[1] "Questo testo di ancoraggio porta già a «%1$s» in %2$d contenuti."
 
 #. translators: %d: number of other destinations the same anchor links to.
 #: src/Rest/AnchorNotes.php:141
 #, php-format
 msgid "It also links to %d other destination."
 msgid_plural "It also links to %d other destinations."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Porta anche a %d altra destinazione."
+msgstr[1] "Porta anche ad altre %d destinazioni."
 
 #. translators: %d: number of entries that already use this anchor for this destination.
 #: src/Rest/AnchorNotes.php:153
 #, php-format
 msgid "This anchor is already used in %d entry for this destination."
 msgid_plural "This anchor is already used in %d entries for this destination."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Questo testo di ancoraggio è già usato in %d contenuto per questa destinazione."
+msgstr[1] "Questo testo di ancoraggio è già usato in %d contenuti per questa destinazione."
 
 #: src/Rest/DismissalsController.php:137
 msgid "An entry cannot link to itself."
@@ -881,7 +881,7 @@ msgstr "Quel processo non esiste."
 
 #: src/Rest/NoticesController.php:87 src/Rest/NoticesController.php:103
 msgid "That notice does not exist."
-msgstr ""
+msgstr "Quell’avviso non esiste."
 
 #: src/Rest/RulesController.php:653
 msgid "You do not have permission to edit this entry."
@@ -896,50 +896,50 @@ msgid "That model works in batches, not live, so it cannot be used in the editor
 msgstr "Questo modello funziona a lotti, non in tempo reale, quindi non si può usare nell’editor. Scegline un altro o lascia l’automatico."
 
 #. translators: %s: comma-separated list of shared terms.
-#: src/Rest/SuggestionPresenter.php:234
+#: src/Rest/SuggestionPresenter.php:235
 #, php-format
 msgid "They share: %s"
 msgstr "Hanno in comune: %s"
 
-#: src/Rest/SuggestionPresenter.php:237
+#: src/Rest/SuggestionPresenter.php:238
 msgid "The anchor matches the title of the destination"
 msgstr "Il testo di ancoraggio corrisponde al titolo della destinazione"
 
-#: src/Rest/SuggestionPresenter.php:240
+#: src/Rest/SuggestionPresenter.php:241
 msgid "The anchor matches the focus keyword of the destination"
 msgstr "Il testo di ancoraggio corrisponde alla parola chiave principale della destinazione"
 
-#: src/Rest/SuggestionPresenter.php:243
+#: src/Rest/SuggestionPresenter.php:244
 msgid "The destination is an orphan (0 inbound links)"
 msgstr "La destinazione è orfana (0 link in entrata)"
 
-#: src/Rest/SuggestionPresenter.php:246
+#: src/Rest/SuggestionPresenter.php:247
 msgid "Very similar in meaning"
 msgstr "Significato molto simile"
 
-#: src/Rest/SuggestionsController.php:694
+#: src/Rest/SuggestionsController.php:697
 msgid "Each link needs the post, the destination, the sentence, the offset and the anchor."
 msgstr "Ogni link ha bisogno dell'articolo, della destinazione, della frase, della posizione e del testo di ancoraggio."
 
-#: src/Rest/SuggestionsController.php:933
+#: src/Rest/SuggestionsController.php:936
 msgid "The link could not be saved; nothing was changed."
 msgstr "Impossibile salvare il link; non è stato modificato nulla."
 
 #: src/Rest/TargetPhrasesController.php:100
 msgid "The phrases must be a list."
-msgstr ""
+msgstr "Le frasi devono essere un elenco."
 
 #: src/Rest/TargetPhrasesController.php:108
 msgid "Each phrase needs its text, and its variants must be text."
-msgstr ""
+msgstr "Ogni frase ha bisogno del suo testo, e le sue varianti devono essere testo."
 
 #. translators: %d: maximum number of phrases.
 #: src/Rest/TargetPhrasesController.php:115
 #, php-format
 msgid "You can add up to %d phrase."
 msgid_plural "You can add up to %d phrases."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Puoi aggiungere fino a %d frase."
+msgstr[1] "Puoi aggiungere fino a %d frasi."
 
 #. translators: %d: maximum number of variants per phrase.
 #: src/Rest/TargetPhrasesController.php:122 assets/build/classic.js:15
@@ -947,27 +947,27 @@ msgstr[1] ""
 #, php-format
 msgid "Each phrase can have up to %d variant."
 msgid_plural "Each phrase can have up to %d variants."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Ogni frase può avere fino a %d variante."
+msgstr[1] "Ogni frase può avere fino a %d varianti."
 
 #. translators: 1: the start of the phrase, 2: maximum number of characters.
 #: src/Rest/TargetPhrasesController.php:127 assets/build/classic.js:16
 #: assets/build/editor.js:16
 #, php-format
 msgid "“%1$s…” is too long: a phrase can have up to %2$d characters."
-msgstr ""
+msgstr "«%1$s…» è troppo lunga: una frase può avere al massimo %2$d caratteri."
 
 #. translators: %s: the phrase.
 #: src/Rest/TargetPhrasesController.php:131
 #, php-format
 msgid "“%s” has no content word: add a word that is not an article, a preposition or a number, or the engine will never use it."
-msgstr ""
+msgstr "«%s» non contiene nessuna parola significativa: aggiungi una parola che non sia un articolo, una preposizione o un numero, altrimenti il motore non la userà mai."
 
 #. translators: 1: the phrase, 2: maximum number of words.
 #: src/Rest/TargetPhrasesController.php:135
 #, php-format
 msgid "“%1$s” is too long: a phrase can have up to %2$d words."
-msgstr ""
+msgstr "«%1$s» è troppo lunga: una frase può avere al massimo %2$d parole."
 
 #: src/Rules/RuleService.php:102
 msgid "The entry is not published."
@@ -995,7 +995,7 @@ msgstr "Il contenuto o la destinazione è nel tuo elenco di URL ignorati."
 
 #: src/Rules/RuleService.php:110
 msgid "The entry or the destination is excluded from the analysis."
-msgstr ""
+msgstr "Il contenuto o la destinazione sono esclusi dall’analisi."
 
 #: src/Rules/RuleService.php:111
 msgid "The person who created the rule can no longer manage the site or edit this entry."
@@ -1035,11 +1035,11 @@ msgstr "Quel contenuto è nel tuo elenco di URL ignorati, quindi non può essere
 
 #: src/Rules/RuleValidator.php:70
 msgid "That entry is excluded from the analysis, so it cannot be a destination. Include it again from the report first."
-msgstr ""
+msgstr "Quel contenuto è escluso dall’analisi e non può essere una destinazione. Includilo di nuovo prima dal report."
 
 #: src/Rules/RuleValidator.php:73
 msgid "That entry is in a category excluded from the analysis, so it cannot be a destination. Change the excluded categories in Settings → General first."
-msgstr ""
+msgstr "Quel contenuto è in una categoria esclusa dall’analisi, quindi non può essere una destinazione. Prima modifica le categorie escluse in Impostazioni → Generale."
 
 #: src/Rules/RuleValidator.php:89
 msgid "Write at least one phrase to link."
@@ -1174,7 +1174,7 @@ msgstr "Torna all’ordine originale"
 
 #: assets/build/classic.js:12 assets/build/editor.js:12
 msgid "Internal link (no access)"
-msgstr ""
+msgstr "Link interno (senza accesso)"
 
 #: assets/build/classic.js:12 assets/build/classic.js:29
 #: assets/build/editor.js:12 assets/build/editor.js:29 assets/build/index.js:72
@@ -1184,11 +1184,11 @@ msgstr "(si apre in una nuova scheda)"
 #. translators: %d: number of entries this one already links to.
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Current links (%d)"
-msgstr ""
+msgstr "Link attuali (%d)"
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 msgid "Already linked"
-msgstr ""
+msgstr "Già collegato"
 
 #: assets/build/classic.js:13 assets/build/editor.js:13
 #: assets/build/index.js:62
@@ -1249,70 +1249,70 @@ msgstr "Non è stato possibile salvare il contrassegno di contenuto pilastro."
 
 #: assets/build/classic.js:14 assets/build/editor.js:14
 msgid "Could not load the target phrases."
-msgstr ""
+msgstr "Impossibile caricare le frasi obiettivo."
 
 #: assets/build/classic.js:16 assets/build/editor.js:16
 msgid "Target phrases"
-msgstr ""
+msgstr "Frasi obiettivo"
 
 #: assets/build/classic.js:16 assets/build/editor.js:16
 msgid "Optional. The engine finds phrases on its own; this helps with the ones you care about."
-msgstr ""
+msgstr "Facoltativo. Il motore trova le frasi da solo; questo lo aiuta con quelle che ti interessano di più."
 
 #. translators: %d: position of the phrase in the list.
 #: assets/build/classic.js:17 assets/build/editor.js:17
 msgid "Phrase %d"
-msgstr ""
+msgstr "Frase %d"
 
 #: assets/build/classic.js:17 assets/build/editor.js:17
 msgid "Phrase"
-msgstr ""
+msgstr "Frase"
 
 #: assets/build/classic.js:17 assets/build/editor.js:17
 msgid "Variants (one per line)"
-msgstr ""
+msgstr "Varianti (una per riga)"
 
 #: assets/build/classic.js:17 assets/build/editor.js:17
 msgid "Allow one word in between"
-msgstr ""
+msgstr "Consenti una parola in mezzo"
 
 #: assets/build/classic.js:17 assets/build/editor.js:17
 msgid "“kitchen remodel” also matches “kitchen full remodel”, but not two extra words."
-msgstr ""
+msgstr "«ristrutturazione cucina» corrisponde anche a «ristrutturazione completa cucina», ma non con due parole in più."
 
 #. translators: %d: position of the phrase in the list.
 #: assets/build/classic.js:18 assets/build/editor.js:18
 msgid "Remove phrase %d"
-msgstr ""
+msgstr "Rimuovi la frase %d"
 
 #: assets/build/classic.js:18 assets/build/editor.js:18
 msgid "Add phrase"
-msgstr ""
+msgstr "Aggiungi frase"
 
 #. translators: %d: number of target phrases saved.
 #: assets/build/classic.js:19 assets/build/editor.js:19
 msgid "Target phrases saved: %d phrase."
 msgid_plural "Target phrases saved: %d phrases."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Frasi obiettivo salvate: %d frase."
+msgstr[1] "Frasi obiettivo salvate: %d frasi."
 
 #. translators: %s: list of repeated phrases the server did not keep.
 #: assets/build/classic.js:20 assets/build/editor.js:20
 msgid "Not kept because they were repeated: %s."
-msgstr ""
+msgstr "Non conservate perché ripetute: %s."
 
 #: assets/build/classic.js:20 assets/build/editor.js:20
 msgid "The target phrases could not be saved."
-msgstr ""
+msgstr "Impossibile salvare le frasi obiettivo."
 
 #: assets/build/classic.js:20 assets/build/editor.js:20
 msgid "Save phrases"
-msgstr ""
+msgstr "Salva le frasi"
 
 #: assets/build/classic.js:20 assets/build/editor.js:20
 #: assets/build/index.js:63
 msgid "The anchor could not be checked. Try again."
-msgstr ""
+msgstr "Impossibile verificare il testo di ancoraggio. Riprova."
 
 #. translators: 1: anchor text, 2: number of words.
 #: assets/build/classic.js:21 assets/build/classic.js:22
@@ -1320,29 +1320,29 @@ msgstr ""
 #: assets/build/index.js:65
 msgid "Anchor: %1$s, %2$d word"
 msgid_plural "Anchor: %1$s, %2$d words"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Testo di ancoraggio: %1$s, %2$d parola"
+msgstr[1] "Testo di ancoraggio: %1$s, %2$d parole"
 
 #: assets/build/classic.js:21 assets/build/editor.js:21
 #: assets/build/index.js:64
 msgid "Right arrow extends the anchor, left arrow shortens it. Shift with the arrows does the same on the left. Enter confirms and Escape cancels."
-msgstr ""
+msgstr "La freccia destra allunga il testo di ancoraggio, la sinistra lo accorcia. Con Maiusc, le frecce fanno lo stesso a sinistra. Invio conferma ed Esc annulla."
 
 #: assets/build/classic.js:21 assets/build/classic.js:28
 #: assets/build/editor.js:21 assets/build/editor.js:28 assets/build/index.js:64
 #: assets/build/index.js:71
 msgid "Adjust anchor"
-msgstr ""
+msgstr "Regola il testo di ancoraggio"
 
 #: assets/build/classic.js:22 assets/build/editor.js:22
 #: assets/build/index.js:65
 msgid "Checking the anchor…"
-msgstr ""
+msgstr "Verifica del testo di ancoraggio…"
 
 #: assets/build/classic.js:22 assets/build/editor.js:22
 #: assets/build/index.js:65
 msgid "Apply anchor"
-msgstr ""
+msgstr "Applica il testo di ancoraggio"
 
 #: assets/build/classic.js:22 assets/build/editor.js:22 assets/build/index.js:7
 #: assets/build/index.js:59 assets/build/index.js:65 assets/build/index.js:98
@@ -1353,12 +1353,12 @@ msgstr "Annulla"
 #: assets/build/classic.js:22 assets/build/editor.js:22
 #: assets/build/index.js:65
 msgid "Link from this sentence"
-msgstr ""
+msgstr "Collega da questa frase"
 
 #: assets/build/classic.js:22 assets/build/editor.js:22
 #: assets/build/index.js:65
 msgid "recommended"
-msgstr ""
+msgstr "consigliata"
 
 #: assets/build/classic.js:22 assets/build/classic.js:41
 #: assets/build/editor.js:22 assets/build/editor.js:41 assets/build/index.js:65
@@ -1430,18 +1430,18 @@ msgstr "Vedi nella Cronologia"
 #: assets/build/classic.js:28 assets/build/editor.js:28
 #: assets/build/index.js:71
 msgid "Adjust anchor, link to “%s”"
-msgstr ""
+msgstr "Regola il testo di ancoraggio, link a «%s»"
 
 #. translators: %d: number of sentences to choose from.
 #: assets/build/classic.js:29 assets/build/editor.js:29
 #: assets/build/index.js:72
 msgid "More sentences (%d)"
-msgstr ""
+msgstr "Altre frasi (%d)"
 
 #: assets/build/classic.js:29 assets/build/editor.js:29
 #: assets/build/index.js:72
 msgid "Anchor notices"
-msgstr ""
+msgstr "Avvisi sul testo di ancoraggio"
 
 #: assets/build/classic.js:29 assets/build/editor.js:29
 #: assets/build/index.js:72
@@ -1537,17 +1537,17 @@ msgstr "Questo contenuto non è ancora stato analizzato. Salvalo e aggiorna tra 
 #: assets/build/classic.js:35 assets/build/editor.js:35
 #: assets/build/index.js:78
 msgid "This entry is excluded from the analysis, so it has no suggestions and is not suggested anywhere. Include it again from the report."
-msgstr ""
+msgstr "Questo contenuto è escluso dall’analisi, quindi non ha suggerimenti e non viene suggerito da nessuna parte. Includilo di nuovo dal report."
 
 #: assets/build/classic.js:35 assets/build/editor.js:35
 #: assets/build/index.js:78
 msgid "This entry is in a category that is excluded from the analysis, so it has no suggestions and is not suggested anywhere. You can change the excluded categories in Settings."
-msgstr ""
+msgstr "Questo contenuto è in una categoria esclusa dall’analisi, quindi non ha suggerimenti e non viene suggerito da nessuna parte. Puoi modificare le categorie escluse nelle Impostazioni."
 
 #: assets/build/classic.js:35 assets/build/editor.js:35
 #: assets/build/index.js:78
 msgid "Open the settings"
-msgstr ""
+msgstr "Apri le impostazioni"
 
 #: assets/build/classic.js:35 assets/build/editor.js:35
 #: assets/build/index.js:78
@@ -1593,12 +1593,12 @@ msgstr "Ricerca dei suggerimenti…"
 #. translators: 1: position of the sentence, 2: number of sentences, 3: anchor text.
 #: assets/build/classic.js:37 assets/build/editor.js:37
 msgid "Sentence %1$d of %2$d selected. Anchor: %3$s."
-msgstr ""
+msgstr "Frase %1$d di %2$d selezionata. Testo di ancoraggio: %3$s."
 
 #. translators: %s: anchor text.
 #: assets/build/classic.js:38 assets/build/editor.js:38
 msgid "Anchor set: %s."
-msgstr ""
+msgstr "Testo di ancoraggio impostato: %s."
 
 #. translators: %d: number of suggestions.
 #: assets/build/classic.js:39 assets/build/editor.js:39
@@ -1733,26 +1733,26 @@ msgstr "Impossibile caricare i suggerimenti. Controlla la connessione e riprova.
 #. translators: %s: title of the entry where the link would go.
 #: assets/build/classic.js:43 assets/build/editor.js:43
 msgid "The suggestion in “%s” has changed sentence."
-msgstr ""
+msgstr "Il suggerimento in «%s» ha cambiato frase."
 
 #. translators: %s: title of the entry where the link would go.
 #: assets/build/classic.js:44 assets/build/editor.js:44
 msgid "The suggestion in “%s” was removed because its sentence is now used by another one."
-msgstr ""
+msgstr "Il suggerimento in «%s» è stato rimosso perché la sua frase è ora usata da un altro."
 
 #. translators: %s: title of the destination of the suggestion.
 #: assets/build/classic.js:45 assets/build/editor.js:45
 msgid "The suggestion to “%s” has changed sentence."
-msgstr ""
+msgstr "Il suggerimento verso «%s» ha cambiato frase."
 
 #. translators: %s: title of the destination of the suggestion.
 #: assets/build/classic.js:46 assets/build/editor.js:46
 msgid "The suggestion to “%s” was removed because its sentence is now used by another one."
-msgstr ""
+msgstr "Il suggerimento verso «%s» è stato rimosso perché la sua frase è ora usata da un altro."
 
 #: assets/build/classic.js:46 assets/build/editor.js:46
 msgid "That sentence cannot be used: a link you added or dismissed already takes it."
-msgstr ""
+msgstr "Quella frase non può essere usata: un link che hai aggiunto o scartato la occupa già."
 
 #: assets/build/index.js:1
 msgid "Notice closed."
@@ -1760,7 +1760,7 @@ msgstr "Avviso chiuso."
 
 #: assets/build/index.js:1
 msgid "The notice could not be closed. Try again."
-msgstr ""
+msgstr "Impossibile chiudere l’avviso. Riprova."
 
 #. translators: %s: number of entries.
 #: assets/build/index.js:3 assets/build/index.js:23
@@ -2743,11 +2743,11 @@ msgstr "Pagine dei suggerimenti in uscita"
 
 #: assets/build/index.js:86
 msgid "Not analyzed"
-msgstr ""
+msgstr "Non analizzato"
 
 #: assets/build/index.js:86 assets/build/index.js:87
 msgid "Excluded"
-msgstr ""
+msgstr "Esclusi"
 
 #: assets/build/index.js:86 assets/build/index.js:130
 msgid "Could not load the report."
@@ -2803,7 +2803,7 @@ msgstr "link non funzionanti in %s"
 
 #: assets/build/index.js:88
 msgid "category excluded"
-msgstr ""
+msgstr "categoria esclusa"
 
 #: assets/build/index.js:88
 msgid "Analyzed"
@@ -2823,33 +2823,33 @@ msgstr "Suggerimenti in uscita"
 
 #: assets/build/index.js:88
 msgid "Change excluded categories"
-msgstr ""
+msgstr "Modifica le categorie escluse"
 
 #. translators: %s: entry title.
 #: assets/build/index.js:89
 msgid "%s excluded from the analysis."
-msgstr ""
+msgstr "%s escluso dall’analisi."
 
 #. translators: %s: entry title.
 #: assets/build/index.js:90
 msgid "%s included in the analysis again."
-msgstr ""
+msgstr "%s incluso di nuovo nell’analisi."
 
 #: assets/build/index.js:90
 msgid "Could not exclude the entry from the analysis."
-msgstr ""
+msgstr "Impossibile escludere il contenuto dall’analisi."
 
 #: assets/build/index.js:90
 msgid "Could not include the entry in the analysis again."
-msgstr ""
+msgstr "Impossibile includere di nuovo il contenuto nell’analisi."
 
 #: assets/build/index.js:90
 msgid "Include in the analysis"
-msgstr ""
+msgstr "Includi di nuovo nell’analisi"
 
 #: assets/build/index.js:90
 msgid "Exclude from the analysis"
-msgstr ""
+msgstr "Escludi dall’analisi"
 
 #: assets/build/index.js:90
 msgid "View broken links"
@@ -2857,7 +2857,7 @@ msgstr "Vedi i link non funzionanti"
 
 #: assets/build/index.js:90
 msgid "No entries are excluded from the analysis."
-msgstr ""
+msgstr "Nessun contenuto è escluso dall’analisi."
 
 #: assets/build/index.js:90 assets/build/index.js:118
 msgid "Content type"
@@ -3185,12 +3185,12 @@ msgstr "Eliminare la regola «%s»? I link che ha già aggiunto restano nei tuoi
 #. translators: %s: name of the taxonomy, e.g. Categories.
 #: assets/build/index.js:107
 msgid "Filter %s by name"
-msgstr ""
+msgstr "Filtra %s per nome"
 
 #. translators: %d: number of categories not shown.
 #: assets/build/index.js:108
 msgid "%d more not shown. Type in the filter to find them."
-msgstr ""
+msgstr "Altre %d non sono mostrate. Scrivi nel filtro per trovarle."
 
 #: assets/build/index.js:108
 msgid "Content analyzed"
@@ -3202,11 +3202,11 @@ msgstr "Magic Linking legge questi tipi di contenuto per trovare i link tra di e
 
 #: assets/build/index.js:108
 msgid "Categories left out"
-msgstr ""
+msgstr "Categorie escluse"
 
 #: assets/build/index.js:108
 msgid "Entries in the categories you tick are not analyzed, like an entry you exclude yourself: they get no suggestions and are not suggested anywhere."
-msgstr ""
+msgstr "I contenuti delle categorie che selezioni non vengono analizzati, come un contenuto che escludi tu stesso: non hanno suggerimenti e non vengono suggeriti da nessuna parte."
 
 #: assets/build/index.js:108
 msgid "Maintenance"
@@ -3250,11 +3250,11 @@ msgstr "Quando un contenuto viene mostrato come poco collegato."
 
 #: assets/build/index.js:108
 msgid "Advanced"
-msgstr ""
+msgstr "Avanzate"
 
 #: assets/build/index.js:108
 msgid "The defaults suit almost every site. Change them only if you know what they do."
-msgstr ""
+msgstr "I valori predefiniti vanno bene per quasi tutti i siti. Modificali solo se sai cosa fanno."
 
 #: assets/build/index.js:108
 msgid "Where links can be inserted"
@@ -3612,11 +3612,11 @@ msgstr "I link più utili da aggiungere dal contenuto che stai modificando."
 
 #: assets/build/index.js:118
 msgid "Alternative sentences per suggestion"
-msgstr ""
+msgstr "Frasi alternative per suggerimento"
 
 #: assets/build/index.js:118
 msgid "0 shows one sentence per suggestion. With 1 or 2, each card offers “More sentences” to link from another sentence of the same entry."
-msgstr ""
+msgstr "Con 0 viene mostrata una sola frase per suggerimento. Con 1 o 2, ogni scheda offre «Altre frasi» per collegare da un’altra frase dello stesso contenuto."
 
 #: assets/build/index.js:118
 msgid "Inbound suggestions per page in the editor"
@@ -3680,23 +3680,23 @@ msgstr "Un contenuto con almeno un link in entrata ma meno di questo numero vien
 
 #: assets/build/index.js:118
 msgid "Show advanced settings"
-msgstr ""
+msgstr "Mostra le impostazioni avanzate"
 
 #: assets/build/index.js:118
 msgid "Key terms per entry"
-msgstr ""
+msgstr "Termini chiave per contenuto"
 
 #: assets/build/index.js:118
 msgid "How many of the most important terms of each entry are kept to find related entries (20 to 80). Changing it makes Magic Linking analyze your site again."
-msgstr ""
+msgstr "Quanti dei termini più importanti di ogni contenuto vengono conservati per trovare contenuti correlati (da 20 a 80). Se lo cambi, Magic Linking analizza di nuovo il tuo sito."
 
 #: assets/build/index.js:118
 msgid "Score threshold (%)"
-msgstr ""
+msgstr "Soglia del punteggio (%)"
 
 #: assets/build/index.js:118
 msgid "A suggestion is shown only if its score reaches this percentage. Higher shows fewer, surer suggestions; lower shows more. It does not analyze your site again."
-msgstr ""
+msgstr "Un suggerimento viene mostrato solo se il suo punteggio raggiunge questa percentuale. Più alta mostra meno suggerimenti, ma più sicuri; più bassa ne mostra di più. Non analizza di nuovo il tuo sito."
 
 #: assets/build/index.js:118
 msgid "Headings"
@@ -3792,29 +3792,29 @@ msgstr "Tipi di contenuto da analizzare"
 
 #: assets/build/index.js:118
 msgid "Detect the language of each entry from its text"
-msgstr ""
+msgstr "Rileva la lingua di ogni contenuto dal suo testo"
 
 #: assets/build/index.js:118
 msgid "WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active."
-msgstr ""
+msgstr "WPML o Polylang comunicano già a Magic Linking la lingua di ogni contenuto, quindi questa opzione non fa nulla finché uno dei due è attivo."
 
 #. translators: %d: minimum number of words an entry needs for its language to be detected.
 #: assets/build/index.js:119
 msgid "Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least %d words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again."
-msgstr ""
+msgstr "Utile quando il tuo sito è in una lingua ma alcuni contenuti sono scritti in un’altra. È una stima basata sulle parole più comuni, quindi servono almeno %d parole; quando non è sicura, viene usata la lingua del sito. Salvando, Magic Linking analizza di nuovo il tuo sito."
 
 #: assets/build/index.js:119
 msgid "The content types you analyze have no categories."
-msgstr ""
+msgstr "I tipi di contenuto che analizzi non hanno categorie."
 
 #. translators: %d: maximum number of categories.
 #: assets/build/index.js:120
 msgid "You have reached the limit of %d categories. Untick one to choose another."
-msgstr ""
+msgstr "Hai raggiunto il limite di %d categorie. Deseleziona una categoria per sceglierne un’altra."
 
 #: assets/build/index.js:120
 msgid "Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones."
-msgstr ""
+msgstr "Conta solo la categoria esatta: le sue sottocategorie non vengono escluse insieme a essa. Salvando, Magic Linking analizza di nuovo il tuo sito. L’elenco segue i tipi di contenuto salvati qui sopra, quindi salva prima se ne hai appena scelti di nuovi."
 
 #: assets/build/index.js:120
 msgid "Save settings"
@@ -3824,114 +3824,114 @@ msgstr "Salva le impostazioni"
 #: assets/build/index.js:121
 msgctxt "milliseconds"
 msgid "%s ms"
-msgstr ""
+msgstr "%s ms"
 
 #. translators: %s: target time, e.g. "500 ms".
 #: assets/build/index.js:122
 msgid "target under %s"
-msgstr ""
+msgstr "obiettivo: meno di %s"
 
 #. translators: %s: the target, e.g. "target under 500.0 ms".
 #: assets/build/index.js:123
 msgid "Within budget (%s)"
-msgstr ""
+msgstr "Entro il budget (%s)"
 
 #. translators: %s: the target, e.g. "target under 500.0 ms".
 #: assets/build/index.js:124
 msgid "Over budget (%s)"
-msgstr ""
+msgstr "Oltre il budget (%s)"
 
 #: assets/build/index.js:124
 msgid "Could not read the index status."
-msgstr ""
+msgstr "Impossibile leggere lo stato dell’indice."
 
 #: assets/build/index.js:124
 msgid "Could not read the engine times."
-msgstr ""
+msgstr "Impossibile leggere i tempi del motore."
 
 #: assets/build/index.js:124
 msgid "Engine times refreshed."
-msgstr ""
+msgstr "Tempi del motore aggiornati."
 
 #: assets/build/index.js:124
 msgid "Outgoing"
-msgstr ""
+msgstr "In uscita"
 
 #: assets/build/index.js:124
 msgid "Incoming"
-msgstr ""
+msgstr "In entrata"
 
 #: assets/build/index.js:124
 msgid "Index"
-msgstr ""
+msgstr "Indice"
 
 #. translators: 1: entries in the index, 2: entries that can be analyzed.
 #: assets/build/index.js:125
 msgid "%1$s of %2$s entries are in the index."
-msgstr ""
+msgstr "%1$s contenuti su %2$s sono nell’indice."
 
 #: assets/build/index.js:126
 msgid "Engine time"
-msgstr ""
+msgstr "Tempo del motore"
 
 #. translators: %s: number of requests kept per direction.
 #: assets/build/index.js:127
 msgid "Measured on the last %s suggestions request recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
 msgid_plural "Measured on the last %s suggestions requests recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Misurato sull’ultima richiesta di suggerimenti registrata per ciascuna direzione. Per evitare di scrivere a ogni tasto premuto nell’editor, viene conservata al massimo una scrittura ogni pochi secondi, quindi alcune richieste non vengono registrate. I tempi sono salvati solo su questo sito e non vengono mai inviati altrove."
+msgstr[1] "Misurato sulle ultime %s richieste di suggerimenti registrate per ciascuna direzione. Per evitare di scrivere a ogni tasto premuto nell’editor, viene conservata al massimo una scrittura ogni pochi secondi, quindi alcune richieste non vengono registrate. I tempi sono salvati solo su questo sito e non vengono mai inviati altrove."
 
 #: assets/build/index.js:127
 msgid "No suggestions have been calculated yet. Open an entry in the editor or the Report to see the times here."
-msgstr ""
+msgstr "Non è ancora stato calcolato nessun suggerimento. Apri un contenuto nell’editor o il report per vedere qui i tempi."
 
 #: assets/build/index.js:127
 msgid "Time of the suggestions engine, in milliseconds"
-msgstr ""
+msgstr "Tempo del motore dei suggerimenti, in millisecondi"
 
 #: assets/build/index.js:127
 msgid "Direction"
-msgstr ""
+msgstr "Direzione"
 
 #: assets/build/index.js:127
 msgid "Median"
-msgstr ""
+msgstr "Mediana"
 
 #: assets/build/index.js:127
 msgid "95th percentile"
-msgstr ""
+msgstr "95º percentile"
 
 #: assets/build/index.js:127
 msgid "Budget"
-msgstr ""
+msgstr "Budget"
 
 #: assets/build/index.js:127
 msgid "From cache"
-msgstr ""
+msgstr "Dalla cache"
 
 #: assets/build/index.js:127
 msgid "Candidates"
-msgstr ""
+msgstr "Candidate"
 
 #: assets/build/index.js:127
 msgid "Retrieval"
-msgstr ""
+msgstr "Recupero"
 
 #: assets/build/index.js:127
 msgid "Loading"
-msgstr ""
+msgstr "Caricamento"
 
 #: assets/build/index.js:127
 msgid "Scoring"
-msgstr ""
+msgstr "Punteggio"
 
 #: assets/build/index.js:127
 msgid "No requests yet."
-msgstr ""
+msgstr "Nessuna richiesta per ora."
 
 #: assets/build/index.js:127
 msgid "Median and 95th percentile cover every recorded request, including those answered from the cache. Candidates and phases cover only the requests the engine calculated. Retrieval is analyzing the entry and finding candidate targets; loading is reading the targets or sources; phrases is looking for where to place the anchor; scoring is rating each one. Sorting, reasons and removing ignored words are not in any phase, and the phases are medians, so they do not have to add up to the total."
-msgstr ""
+msgstr "La mediana e il 95º percentile comprendono tutte le richieste registrate, anche quelle servite dalla cache. Le candidate e le fasi comprendono solo le richieste calcolate dal motore. Il recupero consiste nell’analizzare il contenuto e trovare le destinazioni candidate; il caricamento, nel leggere le destinazioni o le origini; le frasi, nel cercare dove mettere il testo di ancoraggio; il punteggio, nel valutare ciascuna. L’ordinamento, i motivi e la rimozione delle parole ignorate non rientrano in nessuna fase, e le fasi sono mediane, quindi non devono per forza sommarsi al totale."
 
 #: assets/build/index.js:127
 msgid "Could not load the setup information."
