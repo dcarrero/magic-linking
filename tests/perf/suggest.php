@@ -6,7 +6,7 @@
  * Hace falta el sitio sintético ya indexado: `wp eval-file tests/perf/seed.php 10000` y `wp magic-linking index`.
  * Imprime p50, p95 y máximo de cada dirección, consultas por petición y memoria (pico total y añadida). Con `strict`
  * (CI) sale con error si el p95 de salientes pasa de 500 ms, el de entrantes de 800 ms o la memoria
- * que añade el cálculo de 32 MB, la capa REST añade más de 20 ms al p95 (ver el comentario del final), los avisos de
+ * que añade el cálculo de 24 MB (`budget.php`), la capa REST añade más de 20 ms al p95 (ver el comentario del final), los avisos de
  * ancla repetida y los enlaces actuales (F1-23) añaden más de 20 ms al p95 o el tiempo que la pestaña Estado (F1-27)
  * enseña para las últimas 20 peticiones difiere más de un 10 % de lo medido aquí.
  *
@@ -20,6 +20,8 @@ use MagicLinking\Core\Schema;
 use MagicLinking\Index\EngineTiming;
 use MagicLinking\Index\Suggestions;
 use MagicLinking\Index\TableRepository;
+
+require_once __DIR__ . '/budget.php';
 
 global $wpdb;
 
@@ -250,11 +252,11 @@ $added['draft'] = $report( 'avisos borrador', $times, array( 0 ), $cards );
 // El pico total de la petición NO se comprueba aquí: en WP-CLI la base (WP-CLI, sus comandos y el intérprete) pesa unos
 // 20 MB más que en una petición web y el total no es comparable con el límite de `09 §4`. El pico por petición real lo
 // mide `tests/perf/rest-memory.php` (F1-44), en un proceso PHP nuevo por petición. Aquí se comprueba lo que añade el
-// cálculo: 32 MB, la mitad del límite, que deja el resto a la base de WordPress.
+// cálculo el mismo límite propio que `rest-memory.php` (`budget.php`, 24 MB), que deja el resto a la base de WordPress.
 $peak = $extra;
-printf( "memoria: pico total en WP-CLI=%.1f MB (base de WP-CLI incluida, no comparable con el límite; ver rest-memory.php), añadida por el cálculo=%.1f MB (límite 32 MB)\n", $total, $extra );
+printf( "memoria: pico total en WP-CLI=%.1f MB (base de WP-CLI incluida, no comparable con el límite; ver rest-memory.php), añadida por el cálculo=%.1f MB (límite %.0f MB)\n", $total, $extra, MAGICLINKING_PERF_OWN_MB );
 
-if ( $strict && ( $results['outgoing'] > EngineTiming::BUDGET_OUTGOING || $results['incoming'] > EngineTiming::BUDGET_INCOMING || $peak > 32 || $rest_over > 20 || $status_deviation > 10 || max( $added ) > 20 || $rest_total['outbound'] > EngineTiming::BUDGET_OUTGOING || $rest_total['inbound'] > EngineTiming::BUDGET_INCOMING ) ) {
+if ( $strict && ( $results['outgoing'] > EngineTiming::BUDGET_OUTGOING || $results['incoming'] > EngineTiming::BUDGET_INCOMING || $peak > MAGICLINKING_PERF_OWN_MB || $rest_over > 20 || $status_deviation > 10 || max( $added ) > 20 || $rest_total['outbound'] > EngineTiming::BUDGET_OUTGOING || $rest_total['inbound'] > EngineTiming::BUDGET_INCOMING ) ) {
 	fwrite( STDERR, "Presupuesto de rendimiento superado.\n" );
 	exit( 1 );
 }

@@ -18,6 +18,11 @@ use WP_Post;
 final class Fingerprint {
 
 	/**
+	 * Metadatos de la palabra clave foco (Rank Math y Yoast) que entran en las frases objetivo.
+	 */
+	public const FOCUS_KEYS = array( 'rank_math_focus_keyword', '_yoast_wpseo_focuskw' );
+
+	/**
 	 * Huella de una entrada.
 	 *
 	 * @param WP_Post    $post Entrada.
@@ -36,15 +41,17 @@ final class Fingerprint {
 	 *
 	 * @param int        $post_id ID.
 	 * @param array|null $user    Textos del usuario ya leídos ({@see TargetPhrases::indexed()}); null para leerlos.
+	 * @param array|null $meta    Metadatos ya leídos (clave → valor) de {@see self::FOCUS_KEYS}; null para leerlos de la caché de WordPress.
 	 *
 	 * @phpstan-param list<string>|null $user
+	 * @phpstan-param array<string, mixed>|null $meta
 	 * @return list<string>
 	 */
-	public static function focus( int $post_id, ?array $user = null ): array {
+	public static function focus( int $post_id, ?array $user = null, ?array $meta = null ): array {
 		$phrases = array();
 
-		foreach ( array( 'rank_math_focus_keyword', '_yoast_wpseo_focuskw' ) as $key ) {
-			$value = get_post_meta( $post_id, $key, true );
+		foreach ( self::FOCUS_KEYS as $key ) {
+			$value = null === $meta ? get_post_meta( $post_id, $key, true ) : ( $meta[ $key ] ?? '' );
 			if ( ! is_string( $value ) || '' === $value ) {
 				continue;
 			}

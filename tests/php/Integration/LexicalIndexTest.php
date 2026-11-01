@@ -18,6 +18,7 @@ use MagicLinking\Engine\MemoryIndex;
 use MagicLinking\Index\LexicalIndexer;
 use MagicLinking\Index\PostSource;
 use MagicLinking\Index\Suggestions;
+use MagicLinking\Index\TargetPhrases;
 use MagicLinking\Index\TableRepository;
 use MagicLinking\Jobs\JobRepository;
 use MagicLinking\Jobs\Jobs;
@@ -322,6 +323,22 @@ final class LexicalIndexTest extends GraphTestCase {
 		for ( $i = 1; $i <= $extra; $i++ ) {
 			$ids[ "x{$i}" ] = $this->post( "relleno-{$i}", "Otro zorrillo número {$i} cruza el bosque profundo cerca del río." . str_repeat( ' Texto largo de relleno que no debe cargarse.', 50 ), "Relleno {$i}" );
 			wp_set_post_terms( $ids[ "x{$i}" ], array( "etiqueta-{$i}" ), 'post_tag' );
+			// Metadatos que lee la ficha (foco y frases objetivo) y uno enorme que no debe cargarse (como `_elementor_data`).
+			update_post_meta( $ids[ "x{$i}" ], 'rank_math_focus_keyword', "zorrillo {$i}, bosque" );
+			update_post_meta( $ids[ "x{$i}" ], '_yoast_wpseo_focuskw', "río {$i}" );
+			update_post_meta( $ids[ "x{$i}" ], '_elementor_data', str_repeat( 'x', 200000 ) );
+			if ( 0 === $i % 3 ) {
+				TargetPhrases::set(
+					$ids[ "x{$i}" ],
+					array(
+						array(
+							'phrase'   => "frase objetivo {$i}",
+							'variants' => array( "variante {$i}" ),
+							'gap'      => true,
+						),
+					)
+				);
+			}
 		}
 		$ids += $this->corpus();
 		$this->clear_index();
@@ -340,7 +357,8 @@ final class LexicalIndexTest extends GraphTestCase {
 		$full   = array();
 		$before = get_num_queries();
 		$filter = static function ( string $sql ) use ( &$full, $wpdb ): string {
-			if ( preg_match( '/SELECT\s+\*\s+FROM\s+`?' . preg_quote( $wpdb->posts, '/' ) . '`?\s+WHERE\s+ID\s+IN/i', $sql ) ) {
+			// Cualquier lectura de filas enteras: `SELECT *` o `SELECT wp_posts.*`, con `IN (…)` (lote) o `= id` (`get_post()`).
+			if ( preg_match( '/SELECT\s+(?:`?' . preg_quote( $wpdb->posts, '/' ) . '`?\.)?\*\s+FROM\s+`?' . preg_quote( $wpdb->posts, '/' ) . '`?\s+WHERE\s+ID\s*(?:IN|=)/i', $sql ) ) {
 				$full[] = $sql;
 			}
 
@@ -389,7 +407,33 @@ final class LexicalIndexTest extends GraphTestCase {
 		$this->assertSame( 0, $after['queries'], 'las fichas salen de lo precargado' );
 		foreach ( $ids as $id ) {
 			$this->assertFalse( wp_cache_get( $id, 'posts' ), 'el contenido de la candidata no se carga en la caché' );
+			$this->assertFalse( wp_cache_get( $id, 'post_meta' ), 'los metadatos de la candidata no se cargan en la caché (ni a medias)' );
 		}
+		$repo->release();
+	}
+
+	/**
+	 * F1-44: una entrada borrada que sigue en el índice sale con ficha nula sin preguntar por ella una a una.
+	 */
+	public function test_preload_gives_no_meta_to_a_deleted_post_without_a_query_per_id(): void {
+		global $wpdb;
+		$ids = $this->big_corpus( 20 );
+		$this->run_job();
+		$gone = array_slice( array_values( $ids ), 0, 8 );
+		foreach ( $gone as $id ) {
+			$wpdb->delete( $wpdb->posts, array( 'ID' => $id ) );
+		}
+		wp_cache_flush();
+		$repo = $this->repo;
+
+		$measure = $this->measure_queries( fn() => $repo->preload( array_values( $ids ) ) );
+
+		$this->assertSame( array(), $measure['full'], 'ni una lectura completa por id borrado' );
+		$this->assertLessThanOrEqual( 12, $measure['queries'] );
+		foreach ( $gone as $id ) {
+			$this->assertNull( $repo->meta( $id ) );
+		}
+		$this->assertNotNull( $repo->meta( array_values( $ids )[ count( $ids ) - 1 ] ) );
 		$repo->release();
 	}
 
@@ -416,7 +460,13 @@ final class LexicalIndexTest extends GraphTestCase {
 		$this->repo->release();
 		$measure = $this->measure_queries( fn() => $service->incoming( $ids['a'] ) );
 
-		$this->assertLessThanOrEqual( 1, count( $measure['full'] ), 'una sola lectura completa de los orígenes: ' . implode( ' | ', array_map( static fn( string $q ): string => substr( $q, 0, 80 ), $measure['full'] ) ) );
+		// El destino se lee entero una vez (`get_post()`); los orígenes, en un solo lote y ninguno suelto.
+		$singles = array_filter( $measure['full'], static fn( string $q ): bool => ! str_contains( $q, ' IN (' ) );
+		$batches = array_filter( $measure['full'], static fn( string $q ): bool => str_contains( $q, ' IN (' ) );
+		$this->assertLessThanOrEqual( 1, count( $batches ), 'los orígenes se leen enteros una sola vez: ' . implode( ' | ', array_map( static fn( string $q ): string => substr( $q, 0, 80 ), $measure['full'] ) ) );
+		foreach ( $singles as $query ) {
+			$this->assertStringContainsString( 'ID = ' . $ids['a'] . ' ', $query . ' ', 'solo el destino se lee suelto' );
+		}
 	}
 
 	/**

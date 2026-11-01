@@ -11,30 +11,37 @@
  * @package MagicLinking
  */
 
-// phpcs:disable -- Script de banco de pruebas, no forma parte del plugin.
-
 use MagicLinking\Core\Schema;
 
 global $wpdb;
 
-const ML_TOTAL_BUDGET = 64.0;
-const ML_OWN_BUDGET   = 24.0;
+require_once __DIR__ . '/budget.php';
 
 $samples = isset( $args[0] ) && is_numeric( $args[0] ) ? (int) $args[0] : 20;
 $strict  = in_array( 'strict', $args, true );
 
-$docs = Schema::table( $wpdb->prefix, 'docs' );
-$ids  = array_map( 'intval', $wpdb->get_col( "SELECT d.post_id FROM {$docs} d JOIN {$wpdb->posts} p ON p.ID = d.post_id WHERE d.doc_len > 0 AND p.post_status = 'publish'" ) );
+$ids = array_map(
+	'intval',
+	$wpdb->get_col( $wpdb->prepare( "SELECT d.post_id FROM %i d JOIN %i p ON p.ID = d.post_id WHERE d.doc_len > 0 AND p.post_status = 'publish'", Schema::table( $wpdb->prefix, 'docs' ), $wpdb->posts ) )
+);
 mt_srand( 20261101 );
 shuffle( $ids );
 $sample = array_slice( $ids, 0, $samples );
+if ( array() === $sample ) {
+	fwrite( STDERR, "No hay entradas publicadas e indexadas que medir: genera el sitio (`seed.php`) y ejecuta `wp magic-linking index`.\n" );
+	exit( 1 );
+}
 
 $script = __DIR__ . '/rest-peak.php';
 $peak   = static function ( string $route, int $id ) use ( $script ): array {
-	// Solo stdout: con WP_DEBUG un aviso (Deprecated, Notice) sale por stderr o delante del JSON. El JSON es la última línea.
-	$out   = (string) shell_exec( 'ABSPATH_LOAD=' . escapeshellarg( ABSPATH . 'wp-load.php' ) . ' ' . escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $script ) . ' ' . escapeshellarg( $route ) . ' ' . $id . ' 2>/dev/null' );
-	$lines = array_values( array_filter( array_map( 'trim', explode( "\n", $out ) ), static fn( string $line ): bool => '' !== $line ) );
-	$data  = json_decode( (string) end( $lines ), true );
+	// Con WP_DEBUG los avisos salen por stdout, delante o detrás del resultado: se busca la línea marcada.
+	$out  = (string) shell_exec( 'ABSPATH_LOAD=' . escapeshellarg( ABSPATH . 'wp-load.php' ) . ' ' . escapeshellarg( PHP_BINARY ) . ' -d display_errors=0 ' . escapeshellarg( $script ) . ' ' . escapeshellarg( $route ) . ' ' . $id . ' 2>/dev/null' );
+	$data = null;
+	foreach ( explode( "\n", $out ) as $line ) {
+		if ( str_starts_with( $line, 'ML_PEAK_JSON:' ) ) {
+			$data = json_decode( substr( $line, strlen( 'ML_PEAK_JSON:' ) ), true );
+		}
+	}
 	if ( ! is_array( $data ) || 200 !== ( $data['status'] ?? 0 ) ) {
 		fwrite( STDERR, "rest-peak {$route} {$id}: " . substr( $out, -300 ) . "\n" );
 		exit( 1 );
@@ -63,8 +70,8 @@ foreach ( array( 'outbound', 'inbound' ) as $direction ) {
 	printf( "REST %-8s pico total=%.1f MB  añadido por el plugin=%.1f MB  consultas(mediana)=%d  (%d peticiones)\n", $direction, $max, $max - $base, $queries[ intdiv( count( $queries ), 2 ) ], count( $sample ) );
 }
 
-printf( "memoria por petición: pico total=%.1f MB (límite %.0f), añadido=%.1f MB (límite %.0f)\n", $worst, ML_TOTAL_BUDGET, $worst - $base, ML_OWN_BUDGET );
-if ( $strict && ( $worst > ML_TOTAL_BUDGET || $worst - $base > ML_OWN_BUDGET ) ) {
+printf( "memoria por petición: pico total=%.1f MB (límite %.0f), añadido=%.1f MB (límite %.0f)\n", $worst, MAGICLINKING_PERF_TOTAL_MB, $worst - $base, MAGICLINKING_PERF_OWN_MB );
+if ( $strict && ( $worst > MAGICLINKING_PERF_TOTAL_MB || $worst - $base > MAGICLINKING_PERF_OWN_MB ) ) {
 	fwrite( STDERR, "Presupuesto de memoria superado.\n" );
 	exit( 1 );
 }

@@ -52,12 +52,15 @@ final class TargetPhrases {
 	/**
 	 * Las frases guardadas de una entrada.
 	 *
-	 * @param int $post_id ID.
+	 * @param int        $post_id ID.
+	 * @param array|null $meta    Metadatos ya leídos de la entrada (clave → valor), si quien llama los trajo por lote sin
+	 *                            llenar la caché de metadatos de WordPress; null para leerlos de ella.
 	 *
+	 * @phpstan-param array<string, mixed>|null $meta
 	 * @return list<array{phrase: string, variants: list<string>, gap: bool}>
 	 */
-	public static function get( int $post_id ): array {
-		$raw = get_post_meta( $post_id, self::KEY, true );
+	public static function get( int $post_id, ?array $meta = null ): array {
+		$raw = null === $meta ? get_post_meta( $post_id, self::KEY, true ) : ( $meta[ self::KEY ] ?? '' );
 		if ( ! is_string( $raw ) || '' === $raw ) {
 			return array();
 		}
@@ -105,14 +108,16 @@ final class TargetPhrases {
 	 * Lo que va al índice de una entrada, con una sola lectura de la meta: todos los textos (frases y variantes) y los
 	 * que admiten una palabra en medio.
 	 *
-	 * @param int $post_id ID.
+	 * @param int        $post_id ID.
+	 * @param array|null $meta    Metadatos ya leídos (ver {@see self::get()}).
 	 *
+	 * @phpstan-param array<string, mixed>|null $meta
 	 * @return array{texts: list<string>, gapped: list<string>}
 	 */
-	public static function indexed( int $post_id ): array {
+	public static function indexed( int $post_id, ?array $meta = null ): array {
 		$texts  = array();
 		$gapped = array();
-		foreach ( self::get( $post_id ) as $entry ) {
+		foreach ( self::get( $post_id, $meta ) as $entry ) {
 			$all = array_merge( array( $entry['phrase'] ), $entry['variants'] );
 			foreach ( $all as $text ) {
 				$texts[] = $text;

@@ -4,7 +4,7 @@
  *
  * Uso (dentro del contenedor, sin WP-CLI): php tests/perf/rest-peak.php <ruta> <post_id>
  * Carga WordPress como lo hace una petición web (wp-load.php), con el plugin y sin las cachés de ningún proceso anterior,
- * ejecuta la ruta REST con el usuario administrador y escribe una línea JSON (la última de la salida) con el pico absoluto de memoria (MB) y las consultas de la petición. Con la
+ * ejecuta la ruta REST con el usuario administrador y escribe una línea `ML_PEAK_JSON:{…}` (con avisos de WP_DEBUG por stdout puede haber otras líneas) con el pico absoluto de memoria (MB) y las consultas de la petición. Con la
  * ruta `/wp/v2/types` mide la base de WordPress sin cálculo del plugin. Lo llama `tests/perf/rest-memory.php`.
  *
  * @package MagicLinking
@@ -35,7 +35,7 @@ if ( $ml_post ) {
 $response = rest_do_request( $request );
 $json     = wp_json_encode( rest_get_server()->response_to_data( $response, false ) );
 
-echo wp_json_encode(
+echo 'ML_PEAK_JSON:' . wp_json_encode(
 	array(
 		'status' => $response->get_status(),
 		'queries' => get_num_queries() - $queries_before,

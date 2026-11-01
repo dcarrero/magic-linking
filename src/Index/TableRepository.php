@@ -697,12 +697,14 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		$this->cache = null;
 
 		$wpdb = $this->wpdb;
-		// Solo las columnas que hacen falta para la ficha, siempre con una consulta ligera por lote y sin pasar por la caché de
-		// entradas de WordPress: `_prime_post_caches()` traería el `post_content` de cada candidata (unos 25 KB por entrada
-		// larga, 5 MB con 200) y con una caché de objetos persistente cada `wp_cache_get()` lo leería entero (F1-44).
-		// Los metadatos sí van a la caché, y los términos (si hacen falta) se leen más abajo por lotes.
-		update_meta_cache( 'post', $ids );
-		$posts = array();
+		// Solo lo que hace falta para la ficha, con consultas ligeras por lote y sin pasar por las cachés de WordPress:
+		// `_prime_post_caches()` traería el `post_content` de cada candidata (unos 25 KB por entrada larga, 5 MB con 200),
+		// con una caché de objetos persistente cada `wp_cache_get()` lo leería entero y `update_meta_cache()` traería todos
+		// los metadatos (`_elementor_data` pesa cientos de KB). Se leen el título, el slug y la fecha, y solo los metadatos
+		// que usa la ficha (F1-44). Ninguna de las dos va a la caché de WordPress, así que no la deja a medias.
+		$posts   = array();
+		$meta_of = array();
+		$keys    = array_merge( array( TargetPhrases::KEY ), Fingerprint::FOCUS_KEYS );
 		foreach ( array_chunk( $ids, 500 ) as $chunk ) {
 			$marks = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
 			$rows  = $wpdb->get_results(
@@ -711,6 +713,16 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			);
 			foreach ( (array) $rows as $row ) {
 				$posts[ (int) $row['ID'] ] = $row;
+			}
+
+			$key_marks = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
+			$rows      = $wpdb->get_results(
+				$wpdb->prepare( "SELECT post_id, meta_key, meta_value FROM %i WHERE post_id IN ({$marks}) AND meta_key IN ({$key_marks}) ORDER BY meta_id ASC", array_merge( array( $wpdb->postmeta ), $chunk, $keys ) ),
+				ARRAY_N
+			);
+			foreach ( (array) $rows as $row ) {
+				// Como `get_post_meta( …, true )`: la primera fila de cada clave.
+				$meta_of[ (int) $row[0] ][ (string) $row[1] ] ??= maybe_unserialize( $row[2] );
 			}
 		}
 
@@ -763,7 +775,8 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		foreach ( $ids as $id ) {
 			$row = $metas[ $id ] ?? null;
 
-			$cache['meta'][ $id ]    = null === $row ? null : $this->build_meta( $id, $row, $posts[ $id ] ?? null );
+			// Una entrada borrada que sigue en el índice no tiene ficha, y no se pregunta por ella una a una.
+			$cache['meta'][ $id ]    = null === $row || ! isset( $posts[ $id ] ) ? null : $this->build_meta( $id, $row, $posts[ $id ], $meta_of[ $id ] ?? array() );
 			$cache['lang'][ $id ]    = null === $row ? '' : (string) $row['lang'];
 			$cache['terms'][ $id ]   = $terms[ $id ] ?? array();
 			$cache['inbound'][ $id ] = array_keys( $in[ $id ] ?? array() );
@@ -810,8 +823,9 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	 * @param int                       $id  ID.
 	 * @param array<string, mixed>      $row Fila de `magiclinking_docs`.
 	 * @param array<string, mixed>|null $light Título, slug y fecha de modificación ya leídos (sin cargar el contenido); null = leerlos de la entrada.
+	 * @param array<string, mixed>|null $meta  Metadatos de la ficha ya leídos (frases objetivo y palabra clave foco); null = leerlos de la caché de WordPress.
 	 */
-	private function build_meta( int $id, array $row, ?array $light = null ): ?DocMeta {
+	private function build_meta( int $id, array $row, ?array $light = null, ?array $meta = null ): ?DocMeta {
 		if ( null === $light ) {
 			$post = get_post( $id );
 			if ( ! $post instanceof WP_Post ) {
@@ -826,7 +840,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 
 		$date = strtotime( $light['post_modified_gmt'] . ' UTC' );
 
-		$mine = TargetPhrases::indexed( $id );
+		$mine = TargetPhrases::indexed( $id, $meta );
 
 		return new DocMeta(
 			$id,
@@ -838,8 +852,8 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			(int) $row['word_count'],
 			(int) $row['doc_len'],
 			(int) $row['outbound'],
-			Fingerprint::focus( $id, $mine['texts'] ),
-			$this->with_taxonomies ? Taxonomies::cached( $id, (string) $row['post_type'] ) : array(),
+			Fingerprint::focus( $id, $mine['texts'], $meta ),
+			$this->with_taxonomies ? Taxonomies::of( $id, (string) $row['post_type'] ) : array(),
 			$mine['gapped']
 		);
 	}
