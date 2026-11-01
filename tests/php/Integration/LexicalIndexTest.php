@@ -312,6 +312,34 @@ final class LexicalIndexTest extends GraphTestCase {
 	}
 
 	/**
+	 * F1-44: precargar las candidatas no trae su `post_content` a la caché de WordPress (la ficha no lo usa) y deja la
+	 * misma ficha que la lectura suelta, sin una consulta por entrada.
+	 */
+	public function test_preload_builds_the_same_meta_without_loading_post_content(): void {
+		$ids = $this->corpus();
+		$this->run_job();
+
+		$expected = array();
+		foreach ( $ids as $key => $id ) {
+			$expected[ $key ] = $this->repo->meta( $id );
+		}
+
+		wp_cache_flush();
+		$before = get_num_queries();
+		$this->repo->preload( array_values( $ids ) );
+		foreach ( $ids as $key => $id ) {
+			$this->assertEquals( $expected[ $key ], $this->repo->meta( $id ), "ficha de {$key}" );
+		}
+		$this->assertLessThanOrEqual( 12, get_num_queries() - $before, 'sin una consulta por entrada' );
+
+		foreach ( $ids as $id ) {
+			$cached = wp_cache_get( $id, 'posts' );
+			$this->assertFalse( $cached, 'el contenido de la candidata no se carga en la caché' );
+		}
+		$this->repo->release();
+	}
+
+	/**
 	 * Deja el sitio como tras actualizar desde 0.9.2: grafo hecho, sin índice léxico.
 	 *
 	 * @return array<string, int>

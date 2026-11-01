@@ -697,7 +697,28 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		$this->cache = null;
 
 		$wpdb = $this->wpdb;
-		_prime_post_caches( $ids, false, true );
+		// Solo las columnas que hacen falta para la ficha: `_prime_post_caches()` traería el `post_content` de cada candidata
+		// (unos 25 KB por entrada larga, 5 MB con 200) y la ficha no lo usa (F1-44). Los metadatos sí van a la caché. Con
+		// taxonomías, `get_the_terms()` lee cada entrada entera de la caché de WordPress: se cargan como antes, para no
+		// pasar a una consulta por entrada.
+		$posts = array();
+		if ( $this->with_taxonomies ) {
+			_prime_post_caches( $ids, false, true );
+		} else {
+			update_meta_cache( 'post', $ids );
+		}
+		// Las que ya están enteras en la caché (las entrantes traen antes los orígenes) no se vuelven a leer.
+		$missing = $this->with_taxonomies ? array() : array_values( array_filter( $ids, static fn( int $id ): bool => false === wp_cache_get( $id, 'posts' ) ) );
+		foreach ( array_chunk( $missing, 500 ) as $chunk ) {
+			$marks = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+			$rows  = $wpdb->get_results(
+				$wpdb->prepare( "SELECT ID, post_title, post_name, post_modified_gmt FROM {$wpdb->posts} WHERE ID IN ({$marks})", $chunk ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
+				ARRAY_A
+			);
+			foreach ( (array) $rows as $row ) {
+				$posts[ (int) $row['ID'] ] = $row;
+			}
+		}
 
 		$metas = array();
 		$terms = array();
@@ -748,7 +769,7 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 		foreach ( $ids as $id ) {
 			$row = $metas[ $id ] ?? null;
 
-			$cache['meta'][ $id ]    = null === $row ? null : $this->build_meta( $id, $row );
+			$cache['meta'][ $id ]    = null === $row ? null : $this->build_meta( $id, $row, $posts[ $id ] ?? null );
 			$cache['lang'][ $id ]    = null === $row ? '' : (string) $row['lang'];
 			$cache['terms'][ $id ]   = $terms[ $id ] ?? array();
 			$cache['inbound'][ $id ] = array_keys( $in[ $id ] ?? array() );
@@ -792,16 +813,24 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 	/**
 	 * Datos de una entrada a partir de su fila de `magiclinking_docs` y del núcleo; null si la entrada ya no existe.
 	 *
-	 * @param int                  $id  ID.
-	 * @param array<string, mixed> $row Fila de `magiclinking_docs`.
+	 * @param int                       $id  ID.
+	 * @param array<string, mixed>      $row Fila de `magiclinking_docs`.
+	 * @param array<string, mixed>|null $light Título, slug y fecha de modificación ya leídos (sin cargar el contenido); null = leerlos de la entrada.
 	 */
-	private function build_meta( int $id, array $row ): ?DocMeta {
-		$post = get_post( $id );
-		if ( ! $post instanceof WP_Post ) {
-			return null;
+	private function build_meta( int $id, array $row, ?array $light = null ): ?DocMeta {
+		if ( null === $light ) {
+			$post = get_post( $id );
+			if ( ! $post instanceof WP_Post ) {
+				return null;
+			}
+			$light = array(
+				'post_title'        => $post->post_title,
+				'post_name'         => $post->post_name,
+				'post_modified_gmt' => $post->post_modified_gmt,
+			);
 		}
 
-		$date = strtotime( $post->post_modified_gmt . ' UTC' );
+		$date = strtotime( $light['post_modified_gmt'] . ' UTC' );
 
 		$mine = TargetPhrases::indexed( $id );
 
@@ -809,8 +838,8 @@ final class TableRepository implements IndexRepository, TermStats, Preloads {
 			$id,
 			(string) $row['post_type'],
 			(string) $row['lang'],
-			PostTitle::of( $post ),
-			$post->post_name,
+			PostTitle::plain( (string) $light['post_title'] ),
+			(string) $light['post_name'],
 			false === $date ? 0 : $date,
 			(int) $row['word_count'],
 			(int) $row['doc_len'],
