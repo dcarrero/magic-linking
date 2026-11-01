@@ -181,7 +181,7 @@ final class Taxonomies {
 		$out = array();
 		foreach ( array( 'category', 'post_tag' ) as $logical ) {
 			$taxonomy = self::primary( $post_type, $logical );
-			$terms    = null === $taxonomy ? false : get_the_terms( $post_id, $taxonomy );
+			$terms    = null === $taxonomy ? false : self::terms_of( $post_id, $taxonomy );
 			$ids      = array();
 			foreach ( is_array( $terms ) ? $terms : array() as $term ) {
 				$ids[] = (string) $term->term_taxonomy_id;
@@ -190,6 +190,25 @@ final class Taxonomies {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Los términos de una entrada. Primero la caché de términos (la que llena `update_object_term_cache()`), con el mismo
+	 * filtro `get_the_terms` que aplicaría el núcleo: `get_the_terms()` carga la entrada entera (con su contenido) para
+	 * validarla, y con 200 candidatas pesa. Si los términos no están en la caché, `get_the_terms()` los pide como siempre.
+	 *
+	 * @param int    $post_id  ID.
+	 * @param string $taxonomy Taxonomía.
+	 *
+	 * @return array<int, \WP_Term>|false|\WP_Error
+	 */
+	private static function terms_of( int $post_id, string $taxonomy ) {
+		$terms = get_object_term_cache( $post_id, $taxonomy );
+		if ( false === $terms ) {
+			return get_the_terms( $post_id, $taxonomy );
+		}
+
+		return apply_filters( 'get_the_terms', $terms, $post_id, $taxonomy ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Filtro del núcleo.
 	}
 
 	/**
