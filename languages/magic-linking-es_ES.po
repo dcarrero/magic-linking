@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.20.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T23:30:21+00:00\n"
+"POT-Creation-Date: 2026-11-01T10:37:29+00:00\n"
 "PO-Revision-Date: 2026-10-15 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Español de España\n"
@@ -892,7 +892,7 @@ msgstr "No tienes permiso para editar esta entrada."
 msgid "The rule could not be saved. Try again."
 msgstr "No se ha podido guardar la regla. Inténtalo de nuevo."
 
-#: src/Rest/SettingsController.php:217
+#: src/Rest/SettingsController.php:218
 msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
 msgstr "Ese modelo funciona por lotes, no en directo, así que no sirve para el editor. Elige otro o déjalo en automático."
 
@@ -3790,6 +3790,18 @@ msgstr "Elimina sus tablas, el historial y los ajustes. Los enlaces que ya hay e
 #: assets/build/index.js:118 assets/build/index.js:128
 msgid "Content types to analyze"
 msgstr "Tipos de contenido que se analizan"
+
+#: assets/build/index.js:118
+msgid "Detect the language of each entry from its text"
+msgstr "Detectar el idioma de cada entrada por su texto"
+
+#: assets/build/index.js:118
+msgid "WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active."
+msgstr "WPML o Polylang ya le dicen a Magic Linking el idioma de cada entrada, así que esta opción no hace nada mientras uno de los dos esté activo."
+
+#: assets/build/index.js:118
+msgid "Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least 30 words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again."
+msgstr "Sirve cuando tu sitio está en un idioma pero algunas entradas están escritas en otro. Es una estimación a partir de las palabras más comunes, así que necesita al menos 30 palabras; cuando no está seguro, se usa el idioma del sitio. Al guardar, Magic Linking vuelve a analizar tu sitio."
 
 #: assets/build/index.js:118
 msgid "The content types you analyze have no categories."

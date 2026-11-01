@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-31T23:30:21+00:00\n"
+"POT-Creation-Date: 2026-11-01T10:37:43+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -948,7 +948,7 @@ msgstr ""
 msgid "The rule could not be saved. Try again."
 msgstr ""
 
-#: src/Rest/SettingsController.php:217
+#: src/Rest/SettingsController.php:218
 msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
 msgstr ""
 
@@ -4220,6 +4220,18 @@ msgstr ""
 #: assets/build/index.js:118
 #: assets/build/index.js:128
 msgid "Content types to analyze"
+msgstr ""
+
+#: assets/build/index.js:118
+msgid "Detect the language of each entry from its text"
+msgstr ""
+
+#: assets/build/index.js:118
+msgid "WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active."
+msgstr ""
+
+#: assets/build/index.js:118
+msgid "Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least 30 words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again."
 msgstr ""
 
 #: assets/build/index.js:118

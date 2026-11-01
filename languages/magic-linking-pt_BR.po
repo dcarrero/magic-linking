@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 0.24.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-10-31T23:30:21+00:00\n"
+"POT-Creation-Date: 2026-11-01T10:37:29+00:00\n"
 "PO-Revision-Date: 2026-10-31 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Português do Brasil\n"
@@ -891,7 +891,7 @@ msgstr "Você não tem permissão para editar este conteúdo."
 msgid "The rule could not be saved. Try again."
 msgstr "Não foi possível salvar a regra. Tente novamente."
 
-#: src/Rest/SettingsController.php:217
+#: src/Rest/SettingsController.php:218
 msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
 msgstr "Esse modelo funciona em lotes, não em tempo real, então não serve para o editor. Escolha outro ou deixe no automático."
 
@@ -3789,6 +3789,18 @@ msgstr "Remove as tabelas, o histórico e as configurações do plugin. Os links
 #: assets/build/index.js:118 assets/build/index.js:128
 msgid "Content types to analyze"
 msgstr "Tipos de conteúdo a analisar"
+
+#: assets/build/index.js:118
+msgid "Detect the language of each entry from its text"
+msgstr ""
+
+#: assets/build/index.js:118
+msgid "WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active."
+msgstr ""
+
+#: assets/build/index.js:118
+msgid "Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least 30 words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again."
+msgstr ""
 
 #: assets/build/index.js:118
 msgid "The content types you analyze have no categories."
