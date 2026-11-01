@@ -348,7 +348,7 @@ final class Reranker {
 			return array();
 		}
 
-		$document = $this->posts->from_post( $post, $content );
+		$document = $this->posts->from_post( $post, $content, null, true );
 		$texts    = $document->headings;
 		foreach ( $document->paragraphs as $paragraph ) {
 			$texts[] = $paragraph->text;
@@ -413,7 +413,7 @@ final class Reranker {
 			return null;
 		}
 
-		$document = $this->posts->from_post( $post );
+		$document = $this->posts->from_post( $post, null, null, true );
 		// El título va aparte; el resumen es lo que sigue: encabezados y comienzo del cuerpo.
 		$bare = new Document( $document->id, $document->type, $document->lang, '', '', 0, $document->headings, $document->paragraphs );
 		$text = Semantic::text( $bare, self::SUMMARY_WORDS, self::SUMMARY_CHARS );

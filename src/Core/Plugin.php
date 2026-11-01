@@ -213,7 +213,7 @@ final class Plugin {
 				null,
 				$c->get( Settings::class ),
 				$c->get( GraphRepository::class ),
-				static fn() => $c->get( Jobs::class )->start_index( 0, true, true, true, true )
+				static fn() => $c->get( Jobs::class )->restart_index( 0, true, true )
 			),
 			Settings::class                => static fn(): Settings => new Settings(),
 			GraphRepository::class         => static function (): GraphRepository {

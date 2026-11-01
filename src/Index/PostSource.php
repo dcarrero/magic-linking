@@ -129,10 +129,11 @@ final class PostSource implements DocumentSource {
 	 * @param WP_Post    $post Entrada.
 	 * @param string     $html Contenido que se analiza; por defecto, el de la entrada con el filtro aplicado.
 	 * @param array|null $mine Frases objetivo del usuario ya leídas ({@see TargetPhrases::indexed()}); null para leerlas.
+	 * @param bool       $stored Idioma de la entrada tal como lo ve el resto del plugin ({@see Language::for_post()}), no el que sale de este HTML: lo que se sugiere, se inserta y se aplica en reglas usa el mismo. Los indexadores no lo piden.
 	 *
 	 * @phpstan-param array{texts: list<string>, gapped: list<string>}|null $mine
 	 */
-	public function from_post( WP_Post $post, ?string $html = null, ?array $mine = null ): Document {
+	public function from_post( WP_Post $post, ?string $html = null, ?array $mine = null, bool $stored = false ): Document {
 		$html  ??= self::html_of( $post );
 		$content = $this->extractor->extract( $html );
 		$title   = PostTitle::of( $post );
@@ -143,7 +144,7 @@ final class PostSource implements DocumentSource {
 		return new Document(
 			$post->ID,
 			$post->post_type,
-			$this->language->for_indexing( $post, $html ),
+			$stored ? $this->language->for_post( $post->ID ) : $this->language->for_indexing( $post, $html ),
 			$title,
 			$post->post_name,
 			false === $date ? 0 : $date,
@@ -154,6 +155,15 @@ final class PostSource implements DocumentSource {
 			$this->with_taxonomies ? Taxonomies::of( $post->ID, $post->post_type ) : array(),
 			$mine['gapped']
 		);
+	}
+
+	/**
+	 * Da por leídos los idiomas guardados que ya se trajeron del grafo.
+	 *
+	 * @param array<int, string> $languages Idioma por ID de entrada.
+	 */
+	public function remember_languages( array $languages ): void {
+		$this->language->remember( $languages );
 	}
 
 	/**

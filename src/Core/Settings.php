@@ -60,6 +60,8 @@ final class Settings {
 		'excluded_categories'          => array(),
 		// Idioma de cada entrada detectado por su texto (F1-37, D-61): desactivado por defecto; sin efecto con WPML o Polylang.
 		'detect_language'              => false,
+		// Si la detección actuaba (opción activa y sin WPML ni Polylang) la última vez que se releyó todo (F1-37). No es un ajuste del usuario.
+		'detect_applied'               => false,
 		// Avanzado (docs/07 §8): términos que se guardan por entrada (docs/04 §3) y umbral de puntuación en tanto por
 		// ciento (docs/04 §6); los valores por defecto son los congelados del motor (D-35).
 		'k_terms'                      => Indexer::DEFAULTS['k'],
@@ -183,6 +185,28 @@ final class Settings {
 		$stored = get_option( Installer::SETTINGS_OPTION, array() );
 
 		return is_array( $stored ) && filter_var( $stored['detect_language'] ?? false, FILTER_VALIDATE_BOOLEAN );
+	}
+
+	/**
+	 * Si la detección actuaba la última vez que se releyó todo.
+	 */
+	public function detect_applied(): bool {
+		$stored = get_option( Installer::SETTINGS_OPTION, array() );
+
+		return is_array( $stored ) && filter_var( $stored['detect_applied'] ?? false, FILTER_VALIDATE_BOOLEAN );
+	}
+
+	/**
+	 * Anota si la detección actúa ahora (al guardar los ajustes o al relanzar el análisis por un cambio de plugin).
+	 *
+	 * @param bool $applied Actúa.
+	 */
+	public function set_detect_applied( bool $applied ): void {
+		$stored = get_option( Installer::SETTINGS_OPTION, array() );
+		$stored = is_array( $stored ) ? $stored : array();
+
+		$stored['detect_applied'] = $applied;
+		update_option( Installer::SETTINGS_OPTION, $stored, true );
 	}
 
 	/**
@@ -334,6 +358,9 @@ final class Settings {
 		foreach ( self::BOOLEANS as $key ) {
 			$out[ $key ] = filter_var( $input[ $key ] ?? $base[ $key ] ?? false, FILTER_VALIDATE_BOOLEAN );
 		}
+
+		// Solo lo cambia el plugin ({@see self::set_detect_applied()}), nunca la entrada.
+		$out['detect_applied'] = filter_var( $base['detect_applied'] ?? false, FILTER_VALIDATE_BOOLEAN );
 
 		$out['excluded_categories'] = self::clean_ids( $input['excluded_categories'] ?? $base['excluded_categories'] ?? array(), self::MAX_EXCLUDED_CATEGORIES );
 

@@ -124,6 +124,12 @@ final class LanguageDetectorTest extends TestCase {
 		$this->assertSame( 'xx', LanguageDetector::detect( str_repeat( 'all\'innovazione dell\'innovazione ', 20 ), 'xx' ) );
 	}
 
+	public function test_english_contractions_and_closing_quotes_keep_their_words(): void {
+		$text = str_repeat( "It's what it's. That's why they're here, we're sure you're right and he's not. Don't say 'it' or 'the end' because she's gone, isn't it? ", 4 );
+
+		$this->assertSame( 'en', LanguageDetector::detect( $text, 'xx' ) );
+	}
+
 	public function test_decomposed_accents_are_normalized(): void {
 		$text = \Normalizer::normalize( self::natural_texts()['pt: Lisboa e Porto'][0], \Normalizer::FORM_D );
 

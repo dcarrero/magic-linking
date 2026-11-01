@@ -570,12 +570,12 @@ final class Stopwords {
 		'very',
 	);
 
-
 	/**
 	 * Francés, alemán, italiano y portugués: solo para reconocer el idioma de un texto ({@see LanguageDetector}). No
 	 * son listas de palabras vacías del motor: {@see self::languages()} sigue siendo castellano e inglés, y el
 	 * tokenizador y el analizador no las usan. Palabras funcionales propias (artículos, preposiciones, conjunciones,
-	 * pronombres, auxiliares), sin elisiones («l'», «all'», «qu'») ni letras sueltas.
+	 * pronombres, auxiliares), sin elisiones («l'», «all'», «qu'»). Hay alguna forma de una letra («e», «o», «a», «i») porque lo son de verdad;
+	 * al contar, una palabra de varios idiomas reparte su peso.
 	 */
 	private const DETECTION = array(
 		'fr' => array( 'le', 'la', 'les', 'des', 'du', 'un', 'une', 'et', 'est', 'que', 'qui', 'dans', 'pour', 'pas', 'sur', 'avec', 'ce', 'cette', 'ces', 'son', 'sa', 'ses', 'au', 'aux', 'ne', 'il', 'elle', 'nous', 'vous', 'ils', 'elles', 'mais', 'ou', 'où', 'comme', 'plus', 'par', 'sont', 'été', 'être', 'avoir', 'fait', 'peut', 'aussi', 'très', 'cela', 'leur', 'leurs', 'entre', 'sans', 'sous', 'chez', 'dont', 'donc', 'alors', 'tout', 'tous', 'toute', 'toutes', 'ont', 'était', 'ça', 'je', 'tu', 'moi', 'toi', 'lui', 'eux', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'notre', 'nos', 'votre', 'vos', 'cet', 'celui', 'celle', 'ceux', 'quand', 'si', 'ni', 'car', 'depuis', 'pendant', 'avant', 'après', 'contre', 'vers', 'encore', 'déjà', 'même', 'autre', 'autres', 'bien', 'peu', 'trop', 'rien', 'était', 'suis', 'es', 'sommes', 'êtes', 'ai', 'as', 'avons', 'avez', 'avait', 'seront', 'sera', 'faire', 'dit', 'puis', 'quel', 'quelle', 'quels', 'quelles', 'lequel', 'laquelle' ),

@@ -95,13 +95,13 @@ final class DetectLanguageTest extends GraphTestCase {
 	}
 
 	/**
-	 * Fila de `magiclinking_terms`/`postings`: idiomas con entradas en el índice léxico.
+	 * Idiomas con términos en el índice léxico (`magiclinking_terms`), que salen del documento que arma `PostSource`.
 	 *
 	 * @return list<string>
 	 */
 	private function lexical_languages(): array {
 		global $wpdb;
-		$name = Schema::table( $wpdb->prefix, 'docs' );
+		$name = Schema::table( $wpdb->prefix, 'terms' );
 		$list = $wpdb->get_col( "SELECT DISTINCT lang FROM {$name} ORDER BY lang" ); // phpcs:ignore WordPress.DB, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return array_map( 'strval', $list );
@@ -352,6 +352,107 @@ final class DetectLanguageTest extends GraphTestCase {
 
 	public function test_the_payload_gives_the_minimum_number_of_words(): void {
 		$this->assertSame( \MagicLinking\Engine\LanguageDetector::MIN_WORDS, $this->request( 'GET', '/settings' )->get_data()['detect_min_words'] );
+	}
+
+	public function test_a_spanish_draft_on_an_english_site_gets_suggestions_and_can_be_linked(): void {
+		$this->save_detect( true );
+		$draft = $this->make(
+			'Borrador de aerotermia',
+			'Estoy escribiendo un borrador sobre la aerotermia y la bomba de calor, que aprovecha la energía del aire exterior para calentar la vivienda con un consumo muy bajo, y por eso es una de las soluciones que más se están instalando.',
+			'El suelo radiante y el aislamiento de la casa son los que más pesan en la factura, y de momento solo tengo unas notas que luego voy a pasar a limpio para publicarlas en el blog.',
+			'draft'
+		);
+
+		$this->assertContains( $this->es_target, $this->outbound_targets( $draft ) );
+		$destination = Plugin::container()->get( Destination::class );
+		$this->assertIsString( $destination->resolve( $draft, $this->es_target ) );
+		$this->assertSame( 'es', Plugin::container()->get( \MagicLinking\Rules\RuleService::class )->prepare( get_post( $draft ) )->document->lang, 'Las reglas usan el mismo idioma.' );
+	}
+
+	public function test_live_editor_text_does_not_give_the_source_a_language_the_insertion_would_reject(): void {
+		$this->save_detect( true );
+		$draft = $this->make( 'Recién creado', 'Hola.', 'Adiós.', 'draft' );
+		$live  = 'Estoy escribiendo un borrador sobre la aerotermia y la bomba de calor, que aprovecha la energía del aire exterior para calentar la vivienda con un consumo muy bajo, y por eso es una de las soluciones que más se están instalando en las casas nuevas con suelo radiante y buen aislamiento.';
+
+		$suggested = array_map(
+			static fn( array $item ): int => (int) $item['target']['id'],
+			$this->request(
+				'GET',
+				'/suggestions/outbound',
+				array(
+					'post_id' => $draft,
+					'content' => '<!-- wp:paragraph --><p>' . $live . '</p><!-- /wp:paragraph -->',
+				)
+			)->get_data()['items']
+		);
+
+		$can_insert = Plugin::container()->get( Destination::class )->resolve( $draft, $this->es_target );
+		$this->assertSame( in_array( $this->es_target, $suggested, true ), is_string( $can_insert ), 'Lo que se sugiere se puede insertar: mismo idioma en las dos rutas.' );
+	}
+
+	public function test_a_site_language_change_cancels_the_running_analysis_and_starts_another(): void {
+		$this->save_detect( true );
+		$jobs = Plugin::container()->get( Jobs::class );
+		$old  = $jobs->start_index( 0, false, true, true, true );
+
+		add_filter( 'locale', static fn(): string => 'es_ES' );
+		update_option( 'WPLANG', 'es_ES' );
+
+		$active = $jobs->repository()->active( Jobs::TYPE_INDEX );
+		$this->assertNotNull( $active );
+		$this->assertNotSame( $old['id'], $active['id'], 'Un trabajo nuevo, no el que estaba en marcha.' );
+		$this->assertNotEmpty( $active['params']['force'] );
+	}
+
+	public function test_removing_the_multilingual_plugin_reindexes_once(): void {
+		$jobs = Plugin::container()->get( Jobs::class );
+		add_filter( 'magiclinking_is_multilingual', '__return_true' );
+		$this->save_detect( true );
+		$this->assertNull( $jobs->repository()->active( Jobs::TYPE_INDEX ) );
+
+		remove_all_filters( 'magiclinking_is_multilingual' );
+		$language = Plugin::container()->get( Language::class );
+		$language->reconcile();
+		$first = $jobs->repository()->active( Jobs::TYPE_INDEX );
+		$this->assertNotNull( $first, 'La detección vuelve a estar en marcha: se relee todo.' );
+
+		$language->reconcile();
+		$this->assertSame( $first['id'], $jobs->repository()->active( Jobs::TYPE_INDEX )['id'], 'Solo una vez.' );
+	}
+
+	public function test_an_entry_that_is_not_indexed_is_looked_up_once(): void {
+		global $wpdb;
+		$this->save_detect( true );
+		$one      = $this->make( 'Uno', 'Hola.', 'Adiós.', 'draft' );
+		$two      = $this->make( 'Dos', 'Hola.', 'Adiós.', 'draft' );
+		$language = new Language( null, Plugin::container()->get( Settings::class ), Plugin::container()->get( \MagicLinking\Graph\GraphRepository::class ) );
+
+		$language->prime( array( $one, $two ) );
+		$after = $wpdb->num_queries;
+		$language->for_post( $one );
+		$language->for_post( $one );
+		$language->for_post( $two );
+
+		$this->assertSame( $after, $wpdb->num_queries, 'Ni una consulta más: la ausencia en el grafo también se recuerda.' );
+	}
+
+	public function test_words_in_adjacent_blocks_are_not_glued_together(): void {
+		$words = array( 'pero', 'también', 'porque', 'cuando', 'donde', 'entre', 'sobre', 'hasta', 'desde', 'muy' );
+		$html  = '';
+		for ( $i = 0; $i < 4; ++$i ) {
+			foreach ( $words as $word ) {
+				$html .= "<p>{$word}</p>";
+			}
+		}
+		$post = self::factory()->post->create(
+			array(
+				'post_title'   => 'Pegadas',
+				'post_content' => $html,
+			)
+		);
+		$this->save_detect( true );
+
+		$this->assertSame( 'es', $this->doc_row( $post )['lang'] );
 	}
 
 	public function test_an_unclear_entry_uses_the_site_language(): void {

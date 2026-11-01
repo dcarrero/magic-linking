@@ -70,8 +70,9 @@ final class LanguageDetector {
 	 */
 	public static function detect( string $text, string $fallback ): string {
 		$sample = mb_strtolower( mb_substr( Tokenizer::nfc( $text ), 0, self::MAX_CHARS, 'UTF-8' ), 'UTF-8' );
-		// «all'innovazione», «l'estate», «don't»: la parte elidida no es una palabra de otro idioma.
-		$sample = (string) preg_replace( "/\p{L}+['’]/u", ' ', $sample );
+		// «all'innovazione», «l'estate»: el prefijo elidido (francés e italiano) no es una palabra de otro idioma. Solo
+		// esos prefijos: «it's», «don't» o una palabra antes de una comilla de cierre conservan la palabra.
+		$sample = (string) preg_replace( "/(?<!\p{L})(?:qu|jusqu|lorsqu|puisqu|quest|all|dell|nell|sull|dall|sant|un|[ldjmnstcv])['’](?=\p{L})/u", ' ', $sample );
 		if ( 1 > (int) preg_match_all( '/\p{L}+/u', $sample, $found ) ) {
 			return $fallback;
 		}

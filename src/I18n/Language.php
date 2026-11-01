@@ -64,6 +64,13 @@ final class Language implements Module {
 	private array $stored = array();
 
 	/**
+	 * Entradas que se sabe que no están en el grafo (borradores, entradas nuevas), para no volver a preguntar.
+	 *
+	 * @var array<int, true>
+	 */
+	private array $absent = array();
+
+	/**
 	 * Idiomas detectados por el texto en esta petición, por entrada: huella del texto e idioma.
 	 *
 	 * @var array<int, array{0: string, 1: string}>
@@ -92,6 +99,27 @@ final class Language implements Module {
 	public function register(): void {
 		add_action( 'update_option_WPLANG', array( $this, 'site_language_changed' ) );
 		add_action( 'add_option_WPLANG', array( $this, 'site_language_changed' ) );
+		// Si desde el último análisis ha aparecido o desaparecido WPML o Polylang con la opción activa, hay que releer.
+		add_action( 'admin_init', array( $this, 'reconcile' ) );
+	}
+
+	/**
+	 * Relanza el análisis una vez si la detección por el texto ha pasado de actuar a no actuar (o al revés) sin que se
+	 * guardaran los ajustes: se activó WPML o Polylang, o se desactivó, con la opción puesta. La marca va en
+	 * `magiclinking_settings` (que ya se carga), no en una opción nueva.
+	 */
+	public function reconcile(): void {
+		if ( null === $this->settings ) {
+			return;
+		}
+
+		$now = $this->detects();
+		if ( $now !== $this->settings->detect_applied() ) {
+			$this->settings->set_detect_applied( $now );
+			if ( null !== $this->reindex ) {
+				( $this->reindex )();
+			}
+		}
 	}
 
 	/**
@@ -144,7 +172,7 @@ final class Language implements Module {
 	 */
 	public function forget( array $post_ids ): void {
 		foreach ( $post_ids as $id ) {
-			unset( $this->stored[ (int) $id ] );
+			unset( $this->stored[ (int) $id ], $this->absent[ (int) $id ] );
 		}
 	}
 
@@ -164,9 +192,28 @@ final class Language implements Module {
 			return;
 		}
 
-		foreach ( $this->graph->docs_by_ids( $missing ) as $id => $doc ) {
-			if ( '' !== $doc['lang'] ) {
-				$this->stored[ $id ] = $doc['lang'];
+		$rows = $this->graph->docs_by_ids( $missing );
+		foreach ( $missing as $id ) {
+			if ( isset( $rows[ $id ] ) && '' !== $rows[ $id ]['lang'] ) {
+				$this->stored[ $id ] = $rows[ $id ]['lang'];
+			} else {
+				$this->absent[ $id ] = true;
+			}
+		}
+	}
+
+	/**
+	 * Da por leídos los idiomas guardados que otro código ya trajo del grafo (filas de `docs_by_ids()`).
+	 *
+	 * @param array<int, string> $languages Idioma por ID de entrada.
+	 */
+	public function remember( array $languages ): void {
+		if ( ! $this->detects() ) {
+			return;
+		}
+		foreach ( $languages as $id => $lang ) {
+			if ( '' !== $lang ) {
+				$this->stored[ (int) $id ] = $lang;
 			}
 		}
 	}
@@ -230,16 +277,20 @@ final class Language implements Module {
 			return $this->stored[ $post_id ];
 		}
 
-		$doc = null === $this->graph ? null : $this->graph->doc( $post_id );
+		$doc = null === $this->graph || isset( $this->absent[ $post_id ] ) ? null : $this->graph->doc( $post_id );
 		if ( null !== $doc && '' !== $doc['lang'] ) {
 			$this->stored[ $post_id ] = $doc['lang'];
 
 			return $doc['lang'];
 		}
 
-		$post = get_post( $post_id );
+		// Sin indexar (borrador, entrada nueva): se detecta por el texto guardado y se recuerda en esta petición.
+		$this->absent[ $post_id ] = true;
+		$post                     = get_post( $post_id );
+		$lang                     = $post instanceof WP_Post ? $this->from_text( $post, PostSource::html_of( $post ) ) : $this->site();
+		$this->stored[ $post_id ] = $lang;
 
-		return $post instanceof WP_Post ? $this->from_text( $post, PostSource::html_of( $post ) ) : $this->site();
+		return $lang;
 	}
 
 	/**
@@ -250,8 +301,7 @@ final class Language implements Module {
 	 * @param string  $html HTML que se indexa.
 	 */
 	private function from_text( WP_Post $post, string $html ): string {
-		// Tope antes de quitar etiquetas: un maquetador puede dejar cientos de KB de marcado.
-		$text = html_entity_decode( wp_strip_all_tags( strip_shortcodes( $post->post_title . ' ' . mb_substr( $html, 0, 10 * LanguageDetector::MAX_CHARS, 'UTF-8' ) ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$text = self::plain( $post->post_title, $html );
 		$seal = (string) crc32( $text );
 		$memo = $this->from_text[ $post->ID ] ?? null;
 		if ( null === $memo || $memo[0] !== $seal ) {
@@ -261,6 +311,42 @@ final class Language implements Module {
 
 		// Sin confianza, el idioma del sitio de ahora (no se recuerda: puede cambiar).
 		return '' !== $memo[1] ? $memo[1] : $this->site();
+	}
+
+	/**
+	 * Texto plano para detectar el idioma: título más el principio del HTML, sin shortcodes, etiquetas ni entidades,
+	 * con un espacio donde había una etiqueta de bloque («casa</p><p>La» no se pega). Se limpia por trozos y solo
+	 * hasta reunir los caracteres que mira el detector, sin procesar todo el HTML de un maquetador.
+	 *
+	 * @param string $title Título.
+	 * @param string $html  HTML que se indexa.
+	 */
+	private static function plain( string $title, string $html ): string {
+		$wanted = LanguageDetector::MAX_CHARS;
+		$step   = 2 * $wanted;
+		$limit  = min( strlen( $html ), 10 * $wanted );
+		$text   = $title;
+		$offset = 0;
+
+		while ( $offset < $limit && mb_strlen( $text, 'UTF-8' ) < $wanted ) {
+			$chunk = mb_strcut( $html, $offset, $step, 'UTF-8' );
+			// No se corta una etiqueta por la mitad.
+			$open = strrpos( $chunk, '<' );
+			$shut = strrpos( $chunk, '>' );
+			if ( false !== $open && ( false === $shut || $shut < $open ) ) {
+				$close = strpos( $html, '>', $offset + strlen( $chunk ) );
+				$chunk = false !== $close && $close - $offset < $step + 4000 ? substr( $html, $offset, $close - $offset + 1 ) : substr( $chunk, 0, $open );
+			}
+			if ( '' === $chunk ) {
+				break;
+			}
+			$offset += strlen( $chunk );
+
+			$chunk = (string) preg_replace( '~</?(?:p|div|li|ul|ol|h[1-6]|br|tr|td|th|table|blockquote|figure|figcaption|section|article|header|footer|pre)\b[^>]*>~i', ' ', strip_shortcodes( $chunk ) );
+			$text .= ' ' . html_entity_decode( wp_strip_all_tags( $chunk ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		}
+
+		return $text;
 	}
 
 	/**

@@ -366,6 +366,27 @@ final class Jobs implements Module {
 	// ------------------------------------------------------------------ Proceso de indexado.
 
 	/**
+	 * Lanza el indexado que pide un cambio de ajustes o del entorno. Si ya hay uno en marcha se cancela y se rehace,
+	 * porque habría leído las entradas con el criterio anterior y el índice quedaría con dos mezclados.
+	 *
+	 * @param int  $user_id Usuario que lo pide (0 = el sistema).
+	 * @param bool $graph   Pasar también por el grafo (cambian los tipos, las categorías o el idioma).
+	 * @param bool $scope   Releer todas las entradas y reconstruir el índice léxico.
+	 *
+	 * @return array{id: int, type: string, status: string, total: int, done: int, params: array<string, mixed>, error: string, created_by: int, created_at: string, updated_at: string}
+	 */
+	public function restart_index( int $user_id, bool $graph, bool $scope ): array {
+		$active = $this->jobs->active( self::TYPE_INDEX );
+		if ( null !== $active ) {
+			// Lo que el proceso cancelado no llegó a hacer del grafo lo hace el nuevo.
+			$graph = $graph || ! empty( $active['params']['graph'] );
+			$this->cancel( $active['id'] );
+		}
+
+		return $this->start_index( $user_id, true, $scope, $graph, $scope );
+	}
+
+	/**
 	 * Lanza el indexado de todo el sitio, o devuelve el que ya está en marcha.
 	 *
 	 * @param int  $user_id Quien lo lanza (0 = sistema o WP-CLI).

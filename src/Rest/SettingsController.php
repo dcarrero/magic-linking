@@ -298,7 +298,7 @@ final class SettingsController implements Module {
 		$scope         = $this->settings->link_scope();
 		$categories    = $this->settings->all()['excluded_categories'];
 		$k_terms       = $this->settings->k_terms();
-		$detect        = $this->settings->detect_language();
+		$detect        = $this->settings->detect_applied();
 		$input         = array_intersect_key( $request->get_json_params() ?: $request->get_body_params(), $this->settings->all() ); // phpcs:ignore Universal.Operators.DisallowShortTernary.Found -- JSON o formulario.
 		$after         = $this->settings->update( $input );
 		$types_changed = $types !== $after['post_types'];
@@ -312,8 +312,10 @@ final class SettingsController implements Module {
 
 		// Detectar el idioma por el texto cambia el idioma de cada entrada, que se guarda en el grafo y en el índice
 		// léxico: hay que releer todas, por los dos (F1-37).
-		// Con WPML o Polylang la opción no hace nada: no hay nada que releer.
-		if ( $detect !== $after['detect_language'] && ! ( null !== $this->language && $this->language->plugin_active() ) ) {
+		// Solo cuenta si la detección actúa de verdad: con WPML o Polylang la opción no hace nada y no hay nada que releer.
+		$acts = null !== $this->language && $this->language->detects();
+		if ( $detect !== $acts ) {
+			$this->settings->set_detect_applied( $acts );
 			$types_changed = true;
 			$scope_changed = true;
 		}
@@ -327,8 +329,7 @@ final class SettingsController implements Module {
 	}
 
 	/**
-	 * Lanza el indexado que pide un cambio de ajustes. Si ya hay uno en marcha se cancela y se rehace, porque
-	 * habría leído las entradas con el ajuste anterior y el índice quedaría con dos criterios mezclados.
+	 * Lanza el indexado que pide un cambio de ajustes (ver {@see Jobs::restart_index()}).
 	 *
 	 * @param bool $types Han cambiado los tipos de contenido (hay que pasar también por el grafo).
 	 * @param bool $scope Ha cambiado qué texto se lee (hay que releer todas y reconstruir el índice léxico).
@@ -336,15 +337,7 @@ final class SettingsController implements Module {
 	 * @return array{id: int, type: string, status: string, total: int, done: int, params: array<string, mixed>, error: string, created_by: int, created_at: string, updated_at: string}
 	 */
 	private function restart_index( bool $types, bool $scope ): array {
-		$graph  = $types;
-		$active = $this->jobs->repository()->active( Jobs::TYPE_INDEX );
-		if ( null !== $active ) {
-			// Lo que el proceso cancelado no llegó a hacer del grafo lo hace el nuevo.
-			$graph = $graph || ! empty( $active['params']['graph'] );
-			$this->jobs->cancel( $active['id'] );
-		}
-
-		return $this->jobs->start_index( get_current_user_id(), true, $scope, $graph, $scope );
+		return $this->jobs->restart_index( get_current_user_id(), $types, $scope );
 	}
 
 	/**

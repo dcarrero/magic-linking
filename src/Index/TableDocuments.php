@@ -72,7 +72,9 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 
 		$links        = $this->graph->links_from( $ids );
 		$this->stored = array();
-		foreach ( $this->graph->docs_by_ids( $ids ) as $id => $row ) {
+		$rows         = $this->graph->docs_by_ids( $ids );
+		$this->posts->remember_languages( array_map( static fn( array $row ): string => $row['lang'], $rows ) );
+		foreach ( $rows as $id => $row ) {
 			$this->stored[ $id ] = array(
 				'hash'  => $row['content_hash'],
 				'links' => $links[ $id ] ?? array(),
@@ -112,7 +114,7 @@ final class TableDocuments implements DocumentSource, PrefetchesDocuments {
 	 */
 	public function from_post( WP_Post $post ): Document {
 		$html     = PostSource::html_of( $post );
-		$document = $this->posts->from_post( $post, $html );
+		$document = $this->posts->from_post( $post, $html, null, true );
 
 		$links = $this->links_in( $post, $html );
 
