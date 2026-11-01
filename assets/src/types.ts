@@ -254,6 +254,8 @@ export interface SettingsValues {
 	filters: SuggestionFilters;
 	/** `term_taxonomy_id` de las categorías cuyas entradas quedan fuera del análisis (F1-16). */
 	excluded_categories: number[];
+	/** Detectar el idioma de cada entrada por su texto (F1-37); sin efecto con WPML o Polylang. */
+	detect_language: boolean;
 	/** Avanzado: términos que se guardan por entrada (K, docs/04 §3). */
 	k_terms: number;
 	/** Avanzado: umbral de puntuación del motor, en tanto por ciento (docs/04 §6). */
@@ -286,6 +288,8 @@ export interface SettingsResponse {
 	category_groups: CategoryGroup[];
 	/** Máximo de categorías que se pueden excluir. */
 	max_excluded: number;
+	/** Hay WPML o Polylang: ellos dan el idioma de cada entrada y la detección por el texto no actúa. */
+	multilingual: boolean;
 	job?: Job | null;
 }
 

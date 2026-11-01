@@ -77,6 +77,7 @@ export const LEGACY_ANCHORS: Record< string, SettingsTabName > =
 const TAB_OF: Record< keyof SettingsValues, SettingsTabName > = {
 	post_types: 'general',
 	excluded_categories: 'general',
+	detect_language: 'general',
 	k_terms: 'suggestions',
 	score_threshold: 'suggestions',
 	outbound_shown: 'suggestions',

@@ -895,6 +895,29 @@ export function SettingsTab( { onReindex, onOpenWizard, status }: Props ) {
 									/>
 								) ) }
 							</fieldset>
+							<CheckboxControl
+								__nextHasNoMarginBottom
+								label={ __(
+									'Detect the language of each entry from its text',
+									'magic-linking'
+								) }
+								help={
+									data.multilingual
+										? __(
+												'WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active.',
+												'magic-linking'
+										  )
+										: __(
+												'Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least 30 words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again.',
+												'magic-linking'
+										  )
+								}
+								disabled={ data.multilingual }
+								checked={ values.detect_language }
+								onChange={ ( checked ) =>
+									set( 'detect_language', checked )
+								}
+							/>
 						</SettingsSection>
 						<SettingsSection
 							section={ sections.excludedCategories }
