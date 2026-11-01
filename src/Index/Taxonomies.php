@@ -200,7 +200,7 @@ final class Taxonomies {
 	 * @param int    $post_id  ID.
 	 * @param string $taxonomy Taxonomía.
 	 *
-	 * @return array|false|\WP_Error
+	 * @return array<int, \WP_Term>|false|\WP_Error
 	 */
 	private static function terms_of( int $post_id, string $taxonomy ) {
 		$terms = get_object_term_cache( $post_id, $taxonomy );
