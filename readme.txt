@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.24.0
+Stable tag: 1.0.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,9 @@ It works entirely on your server, with no account, no key and no limits, not eve
 * **Inbound suggestions**: the same panel lists other entries whose text mentions the one you are editing and could link to it. Pressing *Link* writes the link in that other entry, see "How and when it changes your content".
 * Only the entries and block types where a link can be inserted safely are proposed. Paragraphs and lists are always used; headings, quotes and tables are left alone unless you turn them on in Settings (or a developer allows them with a filter).
 * **Pillar content and filters**: mark your main entries as pillar content (the mark of an active Yoast SEO or Rank Math also counts) so links to them rank higher. In Settings > Suggestions you can ignore, consider or require the same content type, category or tag.
+* **More phrases and adjustable anchor**: the card can offer alternative sentences (off by default, Settings > Suggestions) and lets you adjust the anchor text before linking. Each suggestion warns when the anchor already links somewhere else or is repeated too often, and a collapsible list shows what is already linked.
+* **Your own target phrases**: for each entry you can write the phrases you want it to rank for, so other entries link to it with them.
+* **Exclude**: leave an entry (from the report) or whole categories (Settings > General) out of the analysis. Excluded entries are neither suggested nor a source of links.
 * **Dismiss**: a suggestion you do not want can be dismissed for good, from either side, and restored with *Undo*.
 * **Improve with AI (optional)**: with an AI connector (WordPress 7.0 or later), *Improve with AI* sends the best 20 suggestions to your AI provider in one request. It reorders them, marks the ones it does not recommend, may propose a better anchor text from the same sentence and shows what the request cost. See "AI and your privacy".
 
@@ -65,7 +68,8 @@ It works entirely on your server, with no account, no key and no limits, not eve
 **Also**
 
 * **WP-CLI**: analyse the site, print reports and manage the history from the terminal.
-* **Multilingual**: the language of each entry comes from WPML, Polylang or, if you use neither, from the site language. Suggestions never link entries of different languages.
+* **Multilingual**: the language of each entry comes from WPML, Polylang or, if you use neither, from the site language. Suggestions never link entries of different languages. An optional setting detects the language from the text itself (tested on Spanish and English).
+* **Status tab**: The Status tab shows how long the last suggestions took, so you can see whether the engine is slow on your server.
 * **Made for big sites**: the analysis and the index of suggestions are built in the background in small batches with Action Scheduler (bundled), and every entry is updated when you save it. Suggestions for an entry are calculated in a few milliseconds even with thousands of entries.
 * **Light**: no scripts, no styles and no database queries from this plugin on your public pages.
 * **Private**: no telemetry, no cookies, no email requests, no notices outside its own screens, and nothing leaves your server unless you press *Improve with AI* with an AI connector (see "AI and your privacy").
@@ -75,21 +79,10 @@ It works entirely on your server, with no account, no key and no limits, not eve
 * It does not check links over the network: a link is "broken" when it points to an address on your own site that leads nowhere, according to WordPress. Links to other sites are counted, not checked.
 * It does not add links by itself, except for the rules you create. Suggestions always need a click of yours.
 
-**How links are counted**
-
-* Only the links written inside the content of each entry are counted. Links in menus, widgets, theme templates or blocks that are pulled from somewhere else are not, so your home page or a page that is only linked from the menu can appear as an orphan.
-* Content that a page builder keeps outside the normal post content is not read. If your builder saves rendered HTML in the post content, it is read.
-* Inbound = how many different entries link to this one, counting only links that work. Outbound = internal links to other pages; every appearance counts. Links to the same entry, to files or to `mailto:` and `tel:` are not counted.
-* Category, tag, author, date and search pages, the home page and feeds are valid destinations and are never reported as broken.
-* Tracking parameters (`utm_*`, `gclid`, `fbclid`…) and anchors (`#…`) are ignored when matching a link to an entry.
-
 **AI and your privacy**
 
 * Magic Linking has no AI of its own and asks for no key. It uses the AI client and the *Connectors* screen of WordPress 7.0 or later. On WordPress 6.9 the AI options are turned off and the plugin works as usual.
-* Nothing is sent until you press *Improve with AI*. Finding out whether a connector exists does not call any model.
-* What is sent, in that one request: the sentence of the entry you are editing with the anchor text marked, and for each of the 20 suggestions the title and a short summary (about 200 tokens) of the destination, made of its title, headings and the beginning of its text. Only clean text: no metadata, authors, email addresses or comments. Private, password-protected and draft entries are never sent as destinations.
-* Where it goes: to the AI provider you configured in Settings > Connectors. If your connector is a local model (for example Ollama), the text does not leave your server.
-* You set a daily limit of tokens (2,000,000 by default; 0 turns AI off). When it is reached, AI pauses until the next day and the suggestions use the built-in engine. Settings > AI shows the connector, the limit and what was used in the last 30 days. Costs are estimates with public list prices; your provider is the one that charges you.
+* Nothing is sent until you press *Improve with AI*, and then only to the provider you configured (a local model never leaves your server). You set a daily token limit in Settings > AI (0 turns AI off). See "External services" for exactly what is sent.
 
 **Roadmap**
 
@@ -137,6 +130,34 @@ Yes. On each row of the report, *Inbound suggestions* and *Outbound suggestions*
 = How do I undo a link? =
 
 Right after adding it, press *Undo* on the card. Later, open **Magic Linking > History** and undo it there. You can also redo it. If the text around the link has been edited since, Magic Linking tells you instead of changing anything it cannot be sure about.
+
+= How do I leave an entry or a category out? =
+
+For one entry, press *Exclude from the analysis* on its row in the report. For whole categories, go to *Settings > General* and pick them under *Categories left out*. An excluded entry is neither suggested nor used as a source of links; links that other entries already have to it still count. You can include it again at any time, and the report lists the excluded entries with the reason.
+
+= What are target phrases? =
+
+Phrases you write for an entry (in the *Target phrases* section of the editor panel, up to 10, each with a few variants) to say "link to this entry when the text says this". They are used by the suggestions like the entry's own focus keyword, and they never add a link by themselves.
+
+= Can it detect the language of my entries? =
+
+Yes, if you turn on *Detect the language of each entry from its text* in Settings > General. It is off by default, does nothing while WPML or Polylang is active (they take priority) and, when it is not sure, uses the language of the site. It is checked on Spanish and English texts; other languages are not validated yet, so do not rely on it for them.
+
+= What is the Status tab? =
+
+The Status tab shows the time of the last 20 suggestion requests, split by phase, with the budget each should meet. It is a diagnostic: nothing is sent anywhere.
+
+= Where do I change the sensitivity of the suggestions? =
+
+In *Settings > Suggestions > Show advanced settings*: the key terms kept per entry and the score threshold. The defaults are right for most sites; changing the number of terms rebuilds the index in the background.
+
+= How are links counted? =
+
+* Only the links written inside the content of each entry are counted. Links in menus, widgets, theme templates or blocks that are pulled from somewhere else are not, so your home page or a page that is only linked from the menu can appear as an orphan.
+* Content that a page builder keeps outside the normal post content is not read. If your builder saves rendered HTML in the post content, it is read.
+* Inbound = how many different entries link to this one, counting only links that work. Outbound = internal links to other pages; every appearance counts. Links to the same entry, to files or to `mailto:` and `tel:` are not counted.
+* Category, tag, author, date and search pages, the home page and feeds are valid destinations and are never reported as broken.
+* Tracking parameters (`utm_*`, `gclid`, `fbclid`…) and anchors (`#…`) are ignored when matching a link to an entry.
 
 = Does it need AI, an API key or an account? =
 
@@ -261,6 +282,18 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 
 == Changelog ==
 
+= 1.0.0 =
+* New: your own target phrases per entry, with variants, in the editor panel.
+* New: exclude an entry from the analysis, or whole categories (Settings > General). Excluded entries are listed in the report with the reason.
+* New: alternative sentences for a suggestion (optional) and adjustable anchor text, checked on the server before linking.
+* New: each suggestion tells you when its anchor already links elsewhere or is repeated too often, and lists the links already there.
+* New: a Status tab with the time of the latest suggestion requests.
+* New: advanced suggestion settings (key terms and score threshold) and an optional detection of the language from the text, tested on Spanish and English.
+* New: notices appear only inside the plugin screens, one at a time, and each can be closed for good. After 20 links inserted and 30 days of use, one asks for a review; it is shown for a week at most.
+* New: translations complete in all bundled languages, plus Catalan, German (formal), English (UK, Australia, Canada), Spanish (Argentina, Mexico), Dutch and Romanian.
+* Improved: inbound suggestions are about twice as fast on long entries, and dates follow the time zone and format of the site. Memory use per request is now measured in tests.
+* Database: the schema moves to version 8 with two new indexes, created in the background after updating.
+
 = 0.24.0 =
 * New: pillar content. Tick *Pillar content* in the editor panel and links to that entry rank a little higher in the suggestions. The cornerstone mark of Yoast SEO and the pillar mark of Rank Math also count while those plugins are active.
 * New: filters by content type, category and tag in Settings > Suggestions: ignore (default), consider (entries that share them rank a little higher) or require (only entries that share them are suggested, never in another language). Suggestions use the categories and tags selected in the editor, even before you save, and the panel says when a filter is why there are no suggestions.
@@ -339,6 +372,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 1.0.0 =
+The complete free version: target phrases, excluding entries and categories, anchor warnings, a Status tab and more languages. After updating, two database indexes are created in the background; suggestions work meanwhile and nothing in your content changes.
 
 = 0.24.0 =
 Adds pillar content (also read from an active Yoast SEO or Rank Math) and filters by content type, category and tag for the suggestions. Filters are off by default; the update does not touch your content.

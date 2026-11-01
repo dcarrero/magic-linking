@@ -9,7 +9,7 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 
 *Enlazado interno para WordPress que funciona gratis de verdad, con la IA que ya tiene tu WordPress y sin vender créditos.*
 
-> **Status: version 0.24.0 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
+> **Status: version 1.0.0 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
 
 ## 🚀 Features
 
@@ -110,14 +110,16 @@ Legend: ✅ done · 🔜 planned. No dates and no prices; the order can change.
 - ✅ Language per entry (WPML, Polylang) and English/Spanish interface
 - ✅ Outbound and inbound link suggestions in the editor (block editor and classic), with the reason for each one
 - ✅ One-click insertion touching only the affected block, verified, with history and **undo / redo**
-- 🔜 Several phrases per destination and adjustable anchor text
+- ✅ Alternative sentences per suggestion and adjustable anchor text
 - ✅ Automatic rules (phrase → entry), unlimited, applied on publish or update and to existing entries one by one
 - ✅ Add links one by one from the report
 - ✅ Remove or change broken links one by one
 - ✅ Optional AI through the WordPress AI client (**Settings → Connectors**): *Improve with AI* reorders the suggestions, flags the ones it does not recommend and may propose a better anchor, with cost estimate and a daily cap you set
 - 🔜 Suggestions by meaning (embeddings) when WordPress 7.2 provides them
 - ✅ Pillar content (own flag, or Yoast or Rank Math while active) and Ignore / Consider / Require filters by post type, category and tag
-- 🔜 Your own target phrases per entry
+- ✅ Your own target phrases per entry
+- ✅ Exclude entries or categories from the analysis; advanced suggestion settings; optional language detection from the text (checked on Spanish and English)
+- ✅ Status tab with the engine timing; notices only inside the plugin screens, each dismissible for good
 
 ### Pro (later)
 
@@ -181,6 +183,17 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 [GPL-2.0-or-later](LICENSE).
 
 ## 📝 Changelog
+
+### 1.0.0
+- Complete free version. Target phrases per entry (F1-24, D-72): collapsible section in the panel, up to 10 phrases with 5 variants, stored in the `_magiclinking_target_phrases` meta and indexed like the focus keyword.
+- Exclude from the analysis (F1-12, D-70) per entry, and excluded categories in Settings > General (F1-16, D-74), through a single eligibility path; advanced settings `k_terms` and `score_threshold`.
+- More phrases and adjustable anchor (F1-22, D-69): `alternatives` setting (0 by default) and server-side anchor checks on `POST /links`.
+- "Already linked" list and anchor warnings for cannibalization and over-used anchors (F1-23, D-71).
+- Status tab with engine timing of the last 20 requests per direction (F1-27, D-73); per-request REST memory budget measured in CI (F1-44, D-76).
+- Notices registry, closable for good and shown only on plugin screens; review request after 20 own links and 30 days (F1-17, D-75). Schema 8: `user_action` index on `magiclinking_changes`, created in the background by Action Scheduler.
+- Optional language detection from the text (F1-37, D-77), off by default, ignored while WPML or Polylang is active. Validated on Spanish and English only.
+- Inbound suggestions about twice as fast on long entries without a table cache (F1-32, D-68); dates with the site time zone and format (F1-43).
+- Translations complete in all bundled languages, plus ca, de_DE_formal, en_GB, en_AU, en_CA, es_AR, es_MX, nl_NL and ro_RO.
 
 ### 0.24.0
 - Pillar content and filters (F1-25, D-67): own *Pillar content* mark in the panel, plus Yoast SEO cornerstone and Rank Math pillar marks while those plugins are active (+0.05, never past the threshold on its own); Ignore/Consider/Require by content type, category and tag in Settings > Suggestions, with Require applied in retrieval before the candidate limit (SQL, shared `Engine\Requirement` comparator, allowed set on the semantic path); unsaved editor terms are used; the empty state blames the filter only when it is the cause.
