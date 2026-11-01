@@ -215,7 +215,7 @@ final class GraphIndexer {
 			$new_docs[ $post_id ]  = array(
 				'post_id'      => $post_id,
 				'post_type'    => $post->post_type,
-				'lang'         => $this->language->for_post( $post_id ),
+				'lang'         => $this->language->for_indexing( $post, $html ),
 				'content_hash' => $hash,
 				'word_count'   => $this->word_count( $html ),
 				'outbound'     => count( $internal ),
@@ -226,6 +226,7 @@ final class GraphIndexer {
 
 		if ( array() !== $new_docs ) {
 			$affected = $this->repository->write_batch( $new_docs, $new_links );
+			$this->language->forget( array_keys( $new_docs ) );
 		}
 
 		foreach ( array_keys( $new_docs ) as $post_id ) {

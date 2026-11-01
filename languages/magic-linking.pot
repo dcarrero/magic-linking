@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-31T23:30:21+00:00\n"
+"POT-Creation-Date: 2026-11-01T11:04:43+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: magic-linking\n"
@@ -72,7 +72,7 @@ msgstr ""
 #: src/Admin/EditorPanel.php:84
 #: src/Admin/Screen.php:312
 #: assets/build/editor.js:46
-#: assets/build/index.js:131
+#: assets/build/index.js:132
 msgid "Internal links"
 msgstr ""
 
@@ -84,7 +84,7 @@ msgstr ""
 #: assets/build/index.js:53
 #: assets/build/index.js:108
 #: assets/build/index.js:117
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Loading…"
 msgstr ""
 
@@ -127,23 +127,23 @@ msgid "Magic Linking"
 msgstr ""
 
 #: src/Admin/Screen.php:156
-#: assets/build/index.js:130
+#: assets/build/index.js:131
 msgid "Report"
 msgstr ""
 
 #: src/Admin/Screen.php:162
-#: assets/build/index.js:130
 #: assets/build/index.js:131
+#: assets/build/index.js:132
 msgid "Broken links"
 msgstr ""
 
 #: src/Admin/Screen.php:166
-#: assets/build/index.js:130
+#: assets/build/index.js:131
 msgid "History"
 msgstr ""
 
 #: src/Admin/Screen.php:170
-#: assets/build/index.js:130
+#: assets/build/index.js:131
 msgid "Rules"
 msgstr ""
 
@@ -154,12 +154,12 @@ msgstr ""
 #: assets/build/index.js:53
 #: assets/build/index.js:88
 #: assets/build/index.js:101
-#: assets/build/index.js:130
+#: assets/build/index.js:131
 msgid "Status"
 msgstr ""
 
 #: src/Admin/Screen.php:178
-#: assets/build/index.js:130
+#: assets/build/index.js:131
 msgid "Settings"
 msgstr ""
 
@@ -485,7 +485,7 @@ msgstr ""
 
 #: src/Content/Destination.php:43
 #: src/Content/Destination.php:51
-#: src/Rest/FixController.php:252
+#: src/Rest/FixController.php:253
 #: src/Rules/RuleService.php:107
 msgid "The destination is not a published entry that can be linked."
 msgstr ""
@@ -644,7 +644,7 @@ msgstr ""
 
 #: src/Graph/BrokenRepository.php:146
 #: src/Graph/ReportRepository.php:484
-#: src/Rest/FixController.php:207
+#: src/Rest/FixController.php:208
 #: assets/build/classic.js:12
 #: assets/build/classic.js:22
 #: assets/build/editor.js:12
@@ -909,16 +909,16 @@ msgstr ""
 msgid "The change could not be saved. Try again."
 msgstr ""
 
-#: src/Rest/FixController.php:241
+#: src/Rest/FixController.php:242
 msgid "This link is no longer broken. Reload the list."
 msgstr ""
 
-#: src/Rest/FixController.php:265
+#: src/Rest/FixController.php:266
 #: assets/build/index.js:7
 msgid "The link could not be fixed; nothing was changed."
 msgstr ""
 
-#: src/Rest/FixController.php:334
+#: src/Rest/FixController.php:335
 msgid "That link does not exist."
 msgstr ""
 
@@ -948,29 +948,29 @@ msgstr ""
 msgid "The rule could not be saved. Try again."
 msgstr ""
 
-#: src/Rest/SettingsController.php:217
+#: src/Rest/SettingsController.php:219
 msgid "That model works in batches, not live, so it cannot be used in the editor. Pick another one or leave it on automatic."
 msgstr ""
 
 #. translators: %s: comma-separated list of shared terms.
-#: src/Rest/SuggestionPresenter.php:232
+#: src/Rest/SuggestionPresenter.php:234
 #, php-format
 msgid "They share: %s"
 msgstr ""
 
-#: src/Rest/SuggestionPresenter.php:235
+#: src/Rest/SuggestionPresenter.php:237
 msgid "The anchor matches the title of the destination"
 msgstr ""
 
-#: src/Rest/SuggestionPresenter.php:238
+#: src/Rest/SuggestionPresenter.php:240
 msgid "The anchor matches the focus keyword of the destination"
 msgstr ""
 
-#: src/Rest/SuggestionPresenter.php:241
+#: src/Rest/SuggestionPresenter.php:243
 msgid "The destination is an orphan (0 inbound links)"
 msgstr ""
 
-#: src/Rest/SuggestionPresenter.php:244
+#: src/Rest/SuggestionPresenter.php:246
 msgid "Very similar in meaning"
 msgstr ""
 
@@ -1308,7 +1308,7 @@ msgstr ""
 #: assets/build/classic.js:14
 #: assets/build/editor.js:14
 #: assets/build/index.js:63
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Next"
 msgstr ""
 
@@ -1906,7 +1906,7 @@ msgstr ""
 #: assets/build/classic.js:41
 #: assets/build/editor.js:41
 #: assets/build/index.js:85
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Refresh"
 msgstr ""
 
@@ -2440,8 +2440,8 @@ msgstr ""
 #: assets/build/index.js:36
 #: assets/build/index.js:57
 #: assets/build/index.js:117
-#: assets/build/index.js:127
-#: assets/build/index.js:129
+#: assets/build/index.js:128
+#: assets/build/index.js:130
 msgid "That did not work. Try again."
 msgstr ""
 
@@ -3005,7 +3005,7 @@ msgstr ""
 
 #: assets/build/index.js:57
 #: assets/build/index.js:117
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Analysis started."
 msgstr ""
 
@@ -3043,7 +3043,7 @@ msgid "Analysis cancelled."
 msgstr ""
 
 #: assets/build/index.js:59
-#: assets/build/index.js:127
+#: assets/build/index.js:128
 msgid "Analyze your site"
 msgstr ""
 
@@ -3084,7 +3084,7 @@ msgstr ""
 
 #. translators: %s: date and time of the last analysis.
 #: assets/build/index.js:62
-#: assets/build/index.js:125
+#: assets/build/index.js:126
 #, js-format
 msgid "Last analysis: %s"
 msgstr ""
@@ -3140,7 +3140,7 @@ msgid "Excluded"
 msgstr ""
 
 #: assets/build/index.js:86
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Could not load the report."
 msgstr ""
 
@@ -3332,7 +3332,7 @@ msgid "Find more entries"
 msgstr ""
 
 #: assets/build/index.js:94
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Close"
 msgstr ""
 
@@ -3451,7 +3451,7 @@ msgid "Could not load the options."
 msgstr ""
 
 #: assets/build/index.js:98
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Phrases"
 msgstr ""
 
@@ -3867,7 +3867,7 @@ msgid "Model"
 msgstr ""
 
 #: assets/build/index.js:115
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Requests"
 msgstr ""
 
@@ -3916,7 +3916,7 @@ msgid "Duration"
 msgstr ""
 
 #: assets/build/index.js:117
-#: assets/build/index.js:131
+#: assets/build/index.js:132
 msgid "Entries analyzed"
 msgstr ""
 
@@ -3961,7 +3961,7 @@ msgid "Start analysis"
 msgstr ""
 
 #: assets/build/index.js:117
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Could not load the settings."
 msgstr ""
 
@@ -3974,7 +3974,7 @@ msgid "Settings saved."
 msgstr ""
 
 #: assets/build/index.js:117
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "The settings could not be saved."
 msgstr ""
 
@@ -3997,7 +3997,7 @@ msgid "Enter a whole number from %1$s to %2$s; otherwise it is adjusted when you
 msgstr ""
 
 #: assets/build/index.js:118
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Choose at least one content type."
 msgstr ""
 
@@ -4218,251 +4218,265 @@ msgid "Removes its tables, history and settings. The links already in your entri
 msgstr ""
 
 #: assets/build/index.js:118
-#: assets/build/index.js:128
+#: assets/build/index.js:129
 msgid "Content types to analyze"
 msgstr ""
 
 #: assets/build/index.js:118
+msgid "Detect the language of each entry from its text"
+msgstr ""
+
+#: assets/build/index.js:118
+msgid "WPML or Polylang already tell Magic Linking the language of each entry, so this option does nothing while one of them is active."
+msgstr ""
+
+#. translators: %d: minimum number of words an entry needs for its language to be detected.
+#: assets/build/index.js:119
+#, js-format
+msgid "Useful when your site is in one language but some entries are written in another. It is a best guess from the most common words, so it needs at least %d words; when it is not sure, the site language is used. Saving makes Magic Linking analyze your site again."
+msgstr ""
+
+#: assets/build/index.js:119
 msgid "The content types you analyze have no categories."
 msgstr ""
 
 #. translators: %d: maximum number of categories.
-#: assets/build/index.js:119
+#: assets/build/index.js:120
 #, js-format
 msgid "You have reached the limit of %d categories. Untick one to choose another."
 msgstr ""
 
-#: assets/build/index.js:119
+#: assets/build/index.js:120
 msgid "Only the exact category counts: its subcategories are not excluded with it. Saving makes Magic Linking analyze your site again. The list follows the content types saved above, so save first after choosing new ones."
 msgstr ""
 
-#: assets/build/index.js:119
+#: assets/build/index.js:120
 msgid "Save settings"
 msgstr ""
 
 #. translators: %s: number of milliseconds.
-#: assets/build/index.js:120
+#: assets/build/index.js:121
 #, js-format
 msgctxt "milliseconds"
 msgid "%s ms"
 msgstr ""
 
 #. translators: %s: target time, e.g. "500 ms".
-#: assets/build/index.js:121
+#: assets/build/index.js:122
 #, js-format
 msgid "target under %s"
 msgstr ""
 
 #. translators: %s: the target, e.g. "target under 500.0 ms".
-#: assets/build/index.js:122
+#: assets/build/index.js:123
 #, js-format
 msgid "Within budget (%s)"
 msgstr ""
 
 #. translators: %s: the target, e.g. "target under 500.0 ms".
-#: assets/build/index.js:123
+#: assets/build/index.js:124
 #, js-format
 msgid "Over budget (%s)"
 msgstr ""
 
-#: assets/build/index.js:123
+#: assets/build/index.js:124
 msgid "Could not read the index status."
 msgstr ""
 
-#: assets/build/index.js:123
+#: assets/build/index.js:124
 msgid "Could not read the engine times."
 msgstr ""
 
-#: assets/build/index.js:123
+#: assets/build/index.js:124
 msgid "Engine times refreshed."
 msgstr ""
 
-#: assets/build/index.js:123
+#: assets/build/index.js:124
 msgid "Outgoing"
 msgstr ""
 
-#: assets/build/index.js:123
+#: assets/build/index.js:124
 msgid "Incoming"
 msgstr ""
 
-#: assets/build/index.js:123
+#: assets/build/index.js:124
 msgid "Index"
 msgstr ""
 
 #. translators: 1: entries in the index, 2: entries that can be analyzed.
-#: assets/build/index.js:124
+#: assets/build/index.js:125
 #, js-format
 msgid "%1$s of %2$s entries are in the index."
 msgstr ""
 
-#: assets/build/index.js:125
+#: assets/build/index.js:126
 msgid "Engine time"
 msgstr ""
 
 #. translators: %s: number of requests kept per direction.
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 #, js-format
 msgid "Measured on the last %s suggestions request recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
 msgid_plural "Measured on the last %s suggestions requests recorded for each direction. To avoid writing on every keystroke in the editor, at most one write every few seconds is kept, so some requests are not recorded. The times are stored on this site only and are never sent anywhere."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "No suggestions have been calculated yet. Open an entry in the editor or the Report to see the times here."
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Time of the suggestions engine, in milliseconds"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Direction"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Median"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "95th percentile"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Budget"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "From cache"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Candidates"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Retrieval"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Loading"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Scoring"
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "No requests yet."
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Median and 95th percentile cover every recorded request, including those answered from the cache. Candidates and phases cover only the requests the engine calculated. Retrieval is analyzing the entry and finding candidate targets; loading is reading the targets or sources; phrases is looking for where to place the anchor; scoring is rating each one. Sorting, reasons and removing ignored words are not in any phase, and the phases are medians, so they do not have to add up to the total."
 msgstr ""
 
-#: assets/build/index.js:126
+#: assets/build/index.js:127
 msgid "Could not load the setup information."
-msgstr ""
-
-#. translators: 1: current step, 2: number of steps.
-#: assets/build/index.js:127
-#, js-format
-msgid "Step %1$s of %2$s"
-msgstr ""
-
-#: assets/build/index.js:127
-msgid "What do we link?"
-msgstr ""
-
-#: assets/build/index.js:127
-msgid "Artificial intelligence"
-msgstr ""
-
-#: assets/build/index.js:127
-msgid "All set"
 msgstr ""
 
 #. translators: 1: current step, 2: number of steps.
 #: assets/build/index.js:128
 #, js-format
+msgid "Step %1$s of %2$s"
+msgstr ""
+
+#: assets/build/index.js:128
+msgid "What do we link?"
+msgstr ""
+
+#: assets/build/index.js:128
+msgid "Artificial intelligence"
+msgstr ""
+
+#: assets/build/index.js:128
+msgid "All set"
+msgstr ""
+
+#. translators: 1: current step, 2: number of steps.
+#: assets/build/index.js:129
+#, js-format
 msgid "Setup · step %1$s of %2$s"
 msgstr ""
 
 #. translators: %s: language name.
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 #, js-format
 msgid "Language detected: %s."
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Your site is multilingual: we will link each language separately."
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Entries are only linked to others in the same language."
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Your WordPress has an AI connector. This version of Magic Linking does not use it yet: suggestions come from its own engine, which needs no AI. When AI features arrive they will use that connector, and nothing will be spent without showing you an estimate first."
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "No AI connected: Magic Linking works with its own engine, which needs no AI. You can connect one whenever you like in Settings → Connectors."
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Analyzing only reads your content; it never changes it. Links are only added when you press Link."
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "The analysis is running. You can close this screen: it continues in the background."
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Start"
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Back"
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "Skip setup"
 msgstr ""
 
-#: assets/build/index.js:129
+#: assets/build/index.js:130
 msgid "You can open this assistant again from Settings."
 msgstr ""
 
 #. translators: 1: entries analyzed, 2: orphan entries, 3: internal links.
-#: assets/build/index.js:130
+#: assets/build/index.js:131
 #, js-format
 msgid "%1$s entries analyzed · %2$s orphans · %3$s internal links"
 msgstr ""
 
-#: assets/build/index.js:130
+#: assets/build/index.js:131
 msgid "See orphans"
 msgstr ""
 
-#: assets/build/index.js:130
+#: assets/build/index.js:131
 msgid "Open an entry"
 msgstr ""
 
 #. translators: %s: section name (Report, Broken links, Settings).
-#: assets/build/index.js:131
+#: assets/build/index.js:132
 #, js-format
 msgid "Magic Linking · %s"
 msgstr ""
 
-#: assets/build/index.js:131
+#: assets/build/index.js:132
 msgid "Orphan entries"
 msgstr ""
 
-#: assets/build/index.js:131
+#: assets/build/index.js:132
 msgid "Only the links written inside each entry’s content are counted. Links in menus, widgets and theme templates are not."
 msgstr ""
 
 #. translators: %s: WP-CLI command.
-#: assets/build/index.js:132
+#: assets/build/index.js:133
 #, js-format
 msgid "You can also run the analysis from the terminal: %s"
 msgstr ""

@@ -92,6 +92,7 @@ final class Plugin {
 	 */
 	private const MODULES = array(
 		TextDomain::class,
+		Language::class,
 		Installer::class,
 		Jobs::class,
 		Retention::class,
@@ -208,7 +209,12 @@ final class Plugin {
 	 */
 	private static function services(): array {
 		return array(
-			Language::class                => static fn(): Language => new Language(),
+			Language::class                => static fn( Container $c ): Language => new Language(
+				null,
+				$c->get( Settings::class ),
+				$c->get( GraphRepository::class ),
+				static fn() => $c->get( Jobs::class )->restart_index( 0, true, true )
+			),
 			Settings::class                => static fn(): Settings => new Settings(),
 			GraphRepository::class         => static function (): GraphRepository {
 				global $wpdb;

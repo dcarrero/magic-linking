@@ -54,6 +54,8 @@ final class SuggestionPresenter {
 		if ( count( $ids ) > 1 ) {
 			_prime_post_caches( $ids, false, false );
 		}
+		// El idioma de la ficha de cada entrada, con una consulta (solo si se detecta por el texto).
+		$this->language->prime( $ids );
 
 		// Los avisos de ancla repetida de toda la lista, con dos consultas.
 		$this->notes->prime( $pairs );
@@ -131,6 +133,7 @@ final class SuggestionPresenter {
 		if ( count( $ids ) > 1 ) {
 			_prime_post_caches( $ids, false, false );
 		}
+		$this->language->prime( $ids );
 
 		$out = array();
 		foreach ( $links as $link ) {

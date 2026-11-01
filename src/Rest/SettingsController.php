@@ -14,6 +14,7 @@ use MagicLinking\AI\Models;
 use MagicLinking\Core\Installer;
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\Engine\LanguageDetector;
 use MagicLinking\Engine\Suggester;
 use MagicLinking\I18n\Language;
 use MagicLinking\Index\Taxonomies;
@@ -201,6 +202,7 @@ final class SettingsController implements Module {
 							// Más de las que se pueden guardar es un error, no un recorte en silencio.
 							'maxItems' => Settings::MAX_EXCLUDED_CATEGORIES,
 						),
+						'detect_language'              => array( 'type' => 'boolean' ),
 						'k_terms'                      => array(
 							'type' => 'integer',
 						),
@@ -296,6 +298,7 @@ final class SettingsController implements Module {
 		$scope         = $this->settings->link_scope();
 		$categories    = $this->settings->all()['excluded_categories'];
 		$k_terms       = $this->settings->k_terms();
+		$detect        = $this->settings->detect_applied();
 		$input         = array_intersect_key( $request->get_json_params() ?: $request->get_body_params(), $this->settings->all() ); // phpcs:ignore Universal.Operators.DisallowShortTernary.Found -- JSON o formulario.
 		$after         = $this->settings->update( $input );
 		$types_changed = $types !== $after['post_types'];
@@ -307,6 +310,16 @@ final class SettingsController implements Module {
 		$types_changed = $types_changed || $categories !== $after['excluded_categories'];
 		$scope_changed = $scope_changed || $k_terms !== $after['k_terms'];
 
+		// Detectar el idioma por el texto cambia el idioma de cada entrada, que se guarda en el grafo y en el índice
+		// léxico: hay que releer todas, por los dos (F1-37).
+		// Solo cuenta si la detección actúa de verdad: con WPML o Polylang la opción no hace nada y no hay nada que releer.
+		$acts = null !== $this->language && $this->language->detects();
+		if ( $detect !== $acts ) {
+			$this->settings->set_detect_applied( $acts );
+			$types_changed = true;
+			$scope_changed = true;
+		}
+
 		$job = null;
 		if ( $types_changed || $scope_changed ) {
 			$job = JobsController::present( $this->restart_index( $types_changed, $scope_changed ) );
@@ -316,8 +329,7 @@ final class SettingsController implements Module {
 	}
 
 	/**
-	 * Lanza el indexado que pide un cambio de ajustes. Si ya hay uno en marcha se cancela y se rehace, porque
-	 * habría leído las entradas con el ajuste anterior y el índice quedaría con dos criterios mezclados.
+	 * Lanza el indexado que pide un cambio de ajustes (ver {@see Jobs::restart_index()}).
 	 *
 	 * @param bool $types Han cambiado los tipos de contenido (hay que pasar también por el grafo).
 	 * @param bool $scope Ha cambiado qué texto se lee (hay que releer todas y reconstruir el índice léxico).
@@ -325,15 +337,7 @@ final class SettingsController implements Module {
 	 * @return array{id: int, type: string, status: string, total: int, done: int, params: array<string, mixed>, error: string, created_by: int, created_at: string, updated_at: string}
 	 */
 	private function restart_index( bool $types, bool $scope ): array {
-		$graph  = $types;
-		$active = $this->jobs->repository()->active( Jobs::TYPE_INDEX );
-		if ( null !== $active ) {
-			// Lo que el proceso cancelado no llegó a hacer del grafo lo hace el nuevo.
-			$graph = $graph || ! empty( $active['params']['graph'] );
-			$this->jobs->cancel( $active['id'] );
-		}
-
-		return $this->jobs->start_index( get_current_user_id(), true, $scope, $graph, $scope );
+		return $this->jobs->restart_index( get_current_user_id(), $types, $scope );
 	}
 
 	/**
@@ -353,10 +357,12 @@ final class SettingsController implements Module {
 		$all = $this->settings->all();
 
 		return array(
-			'settings'        => $all,
-			'post_types'      => $types,
-			'category_groups' => Taxonomies::category_groups( $all['post_types'] ),
-			'max_excluded'    => Settings::MAX_EXCLUDED_CATEGORIES,
+			'settings'         => $all,
+			'post_types'       => $types,
+			'category_groups'  => Taxonomies::category_groups( $all['post_types'] ),
+			'max_excluded'     => Settings::MAX_EXCLUDED_CATEGORIES,
+			'multilingual'     => null !== $this->language && $this->language->plugin_active(),
+			'detect_min_words' => LanguageDetector::MIN_WORDS,
 		);
 	}
 }

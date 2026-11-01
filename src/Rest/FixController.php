@@ -195,6 +195,7 @@ final class FixController implements Module {
 				);
 				$pages = (int) $query->max_num_pages;
 
+				$this->language->prime( array_map( static fn( $post ): int => $post instanceof WP_Post ? $post->ID : 0, $query->posts ) );
 				foreach ( $query->posts as $post ) {
 					if ( ! $post instanceof WP_Post || ! current_user_can( 'read_post', $post->ID ) || $this->language->for_post( $post->ID ) !== $lang ) {
 						continue;

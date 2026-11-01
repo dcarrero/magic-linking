@@ -525,6 +525,9 @@ final class SuggestionsController implements Module {
 	 * @return list<Suggestion>
 	 */
 	private function insertable( string $content, int $post_id, array $found ): array {
+		// Comprobar cada destino mira su idioma: el de todos, con una sola consulta (si se detecta por el texto).
+		$this->language->prime( array_merge( array( $post_id ), array_map( static fn( $suggestion ): int => $suggestion->target, array_values( $found ) ) ) );
+
 		$requests = array();
 		foreach ( $found as $key => $suggestion ) {
 			try {

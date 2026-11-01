@@ -571,6 +571,20 @@ final class Stopwords {
 	);
 
 	/**
+	 * Francés, alemán, italiano y portugués: solo para reconocer el idioma de un texto ({@see LanguageDetector}). No
+	 * son listas de palabras vacías del motor: {@see self::languages()} sigue siendo castellano e inglés, y el
+	 * tokenizador y el analizador no las usan. Palabras funcionales propias (artículos, preposiciones, conjunciones,
+	 * pronombres, auxiliares), sin elisiones («l'», «all'», «qu'»). Hay alguna forma de una letra («e», «o», «a», «i») porque lo son de verdad;
+	 * al contar, una palabra de varios idiomas reparte su peso.
+	 */
+	private const DETECTION = array(
+		'fr' => array( 'le', 'la', 'les', 'des', 'du', 'un', 'une', 'et', 'est', 'que', 'qui', 'dans', 'pour', 'pas', 'sur', 'avec', 'ce', 'cette', 'ces', 'son', 'sa', 'ses', 'au', 'aux', 'ne', 'il', 'elle', 'nous', 'vous', 'ils', 'elles', 'mais', 'ou', 'où', 'comme', 'plus', 'par', 'sont', 'été', 'être', 'avoir', 'fait', 'peut', 'aussi', 'très', 'cela', 'leur', 'leurs', 'entre', 'sans', 'sous', 'chez', 'dont', 'donc', 'alors', 'tout', 'tous', 'toute', 'toutes', 'ont', 'était', 'ça', 'je', 'tu', 'moi', 'toi', 'lui', 'eux', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'notre', 'nos', 'votre', 'vos', 'cet', 'celui', 'celle', 'ceux', 'quand', 'si', 'ni', 'car', 'depuis', 'pendant', 'avant', 'après', 'contre', 'vers', 'encore', 'déjà', 'même', 'autre', 'autres', 'bien', 'peu', 'trop', 'rien', 'était', 'suis', 'es', 'sommes', 'êtes', 'ai', 'as', 'avons', 'avez', 'avait', 'seront', 'sera', 'faire', 'dit', 'puis', 'quel', 'quelle', 'quels', 'quelles', 'lequel', 'laquelle' ),
+		'de' => array( 'der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einer', 'eines', 'einem', 'einen', 'und', 'ist', 'nicht', 'mit', 'für', 'auf', 'von', 'zu', 'im', 'auch', 'sich', 'es', 'wird', 'werden', 'wurde', 'sind', 'aber', 'wie', 'oder', 'dass', 'bei', 'nach', 'aus', 'noch', 'nur', 'wenn', 'kann', 'hat', 'haben', 'über', 'ich', 'wir', 'sie', 'er', 'ihr', 'sein', 'war', 'dieser', 'diese', 'dieses', 'als', 'zum', 'zur', 'vom', 'am', 'um', 'durch', 'mehr', 'sehr', 'schon', 'unter', 'bis', 'ihre', 'ihren', 'seine', 'seinen', 'meine', 'mein', 'unser', 'unsere', 'euer', 'dann', 'denn', 'weil', 'doch', 'jetzt', 'hier', 'dort', 'immer', 'alle', 'alles', 'viel', 'viele', 'man', 'was', 'wer', 'wo', 'warum', 'ohne', 'gegen', 'zwischen', 'während', 'seit', 'wurden', 'worden', 'sollte', 'könnte', 'muss', 'müssen', 'soll', 'will', 'bin', 'bist', 'seid', 'hatte', 'waren', 'ganz', 'etwas', 'nichts', 'jeder', 'jede', 'jedes', 'beim', 'ins', 'ans', 'aufs' ),
+		'it' => array( 'il', 'lo', 'la', 'i', 'gli', 'le', 'di', 'del', 'della', 'dei', 'delle', 'degli', 'dello', 'che', 'non', 'per', 'con', 'una', 'uno', 'un', 'sono', 'è', 'e', 'come', 'più', 'anche', 'nel', 'nella', 'nei', 'nelle', 'nello', 'negli', 'alla', 'alle', 'al', 'ai', 'allo', 'agli', 'sul', 'sulla', 'sui', 'sulle', 'questo', 'questa', 'questi', 'queste', 'quello', 'quella', 'quelli', 'quelle', 'essere', 'ha', 'hanno', 'ho', 'abbiamo', 'avete', 'ma', 'se', 'tra', 'fra', 'molto', 'molta', 'molti', 'molte', 'dove', 'quando', 'però', 'perché', 'così', 'suo', 'sua', 'suoi', 'sue', 'loro', 'può', 'dal', 'dalla', 'dai', 'dalle', 'dallo', 'dagli', 'cui', 'ogni', 'ci', 'mi', 'ti', 'si', 'vi', 'lui', 'lei', 'noi', 'voi', 'io', 'tu', 'mio', 'mia', 'miei', 'tuo', 'tua', 'nostro', 'nostra', 'vostro', 'vostra', 'era', 'erano', 'sarà', 'stato', 'stata', 'stati', 'fare', 'fatto', 'ancora', 'già', 'sempre', 'mai', 'ora', 'poi', 'dopo', 'prima', 'senza', 'sotto', 'sopra', 'verso', 'durante', 'contro', 'quale', 'quali', 'chi', 'tutto', 'tutti', 'tutta', 'tutte', 'altro', 'altra', 'altri', 'altre', 'stesso', 'ne', 'né', 'o', 'ed', 'od', 'sia' ),
+		'pt' => array( 'o', 'os', 'a', 'as', 'um', 'uma', 'uns', 'umas', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'e', 'é', 'que', 'não', 'para', 'com', 'por', 'mais', 'como', 'mas', 'foi', 'são', 'ser', 'está', 'estão', 'também', 'muito', 'muita', 'muitos', 'muitas', 'seu', 'sua', 'seus', 'suas', 'ao', 'aos', 'à', 'às', 'pelo', 'pela', 'pelos', 'pelas', 'entre', 'sobre', 'já', 'ou', 'isso', 'isto', 'aquilo', 'este', 'esta', 'estes', 'estas', 'esse', 'essa', 'esses', 'essas', 'aquele', 'aquela', 'aqueles', 'aquelas', 'ele', 'ela', 'eles', 'elas', 'eu', 'tu', 'nós', 'vós', 'você', 'vocês', 'me', 'te', 'lhe', 'lhes', 'meu', 'minha', 'meus', 'minhas', 'teu', 'tua', 'nosso', 'nossa', 'nossos', 'nossas', 'tem', 'têm', 'tinha', 'há', 'ter', 'haver', 'foram', 'era', 'eram', 'será', 'estava', 'estar', 'fazer', 'faz', 'pode', 'podem', 'temos', 'só', 'então', 'quando', 'onde', 'ainda', 'depois', 'antes', 'sem', 'sob', 'nem', 'até', 'após', 'durante', 'desde', 'contra', 'apenas', 'seja', 'sempre', 'nunca', 'mesmo', 'mesma', 'todos', 'todas', 'todo', 'toda', 'cada', 'outro', 'outra', 'outros', 'outras', 'quem', 'qual', 'quais', 'porque', 'pois', 'deste', 'desta', 'neste', 'nesta', 'dessa', 'desse', 'nesse', 'nessa', 'daquele', 'daquela', 'naquele', 'naquela', 'menos', 'bem', 'mal', 'aqui', 'ali', 'lá', 'cá' ),
+	);
+
+	/**
 	 * Formas que se ignoran al comparar (la ñ se conserva).
 	 */
 	private const ACCENTS = array(
@@ -596,6 +610,38 @@ final class Stopwords {
 	 */
 	public static function languages(): array {
 		return array( 'es', 'en' );
+	}
+
+	/**
+	 * Idiomas para los que hay lista de reconocimiento ({@see LanguageDetector}): los de {@see self::languages()} y
+	 * cuatro más.
+	 *
+	 * @return list<string> Códigos ISO 639-1.
+	 */
+	public static function detection_languages(): array {
+		return array_merge( self::languages(), array_keys( self::DETECTION ) );
+	}
+
+	/**
+	 * Palabras funcionales de un idioma para reconocerlo: la lista de palabras vacías si la tiene (castellano,
+	 * inglés) o la de reconocimiento (francés, alemán, italiano, portugués). No cambia {@see self::for()}.
+	 *
+	 * @param string $language Código de idioma.
+	 * @return list<string>
+	 */
+	public static function detection( string $language ): array {
+		$code = self::code( $language );
+
+		return array_values( array_unique( self::DETECTION[ $code ] ?? self::for( $code ) ) );
+	}
+
+	/**
+	 * Palabra sin tildes, como se compara en {@see self::is()}.
+	 *
+	 * @param string $word Palabra en minúsculas, UTF-8.
+	 */
+	public static function fold( string $word ): string {
+		return strtr( $word, self::ACCENTS );
 	}
 
 	/**

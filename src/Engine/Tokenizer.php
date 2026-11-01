@@ -466,6 +466,16 @@ final class Tokenizer {
 	 * @param string $text Texto de entrada.
 	 */
 	private function prepare( string $text ): string {
+		return self::nfc( $text );
+	}
+
+	/**
+	 * Texto en UTF-8 válido y en forma NFC (sin la extensión intl, solo se recompone la ñ). La misma preparación
+	 * que recibe el texto al partirlo en frases; la comparte el reconocimiento del idioma.
+	 *
+	 * @param string $text Texto de entrada.
+	 */
+	public static function nfc( string $text ): string {
 		if ( ! mb_check_encoding( $text, 'UTF-8' ) ) {
 			$text = (string) mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
 		}
