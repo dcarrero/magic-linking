@@ -208,7 +208,7 @@ final class Plugin {
 	 */
 	private static function services(): array {
 		return array(
-			Language::class                => static fn(): Language => new Language(),
+			Language::class                => static fn( Container $c ): Language => new Language( null, $c->get( Settings::class ), $c->get( GraphRepository::class ) ),
 			Settings::class                => static fn(): Settings => new Settings(),
 			GraphRepository::class         => static function (): GraphRepository {
 				global $wpdb;

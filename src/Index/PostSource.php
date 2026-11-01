@@ -142,7 +142,7 @@ final class PostSource implements DocumentSource {
 		return new Document(
 			$post->ID,
 			$post->post_type,
-			$this->language->for_post( $post->ID ),
+			$this->language->for_indexing( $post ),
 			$title,
 			$post->post_name,
 			false === $date ? 0 : $date,

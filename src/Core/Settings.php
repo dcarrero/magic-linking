@@ -58,6 +58,8 @@ final class Settings {
 		// Categorías que quedan fuera del análisis (F1-16): `term_taxonomy_id` de la taxonomía jerárquica principal
 		// de cada tipo analizado, igual que los filtros por categoría (D-67); una entrada excluida a mano (D-70) no entra aquí.
 		'excluded_categories'          => array(),
+		// Idioma de cada entrada detectado por su texto (F1-37, D-61): desactivado por defecto; sin efecto con WPML o Polylang.
+		'detect_language'              => false,
 		// Avanzado (docs/07 §8): términos que se guardan por entrada (docs/04 §3) y umbral de puntuación en tanto por
 		// ciento (docs/04 §6); los valores por defecto son los congelados del motor (D-35).
 		'k_terms'                      => Indexer::DEFAULTS['k'],
@@ -111,7 +113,7 @@ final class Settings {
 	/**
 	 * Ajustes de sí o no.
 	 */
-	public const BOOLEANS = array( Installer::DELETE_DATA_SETTING, 'link_in_headings', 'link_in_quotes', 'link_in_tables', 'open_in_new_tab' );
+	public const BOOLEANS = array( Installer::DELETE_DATA_SETTING, 'link_in_headings', 'link_in_quotes', 'link_in_tables', 'open_in_new_tab', 'detect_language' );
 
 	/**
 	 * Todos los ajustes, con los valores por defecto donde falten.
@@ -171,6 +173,16 @@ final class Settings {
 	 */
 	public function k_terms(): int {
 		return $this->bounded( 'k_terms' );
+	}
+
+	/**
+	 * Si el idioma de cada entrada se detecta por su texto (F1-37). Barato: lee solo este ajuste, porque lo consulta
+	 * {@see \MagicLinking\I18n\Language::for_post()} muchas veces por petición.
+	 */
+	public function detect_language(): bool {
+		$stored = get_option( Installer::SETTINGS_OPTION, array() );
+
+		return is_array( $stored ) && filter_var( $stored['detect_language'] ?? false, FILTER_VALIDATE_BOOLEAN );
 	}
 
 	/**

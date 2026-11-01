@@ -201,6 +201,7 @@ final class SettingsController implements Module {
 							// Más de las que se pueden guardar es un error, no un recorte en silencio.
 							'maxItems' => Settings::MAX_EXCLUDED_CATEGORIES,
 						),
+						'detect_language'              => array( 'type' => 'boolean' ),
 						'k_terms'                      => array(
 							'type' => 'integer',
 						),
@@ -296,6 +297,7 @@ final class SettingsController implements Module {
 		$scope         = $this->settings->link_scope();
 		$categories    = $this->settings->all()['excluded_categories'];
 		$k_terms       = $this->settings->k_terms();
+		$detect        = $this->settings->detect_language();
 		$input         = array_intersect_key( $request->get_json_params() ?: $request->get_body_params(), $this->settings->all() ); // phpcs:ignore Universal.Operators.DisallowShortTernary.Found -- JSON o formulario.
 		$after         = $this->settings->update( $input );
 		$types_changed = $types !== $after['post_types'];
@@ -306,6 +308,13 @@ final class SettingsController implements Module {
 		// puntuar: la caché de sugerencias se renueva sola al cambiar la opción y no hace falta reindexar.
 		$types_changed = $types_changed || $categories !== $after['excluded_categories'];
 		$scope_changed = $scope_changed || $k_terms !== $after['k_terms'];
+
+		// Detectar el idioma por el texto cambia el idioma de cada entrada, que se guarda en el grafo y en el índice
+		// léxico: hay que releer todas, por los dos (F1-37).
+		if ( $detect !== $after['detect_language'] ) {
+			$types_changed = true;
+			$scope_changed = true;
+		}
 
 		$job = null;
 		if ( $types_changed || $scope_changed ) {
@@ -357,6 +366,7 @@ final class SettingsController implements Module {
 			'post_types'      => $types,
 			'category_groups' => Taxonomies::category_groups( $all['post_types'] ),
 			'max_excluded'    => Settings::MAX_EXCLUDED_CATEGORIES,
+			'multilingual'    => null !== $this->language && $this->language->plugin_active(),
 		);
 	}
 }
