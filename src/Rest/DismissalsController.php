@@ -103,6 +103,10 @@ final class DismissalsController implements Module {
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => array( $this, 'restore' ),
 				'permission_callback' => array( $this, 'can_edit_source' ),
+				'args'                => array(
+					'source_id' => $id,
+					'target_id' => $id,
+				),
 			)
 		);
 	}
@@ -166,6 +170,13 @@ final class DismissalsController implements Module {
 		$source = (int) $request['source_id'];
 		$target = (int) $request['target_id'];
 
+		// Mismas comprobaciones que al descartar: no sirve para saber qué entradas privadas hay.
+		if ( $source === $target ) {
+			return new WP_Error( 'magiclinking_bad_request', __( 'An entry cannot link to itself.', 'magic-linking' ), array( 'status' => 400 ) );
+		}
+		if ( ! $this->usable_source( $source ) || ! $this->usable_target( $target ) ) {
+			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
+		}
 		Installer::ensure_current();
 		if ( ! $this->dismissals->remove( $source, $target ) ) {
 			return $this->failed();

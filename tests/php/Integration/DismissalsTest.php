@@ -355,6 +355,30 @@ final class DismissalsTest extends GraphTestCase {
 		$this->assertFalse( $this->has( $mine, $this->target ) );
 	}
 
+	public function test_undoing_a_dismissal_gets_the_same_checks_as_dismissing(): void {
+		$this->corpus( 2 );
+		$private = self::factory()->post->create(
+			array(
+				'post_status' => 'private',
+				'post_author' => $this->admin,
+			)
+		);
+		$mine    = $this->sources[0];
+
+		$this->assertSame( 400, $this->restore( $mine, $mine, $this->author )->get_status(), 'No se enlaza a uno mismo.' );
+		$missing = $this->restore( $mine, 999999, $this->author );
+		$denied  = $this->restore( $mine, $private, $this->author );
+		$this->assertSame( 404, $missing->get_status() );
+		$this->assertSame( 404, $denied->get_status() );
+		$this->assertSame( $missing->get_data()['code'], $denied->get_data()['code'] );
+		$this->assertSame( $missing->get_data()['message'], $denied->get_data()['message'] );
+		$this->assertSame( 400, $this->request( 'DELETE', "/suggestions/dismissals/{$mine}/0", array(), $this->author )->get_status() );
+
+		// Quien puede leer el destino y editar el origen sí puede deshacerlo, sea quien sea quien descartó.
+		$this->repo()->add( $this->sources[1], $this->target, $this->admin );
+		$this->assertSame( 200, $this->restore( $this->sources[1], $this->target, $this->admin )->get_status() );
+	}
+
 	public function test_bad_requests(): void {
 		$this->corpus();
 
