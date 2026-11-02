@@ -12,6 +12,7 @@ namespace MagicLinking\Graph;
 use MagicLinking\Core\PostTitle;
 use Generator;
 use MagicLinking\Core\Schema;
+use MagicLinking\Core\Settings;
 use wpdb;
 
 /**
@@ -27,12 +28,30 @@ final class BrokenRepository {
 	private wpdb $wpdb;
 
 	/**
+	 * Ajustes (tipos que se analizan).
+	 *
+	 * @var Settings
+	 */
+	private Settings $settings;
+
+	/**
+	 * Qué entradas ve el usuario actual.
+	 *
+	 * @var Visibility
+	 */
+	private Visibility $visibility;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param wpdb $wpdb Conexión.
+	 * @param wpdb            $wpdb       Conexión.
+	 * @param Settings        $settings   Ajustes.
+	 * @param Visibility|null $visibility Visibilidad por usuario (por defecto la real).
 	 */
-	public function __construct( wpdb $wpdb ) {
-		$this->wpdb = $wpdb;
+	public function __construct( wpdb $wpdb, Settings $settings, ?Visibility $visibility = null ) {
+		$this->wpdb       = $wpdb;
+		$this->settings   = $settings;
+		$this->visibility = $visibility ?? new Visibility( $wpdb );
 	}
 
 	/**
@@ -114,7 +133,7 @@ final class BrokenRepository {
 		$wpdb  = $this->wpdb;
 		$links = Schema::table( $wpdb->prefix, 'links' );
 		// El índice solo guarda entradas publicadas; aun así se limita al origen que el usuario puede ver.
-		$where    = ' AND ' . Visibility::post_sql( $wpdb, 'p', array_values( get_post_types() ) );
+		$where    = ' AND ' . $this->visibility->post_sql( 'p', $this->settings->post_types() );
 		$per_page = max( 1, min( 500, (int) ( $args['per_page'] ?? 20 ) ) );
 		$offset   = max( 0, ( (int) ( $args['page'] ?? 1 ) - 1 ) * $per_page );
 

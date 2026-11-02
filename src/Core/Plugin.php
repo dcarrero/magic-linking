@@ -419,9 +419,9 @@ final class Plugin {
 				global $wpdb;
 				return new ReportRepository( $wpdb, $c->get( Settings::class ) );
 			},
-			BrokenRepository::class        => static function (): BrokenRepository {
+			BrokenRepository::class        => static function ( Container $c ): BrokenRepository {
 				global $wpdb;
-				return new BrokenRepository( $wpdb );
+				return new BrokenRepository( $wpdb, $c->get( Settings::class ) );
 			},
 			ReportController::class        => static fn( Container $c ): ReportController => new ReportController(
 				$c->get( ReportRepository::class ),

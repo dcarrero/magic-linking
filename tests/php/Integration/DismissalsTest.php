@@ -366,17 +366,31 @@ final class DismissalsTest extends GraphTestCase {
 		$mine    = $this->sources[0];
 
 		$this->assertSame( 400, $this->restore( $mine, $mine, $this->author )->get_status(), 'No se enlaza a uno mismo.' );
-		$missing = $this->restore( $mine, 999999, $this->author );
-		$denied  = $this->restore( $mine, $private, $this->author );
-		$this->assertSame( 404, $missing->get_status() );
-		$this->assertSame( 404, $denied->get_status() );
-		$this->assertSame( $missing->get_data()['code'], $denied->get_data()['code'] );
-		$this->assertSame( $missing->get_data()['message'], $denied->get_data()['message'] );
+		$this->assertSame( 404, $this->restore( 999999, $this->target, $this->admin )->get_status(), 'Origen inexistente.' );
+		// El destino no se comprueba: no revela nada y borrar es idempotente.
+		$this->assertSame( 200, $this->restore( $mine, $private, $this->author )->get_status() );
 		$this->assertSame( 400, $this->request( 'DELETE', "/suggestions/dismissals/{$mine}/0", array(), $this->author )->get_status() );
 
 		// Quien puede leer el destino y editar el origen sí puede deshacerlo, sea quien sea quien descartó.
 		$this->repo()->add( $this->sources[1], $this->target, $this->admin );
 		$this->assertSame( 200, $this->restore( $this->sources[1], $this->target, $this->admin )->get_status() );
+	}
+
+	public function test_a_dismissal_can_be_undone_after_its_target_stops_being_public(): void {
+		$this->corpus( 2 );
+		$mine = $this->sources[0];
+
+		$this->assertSame( 200, $this->dismiss( $mine, $this->target, $this->author )->get_status() );
+		$this->assertTrue( $this->has( $mine, $this->target ) );
+		wp_update_post(
+			array(
+				'ID'          => $this->target,
+				'post_status' => 'private',
+			)
+		);
+
+		$this->assertSame( 200, $this->restore( $mine, $this->target, $this->author )->get_status() );
+		$this->assertFalse( $this->has( $mine, $this->target ), 'La fila ha desaparecido.' );
 	}
 
 	public function test_bad_requests(): void {

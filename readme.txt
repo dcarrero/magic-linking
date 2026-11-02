@@ -283,8 +283,8 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 == Changelog ==
 
 = 1.0.1 =
-* Security: contributors no longer see, in the report or in the CSV export, excluded entries by other authors that they cannot read (drafts, pending and private), nor the broken links of such entries.
-* Fix: undoing a dismissed suggestion now runs the same checks as dismissing it.
+* Security: the report, the broken links list and the CSV export only show the entries the current user can read (drafts, pending and private entries by other authors are left out), and the figures at the top match the lists.
+* Fix: a dismissed suggestion can be undone even if its target has since become private or unpublished.
 
 = 1.0.0 =
 * New: your own target phrases per entry, with variants, in the editor panel.

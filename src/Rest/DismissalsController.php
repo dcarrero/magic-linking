@@ -170,11 +170,12 @@ final class DismissalsController implements Module {
 		$source = (int) $request['source_id'];
 		$target = (int) $request['target_id'];
 
-		// Mismas comprobaciones que al descartar: no sirve para saber qué entradas privadas hay.
+		// Deshacer no exige que el destino siga siendo utilizable (puede haber pasado a privado o a borrador); borrar es
+		// idempotente y no revela nada del destino. Sí se exige un origen que exista (el permiso ya pide poder editarlo).
 		if ( $source === $target ) {
 			return new WP_Error( 'magiclinking_bad_request', __( 'An entry cannot link to itself.', 'magic-linking' ), array( 'status' => 400 ) );
 		}
-		if ( ! $this->usable_source( $source ) || ! $this->usable_target( $target ) ) {
+		if ( ! get_post( $source ) instanceof WP_Post ) {
 			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
 		}
 		Installer::ensure_current();

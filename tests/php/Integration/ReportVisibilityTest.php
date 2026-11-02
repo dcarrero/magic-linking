@@ -11,6 +11,9 @@ declare(strict_types=1);
 namespace MagicLinking\Tests\Integration;
 
 use MagicLinking\Core\Plugin;
+use MagicLinking\Graph\ReportRepository;
+use MagicLinking\Graph\Visibility;
+use MagicLinking\Core\Settings;
 use MagicLinking\Index\Exclusions;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
@@ -168,5 +171,90 @@ final class ReportVisibilityTest extends GraphTestCase {
 		$this->assertStringNotContainsString( 'no-existe-2', $this->csv( 'broken', array(), $this->contributor ) );
 
 		$this->assertEqualsCanonicalizing( array( $visible, $hidden ), array_column( $this->request( '/broken', array(), $this->editor )->get_data()['items'], 'source_id' ) );
+	}
+
+	public function test_wp_cli_without_a_user_acts_as_the_system(): void {
+		global $wpdb;
+		wp_set_current_user( 0 );
+		$cli = new class( $wpdb ) extends Visibility {
+			protected function system_context(): bool {
+				return 0 === get_current_user_id();
+			}
+		};
+
+		$repo = new ReportRepository( $wpdb, Plugin::container()->get( Settings::class ), null, $cli );
+		$this->assertSame( 5, $repo->query( array( 'filter' => 'excluded' ) )['total'] );
+		$this->assertSame( 5, $repo->summary()['excluded'] );
+
+		// Sin WP-CLI, el usuario 0 solo ve lo público.
+		$web = new ReportRepository( $wpdb, Plugin::container()->get( Settings::class ) );
+		$this->assertSame( 1, $web->query( array( 'filter' => 'excluded' ) )['total'] );
+	}
+
+	public function test_edit_others_posts_does_not_show_foreign_private_entries_without_read_private_posts(): void {
+		$user = new \WP_User( $this->editor );
+		$user->add_cap( 'read_private_posts', false );
+		$user->add_cap( 'read_private_pages', false );
+
+		$ids = array_column( $this->request( '/report', array( 'filter' => 'excluded' ), $this->editor )->get_data()['items'], 'id' );
+		$this->assertNotContains( $this->ids['private'], $ids );
+		$this->assertContains( $this->ids['draft'], $ids );
+		$this->assertContains( $this->ids['pending'], $ids );
+	}
+
+	public function test_any_public_status_is_visible(): void {
+		register_post_status( 'ml_public', array( 'public' => true ) );
+		$id = self::factory()->post->create(
+			array(
+				'post_title'  => 'Estado publico',
+				'post_status' => 'ml_public',
+				'post_author' => $this->admin,
+			)
+		);
+		update_post_meta( $id, Exclusions::KEY, '1' );
+
+		$ids = array_column( $this->request( '/report', array( 'filter' => 'excluded' ), $this->contributor )->get_data()['items'], 'id' );
+		$this->assertContains( $id, $ids );
+	}
+
+	public function test_an_old_index_row_of_a_hidden_entry_is_not_listed_or_counted(): void {
+		global $wpdb;
+		foreach ( $this->ids as $id ) {
+			delete_post_meta( $id, Exclusions::KEY );
+		}
+		$shown  = self::factory()->post->create(
+			array(
+				'post_title'   => 'Visible',
+				'post_status'  => 'publish',
+				'post_content' => '<a href="' . home_url( '/no-existe-1/' ) . '">uno</a>',
+			)
+		);
+		$hidden = self::factory()->post->create(
+			array(
+				'post_title'   => 'Oculta',
+				'post_status'  => 'publish',
+				'post_author'  => $this->admin,
+				'post_content' => '<a href="' . home_url( '/no-existe-2/' ) . '">dos</a>',
+			)
+		);
+		$jobs   = Plugin::container()->get( Jobs::class );
+		$jobs->run_to_completion( $jobs->start_index( 0, false )['id'] );
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $hidden ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		clean_post_cache( $hidden );
+
+		foreach ( array( 'all', 'orphans', 'broken' ) as $filter ) {
+			$items = $this->request( '/report', array( 'filter' => $filter ), $this->contributor )->get_data()['items'];
+			$this->assertNotContains( $hidden, array_column( $items, 'id' ), $filter );
+		}
+		$data = $this->request( '/report', array( 'filter' => 'all' ), $this->contributor )->get_data();
+		$this->assertContains( $shown, array_column( $data['items'], 'id' ) );
+		$this->assertSame( $data['total'], $data['summary']['analyzed'] );
+		$this->assertSame( 1, $data['summary']['broken_links'] );
+		$this->assertSame( 1, $data['summary']['broken_posts'] );
+		$this->assertSame( array_sum( array_column( $data['summary']['types'], 'count' ) ), $data['summary']['analyzed'] );
+
+		$all = $this->request( '/report', array( 'filter' => 'all' ), $this->editor )->get_data();
+		$this->assertContains( $hidden, array_column( $all['items'], 'id' ) );
+		$this->assertSame( 2, $all['summary']['broken_links'] );
 	}
 }
