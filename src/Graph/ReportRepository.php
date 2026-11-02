@@ -66,16 +66,25 @@ final class ReportRepository {
 	private Language $language;
 
 	/**
+	 * Qué entradas ve el usuario actual.
+	 *
+	 * @var Visibility
+	 */
+	private Visibility $visibility;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param wpdb     $wpdb     Conexión.
-	 * @param Settings $settings Ajustes.
-	 * @param Language $language Idioma (por defecto el real).
+	 * @param wpdb            $wpdb     Conexión.
+	 * @param Settings        $settings Ajustes.
+	 * @param Language        $language Idioma (por defecto el real).
+	 * @param Visibility|null $visibility Visibilidad por usuario (por defecto la real).
 	 */
-	public function __construct( wpdb $wpdb, Settings $settings, ?Language $language = null ) {
-		$this->wpdb     = $wpdb;
-		$this->settings = $settings;
-		$this->language = $language ?? new Language();
+	public function __construct( wpdb $wpdb, Settings $settings, ?Language $language = null, ?Visibility $visibility = null ) {
+		$this->wpdb       = $wpdb;
+		$this->settings   = $settings;
+		$this->language   = $language ?? new Language();
+		$this->visibility = $visibility ?? new Visibility( $wpdb );
 	}
 
 	/**
@@ -89,9 +98,10 @@ final class ReportRepository {
 		}
 
 		if ( null === $langs ) {
-			$wpdb  = $this->wpdb;
-			$docs  = Schema::table( $wpdb->prefix, 'docs' );
-			$langs = $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT lang FROM %i LIMIT 2', $docs ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb    = $this->wpdb;
+			$docs    = Schema::table( $wpdb->prefix, 'docs' );
+			$visible = $this->visibility->post_sql( 'p', $this->settings->post_types() );
+			$langs   = $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT d.lang FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE ' . $visible . ' LIMIT 2', $docs, $wpdb->posts ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia; fragmento preparado.
 		}
 
 		return count( $langs ) > 1;
@@ -213,6 +223,8 @@ final class ReportRepository {
 			$where = $wpdb->prepare( "p.post_status NOT IN ('trash', 'auto-draft') AND p.post_type IN ({$in})", $types ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
 				. ' AND ( ' . self::marked_sql( $wpdb, '' ) . ' OR ' . substr( $in_category, 5 ) . ' )';
 		}
+		// Solo lo que el usuario puede ver: un colaborador no ve borradores, pendientes ni privadas ajenas.
+		$where .= ' AND ' . $this->visibility->post_sql( 'p', $types );
 		if ( ! empty( $args['search'] ) ) {
 			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( (string) $args['search'] ) . '%' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Preparado.
 		}
@@ -300,9 +312,10 @@ final class ReportRepository {
 		$wpdb         = $this->wpdb;
 		$docs         = Schema::table( $wpdb->prefix, 'docs' );
 		$placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
+		$visible      = $this->visibility->post_sql( 'p', $this->settings->post_types() );
 
 		$found = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Tabla propia; los marcadores son %d.
-			$wpdb->prepare( "SELECT d.post_id, p.post_title, d.post_type, d.lang, d.inbound, d.outbound, d.external, d.broken, d.word_count, d.indexed_at FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE d.post_id IN ({$placeholders})", array_merge( array( $docs, $wpdb->posts ), $post_ids ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
+			$wpdb->prepare( "SELECT d.post_id, p.post_title, d.post_type, d.lang, d.inbound, d.outbound, d.external, d.broken, d.word_count, d.indexed_at FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE d.post_id IN ({$placeholders}) AND {$visible}", array_merge( array( $docs, $wpdb->posts ), $post_ids ) ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Marcadores generados.
 			ARRAY_A
 		);
 
@@ -360,19 +373,23 @@ final class ReportRepository {
 		$wpdb = $this->wpdb;
 		$docs = Schema::table( $wpdb->prefix, 'docs' );
 
-		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+		// Mismas filas que las listas: se une a las entradas y solo cuenta las que el usuario puede ver.
+		$visible = $this->visibility->post_sql( 'p', $this->settings->post_types() );
+
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Tabla propia; el fragmento de visibilidad está preparado.
 			$wpdb->prepare(
 				'SELECT COUNT(*) AS analyzed,
-					COALESCE(SUM(inbound = 0), 0) AS orphans,
-					COALESCE(SUM(inbound > 0 AND inbound < %d), 0) AS low,
-					COALESCE(SUM(outbound > GREATEST(1, FLOOR(word_count / %d))), 0) AS over_linked,
-					COALESCE(SUM(broken > 0), 0) AS broken_posts,
-					COALESCE(SUM(outbound), 0) AS internal_links,
-					COALESCE(SUM(broken), 0) AS broken_links
-				FROM %i',
+					COALESCE(SUM(d.inbound = 0), 0) AS orphans,
+					COALESCE(SUM(d.inbound > 0 AND d.inbound < %d), 0) AS low,
+					COALESCE(SUM(d.outbound > GREATEST(1, FLOOR(d.word_count / %d))), 0) AS over_linked,
+					COALESCE(SUM(d.broken > 0), 0) AS broken_posts,
+					COALESCE(SUM(d.outbound), 0) AS internal_links,
+					COALESCE(SUM(d.broken), 0) AS broken_links
+				FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE ' . $visible, // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmento preparado.
 				$this->settings->low_inbound_threshold(),
 				$this->settings->words_per_link(),
-				$docs
+				$docs,
+				$wpdb->posts
 			),
 			ARRAY_A
 		);
@@ -380,7 +397,7 @@ final class ReportRepository {
 
 		$types = array();
 		$rows  = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
-			$wpdb->prepare( 'SELECT post_type, COUNT(*) AS n FROM %i GROUP BY post_type ORDER BY n DESC, post_type ASC', $docs ),
+			$wpdb->prepare( 'SELECT d.post_type, COUNT(*) AS n FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE ' . $visible . ' GROUP BY d.post_type ORDER BY n DESC, d.post_type ASC', $docs, $wpdb->posts ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fragmento preparado.
 			ARRAY_A
 		);
 		foreach ( (array) $rows as $type_row ) {
@@ -394,7 +411,7 @@ final class ReportRepository {
 
 		$langs = array_map(
 			'strval',
-			$wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT lang FROM %i ORDER BY lang ASC', $docs ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT d.lang FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE ' . $visible . ' ORDER BY d.lang ASC', $docs, $wpdb->posts ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia; fragmento preparado.
 		);
 
 		return array(
@@ -418,8 +435,9 @@ final class ReportRepository {
 	 * @param array<string, mixed> $args Filtros.
 	 */
 	private function where( array $args ): string {
-		$wpdb  = $this->wpdb;
-		$where = '';
+		$wpdb = $this->wpdb;
+		// Las filas del índice de una entrada que ya no es pública no se muestran a quien no puede verla.
+		$where = ' AND ' . $this->visibility->post_sql( 'p', $this->settings->post_types() );
 
 		switch ( $args['filter'] ?? 'all' ) {
 			case 'orphans':

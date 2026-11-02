@@ -27,12 +27,21 @@ final class BrokenRepository {
 	private wpdb $wpdb;
 
 	/**
+	 * Qué entradas ve el usuario actual.
+	 *
+	 * @var Visibility
+	 */
+	private Visibility $visibility;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param wpdb $wpdb Conexión.
+	 * @param wpdb            $wpdb       Conexión.
+	 * @param Visibility|null $visibility Visibilidad por usuario (por defecto la real).
 	 */
-	public function __construct( wpdb $wpdb ) {
-		$this->wpdb = $wpdb;
+	public function __construct( wpdb $wpdb, ?Visibility $visibility = null ) {
+		$this->wpdb       = $wpdb;
+		$this->visibility = $visibility ?? new Visibility( $wpdb );
 	}
 
 	/**
@@ -111,9 +120,10 @@ final class BrokenRepository {
 	 * @return array{items: array<int, array<string, mixed>>, total: int}
 	 */
 	public function query( array $args ): array {
-		$wpdb     = $this->wpdb;
-		$links    = Schema::table( $wpdb->prefix, 'links' );
-		$where    = '';
+		$wpdb  = $this->wpdb;
+		$links = Schema::table( $wpdb->prefix, 'links' );
+		// El índice solo guarda entradas publicadas; aun así se limita al origen que el usuario puede ver.
+		$where    = ' AND ' . $this->visibility->post_sql( 'p', array_values( get_post_types( array( 'show_ui' => true ) ) ) );
 		$per_page = max( 1, min( 500, (int) ( $args['per_page'] ?? 20 ) ) );
 		$offset   = max( 0, ( (int) ( $args['page'] ?? 1 ) - 1 ) * $per_page );
 

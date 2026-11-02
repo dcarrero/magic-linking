@@ -87,10 +87,10 @@ final class DismissalRepository {
 	 * @param int $source Origen.
 	 * @param int $target Destino.
 	 *
-	 * @return bool Si el par queda sin descartar.
+	 * @return int|false Filas borradas (0 si no estaba descartado), o false si la base de datos falló.
 	 */
-	public function remove( int $source, int $target ): bool {
-		return false !== $this->wpdb->delete(
+	public function remove( int $source, int $target ) {
+		return $this->wpdb->delete(
 			$this->table(),
 			array(
 				'source_id' => $source,

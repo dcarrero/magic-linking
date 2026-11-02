@@ -103,6 +103,10 @@ final class DismissalsController implements Module {
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => array( $this, 'restore' ),
 				'permission_callback' => array( $this, 'can_edit_source' ),
+				'args'                => array(
+					'source_id' => $id,
+					'target_id' => $id,
+				),
 			)
 		);
 	}
@@ -166,11 +170,23 @@ final class DismissalsController implements Module {
 		$source = (int) $request['source_id'];
 		$target = (int) $request['target_id'];
 
+		// Deshacer no exige que el destino siga siendo utilizable (puede haber pasado a privado o a borrador); borrar es
+		// idempotente y no revela nada del destino. Sí se exige un origen utilizable, como al descartar (el permiso ya pide poder editarlo).
+		if ( $source === $target ) {
+			return new WP_Error( 'magiclinking_bad_request', __( 'An entry cannot link to itself.', 'magic-linking' ), array( 'status' => 400 ) );
+		}
+		if ( ! $this->usable_source( $source ) ) {
+			return new WP_Error( 'magiclinking_not_found', __( 'That entry does not exist.', 'magic-linking' ), array( 'status' => 404 ) );
+		}
 		Installer::ensure_current();
-		if ( ! $this->dismissals->remove( $source, $target ) ) {
+		$removed = $this->dismissals->remove( $source, $target );
+		if ( false === $removed ) {
 			return $this->failed();
 		}
-		SuggestionCache::bump();
+		// Un DELETE repetido no cambia nada: no se invalida la caché de todo el sitio.
+		if ( $removed > 0 ) {
+			SuggestionCache::bump();
+		}
 
 		return new WP_REST_Response(
 			array(

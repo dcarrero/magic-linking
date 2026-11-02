@@ -4,7 +4,7 @@ Tags: internal links, seo, link suggestions, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -282,6 +282,10 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 
 == Changelog ==
 
+= 1.0.1 =
+* Security: the report, the broken links list and the CSV export only show the entries the current user can read (drafts, pending and private entries by other authors are left out), and the figures at the top match the lists.
+* Fix: a dismissed suggestion can be undone even if its target has since become private or unpublished.
+
 = 1.0.0 =
 * New: your own target phrases per entry, with variants, in the editor panel.
 * New: exclude an entry from the analysis, or whole categories (Settings > General). Excluded entries are listed in the report with the reason.
@@ -372,6 +376,9 @@ Magic Linking does not collect personal data and sends nothing anywhere on its o
 * Requires WordPress 6.9 or later and bundles Action Scheduler 4.2.0.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Security update: the report, the broken links list and the CSV export only show what the current user can read. Nothing in your content changes.
 
 = 1.0.0 =
 The complete free version: target phrases, excluding entries and categories, anchor warnings, a Status tab and more languages. After updating, two database indexes are created in the background; suggestions work meanwhile and nothing in your content changes.
