@@ -29,6 +29,7 @@ use MagicLinking\Graph\GraphIndexer;
 use MagicLinking\Graph\GraphRepository;
 use MagicLinking\Graph\LinkResolver;
 use MagicLinking\Graph\ReportRepository;
+use MagicLinking\Graph\Visibility;
 use MagicLinking\History\BatchJob;
 use MagicLinking\History\ChangeRepository;
 use MagicLinking\History\EditorLinks;
@@ -415,13 +416,17 @@ final class Plugin {
 				$c->get( Settings::class ),
 				$c->get( LexicalIndexer::class )
 			),
+			Visibility::class              => static function (): Visibility {
+				global $wpdb;
+				return new Visibility( $wpdb );
+			},
 			ReportRepository::class        => static function ( Container $c ): ReportRepository {
 				global $wpdb;
-				return new ReportRepository( $wpdb, $c->get( Settings::class ) );
+				return new ReportRepository( $wpdb, $c->get( Settings::class ), null, $c->get( Visibility::class ) );
 			},
 			BrokenRepository::class        => static function ( Container $c ): BrokenRepository {
 				global $wpdb;
-				return new BrokenRepository( $wpdb, $c->get( Settings::class ) );
+				return new BrokenRepository( $wpdb, $c->get( Visibility::class ) );
 			},
 			ReportController::class        => static fn( Container $c ): ReportController => new ReportController(
 				$c->get( ReportRepository::class ),

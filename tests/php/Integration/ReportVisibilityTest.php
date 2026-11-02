@@ -176,11 +176,7 @@ final class ReportVisibilityTest extends GraphTestCase {
 	public function test_wp_cli_without_a_user_acts_as_the_system(): void {
 		global $wpdb;
 		wp_set_current_user( 0 );
-		$cli = new class( $wpdb ) extends Visibility {
-			protected function system_context(): bool {
-				return 0 === get_current_user_id();
-			}
-		};
+		$cli = new Visibility( $wpdb, true );
 
 		$repo = new ReportRepository( $wpdb, Plugin::container()->get( Settings::class ), null, $cli );
 		$this->assertSame( 5, $repo->query( array( 'filter' => 'excluded' ) )['total'] );
@@ -256,5 +252,76 @@ final class ReportVisibilityTest extends GraphTestCase {
 		$all = $this->request( '/report', array( 'filter' => 'all' ), $this->editor )->get_data();
 		$this->assertContains( $hidden, array_column( $all['items'], 'id' ) );
 		$this->assertSame( 2, $all['summary']['broken_links'] );
+	}
+
+	public function test_the_fragment_changes_when_the_capabilities_of_the_same_user_change(): void {
+		global $wpdb;
+		$visibility = new Visibility( $wpdb );
+		$user       = self::factory()->user->create( array( 'role' => 'contributor' ) );
+
+		wp_set_current_user( $user );
+		$as_contributor = $visibility->post_sql( 'p', array( 'post' ) );
+
+		( new \WP_User( $user ) )->set_role( 'editor' );
+		wp_set_current_user( 0 );
+		wp_set_current_user( $user );
+		$as_editor = $visibility->post_sql( 'p', array( 'post' ) );
+
+		$this->assertNotSame( $as_contributor, $as_editor );
+		$this->assertStringContainsString( "p.post_type IN ('post')", $as_editor );
+		$this->assertStringContainsString( "NOT IN ('trash', 'auto-draft')", $as_editor );
+	}
+
+	public function test_languages_that_only_hidden_entries_have_are_not_shown(): void {
+		global $wpdb;
+		foreach ( $this->ids as $id ) {
+			delete_post_meta( $id, Exclusions::KEY );
+		}
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$hidden = self::factory()->post->create(
+			array(
+				'post_status' => 'publish',
+				'post_author' => $this->admin,
+			)
+		);
+		$jobs   = Plugin::container()->get( Jobs::class );
+		$jobs->run_to_completion( $jobs->start_index( 0, false )['id'] );
+		$docs = \MagicLinking\Core\Schema::table( $wpdb->prefix, 'docs' );
+		$wpdb->update( $docs, array( 'lang' => 'fr' ), array( 'post_id' => $hidden ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $hidden ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		clean_post_cache( $hidden );
+		add_filter( 'magiclinking_is_multilingual', '__return_false' );
+
+		$contributor = $this->request( '/report', array(), $this->contributor )->get_data()['summary'];
+		$this->assertNotContains( 'fr', $contributor['langs'] );
+		$this->assertFalse( $contributor['multilingual'] );
+
+		$editor = $this->request( '/report', array(), $this->editor )->get_data()['summary'];
+		$this->assertContains( 'fr', $editor['langs'] );
+	}
+
+	public function test_an_administrator_still_sees_broken_links_of_a_type_no_longer_analyzed_but_trash_is_never_shown(): void {
+		global $wpdb;
+		$jobs = Plugin::container()->get( Jobs::class );
+		$page = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_author'  => $this->editor,
+				'post_content' => '<a href="' . home_url( '/no-existe-3/' ) . '">tres</a>',
+			)
+		);
+		$jobs->run_to_completion( $jobs->start_index( 0, false )['id'] );
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $page ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		clean_post_cache( $page );
+		update_option( 'magiclinking_settings', array( 'post_types' => array( 'post' ) ) );
+
+		$sources = array_column( $this->request( '/broken', array(), $this->admin )->get_data()['items'], 'source_id' );
+		$this->assertContains( $page, $sources );
+
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'trash' ), array( 'ID' => $page ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		clean_post_cache( $page );
+		$sources = array_column( $this->request( '/broken', array(), $this->admin )->get_data()['items'], 'source_id' );
+		$this->assertNotContains( $page, $sources );
 	}
 }

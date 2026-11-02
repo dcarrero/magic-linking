@@ -102,7 +102,7 @@ final class FixRestTest extends FixTestCase {
 		$this->assertTrue( $mine[0]['can_fix'] );
 
 		wp_set_current_user( $this->author );
-		$this->assertFalse( ( new \MagicLinking\Graph\BrokenRepository( $GLOBALS['wpdb'], \MagicLinking\Core\Plugin::container()->get( \MagicLinking\Core\Settings::class ) ) )->query( array( 'post_id' => $post ) )['items'][0]['can_fix'] );
+		$this->assertFalse( ( new \MagicLinking\Graph\BrokenRepository( $GLOBALS['wpdb'] ) )->query( array( 'post_id' => $post ) )['items'][0]['can_fix'] );
 	}
 
 	public function test_retarget_via_rest_fixes_the_link_and_returns_the_group_to_undo(): void {

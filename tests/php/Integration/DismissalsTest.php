@@ -393,6 +393,23 @@ final class DismissalsTest extends GraphTestCase {
 		$this->assertFalse( $this->has( $mine, $this->target ), 'La fila ha desaparecido.' );
 	}
 
+	public function test_undoing_only_renews_the_cache_when_a_row_was_removed_and_needs_a_usable_origin(): void {
+		$this->corpus( 2 );
+		$mine = $this->sources[0];
+		$this->assertSame( 200, $this->dismiss( $mine, $this->target, $this->author )->get_status() );
+
+		$before = wp_cache_get_last_changed( \MagicLinking\Index\SuggestionCache::GROUP );
+		$this->assertSame( 200, $this->restore( $mine, $this->target, $this->author )->get_status() );
+		$after_first = wp_cache_get_last_changed( \MagicLinking\Index\SuggestionCache::GROUP );
+		$this->assertNotSame( $before, $after_first, 'Borrar una fila renueva la caché.' );
+
+		$this->assertSame( 200, $this->restore( $mine, $this->target, $this->author )->get_status() );
+		$this->assertSame( $after_first, wp_cache_get_last_changed( \MagicLinking\Index\SuggestionCache::GROUP ), 'Repetir el DELETE no la renueva.' );
+
+		$draft = self::factory()->post->create( array( 'post_status' => 'auto-draft' ) );
+		$this->assertSame( 404, $this->restore( $draft, $this->target, $this->admin )->get_status(), 'Un origen no utilizable da 404.' );
+	}
+
 	public function test_bad_requests(): void {
 		$this->corpus();
 

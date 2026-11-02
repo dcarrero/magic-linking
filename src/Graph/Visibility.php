@@ -21,9 +21,10 @@ use wpdb;
  * permisos por entrada concreta (`map_meta_cap`) ni los coautores. En WP-CLI sin usuario (`--user`) se actúa como el
  * sistema y no se filtra.
  *
- * El fragmento se construye una vez por usuario, alias y tipos y se reutiliza en esa instancia.
+ * El fragmento se construye una vez por sitio, usuario, capacidades, alias y tipos y se reutiliza en esa instancia
+ * (que es única, la del contenedor). Nunca incluye papelera ni autoborradores.
  */
-class Visibility {
+final class Visibility {
 
 	/**
 	 * Conexión.
@@ -40,19 +41,28 @@ class Visibility {
 	private array $memo = array();
 
 	/**
+	 * Si se fuerza el contexto de sistema (null: se calcula en cada llamada).
+	 *
+	 * @var bool|null
+	 */
+	private ?bool $system;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param wpdb $wpdb Conexión.
+	 * @param wpdb      $wpdb   Conexión.
+	 * @param bool|null $system Forzar (true) o impedir (false) el contexto de sistema; null lo deduce de WP-CLI sin usuario.
 	 */
-	public function __construct( wpdb $wpdb ) {
-		$this->wpdb = $wpdb;
+	public function __construct( wpdb $wpdb, ?bool $system = null ) {
+		$this->wpdb   = $wpdb;
+		$this->system = $system;
 	}
 
 	/**
 	 * Si se actúa como el sistema: WP-CLI sin usuario.
 	 */
-	protected function system_context(): bool {
-		return defined( 'WP_CLI' ) && WP_CLI && 0 === get_current_user_id();
+	private function system_context(): bool {
+		return $this->system ?? ( defined( 'WP_CLI' ) && WP_CLI && 0 === get_current_user_id() );
 	}
 
 	/**
@@ -69,13 +79,17 @@ class Visibility {
 		$types = array_values( array_unique( $types ) );
 		sort( $types );
 		$user = get_current_user_id();
-		$key  = $user . '|' . $alias . '|' . implode( ',', $types );
+		$caps = md5( (string) wp_json_encode( wp_get_current_user()->allcaps ) );
+		$key  = get_current_blog_id() . '|' . $user . '|' . $caps . '|' . $alias . '|' . implode( ',', $types );
 		if ( isset( $this->memo[ $key ] ) ) {
 			return $this->memo[ $key ];
 		}
 
-		$wpdb         = $this->wpdb;
-		$public       = array_values( array_map( 'strval', get_post_stati( array( 'public' => true ) ) ) );
+		$wpdb   = $this->wpdb;
+		$public = array_values( array_map( 'strval', get_post_stati( array( 'public' => true ) ) ) );
+		if ( array() === $public ) {
+			$public = array( 'publish' );
+		}
 		$conditions   = array( $wpdb->prepare( "{$alias}.post_status IN (" . implode( ',', array_fill( 0, count( $public ), '%s' ) ) . ')', $public ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
 		$conditions[] = $wpdb->prepare( "{$alias}.post_author = %d", $user ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias fijo de quien llama.
 
@@ -101,7 +115,7 @@ class Visibility {
 			$conditions[] = $wpdb->prepare( "({$alias}.post_status = 'private' AND {$alias}.post_type IN (" . implode( ',', array_fill( 0, count( $private ), '%s' ) ) . '))', $private ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
 		}
 
-		$this->memo[ $key ] = '( ' . implode( ' OR ', $conditions ) . ' )';
+		$this->memo[ $key ] = "( {$alias}.post_status NOT IN ('trash', 'auto-draft') AND ( " . implode( ' OR ', $conditions ) . ' ) )';
 
 		return $this->memo[ $key ];
 	}

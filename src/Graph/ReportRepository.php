@@ -98,9 +98,10 @@ final class ReportRepository {
 		}
 
 		if ( null === $langs ) {
-			$wpdb  = $this->wpdb;
-			$docs  = Schema::table( $wpdb->prefix, 'docs' );
-			$langs = $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT lang FROM %i LIMIT 2', $docs ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb    = $this->wpdb;
+			$docs    = Schema::table( $wpdb->prefix, 'docs' );
+			$visible = $this->visibility->post_sql( 'p', $this->settings->post_types() );
+			$langs   = $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT d.lang FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE ' . $visible . ' LIMIT 2', $docs, $wpdb->posts ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia; fragmento preparado.
 		}
 
 		return count( $langs ) > 1;
@@ -410,7 +411,7 @@ final class ReportRepository {
 
 		$langs = array_map(
 			'strval',
-			$wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT lang FROM %i ORDER BY lang ASC', $docs ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla propia.
+			$wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT d.lang FROM %i d INNER JOIN %i p ON p.ID = d.post_id WHERE ' . $visible . ' ORDER BY d.lang ASC', $docs, $wpdb->posts ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla propia; fragmento preparado.
 		);
 
 		return array(
