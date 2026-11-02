@@ -9,7 +9,7 @@ Internal linking for WordPress that works for free, uses the AI your site alread
 
 *Enlazado interno para WordPress que funciona gratis de verdad, con la IA que ya tiene tu WordPress y sin vender créditos.*
 
-> **Status: version 1.0.0 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
+> **Status: version 1.0.1 ([latest published on wordpress.org](https://wordpress.org/plugins/magic-linking/)).** Link suggestions in the editor, one-click linking that verifies nothing else changes, and a history with undo and redo. It works entirely on your server; AI is optional and comes only from the connector your site already has (see the [Roadmap](#-roadmap)).
 
 ## 🚀 Features
 
@@ -183,6 +183,9 @@ Issues and pull requests are welcome at [dcarrero/magic-linking](https://github.
 [GPL-2.0-or-later](LICENSE).
 
 ## 📝 Changelog
+
+### 1.0.1
+- Access control: the excluded entries in the report and the CSV export, and the broken links list, only show entries the current user can read (by post type capabilities, applied in SQL so totals and pagination match). Undoing a dismissed suggestion gets the same checks as dismissing it.
 
 ### 1.0.0
 - Complete free version. Target phrases per entry (F1-24, D-72): collapsible section in the panel, up to 10 phrases with 5 variants, stored in the `_magiclinking_target_phrases` meta and indexed like the focus keyword.
