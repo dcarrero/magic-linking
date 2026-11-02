@@ -213,6 +213,8 @@ final class ReportRepository {
 			$where = $wpdb->prepare( "p.post_status NOT IN ('trash', 'auto-draft') AND p.post_type IN ({$in})", $types ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Marcadores generados.
 				. ' AND ( ' . self::marked_sql( $wpdb, '' ) . ' OR ' . substr( $in_category, 5 ) . ' )';
 		}
+		// Solo lo que el usuario puede ver: un colaborador no ve borradores, pendientes ni privadas ajenas.
+		$where .= ' AND ' . Visibility::post_sql( $wpdb, 'p', $types );
 		if ( ! empty( $args['search'] ) ) {
 			$where .= $wpdb->prepare( ' AND p.post_title LIKE %s', '%' . $wpdb->esc_like( (string) $args['search'] ) . '%' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Preparado.
 		}

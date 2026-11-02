@@ -111,9 +111,10 @@ final class BrokenRepository {
 	 * @return array{items: array<int, array<string, mixed>>, total: int}
 	 */
 	public function query( array $args ): array {
-		$wpdb     = $this->wpdb;
-		$links    = Schema::table( $wpdb->prefix, 'links' );
-		$where    = '';
+		$wpdb  = $this->wpdb;
+		$links = Schema::table( $wpdb->prefix, 'links' );
+		// El índice solo guarda entradas publicadas; aun así se limita al origen que el usuario puede ver.
+		$where    = ' AND ' . Visibility::post_sql( $wpdb, 'p', array_values( get_post_types() ) );
 		$per_page = max( 1, min( 500, (int) ( $args['per_page'] ?? 20 ) ) );
 		$offset   = max( 0, ( (int) ( $args['page'] ?? 1 ) - 1 ) * $per_page );
 
