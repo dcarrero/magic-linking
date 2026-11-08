@@ -1,6 +1,6 @@
 === Magic Linking – Internal Links ===
 Contributors: dcarrero
-Tags: internal links, seo, link suggestions, orphan pages, broken links
+Tags: internal links, link suggestions, auto links, orphan pages, broken links
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.1
@@ -8,69 +8,71 @@ Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Internal link suggestions in the editor. Link in one click, check that nothing else changes, undo from History. Plus orphan and broken link reports.
+Free internal linking: link suggestions as you write, automatic link rules, orphan and broken link reports. One-click undo. No API key, no limits.
 
 == Description ==
 
-Magic Linking suggests internal links while you write, adds the one you choose without touching anything else, and keeps a history so you can undo it. It also reports which of your entries are orphans, under-linked, over-linked or have broken internal links.
+Magic Linking is a free internal linking plugin for WordPress. It gives you internal link suggestions while you write, in the block editor (Gutenberg) and in the classic editor, and adds the one you choose without touching anything else. Every change is kept in a history, so you can undo it.
 
-It works entirely on your server, with no account, no key and no limits, not even on the number of automatic rules. Artificial intelligence is optional: it only runs if you have connected an AI provider in WordPress (Settings > Connectors) and press *Improve with AI* in the panel.
+It also adds automatic internal links with rules you create ("this phrase links to this page"), and reports which of your posts and pages are orphans, under-linked, over-linked or have broken internal links. A free alternative to paid internal linking plugins: no account, no key and no limits, not even on the number of automatic rules.
+
+It works entirely on your server. Artificial intelligence is optional: it only runs if you have connected an AI provider in WordPress (Settings > Connectors) and press *Improve with AI* in the panel.
 
 **In the editor**
 
-* **Outbound suggestions**: a Magic Linking panel in the block editor (and a box in the classic editor) proposes phrases of the text you are writing that could link to other entries of your site. Each suggestion shows the phrase with the anchor text highlighted in the editor, the destination and the reason.
+* **Outbound suggestions**: a Magic Linking panel in the block editor (and a box in the classic editor) proposes phrases of the text you are writing that could link to other posts of your site. Each suggestion shows the phrase with the anchor text highlighted in the editor, the destination and the reason.
 * **One click to link**: press *Link* and the link is added in the editor itself, on that phrase only. It is part of your unsaved changes until you save, and you can undo it with the *Undo* button of the card or with the editor's own undo.
-* **Inbound suggestions**: the same panel lists other entries whose text mentions the one you are editing and could link to it. Pressing *Link* writes the link in that other entry, see "How and when it changes your content".
-* Only the entries and block types where a link can be inserted safely are proposed. Paragraphs and lists are always used; headings, quotes and tables are left alone unless you turn them on in Settings (or a developer allows them with a filter).
-* **Pillar content and filters**: mark your main entries as pillar content (the mark of an active Yoast SEO or Rank Math also counts) so links to them rank higher. In Settings > Suggestions you can ignore, consider or require the same content type, category or tag.
+* **Inbound suggestions**: the same panel lists other posts whose text mentions the one you are editing and could link to it. Pressing *Link* writes the link in that other post, see "How and when it changes your content".
+* Only the posts and block types where a link can be inserted safely are proposed. Paragraphs and lists are always used; headings, quotes and tables are left alone unless you turn them on in Settings (or a developer allows them with a filter).
+* **Pillar content and filters**: mark your main posts as pillar content (the mark of an active Yoast SEO or Rank Math also counts) so links to them rank higher. In Settings > Suggestions you can ignore, consider or require the same content type, category or tag.
 * **More phrases and adjustable anchor**: the card can offer alternative sentences (off by default, Settings > Suggestions) and lets you adjust the anchor text before linking. Each suggestion warns when the anchor already links somewhere else or is repeated too often, and a collapsible list shows what is already linked.
-* **Your own target phrases**: for each entry you can write the phrases you want it to rank for, so other entries link to it with them.
-* **Exclude**: leave an entry (from the report) or whole categories (Settings > General) out of the analysis. Excluded entries are neither suggested nor a source of links.
+* **Your own target phrases**: for each post you can write the phrases you want it to rank for, so other posts link to it with them.
+* **Exclude**: leave a post (from the report) or whole categories (Settings > General) out of the analysis. Excluded posts are neither suggested nor a source of links.
 * **Dismiss**: a suggestion you do not want can be dismissed for good, from either side, and restored with *Undo*.
 * **Improve with AI (optional)**: with an AI connector (WordPress 7.0 or later), *Improve with AI* sends the best 20 suggestions to your AI provider in one request. It reorders them, marks the ones it does not recommend, may propose a better anchor text from the same sentence and shows what the request cost. See "AI and your privacy".
 
 **Automatic rules**
 
-* **Rules**: a screen where you say "this phrase links to this entry". A rule has a phrase and its variants, a destination (a published entry), how many links to add per entry, whether to link only the first appearance, and an optional gap of one word (so "heat pump" also matches "heat water pump"). You can leave out post types and categories, and pause or edit a rule at any time. There is no limit on the number of rules.
-* **Applied by themselves when you publish or update**: when a published entry is saved with new text, the rules are applied in the background, not during the save. If the entry is open in someone's editor, Magic Linking waits and tries again later instead of touching it. Drafts are not linked; they are when you publish them.
-* **Applied to what you already have, one entry at a time**: *Apply to existing entries* lists the entries where the rule fits, shows the sentence with the link that would be added and an *Add link* button for each one, with *Undo*. There is no "apply to all" button.
-* **Quality limits**: a rule only adds links. It never removes or changes a link you already have, never links inside a link, and respects your limits: words per link, links to the same target from one entry (Settings > Suggestions) and entries that can use the same anchor text for the same target.
-* **A link you undo does not come back**: if you undo a link added by a rule, the same rule does not add it again to that entry (unless you edit the rule).
+* **Rules**: a screen where you say "this phrase links to this post". A rule has a phrase and its variants, a destination (a published post), how many links to add per post, whether to link only the first appearance, and an optional gap of one word (so "heat pump" also matches "heat water pump"). You can leave out post types and categories, and pause or edit a rule at any time. There is no limit on the number of rules.
+* **Applied by themselves when you publish or update**: when a published post is saved with new text, the rules are applied in the background, not during the save. If the post is open in someone's editor, Magic Linking waits and tries again later instead of touching it. Drafts are not linked; they are when you publish them.
+* **Applied to what you already have, one post at a time**: *Apply to existing entries* lists the posts where the rule fits, shows the sentence with the link that would be added and an *Add link* button for each one, with *Undo*. There is no "apply to all" button.
+* **Quality limits**: a rule only adds links. It never removes or changes a link you already have, never links inside a link, and respects your limits: words per link, links to the same target from one post (Settings > Suggestions) and posts that can use the same anchor text for the same target.
+* **A link you undo does not come back**: if you undo a link added by a rule, the same rule does not add it again to that post (unless you edit the rule).
 * WP-CLI: `wp magic-linking rules` (list, add, delete, scan, apply).
 
 **How and when it changes your content**
 
-* Nothing is changed until you press *Link* on a suggestion, apply a rule to an entry, or publish or update an entry that matches a rule you created. Suggestions never change anything by themselves, and rules only add links.
-* For the entry you have open, the link is inserted in the editor; saving is up to you.
-* For inbound suggestions, the link is written into the other entry on the server. Before saving, Magic Linking checks that the rest of that entry stays exactly as it was: only the link is added. If the check fails, it writes nothing and tells you why. WordPress keeps a revision of the entry as usual.
-* Every change is recorded in **History**, where you can undo it and redo it; links added by a rule are marked "Automatic rule". Links you add from the editor panel are listed there too once you save the entry; Magic Linking only records them. Undo removes only that link; if the text around it was edited since, it tells you instead of guessing.
-* An entry that is open in someone's editor is never modified from the server.
+* Nothing is changed until you press *Link* on a suggestion, apply a rule to a post, or publish or update a post that matches a rule you created. Suggestions never change anything by themselves, and rules only add links.
+* For the post you have open, the link is inserted in the editor; saving is up to you.
+* For inbound suggestions, the link is written into the other post on the server. Before saving, Magic Linking checks that the rest of that post stays exactly as it was: only the link is added. If the check fails, it writes nothing and tells you why. WordPress keeps a revision of the post as usual.
+* Every change is recorded in **History**, where you can undo it and redo it; links added by a rule are marked "Automatic rule". Links you add from the editor panel are listed there too once you save the post; Magic Linking only records them. Undo removes only that link; if the text around it was edited since, it tells you instead of guessing.
+* A post that is open in someone's editor is never modified from the server.
 * Links already written in your content are never removed or rewritten, except to undo a link Magic Linking added or when you fix a broken link from its list.
 
 **History**
 
-* Every link Magic Linking changes is listed with who did it, when, where and the anchor text: links from inbound suggestions, from the editor panel (once you save the entry), from rules and fixes from the broken links list.
-* Changes are grouped by entry, newest first. Filter by status, source or title, view by batch, and undo or redo one change, an entry or a whole batch.
+* Every link Magic Linking changes is listed with who did it, when, where and the anchor text: links from inbound suggestions, from the editor panel (once you save the post), from rules and fixes from the broken links list.
+* Changes are grouped by post, newest first. Filter by status, source or title, view by batch, and undo or redo one change, a post or a whole batch.
 * Undo and redo also with WP-CLI (`wp magic-linking history undo --post=<id>`).
 * Export to CSV, with no row limit, from **Export CSV** (what the current filters show) or with WP-CLI (`wp magic-linking history export --format=csv`). It includes whether the AI recommended each link and with which model.
 * The history is kept 90 days by default; you can choose 30 days, a year or forever.
 
 **Report**
 
-* **Orphan pages**: entries that no other entry links to.
-* **Under-linked pages**: entries with some inbound links, but fewer than you consider enough (2 by default, you can change it).
-* **Over-linked pages**: entries with more internal links than one for every 100 words (you can change that too). A short text may always have one link.
-* **Broken internal links**: links to an entry that is in the trash, is a draft or private, or does not exist. The complete list, with the anchor text and the reason. Fix each one from the list: change its destination to another published entry, or remove the link and keep its text. Magic Linking checks that nothing else in the entry changes, and you can undo it from History.
-* Numbers for every entry: inbound, internal outbound, external and broken links.
-* **Add links from the report**: *Inbound suggestions* and *Outbound suggestions* on each row open a side panel with the suggested sentences. Press **Link** on the ones you like, one at a time, without opening the editor of the entry; the row updates its numbers and you can undo each link right there or from History.
+* **Orphan pages**: posts that no other post links to.
+* **Under-linked pages**: posts with some inbound links, but fewer than you consider enough (2 by default, you can change it).
+* **Over-linked pages**: posts with more internal links than one for every 100 words (you can change that too). A short text may always have one link.
+* **Broken internal links**: links to a post that is in the trash, is a draft or private, or does not exist. The complete list, with the anchor text and the reason. Fix each one from the list: change its destination to another published post, or remove the link and keep its text. Magic Linking checks that nothing else in the post changes, and you can undo it from History.
+* Numbers for every post: inbound, internal outbound, external and broken links.
+* **Add links from the report**: *Inbound suggestions* and *Outbound suggestions* on each row open a side panel with the suggested sentences. Press **Link** on the ones you like, one at a time, without opening the editor of the post; the row updates its numbers and you can undo each link right there or from History.
 * Filters, search by title, sorting, pagination and **CSV export** of the view you are looking at.
 
 **Also**
 
 * **WP-CLI**: analyse the site, print reports and manage the history from the terminal.
-* **Multilingual**: the language of each entry comes from WPML, Polylang or, if you use neither, from the site language. Suggestions never link entries of different languages. An optional setting detects the language from the text itself (tested on Spanish and English).
+* **Multilingual**: the language of each post comes from WPML, Polylang or, if you use neither, from the site language. Suggestions never link posts of different languages. An optional setting detects the language from the text itself (tested on Spanish and English).
 * **Status tab**: The Status tab shows how long the last suggestions took, so you can see whether the engine is slow on your server.
-* **Made for big sites**: the analysis and the index of suggestions are built in the background in small batches with Action Scheduler (bundled), and every entry is updated when you save it. Suggestions for an entry are calculated in a few milliseconds even with thousands of entries.
+* **Made for big sites**: the analysis and the index of suggestions are built in the background in small batches with Action Scheduler (bundled), and every post is updated when you save it. Suggestions for a post are calculated in a few milliseconds even with thousands of posts.
 * **Light**: no scripts, no styles and no database queries from this plugin on your public pages.
 * **Private**: no telemetry, no cookies, no email requests, no notices outside its own screens, and nothing leaves your server unless you press *Improve with AI* with an AI connector (see "AI and your privacy").
 
@@ -102,44 +104,44 @@ From the terminal: `wp magic-linking index` analyses the site and `wp magic-link
 
 = Does it change my posts or pages? =
 
-Only when you press *Link* on a suggestion or apply a rule, or when you publish or update an entry that matches a rule you created. In every case it only adds a link.
+Only when you press *Link* on a suggestion or apply a rule, or when you publish or update a post that matches a rule you created. In every case it only adds a link.
 
-* Outbound suggestions (for the entry you are editing): the link is inserted in the editor itself. You save the entry when you want, as with any other change.
-* Inbound suggestions (links from other entries to this one): the link is written into the other entry on the server. The rest of that entry must stay identical, byte for byte, or nothing is written. WordPress creates a revision, and the change is listed in History, where you can undo it.
-* Automatic rules (the ones you create in Magic Linking > Rules) add their links in the background after you publish or update an entry, with the same check and the same entry in History.
-* It never modifies an entry that is open in an editor, and it only edits, removes or rewrites a link you already had when you ask for it from the broken links list (change its destination or remove it, keeping its text), with the same check and undo.
+* Outbound suggestions (for the post you are editing): the link is inserted in the editor itself. You save the post when you want, as with any other change.
+* Inbound suggestions (links from other posts to this one): the link is written into the other post on the server. The rest of that post must stay identical, byte for byte, or nothing is written. WordPress creates a revision, and the change is listed in History, where you can undo it.
+* Automatic rules (the ones you create in Magic Linking > Rules) add their links in the background after you publish or update a post, with the same check and the same post in History.
+* It never modifies a post that is open in an editor, and it only edits, removes or rewrites a link you already had when you ask for it from the broken links list (change its destination or remove it, keeping its text), with the same check and undo.
 
 Everything else (the report, the index, the settings, the broken links list until you fix one) only reads your content and writes to its own tables.
 
 = How do automatic rules work? =
 
-Go to **Magic Linking > Rules**, add a rule (a phrase, its variants and the entry it should link to) and save it. From then on, when you publish or update an entry whose text contains the phrase, the link is added in the background. To use a rule on entries you already have, press *Apply to existing entries* on the rule, review the sentence shown for each entry and press *Add link* on the ones you want. You can create as many rules as you like. Rules never remove or change a link and respect your limits in Settings > Suggestions.
+Go to **Magic Linking > Rules**, add a rule (a phrase, its variants and the post it should link to) and save it. From then on, when you publish or update a post whose text contains the phrase, the link is added in the background. To use a rule on posts you already have, press *Apply to existing entries* on the rule, review the sentence shown for each post and press *Add link* on the ones you want. You can create as many rules as you like. Rules never remove or change a link and respect your limits in Settings > Suggestions.
 
-= Can I apply a rule to all my entries at once? =
+= Can I apply a rule to all my posts at once? =
 
-No. In this version you add the links one entry at a time, after seeing the sentence. Each one is recorded in History as "Automatic rule" and can be undone.
+No. In this version you add the links one post at a time, after seeing the sentence. Each one is recorded in History as "Automatic rule" and can be undone.
 
 = I undid a link that a rule added. Will it come back? =
 
-No. A rule does not add again a link you undid in that entry. If you edit the rule (phrase, destination or options), it counts as a new rule and may add its link again.
+No. A rule does not add again a link you undid in that post. If you edit the rule (phrase, destination or options), it counts as a new rule and may add its link again.
 
-= Can I add links from the report without opening the entry? =
+= Can I add links from the report without opening the post? =
 
-Yes. On each row of the report, *Inbound suggestions* and *Outbound suggestions* open a side panel with the same suggestions as the editor. Press *Link* on the ones you like; the numbers of the row update and you can undo each link there or from History. You need permission to edit that entry.
+Yes. On each row of the report, *Inbound suggestions* and *Outbound suggestions* open a side panel with the same suggestions as the editor. Press *Link* on the ones you like; the numbers of the row update and you can undo each link there or from History. You need permission to edit that post.
 
 = How do I undo a link? =
 
 Right after adding it, press *Undo* on the card. Later, open **Magic Linking > History** and undo it there. You can also redo it. If the text around the link has been edited since, Magic Linking tells you instead of changing anything it cannot be sure about.
 
-= How do I leave an entry or a category out? =
+= How do I leave a post or a category out? =
 
-For one entry, press *Exclude from the analysis* on its row in the report. For whole categories, go to *Settings > General* and pick them under *Categories left out*. An excluded entry is neither suggested nor used as a source of links; links that other entries already have to it still count. You can include it again at any time, and the report lists the excluded entries with the reason.
+For one post, press *Exclude from the analysis* on its row in the report. For whole categories, go to *Settings > General* and pick them under *Categories left out*. An excluded post is neither suggested nor used as a source of links; links that other posts already have to it still count. You can include it again at any time, and the report lists the excluded posts with the reason.
 
 = What are target phrases? =
 
-Phrases you write for an entry (in the *Target phrases* section of the editor panel, up to 10, each with a few variants) to say "link to this entry when the text says this". They are used by the suggestions like the entry's own focus keyword, and they never add a link by themselves.
+Phrases you write for a post (in the *Target phrases* section of the editor panel, up to 10, each with a few variants) to say "link to this post when the text says this". They are used by the suggestions like the post's own focus keyword, and they never add a link by themselves.
 
-= Can it detect the language of my entries? =
+= Can it detect the language of my posts? =
 
 Yes, if you turn on *Detect the language of each entry from its text* in Settings > General. It is off by default, does nothing while WPML or Polylang is active (they take priority) and, when it is not sure, uses the language of the site. It is checked on Spanish and English texts; other languages are not validated yet, so do not rely on it for them.
 
@@ -149,15 +151,15 @@ The Status tab shows the time of the last 20 suggestion requests, split by phase
 
 = Where do I change the sensitivity of the suggestions? =
 
-In *Settings > Suggestions > Show advanced settings*: the key terms kept per entry and the score threshold. The defaults are right for most sites; changing the number of terms rebuilds the index in the background.
+In *Settings > Suggestions > Show advanced settings*: the key terms kept per post and the score threshold. The defaults are right for most sites; changing the number of terms rebuilds the index in the background.
 
 = How are links counted? =
 
-* Only the links written inside the content of each entry are counted. Links in menus, widgets, theme templates or blocks that are pulled from somewhere else are not, so your home page or a page that is only linked from the menu can appear as an orphan.
+* Only the links written inside the content of each post are counted. Links in menus, widgets, theme templates or blocks that are pulled from somewhere else are not, so your home page or a page that is only linked from the menu can appear as an orphan.
 * Content that a page builder keeps outside the normal post content is not read. If your builder saves rendered HTML in the post content, it is read.
-* Inbound = how many different entries link to this one, counting only links that work. Outbound = internal links to other pages; every appearance counts. Links to the same entry, to files or to `mailto:` and `tel:` are not counted.
+* Inbound = how many different posts link to this one, counting only links that work. Outbound = internal links to other pages; every appearance counts. Links to the same post, to files or to `mailto:` and `tel:` are not counted.
 * Category, tag, author, date and search pages, the home page and feeds are valid destinations and are never reported as broken.
-* Tracking parameters (`utm_*`, `gclid`, `fbclid`…) and anchors (`#…`) are ignored when matching a link to an entry.
+* Tracking parameters (`utm_*`, `gclid`, `fbclid`…) and anchors (`#…`) are ignored when matching a link to a post.
 
 = Does it need AI, an API key or an account? =
 
@@ -177,11 +179,11 @@ Because the site has no AI connector (add one in Settings > Connectors), WordPre
 
 = Why does the panel say there are no suggestions? =
 
-The suggestions come from the index of your site, which is built in the background after you press *Analyze my site*. Until it is ready the panel says so. Also, suggestions need text: a very short entry has little to suggest, and entries in another language, drafts, private entries and password-protected ones are never proposed as destinations.
+The suggestions come from the index of your site, which is built in the background after you press *Analyze my site*. Until it is ready the panel says so. Also, suggestions need text: a very short post has little to suggest, and posts in another language, drafts, private posts and password-protected ones are never proposed as destinations.
 
 = Can I favour my main pages, or only link within a category? =
 
-Yes. Tick *Pillar content* in the panel (while Yoast SEO or Rank Math are active, their cornerstone or pillar mark also counts, without asking you anything): links to those entries rank a little higher. In *Settings → Suggestions* you can ignore, take into account or require the content type, category and tag. These are quality settings, never limits.
+Yes. Tick *Pillar content* in the panel (while Yoast SEO or Rank Math are active, their cornerstone or pillar mark also counts, without asking you anything): links to those posts rank a little higher. In *Settings → Suggestions* you can ignore, take into account or require the content type, category and tag. These are quality settings, never limits.
 
 = Why can't I link from this phrase? =
 
@@ -193,19 +195,19 @@ Yes, with a Magic Linking box. Links are inserted in the *Visual* tab; in *Text*
 
 = Why does my home page (or another page) appear as an orphan? =
 
-Because it is not linked from the content of any other entry. If it is linked from your menu, the menu is not counted. See "How links are counted".
+Because it is not linked from the content of any other post. If it is linked from your menu, the menu is not counted. See "How links are counted".
 
 = Why is a link not listed as broken if the page is really gone? =
 
-A link is reported when it points to an entry in the trash, unpublished or private, or to an address of your site that WordPress does not recognise. If a redirect plugin sends the old address elsewhere, the link may still work for your visitors. Developers can tell Magic Linking about redirects with the `magiclinking_resolve_link` filter.
+A link is reported when it points to a post in the trash, unpublished or private, or to an address of your site that WordPress does not recognise. If a redirect plugin sends the old address elsewhere, the link may still work for your visitors. Developers can tell Magic Linking about redirects with the `magiclinking_resolve_link` filter.
 
 = Does it work with WPML or Polylang? =
 
-Yes. It records the language of every entry, never suggests a link between two languages and, when WPML or Polylang is active (or the analysis finds more than one language), shows it in the report, lets you filter by it and adds it to the CSV. On a single-language site those columns are hidden.
+Yes. It records the language of every post, never suggests a link between two languages and, when WPML or Polylang is active (or the analysis finds more than one language), shows it in the report, lets you filter by it and adds it to the CSV. On a single-language site those columns are hidden.
 
 = How long does the first analysis take? =
 
-A few seconds for a small site; thousands of entries per minute on ordinary hosting. It runs in the background; you can keep working and watch the progress on the screen.
+A few seconds for a small site; thousands of posts per minute on ordinary hosting. It runs in the background; you can keep working and watch the progress on the screen.
 
 = The analysis does not move. =
 
@@ -213,11 +215,11 @@ It needs Action Scheduler to run, which WordPress triggers with WP-Cron. On site
 
 = How do I analyze only what changed? =
 
-Press "Analyze changes" in the report (or run `wp magic-linking index`). It goes through every entry but skips the ones whose content has not changed since the last analysis, and tells you how many were new or modified. Entries are also analysed again automatically when you save them.
+Press "Analyze changes" in the report (or run `wp magic-linking index`). It goes through every post but skips the ones whose content has not changed since the last analysis, and tells you how many were new or modified. Posts are also analysed again automatically when you save them.
 
 = How do I analyze the whole site again from scratch? =
 
-Go to Magic Linking > Settings, open the General tab, find the "Maintenance" section and press "Analyze everything again from scratch" (or run `wp magic-linking index --force`). It asks you to confirm and then runs in the background, even for entries that have not changed. It never changes your content.
+Go to Magic Linking > Settings, open the General tab, find the "Maintenance" section and press "Analyze everything again from scratch" (or run `wp magic-linking index --force`). It asks you to confirm and then runs in the background, even for posts that have not changed. It never changes your content.
 
 = What happens when I delete the plugin? =
 
@@ -233,9 +235,9 @@ Each site of a network has its own report, history and settings.
 * `magiclinking_batch_undone`: action that runs after a group of links has been undone.
 * `magiclinking_link_fixed`: action that runs after a broken link has been fixed (destination changed or link removed), or that fix has been redone.
 * `magiclinking_insertable_blocks`: filter for the block types where links can be inserted.
-* `magiclinking_post_lock_timeout`: filter for the seconds to wait when another insertion or undo is writing the same entry.
+* `magiclinking_post_lock_timeout`: filter for the seconds to wait when another insertion or undo is writing the same post.
 * `magiclinking_undo_sync_limit`: filter for how many changes are undone at once before the rest goes to the background.
-* `magiclinking_post_language`: set the language of an entry.
+* `magiclinking_post_language`: set the language of a post.
 * `magiclinking_internal_hosts`: extra hosts that count as your site.
 * `magiclinking_resolve_link`: say where an internal address leads.
 * `magiclinking_post_html`: add HTML that a builder keeps outside the content.
@@ -248,9 +250,9 @@ Each site of a network has its own report, history and settings.
 
 1. Outbound suggestions in the block editor: each card shows the destination and the reason, and the anchor text is highlighted in the text.
 2. A link added with one click, with the Undo button on the card.
-3. Inbound suggestions: other entries that could link to the one you are editing.
-4. History: changes grouped by entry, with date, filters, and undo and redo.
-5. The report: totals for analyzed entries, orphans, internal links and broken links, with filters, search and sorting.
+3. Inbound suggestions: other posts that could link to the one you are editing.
+4. History: changes grouped by post, with date, filters, and undo and redo.
+5. The report: totals for analyzed posts, orphans, internal links and broken links, with filters, search and sorting.
 6. Settings in tabs (General, Suggestions, Links, AI, History and data) with a save bar that stays in view.
 
 == Support and documentation ==
@@ -265,7 +267,7 @@ Magic Linking does not connect to any external service by itself and has no serv
 
 The only exception is the optional **Improve with AI** button, which exists only if you have connected an AI provider to WordPress yourself. Magic Linking does not call any provider directly: it uses the AI client that WordPress 7.0 and later provide (`wp_ai_client_prompt()`), which sends the request to the provider you configured on the **Settings > Connectors** screen of your site (`wp-admin/options-connectors.php`), for example OpenAI, Google, Anthropic or a local Ollama.
 
-* **What is sent**: the sentence of the entry you are editing, with the anchor text marked, and, for each of the best 20 suggestions, the title and a summary of about 200 tokens of the destination entry (its title, headings and the start of its text). Only clean text. No metadata, authors, email addresses, comments or private fields. Private, password-protected and draft entries are never sent as destinations. The entry you are editing is sent only because you pressed the button.
+* **What is sent**: the sentence of the post you are editing, with the anchor text marked, and, for each of the best 20 suggestions, the title and a summary of about 200 tokens of the destination post (its title, headings and the start of its text). Only clean text. No metadata, authors, email addresses, comments or private fields. Private, password-protected and draft posts are never sent as destinations. The post you are editing is sent only because you pressed the button.
 * **When**: only when you press *Improve with AI*, once per press. Never in the background, never on page load and never on the public side of your site.
 * **To whom**: to the provider you configured in Settings > Connectors. Their terms and privacy policy apply to that request, for example OpenAI (https://openai.com/policies), Google (https://policies.google.com) or Anthropic (https://www.anthropic.com/legal). If you use a local model, nothing leaves your server.
 * **Control**: you choose the provider, you can set a daily token limit (0 turns it off) in Magic Linking > Settings > AI, and a site can veto requests with the `wp_ai_client_prevent_prompt` filter.
@@ -274,7 +276,7 @@ Magic Linking stores the number of tokens used, the provider and the model of ea
 
 == Privacy ==
 
-Magic Linking does not collect personal data and sends nothing anywhere on its own. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your entries used for suggestions, counts per entry and a history of the links it has added or fixed, including those you add from the editor panel (which user, when, which entry and the text of the paragraph that changed, so it can be undone). The pairs (entry, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies. For the optional AI button it also stores, for each request, the date, the user, the provider, the model, the tokens used and an estimated cost, never the text that was sent; and, for an hour, the result of checking what your AI connector can do. See "External services" for what is sent when you press that button.
+Magic Linking does not collect personal data and sends nothing anywhere on its own. It stores, in your database, the addresses and anchor texts of the internal links found in your own content, a word index of your posts used for suggestions, counts per post and a history of the links it has added or fixed, including those you add from the editor panel (which user, when, which post and the text of the paragraph that changed, so it can be undone). The pairs (post, target) of the suggestions you dismiss, with the user and the date, so they are not proposed again. It does not set cookies. For the optional AI button it also stores, for each request, the date, the user, the provider, the model, the tokens used and an estimated cost, never the text that was sent; and, for an hour, the result of checking what your AI connector can do. See "External services" for what is sent when you press that button.
 
 == Third-party libraries ==
 
