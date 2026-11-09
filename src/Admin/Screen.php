@@ -11,6 +11,7 @@ namespace MagicLinking\Admin;
 
 use MagicLinking\Core\Module;
 use MagicLinking\Core\Settings;
+use MagicLinking\I18n\Language;
 use MagicLinking\Jobs\Jobs;
 use MagicLinking\Report\ExportHandler;
 use MagicLinking\Rest\SettingsController;
@@ -102,11 +103,13 @@ final class Screen implements Module {
 			return $text;
 		}
 
-		$url = str_starts_with( get_user_locale(), 'es' )
+		$url = 'es' === Language::normalize( determine_locale() )
 			? 'https://magiclinking.com/es/#hoja-de-ruta'
 			: 'https://magiclinking.com/#roadmap';
 
-		return $text . ' <span aria-hidden="true">|</span> ' . sprintf(
+		$separator = '' === trim( $text ) ? '' : $text . ' <span aria-hidden="true">|</span> ';
+
+		return $separator . sprintf(
 			'<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s<span class="screen-reader-text"> %3$s</span><span aria-hidden="true"> &#8599;</span></a>',
 			esc_url( $url ),
 			esc_html__( "What's next for Magic Linking", 'magic-linking' ),
