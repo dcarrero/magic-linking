@@ -83,7 +83,35 @@ final class Screen implements Module {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy' ) );
 		add_filter( 'set_screen_option_' . self::PER_PAGE_OPTION, array( $this, 'save_per_page' ), 10, 3 );
+		add_filter( 'admin_footer_text', array( $this, 'footer_text' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( MAGICLINKING_FILE ), array( $this, 'add_action_link' ) );
+	}
+
+	/**
+	 * Enlace «Qué viene después» en el pie, solo en las pantallas del plugin.
+	 *
+	 * Conserva el texto que ya trae WordPress y añade un único enlace a la hoja de ruta de la web,
+	 * sin parámetros de seguimiento.
+	 *
+	 * @param mixed $text Texto del pie.
+	 * @return mixed
+	 */
+	public function footer_text( $text ) {
+		$screen = get_current_screen();
+		if ( ! is_string( $text ) || ! $screen || ! isset( $this->screens[ $screen->id ] ) ) {
+			return $text;
+		}
+
+		$url = str_starts_with( get_user_locale(), 'es' )
+			? 'https://magiclinking.com/es/#hoja-de-ruta'
+			: 'https://magiclinking.com/#roadmap';
+
+		return $text . ' <span aria-hidden="true">|</span> ' . sprintf(
+			'<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s<span class="screen-reader-text"> %3$s</span><span aria-hidden="true"> &#8599;</span></a>',
+			esc_url( $url ),
+			esc_html__( "What's next for Magic Linking", 'magic-linking' ),
+			esc_html__( '(opens in a new tab)', 'magic-linking' )
+		);
 	}
 
 	/**
