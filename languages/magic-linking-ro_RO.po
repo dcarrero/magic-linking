@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magic Linking 1.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/magic-linking\n"
-"POT-Creation-Date: 2026-11-01T12:23:59+00:00\n"
+"POT-Creation-Date: 2026-11-09T11:27:24+00:00\n"
 "PO-Revision-Date: 2026-11-01 12:00+0000\n"
 "Last-Translator: Color Vivo\n"
 "Language-Team: Romanian\n"
@@ -70,12 +70,12 @@ msgstr "Modulul nu a fost activat"
 msgid "Magic Linking is missing its bundled libraries (the vendor folder). Reinstall the plugin from wordpress.org. It has not been loaded."
 msgstr "Lipsesc bibliotecile incluse în Magic Linking (dosarul vendor). Reinstalează modulul de pe wordpress.org. Nu a fost încărcat."
 
-#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:312
+#: src/Admin/EditorPanel.php:84 src/Admin/Screen.php:340
 #: assets/build/editor.js:46 assets/build/index.js:132
 msgid "Internal links"
 msgstr "Legături interne"
 
-#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:313
+#: src/Admin/EditorPanel.php:97 src/Admin/Screen.php:341
 #: assets/build/index.js:7 assets/build/index.js:23 assets/build/index.js:35
 #: assets/build/index.js:53 assets/build/index.js:108 assets/build/index.js:117
 #: assets/build/index.js:130
@@ -111,49 +111,59 @@ msgstr "Pe acest site nu este conectată nicio IA. Poți să o conectezi pe a ta
 msgid "Go to Connectors"
 msgstr "Mergi la Conectori"
 
-#: src/Admin/Screen.php:105
+#: src/Admin/Screen.php:112
+msgid "What's next for Magic Linking"
+msgstr "Ce urmează pentru Magic Linking"
+
+#: src/Admin/Screen.php:113 assets/build/classic.js:12
+#: assets/build/classic.js:29 assets/build/editor.js:12
+#: assets/build/editor.js:29 assets/build/index.js:72
+msgid "(opens in a new tab)"
+msgstr "(se deschide într-o filă nouă)"
+
+#: src/Admin/Screen.php:133
 msgid "Open report"
 msgstr "Deschide raportul"
 
-#: src/Admin/Screen.php:151
+#: src/Admin/Screen.php:179
 msgid "Magic Linking"
 msgstr "Magic Linking"
 
-#: src/Admin/Screen.php:156 assets/build/index.js:131
+#: src/Admin/Screen.php:184 assets/build/index.js:131
 msgid "Report"
 msgstr "Raport"
 
-#: src/Admin/Screen.php:162 assets/build/index.js:131 assets/build/index.js:132
+#: src/Admin/Screen.php:190 assets/build/index.js:131 assets/build/index.js:132
 msgid "Broken links"
 msgstr "Legături defecte"
 
-#: src/Admin/Screen.php:166 assets/build/index.js:131
+#: src/Admin/Screen.php:194 assets/build/index.js:131
 msgid "History"
 msgstr "Istoric"
 
-#: src/Admin/Screen.php:170 assets/build/index.js:131
+#: src/Admin/Screen.php:198 assets/build/index.js:131
 msgid "Rules"
 msgstr "Reguli"
 
-#: src/Admin/Screen.php:174 assets/build/index.js:23 assets/build/index.js:44
+#: src/Admin/Screen.php:202 assets/build/index.js:23 assets/build/index.js:44
 #: assets/build/index.js:50 assets/build/index.js:53 assets/build/index.js:88
 #: assets/build/index.js:101 assets/build/index.js:131
 msgid "Status"
 msgstr "Stare"
 
-#: src/Admin/Screen.php:178 assets/build/index.js:131
+#: src/Admin/Screen.php:206 assets/build/index.js:131
 msgid "Settings"
 msgstr "Setări"
 
-#: src/Admin/Screen.php:225
+#: src/Admin/Screen.php:253
 msgid "Items per page"
 msgstr "Elemente pe pagină"
 
-#: src/Admin/Screen.php:307
+#: src/Admin/Screen.php:335
 msgid "You do not have permission to see this page."
 msgstr "Nu ai permisiunea de a vedea această pagină."
 
-#: src/Admin/Screen.php:314
+#: src/Admin/Screen.php:342
 msgid "This screen needs JavaScript. You can get the same report with WP-CLI: wp magic-linking report"
 msgstr "Acest ecran are nevoie de JavaScript. Poți obține același raport cu WP-CLI: wp magic-linking report"
 
@@ -316,7 +326,7 @@ msgstr "Intrarea aceea nu există sau nu este de un tip de conținut ales."
 
 #: src/Cli/Command.php:904 src/Cli/RulesCommand.php:301
 #: src/Rest/AiController.php:196 src/Rest/AnalyzedEntry.php:43
-#: src/Rest/DismissalsController.php:141
+#: src/Rest/DismissalsController.php:145 src/Rest/DismissalsController.php:179
 #: src/Rest/EditorHistoryController.php:95
 #: src/Rest/SuggestionsController.php:1030
 msgid "That entry does not exist."
@@ -607,7 +617,7 @@ msgstr "Intrarea de destinație nu este publicată (ciornă, în așteptare sau 
 msgid "The destination entry is private."
 msgstr "Intrarea de destinație este privată."
 
-#: src/Graph/BrokenRepository.php:146 src/Graph/ReportRepository.php:484
+#: src/Graph/BrokenRepository.php:156 src/Graph/ReportRepository.php:502
 #: src/Rest/FixController.php:208 assets/build/classic.js:12
 #: assets/build/classic.js:22 assets/build/editor.js:12
 #: assets/build/editor.js:22 assets/build/index.js:15 assets/build/index.js:65
@@ -858,11 +868,11 @@ msgstr[0] "Această ancoră este deja folosită în %d intrare pentru această d
 msgstr[1] "Această ancoră este deja folosită în %d intrări pentru această destinație."
 msgstr[2] "Această ancoră este deja folosită în %d de intrări pentru această destinație."
 
-#: src/Rest/DismissalsController.php:137
+#: src/Rest/DismissalsController.php:141 src/Rest/DismissalsController.php:176
 msgid "An entry cannot link to itself."
 msgstr "O intrare nu poate face legătură la ea însăși."
 
-#: src/Rest/DismissalsController.php:212
+#: src/Rest/DismissalsController.php:228
 msgid "The change could not be saved. Try again."
 msgstr "Nu am putut salva modificarea. Încearcă din nou."
 
@@ -1191,11 +1201,6 @@ msgstr "Înapoi la ordinea inițială"
 #: assets/build/classic.js:12 assets/build/editor.js:12
 msgid "Internal link (no access)"
 msgstr "Legătură internă (fără acces)"
-
-#: assets/build/classic.js:12 assets/build/classic.js:29
-#: assets/build/editor.js:12 assets/build/editor.js:29 assets/build/index.js:72
-msgid "(opens in a new tab)"
-msgstr "(se deschide într-o filă nouă)"
 
 #. translators: %d: number of entries this one already links to.
 #: assets/build/classic.js:13 assets/build/editor.js:13
